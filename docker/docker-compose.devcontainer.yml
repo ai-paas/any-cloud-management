@@ -1,0 +1,99 @@
+services:
+#
+#
+  aipaas-backend-svc:
+    image: mcr.microsoft.com/devcontainers/java:1-21-bookworm
+    command: sleep infinity
+    networks:
+      - aipaas-network
+    volumes:
+      - ..:/workspace:cached
+      # - ../.vscode/.vscode-server/extensions/:/root/.vscode-server/extensions/
+      # - ../.vscode/.vscode-server/extensionsCache/:/root/.vscode-server/extensionsCache/
+      - ../.vscode/.cursor-server/extensions/:/root/.cursor-server/extensions/
+      - ../.vscode/.cursor-server/extensionsCache/:/root/.cursor-server/extensionsCache/
+      - ../.vscode/.gradle:/root/.gradle/
+    depends_on:
+      - aipaas-db
+      - keycloak
+#
+#
+  keycloak:
+    image: quay.io/keycloak/keycloak:21.1.1
+    command: start-dev
+    networks:
+      - aipaas-network
+    ports:
+      - 9090:8080
+      - 9443:8443
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      # - KC_HTTP_ENABLED="true"
+      # - KC_HOSTNAME_STRICT="false"
+      # - KC_HOSTNAME=http://localhost:7000/
+      # - KC_HOSTNAME_ADMIN=http://localhost:7000/
+      - KC_DB=mysql
+      - KC_DB_URL=jdbc:mysql://keycloak-db:3306/keycloak
+      - KC_DB_USERNAME=aipaas
+      - KC_DB_PASSWORD=aipaas
+      - KC_LOG=console
+      - KC_LOG_CONSOLE_COLOR=true
+      - KEYCLOAK_LOGLEVEL=DEBUG
+    depends_on:
+      - keycloak-db
+#
+#
+  aipaas-db:
+    image: 'mysql:9.0.1'
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+    networks:
+      - aipaas-network
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: aipaas
+      MYSQL_DATABASE: aipaas
+      MYSQL_USER: aipaas
+      MYSQL_PASSWORD: aipaas
+      PUID: 1000
+      PGID: 1000
+      TZ: Asia/Seoul
+    volumes:
+      - '../.vscode/docker-data/aipaas-db_data:/var/lib/mysql'
+      - '/etc/localtime:/etc/localtime:ro'
+      - '../sqls:/docker-entrypoint-initdb.d:ro'
+#
+#
+  keycloak-db:
+    image: 'mysql:9.0.1'
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+    networks:
+      - aipaas-network
+    environment:
+      MYSQL_ROOT_PASSWORD: aipaas
+      MYSQL_DATABASE: keycloak
+      MYSQL_USER: aipaas
+      MYSQL_PASSWORD: aipaas
+      PUID: 1000
+      PGID: 1000
+      TZ: Asia/Seoul
+    volumes:
+      - '../.vscode/docker-data/keycloak-db_data:/var/lib/mysql'
+      - '/etc/localtime:/etc/localtime:ro'
+#
+#
+networks:
+  aipaas-network:
+    driver: bridge

@@ -1,0 +1,13 @@
+{
+  "version": "1",
+  "name": "aipaas-backend-svc",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"],
+  "moduleWhitelist": ["form-data"],
+  "scripts": {
+    "filesystemAccess": {
+      "allow": true
+    }
+  }
+}
+

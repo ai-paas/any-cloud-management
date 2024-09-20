@@ -1,0 +1,82 @@
+meta {
+  name: 07 - 사용자 비밀번호 변경
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{PLATFORM_HOST}}/{{PLATFORM_WEB_PATH}}/v1/system/users/:userId/password
+  body: json
+  auth: bearer
+}
+
+params:path {
+  userId: 41d38d39-78d1-450e-b8e5-7d4979eeb6f8
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+body:json {
+  {
+    "newPassword": "user001!Q,
+    "password": "user001"
+  }
+}
+
+script:pre-request {
+  const CryptoJS = require("crypto-js");
+  
+  const KEY = 'INNOGRID-AIPAAS-MGMT';
+  
+  class Aes {
+    constructor(key) {
+      this.key = CryptoJS.enc.Utf8.parse(key);
+      this.iv = CryptoJS.enc.Utf8.parse(key.substring(0, 16));
+      this.mode = CryptoJS.mode.CBC;
+      this.padding = CryptoJS.pad.Pkcs7;
+      this.encoder = CryptoJS.enc.Utf8;
+    }
+  
+    encrypt(plainText) {
+      const encoded = CryptoJS.enc.Utf8.parse(plainText);
+      const encrypted = CryptoJS.AES.encrypt(encoded, this.key, {
+        iv: this.iv,
+        mode: this.mode,
+        padding: this.padding,
+      });
+      return encrypted.toString();
+    }
+  
+    decrypt(cipherText) {
+      const decrypted = CryptoJS.AES.decrypt(cipherText, this.key, {
+        iv: this.iv,
+        mode: this.mode,
+        padding: this.padding,
+      });
+      return decrypted.toString(this.encoder);
+    }
+  }
+  
+  const aes = new Aes(KEY);
+  
+  // let requestBody = pm.request.body.raw;
+  let jsonBody = JSON.parse(requestBody);
+  
+  if (jsonBody.password) {
+      let encryptedNewPassword = aes.encrypt(jsonBody.newPassword);
+      let encryptedPassword = aes.encrypt(jsonBody.password);
+      
+      jsonBody.newPassword = encryptedNewPassword;
+      jsonBody.password = encryptedPassword;
+  
+      requestBody = JSON.stringify(jsonBody);
+  //     pm.request.body.update(requestBody);
+  //     pm.request.headers.upsert({
+          key: 'Content-Type',
+          value: 'application/json'
+      });
+  }
+  
+}

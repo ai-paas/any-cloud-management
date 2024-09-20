@@ -1,0 +1,100 @@
+{
+  "name": "aipaas-backend-svc",
+  "dockerComposeFile": ["../docker/docker-compose.devcontainer.yml"],
+  "service": "aipaas-backend-svc",
+  "shutdownAction": "none",
+  "workspaceFolder": "/workspace",
+
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "none",
+      "installMaven": "false",
+      "installGradle": "true"
+    }
+  },
+
+  "postCreateCommand": "java -version",
+
+  // Configure tool-specific properties.
+  "customizations": {
+    // Configure properties specific to VS Code.
+    "vscode": {
+      "settings": {
+        "extensions.verifySignature": false,
+        "editor.fontFamily": "Hack, D2Coding, Consolas, Menlo, Monaco, 'Courier New', monospace",
+        "editor.fontSize": 12,
+        "editor.tabSize": 2,
+        "editor.wordWrap": "on",
+        "editor.renderWhitespace": "all",
+        "editor.wrappingIndent": "indent",
+        "editor.fontLigatures": true,
+        "editor.rulers": [100, 120],
+        "editor.cursorBlinking": "phase",
+        "editor.guides.indentation": true,
+        "editor.codeActionsOnSave": {},
+        "editor.lineHeight": 26,
+        "editor.suggestSelection": "first",
+        "editor.renderLineHighlight": "gutter",
+        "editor.suggest.showStatusBar": true,
+        "editor.bracketPairColorization.enabled": true,
+        "editor.guides.bracketPairs": "active",
+        "editor.minimap.enabled": true,
+        "editor.minimap.autohide": true,
+        "editor.gotoLocation.multipleDeclarations": "goto",
+        "editor.gotoLocation.multipleDefinitions": "goto",
+        "editor.gotoLocation.multipleImplementations": "goto",
+        "editor.gotoLocation.multipleReferences": "gotoAndPeek",
+        "editor.gotoLocation.multipleTypeDefinitions": "gotoAndPeek",
+        "terminal.integrated.fontSize": 12,
+        "ActiveFileInStatusBar.enable": true,
+        "ActiveFileInStatusBar.fullpath": true,
+        "ActiveFileInStatusBar.revealFile": false,
+
+        "files.eol": "\n",
+        "files.exclude": {
+          "**/.DS_Store": true,
+          "**/.git": true,
+          "**/.hg": true,
+          "**/.svn": true,
+          "**/CVS": true,
+          "**/__MACOSX": true
+        },
+
+        "workbench.iconTheme": "vscode-icons",
+        "workbench.colorTheme": "GitHub Dark",
+        "workbench.statusBar.visible": true,
+
+        "vsicons.dontShowNewVersionMessage": true,
+
+        "java.format.settings.url": "https://raw.githubusercontent.com/google/styleguide/gh-pages/eclipse-java-google-style.xml",
+        "[java]": {
+          "editor.formatOnSave": true
+        },
+
+        "gitlens.changes.toggleMode": "file",
+        "gitlens.defaultDateLocale": "ko-KR",
+        "gitlens.defaultDateFormat": "YYYY-MM-DD H:MM:mm",
+        "gitlens.codeLens.scopes": ["document", "containers", "blocks"]
+      },
+      "extensions": [
+        "eamodio.gitlens",
+        "oderwat.indent-rainbow",
+        "RoscoP.ActiveFileInStatusBar",
+        "vscode-icons-team.vscode-icons",
+        "GitHub.github-vscode-theme",
+        "MS-CEINTL.vscode-language-pack-ko",
+        "usernamehw.errorlens",
+        // java
+        "redhat.java",
+        // spring boot
+        "vmware.vscode-boot-dev-pack"
+      ]
+    }
+  },
+
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  // "forwardPorts": [],
+
+  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+  "remoteUser": "root"
+}

@@ -1,0 +1,14 @@
+plugins {
+    id("aipaas.web")
+}
+
+bootJar {
+    archiveBaseName = "aipaas-api-service"
+}
+
+dependencies {
+    implementation project(path: ":common")
+
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.2")
+    implementation("io.github.openfeign:feign-okhttp:13.3")
+}

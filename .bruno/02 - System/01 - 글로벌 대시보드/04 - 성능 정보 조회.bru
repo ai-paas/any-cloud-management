@@ -1,0 +1,26 @@
+meta {
+  name: 04 - 성능 정보 조회
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{PLATFORM_HOST}}/{{PLATFORM_WEB_PATH}}/v1/system/dashboards/:clusterId/metrics?metricKeys=node_cpu, node_memory&start=1721005620&end=1721005620&step=120
+  body: json
+  auth: bearer
+}
+
+params:query {
+  metricKeys: node_cpu, node_memory
+  start: 1721005620
+  end: 1721005620
+  step: 120
+}
+
+params:path {
+  clusterId: kubernetes-001
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}

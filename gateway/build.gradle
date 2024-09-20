@@ -1,0 +1,9 @@
+plugins {
+    id("aipaas.gateway")
+}
+
+bootJar {
+    archiveBaseName = "aipaas-gateway"
+}
+
+dependencies {}

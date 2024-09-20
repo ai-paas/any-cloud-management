@@ -1,0 +1,72 @@
+plugins {
+    id("java")
+    id("org.springframework.boot")
+    id("io.spring.dependency-management")
+}
+
+group = "com.innogrid.aipaas"
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+ext {
+    springCloudVer = "2023.0.2"
+    javaxAnnotationApiVer = "3.0.0"
+    jetBrainsJavaAnnotaionsVer = "24.1.0"
+    keycloakVer = "21.1.1"
+}
+
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVer}"
+    }
+}
+
+dependencies {
+    // Spring Boot
+    implementation("org.springframework.boot:spring-boot-starter-aop")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+
+    // Annotation API
+    implementation("jakarta.annotation:jakarta.annotation-api:${javaxAnnotationApiVer}")
+
+    // Netty - MacOS
+    implementation("io.netty:netty-resolver-dns-native-macos:4.1.68.Final:osx-aarch_64")
+
+    // Jetbrains
+    implementation("org.jetbrains:annotations:${jetBrainsJavaAnnotaionsVer}")
+
+    // keycloak
+    implementation("org.keycloak:keycloak-admin-client:${keycloakVer}")
+
+    // JSON
+    implementation("org.json:json:20240303")
+
+    // compileOnly
+    compileOnly("org.projectlombok:lombok")
+
+    // annotationProcessor
+    annotationProcessor("org.projectlombok:lombok")
+
+    // testImplementation
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("io.projectreactor:reactor-test")
+}
+
+tasks.named('test') {
+    // Use JUnit Platform for unit tests.
+    useJUnitPlatform()
+}

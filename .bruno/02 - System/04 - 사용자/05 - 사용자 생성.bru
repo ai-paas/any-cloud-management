@@ -1,0 +1,81 @@
+meta {
+  name: 05 - 사용자 생성
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{PLATFORM_HOST}}/{{PLATFORM_WEB_PATH}}/v1/system/users
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+body:json {
+  {
+    "id": "user001",
+    "name": "사용자001",
+    "password": "user001",
+    "email": "user001@test.com",
+    "contact": "01012345678",
+    "description": "테스트 user001 입니다.",
+    "defaultRole": "admin",
+    "optionRoles": []
+  }
+}
+
+script:pre-request {
+  const CryptoJS = require("crypto-js");
+  
+  const KEY = 'INNOGRID-AIPAAS-MGMT';
+  
+  class Aes {
+    constructor(key) {
+      this.key = CryptoJS.enc.Utf8.parse(key);
+      this.iv = CryptoJS.enc.Utf8.parse(key.substring(0, 16));
+      this.mode = CryptoJS.mode.CBC;
+      this.padding = CryptoJS.pad.Pkcs7;
+      this.encoder = CryptoJS.enc.Utf8;
+    }
+  
+    encrypt(plainText) {
+      const encoded = CryptoJS.enc.Utf8.parse(plainText);
+      const encrypted = CryptoJS.AES.encrypt(encoded, this.key, {
+        iv: this.iv,
+        mode: this.mode,
+        padding: this.padding,
+      });
+      return encrypted.toString();
+    }
+  
+    decrypt(cipherText) {
+      const decrypted = CryptoJS.AES.decrypt(cipherText, this.key, {
+        iv: this.iv,
+        mode: this.mode,
+        padding: this.padding,
+      });
+      return decrypted.toString(this.encoder);
+    }
+  }
+  
+  const aes = new Aes(KEY);
+  
+  // let requestBody = pm.request.body.raw;
+  let jsonBody = JSON.parse(requestBody);
+  
+  if (jsonBody.password) {
+      let encryptedPassword = aes.encrypt(jsonBody.password);
+      jsonBody.password = encryptedPassword;
+  
+      requestBody = JSON.stringify(jsonBody);
+  //     pm.request.body.update(requestBody);
+  //     pm.request.headers.upsert({
+          key: 'Content-Type',
+          value: 'application/json'
+      });
+  }
+  
+}

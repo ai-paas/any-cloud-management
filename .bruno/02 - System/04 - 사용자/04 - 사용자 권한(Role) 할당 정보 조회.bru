@@ -1,0 +1,23 @@
+meta {
+  name: 04 - 사용자 권한(Role) 할당 정보 조회
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{PLATFORM_HOST}}/{{PLATFORM_WEB_PATH}}/v1/system/users/:userId/roles?isDefault=false
+  body: none
+  auth: bearer
+}
+
+params:query {
+  isDefault: false
+}
+
+params:path {
+  userId: a6f27708-e3e1-44cf-9bf1-887d3aa13102
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}

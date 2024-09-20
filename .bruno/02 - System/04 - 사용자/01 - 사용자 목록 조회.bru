@@ -1,0 +1,15 @@
+meta {
+  name: 01 - 사용자 목록 조회
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{PLATFORM_HOST}}/{{PLATFORM_WEB_PATH}}/v1/system/users
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}

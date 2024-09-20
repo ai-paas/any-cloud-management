@@ -1,0 +1,15 @@
+meta {
+  name: 09 - 로그인한 사용자 정보 조회
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{PLATFORM_HOST}}/{{PLATFORM_WEB_PATH}}/v1/system/users/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}

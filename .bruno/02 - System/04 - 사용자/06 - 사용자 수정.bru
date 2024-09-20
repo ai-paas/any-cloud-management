@@ -1,0 +1,37 @@
+meta {
+  name: 06 - 사용자 수정
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{PLATFORM_HOST}}/{{PLATFORM_WEB_PATH}}/v1/system/users/:userId
+  body: json
+  auth: bearer
+}
+
+params:path {
+  userId: 8b572c8d-b22c-4d90-83a4-d2f12efd8723
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+body:json {
+  {
+    "name": "홍길동",
+    "email": "test001@example.com",
+    "contact": "01012345678",
+    "description": "수정 테스트",
+    "optionRoles": [
+      {
+        "cluster": "kubernetes-001",
+        "project": "project-001",
+        "roles": [
+          "managesystem"
+        ]
+      }
+    ]
+  }
+}

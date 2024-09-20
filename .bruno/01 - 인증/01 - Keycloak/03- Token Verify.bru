@@ -1,0 +1,21 @@
+meta {
+  name: 03- Token Verify
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{KEYCLOAK_HOST}}/realms/{{KEYCLOAK_REALM}}/protocol/openid-connect/token/introspect
+  body: formUrlEncoded
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ACCESS_TOKEN}}
+}
+
+body:form-urlencoded {
+  client_id: {{KEYCLOAK_CLIENT_ID}}
+  client_secret: {{KEYCLOAK_CLIENT_SECRET}}
+  token: {{ACCESS_TOKEN}}
+}
