@@ -1,7 +1,0 @@
-plugins {
-    id("aipaas.web")
-}
-
-bootJar.enabled = false
-
-dependencies {}

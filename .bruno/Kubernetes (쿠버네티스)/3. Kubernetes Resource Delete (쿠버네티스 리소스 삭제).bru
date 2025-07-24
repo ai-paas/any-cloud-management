@@ -1,0 +1,33 @@
+meta {
+  name: Kubernetes Resource Delete (쿠버네티스 리소스 삭제)
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{baseUrl}}/kubernetes/pods/podinfo-778b865b7b-7vj9j?clusterName=local-kubernetes-001&namespace=default
+  body: none
+  auth: none
+}
+
+params:query {
+  clusterName: local-kubernetes-001
+  namespace: default
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/1.11.0
+}
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response Data 확인", function() {
+    const data = res.getBody();
+    // console.log("   ✓ data length", Object.keys(data).length);
+    expect(data).to.not.be.undefined;
+  });
+}

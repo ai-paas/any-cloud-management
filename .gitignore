@@ -1,19 +1,60 @@
-# Ignore Gradle project-specific cache directory
 .gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+**/src/**/*.crt
+*.crt
 
-# Ignore Gradle build output directory
-build
-bin
-.apt_generated*
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
 
-# Ignore IDE output directory
+### IntelliJ IDEA ###
 .idea
-.fleet
-.vscode
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+**/src/**/*.properties
 
-# Ignore Etc output directory
-*.rslsc
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
 
-# Ignore Devcontainer directory
-.vscode-server
-.cursor-server
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+
+### Log ###
+.log
+
+### etc ###
+.uuid

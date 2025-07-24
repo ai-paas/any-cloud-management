@@ -1,13 +1,17 @@
 {
   "version": "1",
-  "name": "aipaas-backend-svc",
+  "name": "aipaas-anycloud",
   "type": "collection",
-  "ignore": ["node_modules", ".git"],
-  "moduleWhitelist": ["form-data"],
+  "ignore": [
+    "node_modules",
+    ".git"
+  ],
+  "moduleWhitelist": [
+    "form-data"
+  ],
   "scripts": {
     "filesystemAccess": {
       "allow": true
     }
   }
 }
-

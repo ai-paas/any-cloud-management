@@ -1,0 +1,26 @@
+spring.datasource.driver-class-name=org.mariadb.jdbc.Driver
+spring.datasource.url=jdbc:mariadb://${DATABASE_HOST:-aipaas-db}:${DATABASE_PORT:-3306}/${DATABASE_NAME:-aipaas}
+spring.datasource.username=${DATABASE_USERID:-aipaas}
+spring.datasource.password=${DATABASE_USERPASS:-aipaas}
+
+spring.jpa.open-in-view=false
+spring.jpa.show-sql=true
+spring.jpa.hibernate.ddl-auto=update
+
+#set your port
+server.port=8888
+#server.error.include-message=always
+server.servlet.encoding.charset=UTF-8
+server.servlet.encoding.force=true
+
+# Swagger springdoc-ui Configuration
+spring.messages.encoding=UTF-8
+springdoc.api-docs.path=/docs/json
+springdoc.swagger-ui.path=/docs
+springdoc.api-docs.groups.enabled=true
+springdoc.cache.disabled=true
+springdoc.swagger-ui.tags-sorter=alpha
+springdoc.swagger-ui.operations-sorter=alpha
+
+# Thanos
+com.aipaas.anycloud.monitoringUrl=${THANOS_URL:-https://localhost:9000}

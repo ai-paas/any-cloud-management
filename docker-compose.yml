@@ -1,0 +1,40 @@
+services:
+  anycloud-backend:
+    container_name: anycloud-backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_HOST: anycloud-db
+      DATABASE_PORT: 3306
+      DATABASE_NAME: anycloud
+      DATABASE_USERID: anycloud
+      DATABASE_USERPASS: anycloud
+      THANOS_URL: https://localhost:9000
+    ports:
+      - "8888:8888"
+    #    volumes:
+    #      - ./log:/log/spring
+    depends_on:
+      - anycloud-db
+
+  anycloud-db:
+    image: 'linuxserver/mariadb:10.11.3'
+    container_name: anycloud-db
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+    environment:
+      MYSQL_ROOT_PASSWORD: yourP@ssW0rds
+      MYSQL_DATABASE: anycloud
+      MYSQL_USER: anycloud
+      MYSQL_PASSWORD: anycloud
+      PUID: 1001
+      PGID: 1001
+      TZ: Asia/Seoul
+    #    ports:
+    #      - "3306:3306"
+    volumes:
+      - './db_data:/config'
+      - '/etc/localtime:/etc/localtime:ro'

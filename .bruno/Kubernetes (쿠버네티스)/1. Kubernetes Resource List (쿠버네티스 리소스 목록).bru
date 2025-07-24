@@ -1,0 +1,37 @@
+meta {
+  name: Kubernetes Resource List (쿠버네티스 리소스 목록)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/kubernetes/pods?clusterName=local-kubernetes-001&namespace=default
+  body: none
+  auth: none
+}
+
+params:query {
+  clusterName: local-kubernetes-001
+  namespace: default
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/1.11.0
+}
+
+script:post-response {
+  bru.setEnvVar("cluster_name", res.body[0].id);
+}
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response Data 확인", function() {
+    const data = res.getBody();
+    // console.log("   ✓ data length", Object.keys(data).length);
+    expect(data).to.not.be.undefined;
+  });
+}

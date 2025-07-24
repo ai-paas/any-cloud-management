@@ -1,0 +1,41 @@
+meta {
+  name: Cluster Create (클러스터 생성)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/system/cluster
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/1.11.0
+}
+
+body:json {
+  {
+    "clusterProvider": "AWS",
+    "clusterName": "aws-kubernetes-001",
+    "description": "테스트",
+    "apiServerIp": "127.0.0.1",
+    "apiServerUrl": "https://127.0.0.1:6443",
+    "serverCA": "",
+    "clientCA": "",
+    "clientKey": ""
+  }
+}
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response Data 확인", function() {
+    const data = res.getBody();
+    // console.log("   ✓ data length", Object.keys(data).length);
+    expect(data).to.not.be.undefined;
+  });
+}

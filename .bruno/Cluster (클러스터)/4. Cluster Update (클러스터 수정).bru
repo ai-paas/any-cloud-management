@@ -1,0 +1,36 @@
+meta {
+  name: Cluster Update (클러스터 수정)
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/system/cluster/{{cluster_name}}
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/1.11.0
+}
+
+
+body:json {
+  {
+    "clusterName": "aws-kubernetes-001"
+  }
+}
+
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response Data 확인", function() {
+    const data = res.getBody();
+    // console.log("   ✓ data length", Object.keys(data).length);
+    expect(data).to.not.be.undefined;
+  });
+}
