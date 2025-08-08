@@ -1,0 +1,23 @@
+prometheus:
+  metrics:
+    cpu:
+      usage: "sum by (node) (rate(container_cpu_usage_seconds_total{$1}[5m]))"
+    memory:
+      usage: "sum by (node) (container_memory_usage_bytes{$1})"
+    filesystem:
+      used: >
+        sum by (node) (node_filesystem_size_bytes{fstype!~\"tmpfs|overlay\", node=~\"$1\"})
+        -
+        sum by (node) (node_filesystem_free_bytes{fstype!~\"tmpfs|overlay\", node=~\"$1\"})
+    disk:
+      read_bytes: "sum by (node) (rate(node_disk_read_bytes_total{node=~\"$1\"}[5m]))"
+      write_bytes: "sum by (node) (rate(node_disk_written_bytes_total{node=~\"$1\"}[5m]))"
+    network:
+      receive_bytes: "sum by (node) (rate(node_network_receive_bytes_total{node=~\"$1\", device!=\"lo\"}[5m]))"
+      transmit_bytes: "sum by (node) (rate(node_network_transmit_bytes_total{node=~\"$1\", device!=\"lo\"}[5m]))"
+      receive_drop: "sum by (node) (rate(node_network_receive_drop_total{node=~\"$1\"}[5m]))"
+      transmit_drop: "sum by (node) (rate(node_network_transmit_drop_total{node=~\"$1\"}[5m]))"
+    gpu:
+      utilization: "avg by (node) (dcgm_gpu_utilization{node=~\"$1\"})"
+      memory_used: "avg by (node) (dcgm_memory_used_bytes{node=~\"$1\"})"
+      memcpy_utilization: "avg by (node) (dcgm_memcpy_utilization{node=~\"$1\"})"

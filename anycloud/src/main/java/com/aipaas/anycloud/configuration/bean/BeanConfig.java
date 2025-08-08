@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.reactive.function.client.WebClient;
 import org.yaml.snakeyaml.Yaml;
 
 /**
@@ -26,5 +27,11 @@ public class BeanConfig {
 	@Bean
 	public Yaml yaml() {
 		return new Yaml();
+	}
+
+	@Bean
+	public WebClient webClient() {
+		return WebClient.builder()
+			.build();
 	}
 }

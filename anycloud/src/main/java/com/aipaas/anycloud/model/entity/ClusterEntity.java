@@ -76,6 +76,10 @@ public class ClusterEntity implements Serializable {
 	@Column(name = "client_token", columnDefinition = "MEDIUMTEXT")
 	private String clientToken;
 
+	@Size(max = 100)
+	@Column(name = "monit_server_url", nullable = false, length = 100)
+	private String monitServerUrl;
+
 	@Builder.Default
 	@Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
 	@JsonFormat(pattern = "yyyy-MM-dd HH:mm", locale = "ko_KR", timezone = "Asia/Seoul")

@@ -7,10 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -21,10 +20,12 @@ public class MonitController {
 
 	private final MonitService monitService;
 
-	@GetMapping("/realtime")
-	public ResponseEntity<Object> realTimeMonit(@RequestParam("cluster") String clusterName) {
+	@GetMapping("/realtime/{cluster}")
+	public ResponseEntity<Object> realTimeMonit(@PathVariable("cluster") String clusterName, @RequestParam Map<String, String> filter) {
 		log.info("retrieve realtime cluster cpu, memory, disk value ...!");
-		return new ResponseEntity<>(monitService.realTimeMonit(clusterName), new HttpHeaders(),
+		log.info("cluster = {}", clusterName);
+		log.info("queryParams = {}", filter);
+		return new ResponseEntity<>(monitService.realTimeMonit(clusterName, filter), new HttpHeaders(),
 			HttpStatus.OK);
 
 	}
