@@ -1,0 +1,38 @@
+meta {
+  name: Cluster Create (클러스터 생성)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/helm-repos
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/1.11.0
+}
+
+body:json {
+ {
+   "name": "chart-museum",
+   "url": "http://192.168.190.148:5080",
+   "insecureSkipTLSVerify": true,
+   "username" : "admin",
+   "password": "cXdlMTIxMiFR"
+ }
+}
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response Data 확인", function() {
+    const data = res.getBody();
+    // console.log("   ✓ data length", Object.keys(data).length);
+    expect(data).to.not.be.undefined;
+  });
+}
