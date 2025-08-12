@@ -72,7 +72,7 @@ public class KubernetesClientConfig {
 			.withMasterUrl(cluster.getApiServerUrl())
 			.withCaCertData(cluster.getServerCa()).build();
 
-		if (cluster.getClientToken() != null) {
+		if (!cluster.getClientToken().isBlank()) {
 			config.setOauthToken(cluster.getClientToken());
 			config.setClientCertData(null);
 			config.setClientKeyData(null);
