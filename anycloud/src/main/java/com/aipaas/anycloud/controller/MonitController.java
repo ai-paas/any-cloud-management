@@ -20,12 +20,28 @@ public class MonitController {
 
 	private final MonitService monitService;
 
-	@GetMapping("/realtime/{cluster}")
-	public ResponseEntity<Object> realTimeMonit(@PathVariable("cluster") String clusterName, @RequestParam Map<String, String> filter) {
-		log.info("retrieve realtime cluster cpu, memory, disk value ...!");
-		log.info("cluster = {}", clusterName);
-		log.info("queryParams = {}", filter);
-		return new ResponseEntity<>(monitService.realTimeMonit(clusterName, filter), new HttpHeaders(),
+//	@GetMapping("/realtime/{cluster}")
+//	public ResponseEntity<Object> realTimeMonit(@PathVariable("cluster") String clusterName, @RequestParam Map<String, String> filter) {
+//		log.info("retrieve realtime cluster cpu, memory, disk value ...!");
+//		log.info("cluster = {}", clusterName);
+//		log.info("queryParams = {}", filter);
+//		return new ResponseEntity<>(monitService.realTimeMonit(clusterName, filter), new HttpHeaders(),
+//			HttpStatus.OK);
+//
+//	}
+
+	@GetMapping("/nodeStatus/{cluster}")
+	public ResponseEntity<Object> nodeStatus(@PathVariable("cluster") String clusterName) {
+		log.info("retrieve nodeStatus ...!");
+		return new ResponseEntity<>(monitService.nodeStatus(clusterName), new HttpHeaders(),
+			HttpStatus.OK);
+
+	}
+
+	@GetMapping("/resourceMonit/{cluster}/{type}/{key}")
+	public ResponseEntity<Object> resourceMonit(@PathVariable("cluster") String clusterName, @PathVariable("type") String type, @PathVariable("key") String key ,@RequestParam Map<String, String> filter) {
+		log.info("retrieve resourceMonit ...!");
+		return new ResponseEntity<>(monitService.resourceMonit(clusterName,type,key,filter), new HttpHeaders(),
 			HttpStatus.OK);
 
 	}

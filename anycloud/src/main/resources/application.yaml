@@ -1,14 +1,71 @@
 prometheus:
   metrics:
+    node:
+      status: "kube_node_status_condition==1"
     cpu:
-      usage: "sum by (node) (rate(container_cpu_usage_seconds_total{$1}[5m]))"
+      total: "sum(kube_node_status_capacity{resource=\"cpu\", ${NODE_FILTER} })"
+      usage: |
+        sum by (node) (
+          sum by (internal_ip) (
+            label_replace(
+              rate(node_cpu_seconds_total{mode!="idle"}[5m]),
+              "internal_ip",
+              "$1",
+              "instance",
+              "(.*):[0-9]+"
+            )
+          )
+          * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+        )
+      usage_namespace: |
+        sum by (namespace) (
+          rate(container_cpu_usage_seconds_total{
+            container!~"POD|", 
+            container!="", 
+            ${NODE_FILTER}, ${NAMESPACE_FILTER}}[5m])
+        )
+      request: "sum by(node) (kube_pod_container_resource_requests{resource=\"cpu\", unit=\"core\",${NODE_FILTER},${NAMESPACE_FILTER} })"
+      limit: "sum by(node) (kube_pod_container_resource_limits{resource=\"cpu\", unit=\"core\",${NODE_FILTER},${NAMESPACE_FILTER} })"
     memory:
-      usage: "sum by (node) (container_memory_usage_bytes{$1})"
+      total: "sum(kube_node_status_capacity{resource=\"memory\", ${NODE_FILTER} })"
+      usage: "sum by (node) (container_memory_usage_bytes{${NODE_FILTER}, ${NAMESPACE_FILTER}}) /1024 /1024 /1024"
+      usage_namespace: |
+        sum by (namespace) (
+          container_memory_usage_bytes{
+            container!~"POD|", 
+            container!="", ${NODE_FILTER}, ${NAMESPACE_FILTER}
+          }
+        ) / 1024 / 1024 / 1024
+      request: "sum by(node) (kube_pod_container_resource_requests{resource=\"memory\", unit=\"byte\",${NODE_FILTER},${NAMESPACE_FILTER} })"
+      limit: "sum by(node) (kube_pod_container_resource_limits{resource=\"memory\", unit=\"byte\",${NODE_FILTER},${NAMESPACE_FILTER} })"
     filesystem:
-      used: >
-        sum by (node) (node_filesystem_size_bytes{fstype!~\"tmpfs|overlay\", node=~\"$1\"})
-        -
-        sum by (node) (node_filesystem_free_bytes{fstype!~\"tmpfs|overlay\", node=~\"$1\"})
+      total: |
+        sum (
+             sum by (internal_ip) (
+               label_replace(
+                 node_filesystem_size_bytes{fstype=~"ext4|xfs|btrfs", mountpoint="/"},
+                 "internal_ip",
+                 "$1",
+                 "instance",
+                 "(.*):[0-9]+"
+               )
+             )
+             * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+           ) /1024 /1024 /1024
+      used: |
+        sum by(node) (
+                  sum by (internal_ip) (
+                    label_replace(
+                      sum by (instance, device) (node_filesystem_size_bytes{fstype=~"ext4|xfs|btrfs", mountpoint="/"}-node_filesystem_free_bytes{fstype=~"ext4|xfs|btrfs", mountpoint="/"}),
+                      "internal_ip",
+                      "$1",
+                      "instance",
+                      "(.*):[0-9]+"
+                    )
+                  )
+                  * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+                ) /1024 /1024 /1024
+      usage_namespace: "sum by(namespace) (kubelet_volume_stats_used_bytes {}) "
     disk:
       read_bytes: "sum by (node) (rate(node_disk_read_bytes_total{node=~\"$1\"}[5m]))"
       write_bytes: "sum by (node) (rate(node_disk_written_bytes_total{node=~\"$1\"}[5m]))"
@@ -18,6 +75,17 @@ prometheus:
       receive_drop: "sum by (node) (rate(node_network_receive_drop_total{node=~\"$1\"}[5m]))"
       transmit_drop: "sum by (node) (rate(node_network_transmit_drop_total{node=~\"$1\"}[5m]))"
     gpu:
-      utilization: "avg by (node) (dcgm_gpu_utilization{node=~\"$1\"})"
-      memory_used: "avg by (node) (dcgm_memory_used_bytes{node=~\"$1\"})"
+      total: "gpu_operator_gpu_nodes_total"
+      usage_namespace: |
+        kube_pod_container_resource_requests{resource="nvidia_com_gpu"}
+        * on(namespace, pod)
+          group_left()
+          (kube_pod_status_phase{phase!="Pending", job="kube-state-metrics"} == 1)
+      request: "sum by(node) (kube_pod_container_resource_requests{resource=\"nvidia_com_gpu\",${NODE_FILTER},${NAMESPACE_FILTER} })"
+      limit: "sum by(node) (kube_pod_container_resource_limits{resource=\"nvidia_com_gpu\",${NODE_FILTER},${NAMESPACE_FILTER} })"
+
       memcpy_utilization: "avg by (node) (dcgm_memcpy_utilization{node=~\"$1\"})"
+    pod:
+      total: "sum(kube_node_status_capacity{resource=\"pods\", ${NODE_FILTER} })"
+      used_node: "kubelet_running_pods{${NODE_FILTER}}"
+      used_namespace: "count(kube_pod_info{${NODE_FILTER}) by (namespace)"

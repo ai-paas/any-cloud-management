@@ -3,6 +3,7 @@ package com.aipaas.anycloud.service;
 import com.aipaas.anycloud.model.entity.MonitEntity;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -16,9 +17,12 @@ import java.util.Map;
 @Component
 public interface MonitService {
 
-	Object executeQuery(String url, String query);
+	List<MonitEntity.NodeStatus> nodeStatus(String clusterName);
+	Object resourceMonit (String clusterName, String type, String key, Map<String, String> filter);
+	//Object executeQuery(String url, String query);
+
 //	String getMonitUrl(String ClusterName);
-	MonitEntity realTimeMonit(String ClusterName, Map<String, String> filter);
+//	MonitEntity realTimeMonit(String ClusterName, Map<String, String> filter);
 	// MonitEntity clusterQuery(String ClusterName);
 
 }

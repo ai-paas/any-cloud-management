@@ -1,13 +1,14 @@
 package com.aipaas.anycloud.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import java.io.Serializable;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import java.util.ArrayList;
+import java.util.Map;
+
+import lombok.*;
 
 @Getter
 @Builder
@@ -15,15 +16,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class MonitEntity implements Serializable {
 
-	// Cluster Util
-	// @Builder.Default
-	// private Map<String,String> clusterMetric = Map.of(
-	// "cpu_usage",
-	// "sum(rate(node_cpu_seconds_total{mode!=\"idle\",$1}[5m]))by(cluster)",
-	// "cpu_total", "count(node_cpu_seconds_total{mode='idle',$1}) by (cluster)",
-	// "cpu_util","round(sum(rate(node_cpu_seconds_total{mode!=\"idle\",$1}[5m]))by(cluster)/
-	// count(node_cpu_seconds_total{mode='idle',$1}) by (cluster) * 100, 0.01)"
-	// );
 
 	private RealTimeMonit cpu;
 	private RealTimeMonit memory;
@@ -41,47 +33,49 @@ public class MonitEntity implements Serializable {
 	// }
 	// }
 	@Getter
+	@Setter
 	@Builder
 	@NoArgsConstructor
 	@AllArgsConstructor
-	public static class RealTimeMonit {
+	public static class NodeStatus{
+		private String nodeName;
+		private String nodeIp;
+		private Condition condition;
+	}
 
-		@NotBlank
-		@JsonProperty
-		@Schema(title = "MH name", example = "MH-system")
-		private double util;
 
-		@JsonProperty
-		@Schema(title = "전체 value", example = "이동형병원-1")
-		private double total;
-
-		@NotBlank
-		@JsonProperty
-		@Schema(title = "사용량 value", example = "0.0.0.0")
-		private double used;
-
+	@Builder @Getter @Setter
+	public static class Condition {
+		private Boolean ready;
+		private Boolean diskPressure;
+		private Boolean MemoryPressure;
+		private Boolean PIDPressure;
+		private Boolean NetworkPressure;
 	}
 
 	@Getter
 	@Builder
 	@NoArgsConstructor
 	@AllArgsConstructor
-	public static class RealTimeMonitDto {
+	public static class RealTimeMonit {
+
+		@JsonProperty
+		@Schema(title = "info")
+		private JsonNode info;
 
 		@NotBlank
 		@JsonProperty
-		@Schema(title = "MH name", example = "MH-system")
-		private double cpuUsage;
+		@Schema(title = "value")
+		private double value;
 
-		@JsonProperty
-		@Schema(title = "MH description", example = "이동형병원-1")
-		private double memoryUsage;
-
-		@NotBlank
-		@JsonProperty
-		@Schema(title = "MH ip Address", example = "0.0.0.0")
-		private double diskUsage;
-
+	}
+	@Getter
+	@Builder
+	@NoArgsConstructor
+	@AllArgsConstructor
+	public static class ResourceStatus {
+		private RealTimeMonit total;
+		private ArrayList<RealTimeMonit> usage;
 	}
 
 }
