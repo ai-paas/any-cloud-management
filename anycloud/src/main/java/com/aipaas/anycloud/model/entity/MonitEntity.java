@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import java.io.Serializable;
+import java.sql.Time;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Map;
 
 import lombok.*;
@@ -13,13 +15,7 @@ import lombok.*;
 @Getter
 @Builder
 @NoArgsConstructor
-@AllArgsConstructor
 public class MonitEntity implements Serializable {
-
-
-	private RealTimeMonit cpu;
-	private RealTimeMonit memory;
-	private RealTimeMonit disk;
 
 	//
 	// public String executeClusterMetricQuery(String clusterName, String metricKey)
@@ -57,7 +53,7 @@ public class MonitEntity implements Serializable {
 	@Builder
 	@NoArgsConstructor
 	@AllArgsConstructor
-	public static class RealTimeMonit {
+	public static class VectorMonit {
 
 		@JsonProperty
 		@Schema(title = "info")
@@ -69,13 +65,31 @@ public class MonitEntity implements Serializable {
 		private double value;
 
 	}
+
 	@Getter
 	@Builder
 	@NoArgsConstructor
 	@AllArgsConstructor
-	public static class ResourceStatus {
-		private RealTimeMonit total;
-		private ArrayList<RealTimeMonit> usage;
+	public static class MetrixMonit {
+
+		@JsonProperty
+		@Schema(title = "info")
+		private JsonNode info;
+
+		@NotBlank
+		@JsonProperty
+		@Schema(title = "values")
+		private ArrayList<Values> values;
+
 	}
+	@Getter
+	@Builder
+	@NoArgsConstructor
+	@AllArgsConstructor
+	public static class Values{
+		private Date time;
+		private double value;
+	}
+
 
 }

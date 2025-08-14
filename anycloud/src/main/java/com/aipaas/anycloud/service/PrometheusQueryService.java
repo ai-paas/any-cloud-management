@@ -6,6 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -50,6 +53,7 @@ public class PrometheusQueryService {
 
 			// 빈 값 치환으로 인한 불필요한 콤마 정리
 			query = cleanupCommas(query);
+
 		}
 
 
@@ -104,9 +108,49 @@ public class PrometheusQueryService {
 		}
 
 		// 시간 범위
-		String timeRange = queryParams.get("timeRange");
-		variables.put("TIME_RANGE", timeRange != null && !timeRange.isEmpty() ?
-			"[" + timeRange + "]" : "[5m]");
+//		String durationStr = queryParams.get("duration");
+//		if (durationStr != null && !durationStr.isEmpty()) {
+//
+//			// 1. duration 파싱 (숫자 검증)
+//			long durationInput;
+//			try {
+//				durationInput = Long.parseLong(durationStr);
+//			} catch (NumberFormatException e) {
+//				throw new IllegalArgumentException("duration 값이 숫자가 아닙니다: " + durationStr);
+//			}
+//
+//			// 2. duration 단위 판별 (기본: 분)
+//			//    1시간 이상인데 10000 이상이면 초 단위로 간주
+//			boolean isSeconds = durationInput > 10000;
+//			long durationSeconds = isSeconds ? durationInput : durationInput * 60;
+//
+//			// 3. 기준 시각 하나로 고정
+//			long end = Instant.now().getEpochSecond();
+//			long start = end - durationSeconds;
+//
+//			// 4. step 계산 (20 포인트)
+//			int points = 20;
+//			long step = (end - start) / points;
+//
+//			// 5. 사람이 읽기 쉽게 변환
+//			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+//				.withZone(ZoneId.of("Asia/Seoul"));
+//			String startHuman = formatter.format(Instant.ofEpochSecond(start));
+//			String endHuman = formatter.format(Instant.ofEpochSecond(end));
+//
+//			// 6. 로그 출력
+//			log.info("[Prometheus Time Range]");
+//			log.info("duration (입력): " + durationInput + (isSeconds ? " sec" : " min"));
+//			log.info("start = " + start + " (" + startHuman + ")");
+//			log.info("end   = " + end   + " (" + endHuman   + ")");
+//			log.info("step  = " + step  + " sec");
+//
+//			// 7. 쿼리 문자열 생성
+//			variables.put("start", String.valueOf(start));
+//			variables.put("end", String.valueOf(end));
+//			variables.put("step", String.valueOf(step));
+//		}
+
 
 		return variables;
 	}
