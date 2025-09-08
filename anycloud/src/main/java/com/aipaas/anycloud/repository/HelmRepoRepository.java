@@ -1,9 +1,7 @@
 package com.aipaas.anycloud.repository;
 
-import com.aipaas.anycloud.model.entity.ClusterEntity;
 import com.aipaas.anycloud.model.entity.HelmRepoEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -17,7 +15,7 @@ import java.util.Optional;
  * </pre>
  */
 @Repository
-public interface HelmRepoRepository extends JpaRepository<HelmRepoEntity, Integer> {
+public interface HelmRepoRepository extends JpaRepository<HelmRepoEntity, String> {
 
 	Optional<HelmRepoEntity> findByName(String name);
 

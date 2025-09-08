@@ -65,7 +65,6 @@ public class HelmRepoServiceImpl implements HelmRepoService {
 			throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
 		}
 
-		log.error("ttest");
 
 		log.error(isHelmExist(helmRepo.getName()).toString());
 

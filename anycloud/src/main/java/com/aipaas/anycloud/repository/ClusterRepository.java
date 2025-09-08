@@ -15,7 +15,7 @@ import org.springframework.stereotype.Repository;
  * </pre>
  */
 @Repository
-public interface ClusterRepository extends JpaRepository<ClusterEntity, Integer> {
+public interface ClusterRepository extends JpaRepository<ClusterEntity, String> {
 
 	@Query("select c from ClusterEntity c WHERE c.id = ?1")
 	Optional<ClusterEntity> findByName(String name);

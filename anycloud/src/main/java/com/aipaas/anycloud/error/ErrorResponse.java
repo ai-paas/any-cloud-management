@@ -43,12 +43,22 @@ public class ErrorResponse {
         this.errors = new ArrayList<>();
     }
 
+    private ErrorResponse(final ErrorCode code, final String customMessage) {
+        this.status = code.getStatus();
+        this.message = customMessage;
+        this.errors = new ArrayList<>();
+    }
+
     public static ErrorResponse of(final ErrorCode code, final BindingResult bindingResult) {
         return new ErrorResponse(code, FieldError.of(bindingResult));
     }
 
     public static ErrorResponse of(final ErrorCode code) {
         return new ErrorResponse(code);
+    }
+
+    public static ErrorResponse of(final ErrorCode code, final String customMessage) {
+        return new ErrorResponse(code, customMessage);
     }
 
     public static ErrorResponse of(final ErrorCode code, final List<FieldError> errors) {

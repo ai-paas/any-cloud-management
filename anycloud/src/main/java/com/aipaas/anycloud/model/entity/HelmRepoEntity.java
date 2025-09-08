@@ -1,6 +1,7 @@
 package com.aipaas.anycloud.model.entity;
 
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.fabric8.generator.annotation.Size;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -70,15 +71,18 @@ public class HelmRepoEntity implements Serializable {
 
 	@NotNull
 	@ColumnDefault("0")
+	@Builder.Default
 	@Column(name = "insecure_skip_tls_verify", nullable = false)
 	private Boolean insecureSkipTlsVerify = false;
 
 	@Column(name = "created_at", nullable = false, updatable = false)
 	@CreationTimestamp
+	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 	private LocalDateTime createdAt;
 
 	@Column(name = "updated_at", nullable = false)
 	@UpdateTimestamp
+	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 	private LocalDateTime updatedAt;
 
 }

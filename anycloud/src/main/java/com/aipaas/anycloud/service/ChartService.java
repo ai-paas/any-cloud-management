@@ -1,0 +1,64 @@
+package com.aipaas.anycloud.service;
+
+import com.aipaas.anycloud.model.dto.request.ChartDeployDto;
+import com.aipaas.anycloud.model.dto.response.*;
+import org.springframework.stereotype.Component;
+
+/**
+ * <pre>
+ * ClassName : ChartService
+ * Type : interface
+ * Description : Helm 차트 관련 기능을 정리한 인터페이스입니다.
+ * Related : ChartController, ChartServiceImpl
+ * </pre>
+ */
+@Component
+public interface ChartService {
+
+    /**
+     * 지정된 repository의 차트 목록을 조회합니다.
+     *
+     * @param repositoryName Helm repository 이름
+     * @return 차트 목록
+     */
+    ChartListDto getChartList(String repositoryName);
+
+    /**
+     * 지정된 repository chart의 상세 정보를 조회합니다.
+     *
+     * @param repositoryName Helm repository 이름
+     * @param chartName Helm chart 이름
+     * @return 차트 상세 정보
+     */
+    ChartDetailDto getChartDetail(String repositoryName, String chartName);
+
+    /**
+     * 지정된 차트의 values.yaml 내용을 조회합니다.
+     *
+     * @param repositoryName Helm repository 이름
+     * @param chartName      차트 이름
+     * @param version        차트 버전 (선택사항, null일 경우 최신 버전)
+     * @return values.yaml 내용
+     */
+    ChartValuesDto getChartValues(String repositoryName, String chartName, String version);
+
+    /**
+     * 지정된 차트의 README.md 내용을 조회합니다.
+     *
+     * @param repositoryName Helm repository 이름
+     * @param chartName      차트 이름
+     * @param version        차트 버전 (선택사항, null일 경우 최신 버전)
+     * @return README.md 내용
+     */
+    ChartReadmeDto getChartReadme(String repositoryName, String chartName, String version);
+
+    /**
+     * Helm 차트를 배포합니다.
+     *
+     * @param repositoryName Helm repository 이름
+     * @param chartName      차트 이름
+     * @param deployDto      배포 설정
+     * @return 배포 결과
+     */
+    ChartDeployResponseDto deployChart(String repositoryName, String chartName, ChartDeployDto deployDto);
+}

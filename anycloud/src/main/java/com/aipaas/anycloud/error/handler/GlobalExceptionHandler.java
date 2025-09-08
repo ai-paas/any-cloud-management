@@ -4,6 +4,9 @@ import com.aipaas.anycloud.error.ErrorResponse;
 import com.aipaas.anycloud.error.enums.ErrorCode;
 import com.aipaas.anycloud.error.exception.CustomException;
 import com.aipaas.anycloud.error.exception.EntityNotFoundException;
+import com.aipaas.anycloud.error.exception.HelmChartNotFoundException;
+import com.aipaas.anycloud.error.exception.HelmDeploymentException;
+import com.aipaas.anycloud.error.exception.HelmRepositoryNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
@@ -116,5 +119,35 @@ public class GlobalExceptionHandler {
         // e.printStackTrace();
         final ErrorResponse response = ErrorResponse.of(ErrorCode.ENTITY_NOT_FOUND);
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    /**
+     * Helm Repository를 찾을 수 없을 때 발생하는 예외 처리
+     */
+    @ExceptionHandler(HelmRepositoryNotFoundException.class)
+    protected ResponseEntity<ErrorResponse> handleHelmRepositoryNotFoundException(HelmRepositoryNotFoundException e) {
+        log.error("Helm repository not found: {}", e.getMessage());
+        final ErrorResponse response = ErrorResponse.of(e.getErrorCode(), e.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    /**
+     * Helm Chart를 찾을 수 없을 때 발생하는 예외 처리
+     */
+    @ExceptionHandler(HelmChartNotFoundException.class)
+    protected ResponseEntity<ErrorResponse> handleHelmChartNotFoundException(HelmChartNotFoundException e) {
+        log.error("Helm chart not found: {}", e.getMessage());
+        final ErrorResponse response = ErrorResponse.of(e.getErrorCode(), e.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    /**
+     * Helm Chart 배포 실패 시 발생하는 예외 처리
+     */
+    @ExceptionHandler(HelmDeploymentException.class)
+    protected ResponseEntity<ErrorResponse> handleHelmDeploymentException(HelmDeploymentException e) {
+        log.error("Helm deployment failed: {}", e.getMessage());
+        final ErrorResponse response = ErrorResponse.of(e.getErrorCode(), e.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
