@@ -33,27 +33,27 @@ public class ChartController {
 
     private final ChartService chartService;
 
-    @GetMapping
-    @Operation(summary = "차트 목록 조회", description = "DB에서 repoID로 RepositoryEntity 조회 후 해당 url에서 index.yaml을 다운로드하여 차트 목록을 반환합니다.")
+    @GetMapping("/{repoName}")
+    @Operation(summary = "차트 목록 조회", description = "DB에서 repoName로 RepositoryEntity 조회 후 해당 url에서 index.yaml을 다운로드하여 차트 목록을 반환합니다.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "차트 목록 조회 성공"),
         @ApiResponse(responseCode = "404", description = "Repository를 찾을 수 없음"),
         @ApiResponse(responseCode = "500", description = "서버 오류")
     })
     public ResponseEntity<ResultResponse> getChartList(
-            @Parameter(description = "Helm repository ID 또는 이름", required = true, example = "9e8868a6-a4c5-4d55-863e-db476d897826")
-            @RequestParam String repo) {
-        
-        log.info("Getting chart list for repository: {}", repo);
-        
-        ChartListDto chartList = chartService.getChartList(repo);
+            @Parameter(description = "Helm repository 이름", required = true, example = "chart-museum")
+			@PathVariable String repoName) {
+
+        log.info("Getting chart list for repository: {}", repoName);
+
+        ChartListDto chartList = chartService.getChartList(repoName);
         return ResponseEntity.ok(ResultResponse.of(SuccessCode.OK, chartList));
     }
 
     @GetMapping("/{repoName}/{chartName}/detail")
     @Operation(
         summary = "차트 상세 조회",
-        description = "DB에서 repoID 또는 이름으로 RepositoryEntity 조회 후 해당 url에서 index.yaml을 다운로드하여 특정 차트 상세 정보를 반환합니다."
+        description = "DB에서 repoName 또는 이름으로 RepositoryEntity 조회 후 해당 url에서 index.yaml을 다운로드하여 특정 차트 상세 정보를 반환합니다."
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "차트 상세 조회 성공"),
@@ -61,7 +61,7 @@ public class ChartController {
         @ApiResponse(responseCode = "500", description = "서버 오류")
     })
     public ResponseEntity<ResultResponse> getChartDetail(
-            @Parameter(description = "Helm repository ID 또는 이름", required = true, example = "9e8868a6-a4c5-4d55-863e-db476d897826")
+            @Parameter(description = "Helm repository 이름", required = true, example = "chart-museum")
             @PathVariable String repoName,
             @Parameter(description = "조회할 차트 이름", required = true, example = "nginx")
             @PathVariable String chartName) {
@@ -86,9 +86,9 @@ public class ChartController {
             @PathVariable String chartName,
             @Parameter(description = "차트 버전 (선택사항)", example = "15.4.4")
             @RequestParam(required = false) String version) {
-        
+
         log.info("Getting values for chart: {}/{}, version: {}", repoName, chartName, version);
-        
+
         ChartValuesDto chartValues = chartService.getChartValues(repoName, chartName, version);
         return ResponseEntity.ok(ResultResponse.of(SuccessCode.OK, chartValues));
     }
@@ -107,9 +107,9 @@ public class ChartController {
             @PathVariable String chartName,
             @Parameter(description = "차트 버전 (선택사항)", example = "15.4.4")
             @RequestParam(required = false) String version) {
-        
+
         log.info("Getting README for chart: {}/{}, version: {}", repoName, chartName, version);
-        
+
         ChartReadmeDto chartReadme = chartService.getChartReadme(repoName, chartName, version);
         return ResponseEntity.ok(ResultResponse.of(SuccessCode.OK, chartReadme));
     }
@@ -128,9 +128,9 @@ public class ChartController {
             @Parameter(description = "차트 이름", required = true, example = "nginx")
             @PathVariable String chartName,
             @Valid @RequestBody ChartDeployDto deployDto) {
-        
+
         log.info("Deploying chart: {}/{} as release: {}", repoName, chartName, deployDto.getReleaseName());
-        
+
         ChartDeployResponseDto deployResponse = chartService.deployChart(repoName, chartName, deployDto);
         return ResponseEntity.ok(ResultResponse.of(SuccessCode.OK, deployResponse));
     }

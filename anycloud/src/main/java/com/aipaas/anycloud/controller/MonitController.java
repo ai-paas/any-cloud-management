@@ -1,6 +1,10 @@
 package com.aipaas.anycloud.controller;
 
 import com.aipaas.anycloud.service.MonitService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +35,18 @@ public class MonitController {
 //	}
 
 	@GetMapping("/nodeStatus/{cluster}")
-	public ResponseEntity<Object> nodeStatus(@PathVariable("cluster") String clusterName) {
+	@Operation(
+		summary = "대시보드 > 인프라 > 노드 상태 조회",
+		description = "클러스터 내 노드별 상태 조회"
+	)
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "200", description = "node Status 조회 성공"),
+		@ApiResponse(responseCode = "400", description = "cluster 또는 모니터링 서버 url을 찾을 수 없음"),
+		@ApiResponse(responseCode = "500", description = "서버 오류")
+	})
+	public ResponseEntity<Object> nodeStatus(
+		@Parameter(description = "조회할 cluster id", required = true, example = "openstack")
+		@PathVariable("cluster") String clusterName) {
 		log.info("retrieve nodeStatus ...!");
 		return new ResponseEntity<>(monitService.nodeStatus(clusterName), new HttpHeaders(),
 			HttpStatus.OK);
@@ -39,7 +54,24 @@ public class MonitController {
 	}
 
 	@GetMapping("/resourceMonit/{cluster}/{type}/{key}")
-	public ResponseEntity<Object> resourceMonit(@PathVariable("cluster") String clusterName, @PathVariable("type") String type, @PathVariable("key") String key ,@RequestParam Map<String, String> filter) {
+	@Operation(
+		summary = "모니터링 메트릭 조회",
+		description = "대시보드 모니터링 메트릭 조회  https://github.com/ai-paas/any-cloud-management/blob/main/anycloud/src/main/resources/application.yaml 참고"
+	)
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "200", description = "메트릭 조회 성공"),
+		@ApiResponse(responseCode = "400", description = "cluster 또는 모니터링 서버 url을 찾을 수 없음"),
+		@ApiResponse(responseCode = "500", description = "서버 오류")
+	})
+	public ResponseEntity<Object> resourceMonit(
+		@Parameter(description = "조회할 cluster 이름", required = true, example = "openstack")
+		@PathVariable("cluster") String clusterName,
+		@Parameter(description = "메트릭 타입", required = true, example = "cpu")
+		@PathVariable("type") String type,
+		@Parameter(description = "조회할 메트릭 key", required = true, example = "usage_namespace")
+		@PathVariable("key") String key ,
+		@Parameter(description = "node,namespace filter 및 duration", required = false, example = "{\"namespace\":\"kubeflow\", \"duration\":\"3600\"}")
+		@RequestParam Map<String, String> filter) {
 		log.info("retrieve resourceMonit ...!");
 		return new ResponseEntity<>(monitService.resourceMonit(clusterName,type,key,filter), new HttpHeaders(),
 			HttpStatus.OK);

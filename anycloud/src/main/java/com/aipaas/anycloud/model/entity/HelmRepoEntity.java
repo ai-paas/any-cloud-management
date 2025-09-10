@@ -2,9 +2,9 @@ package com.aipaas.anycloud.model.entity;
 
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import io.fabric8.generator.annotation.Size;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;

@@ -14,7 +14,6 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0'
     implementation 'org.mariadb.jdbc:mariadb-java-client:3.1.2'
     implementation 'io.fabric8:kubernetes-client:7.2.0'
-    implementation 'io.fabric8:crd-generator-apt:7.2.0'
     implementation 'org.modelmapper:modelmapper:3.1.1'
     implementation "org.json:json:20230618"
     implementation "com.google.code.gson:gson:2.10.1"

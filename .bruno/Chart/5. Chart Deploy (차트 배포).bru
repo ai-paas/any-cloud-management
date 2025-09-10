@@ -1,0 +1,63 @@
+meta {
+  name: Chart Deploy (차트 배포)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/charts/{{repo_name}}/{{chart_name}}/deploy
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/1.11.0
+}
+
+body:json {
+  {
+    "releaseName": "nginx-test-release",
+    "namespace": "default",
+    "version": "15.4.4",
+    "values": {
+      "replicaCount": 1,
+      "image": {
+        "repository": "nginx",
+        "tag": "1.21",
+        "pullPolicy": "IfNotPresent"
+      },
+      "service": {
+        "type": "ClusterIP",
+        "port": 80
+      }
+    },
+    "wait": true,
+    "timeout": "5m"
+  }
+}
+
+vars:pre-request {
+  repo_name: chart-museum
+  chart_name: nginx
+}
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response Data 확인", function() {
+    const data = res.getBody();
+    expect(data).to.not.be.undefined;
+    expect(data.data).to.not.be.undefined;
+  });
+  
+  test("배포 결과 확인", function() {
+    const data = res.getBody();
+    if (data.data) {
+      expect(data.data).to.have.property('releaseName');
+      expect(data.data).to.have.property('namespace');
+    }
+  });
+}

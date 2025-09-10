@@ -1,0 +1,41 @@
+meta {
+  name: Chart Detail (차트 상세)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/charts/{{repo_name}}/{{chart_name}}/detail
+  body: none
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/1.11.0
+}
+
+vars:pre-request {
+  repo_name: chart-museum
+  chart_name: nginx
+}
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response Data 확인", function() {
+    const data = res.getBody();
+    expect(data).to.not.be.undefined;
+    expect(data.data).to.not.be.undefined;
+  });
+  
+  test("차트 상세 정보 확인", function() {
+    const data = res.getBody();
+    if (data.data) {
+      expect(data.data).to.have.property('name');
+      expect(data.data).to.have.property('description');
+    }
+  });
+}

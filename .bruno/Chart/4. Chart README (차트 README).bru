@@ -1,0 +1,41 @@
+meta {
+  name: Chart README (차트 README)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/charts/{{repo_name}}/{{chart_name}}/readme?version={{chart_version}}
+  body: none
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/1.11.0
+}
+
+vars:pre-request {
+  repo_name: chart-museum
+  chart_name: nginx
+  chart_version: 15.4.4
+}
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response Data 확인", function() {
+    const data = res.getBody();
+    expect(data).to.not.be.undefined;
+    expect(data.data).to.not.be.undefined;
+  });
+  
+  test("README 데이터 확인", function() {
+    const data = res.getBody();
+    if (data.data) {
+      expect(data.data).to.have.property('readme');
+    }
+  });
+}

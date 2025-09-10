@@ -7,6 +7,8 @@ import com.aipaas.anycloud.service.HelmRepoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +37,11 @@ public class HelmRepoController {
 	 */
 	@GetMapping("")
 	@Operation(summary = "헬름 저장소 목록 조회", description = "헬름 저장소 전체 목록을 조회합니다.")
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "200", description = "헬름 저장소 목록 조회 성공"),
+		@ApiResponse(responseCode = "400", description = "Repository 정보를 찾을 수 없음"),
+		@ApiResponse(responseCode = "500", description = "서버 오류")
+	})
 	public ResponseEntity<List<HelmRepoEntity>> getHelmRepos() {
 		return new ResponseEntity<>(helmRepoService.getHelmRepos(),
 			new HttpHeaders(),
@@ -51,6 +58,7 @@ public class HelmRepoController {
 	@GetMapping("/{helmRepoName}")
 	@Operation(summary = "헬름 저장소 조회", description = "헬름 저장소를 조회합니다.")
 	public ResponseEntity<HelmRepoEntity> getHelmRepo(
+		@Parameter(description = "Helm repository 이름", required = true, example = "chart-museum")
 		@PathVariable("helmRepoName") String helmRepoName) {
 		return new ResponseEntity<>(helmRepoService.getHelmRepo(helmRepoName),
 			new HttpHeaders(),
@@ -97,8 +105,8 @@ public class HelmRepoController {
 	@GetMapping("/{helmRepoName}/exists")
 	@Operation(summary = "헬름 저장소 조회", description = "헬름 저장소를 조회합니다.")
 	public ResponseEntity<Boolean> isHelmRepoExist(
-		@Parameter(name = "clusterId", description = "조회할 헬름 저장소 아이디",
-			required = true, in = ParameterIn.QUERY) String helmRepoName) {
+		@Parameter(description = "Helm repository 이름", required = true, example = "chart-museum")
+		@PathVariable("helmRepoName") String helmRepoName) {
 		return new ResponseEntity<>(helmRepoService.isHelmExist(helmRepoName),
 			new HttpHeaders(),
 			HttpStatus.OK);
