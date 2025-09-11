@@ -1,12 +1,15 @@
 package com.aipaas.anycloud.service.Impl;
 
+import com.aipaas.anycloud.configuration.bean.KubernetesClientConfig;
 import com.aipaas.anycloud.error.exception.HelmChartNotFoundException;
 import com.aipaas.anycloud.error.exception.HelmDeploymentException;
 import com.aipaas.anycloud.error.exception.HelmRepositoryNotFoundException;
 import com.aipaas.anycloud.model.dto.request.ChartDeployDto;
 import com.aipaas.anycloud.model.dto.response.*;
+import com.aipaas.anycloud.model.entity.ClusterEntity;
 import com.aipaas.anycloud.model.entity.HelmRepoEntity;
 import com.aipaas.anycloud.service.ChartService;
+import com.aipaas.anycloud.service.ClusterService;
 import com.aipaas.anycloud.service.HelmRepoService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,12 +17,15 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.beans.factory.annotation.Value;
+import io.fabric8.kubernetes.client.Config;
+import io.fabric8.kubernetes.client.KubernetesClient;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.HashMap;
 import java.io.BufferedReader;
@@ -45,6 +51,7 @@ import java.util.stream.StreamSupport;
 public class ChartServiceImpl implements ChartService {
 
     private final HelmRepoService helmRepoService;
+    private final ClusterService clusterService;
     private final RestTemplate restTemplate;
 
     @Override
@@ -153,7 +160,7 @@ public class ChartServiceImpl implements ChartService {
         try {
             // Helm CLI를 사용하여 values.yaml 조회
             String command = buildHelmShowCommand("values", repository, chartName, version);
-            String valuesContent = executeHelmCommand(command);
+            String valuesContent = executeHelmCommandWithoutKubeconfig(command);
 
             return ChartValuesDto.builder()
                 .repositoryName(repositoryName)
@@ -177,7 +184,7 @@ public class ChartServiceImpl implements ChartService {
         try {
             // Helm CLI를 사용하여 README.md 조회
             String command = buildHelmShowCommand("readme", repository, chartName, version);
-            String readmeContent = executeHelmCommand(command);
+            String readmeContent = executeHelmCommandWithoutKubeconfig(command);
 
             return ChartReadmeDto.builder()
                 .repositoryName(repositoryName)
@@ -194,28 +201,81 @@ public class ChartServiceImpl implements ChartService {
 
     @Override
     public ChartDeployResponseDto deployChart(String repositoryName, String chartName, ChartDeployDto deployDto) {
-        log.info("Deploying chart: {}/{} as release: {}", repositoryName, chartName, deployDto.getReleaseName());
+        log.info("Deploying chart: {}/{} as release: {} to cluster: {}", 
+                repositoryName, chartName, deployDto.getReleaseName(), deployDto.getClusterId());
 
         HelmRepoEntity repository = getRepository(repositoryName);
+        ClusterEntity cluster = getCluster(deployDto.getClusterId());
+
+        // 클러스터 연결 테스트
+        if (!testClusterConnection(cluster)) {
+            throw new HelmDeploymentException("Cannot connect to cluster: " + deployDto.getClusterId() + ". Please check cluster configuration.");
+        }
 
         try {
-            // Helm CLI를 사용하여 차트 배포
-            String command = buildHelmInstallCommand(repository, chartName, deployDto);
-            String output = executeHelmCommand(command);
+            // kubeconfig 파일 생성
+            String kubeconfigPath = createKubeconfigFile(cluster);
+            
+            try {
+                // Helm CLI를 사용하여 차트 배포 (kubeconfig 사용)
+                String command = buildHelmInstallCommand(repository, chartName, deployDto, kubeconfigPath);
+                String output = executeHelmCommand(command, kubeconfigPath);
 
-            return ChartDeployResponseDto.builder()
-                .success(true)
-                .releaseName(deployDto.getReleaseName())
-                .namespace(deployDto.getNamespace() != null ? deployDto.getNamespace() : "default")
-                .chartVersion(deployDto.getVersion())
-                .status("deployed")
-                .message("Release " + deployDto.getReleaseName() + " has been deployed successfully")
-                .output(output)
-                .build();
+                return ChartDeployResponseDto.builder()
+                    .success(true)
+                    .releaseName(deployDto.getReleaseName())
+                    .namespace(deployDto.getNamespace() != null ? deployDto.getNamespace() : "default")
+                    .chartVersion(deployDto.getVersion())
+                    .clusterId(deployDto.getClusterId())
+                    .status("deployed")
+                    .message("Release " + deployDto.getReleaseName() + " has been deployed successfully to cluster " + deployDto.getClusterId())
+                    .output(output)
+                    .build();
+            } finally {
+                // 임시 kubeconfig 파일 삭제
+                deleteKubeconfigFile(kubeconfigPath);
+            }
 
         } catch (Exception e) {
-            log.error("Failed to deploy chart: {}/{}", repositoryName, chartName, e);
-            throw new HelmDeploymentException("Failed to deploy chart: " + repositoryName + "/" + chartName + ". " + e.getMessage());
+            log.error("Failed to deploy chart: {}/{} to cluster: {}", repositoryName, chartName, deployDto.getClusterId(), e);
+            throw new HelmDeploymentException("Failed to deploy chart: " + repositoryName + "/" + chartName + " to cluster " + deployDto.getClusterId() + ". " + e.getMessage());
+        }
+    }
+
+    @Override
+    public ChartDeployResponseDto getChartStatus(String releaseName, String clusterId, String namespace) {
+        log.info("Getting chart status for release: {} in cluster: {}", releaseName, clusterId);
+
+        ClusterEntity cluster = getCluster(clusterId);
+        String targetNamespace = namespace != null ? namespace : "default";
+
+        try {
+            // kubeconfig 파일 생성
+            String kubeconfigPath = createKubeconfigFile(cluster);
+            
+            try {
+                // Helm CLI를 사용하여 릴리즈 상태 조회
+                String command = buildHelmStatusCommand(releaseName, targetNamespace, kubeconfigPath);
+                String output = executeHelmCommand(command, kubeconfigPath);
+
+                return ChartDeployResponseDto.builder()
+                    .success(true)
+                    .releaseName(releaseName)
+                    .namespace(targetNamespace)
+                    .clusterId(clusterId)
+                    .status("checked")
+                    .message("Release " + releaseName + " status retrieved successfully")
+                    .output(output)
+                    .build();
+
+            } finally {
+                // 임시 kubeconfig 파일 삭제
+                deleteKubeconfigFile(kubeconfigPath);
+            }
+
+        } catch (Exception e) {
+            log.error("Failed to get chart status for release: {} in cluster: {}", releaseName, clusterId, e);
+            throw new HelmDeploymentException("Failed to get chart status for release: " + releaseName + " in cluster " + clusterId + ". " + e.getMessage());
         }
     }
 
@@ -224,6 +284,138 @@ public class ChartServiceImpl implements ChartService {
             throw new HelmRepositoryNotFoundException(repositoryName);
         }
         return helmRepoService.getHelmRepo(repositoryName);
+    }
+
+    private ClusterEntity getCluster(String clusterId) {
+        if (clusterId == null || clusterId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Cluster ID is required for chart deployment");
+        }
+        return clusterService.getCluster(clusterId);
+    }
+
+    /**
+     * Fabric8 Kubernetes Client를 사용하여 클러스터 정보를 기반으로 임시 kubeconfig 파일을 생성합니다.
+     */
+    private String createKubeconfigFile(ClusterEntity cluster) throws IOException {
+        try {
+            // Fabric8 Kubernetes Client를 사용하여 클러스터 정보 조회
+            KubernetesClientConfig k8sConfig = new KubernetesClientConfig(cluster);
+            KubernetesClient client = k8sConfig.getClient();
+            
+            try {
+                // 클러스터 연결 테스트
+                client.getApiVersion();
+                
+                // Fabric8의 Config 객체를 사용하여 kubeconfig 생성
+                Config fabric8Config = client.getConfiguration();
+                
+                // kubeconfig YAML 생성
+                StringBuilder kubeconfig = new StringBuilder();
+                kubeconfig.append("apiVersion: v1\n");
+                kubeconfig.append("kind: Config\n");
+                kubeconfig.append("clusters:\n");
+                kubeconfig.append("- cluster:\n");
+                kubeconfig.append("    server: ").append(fabric8Config.getMasterUrl()).append("\n");
+                
+                // CA 인증서 처리
+                if (fabric8Config.getCaCertData() != null && !fabric8Config.getCaCertData().isEmpty()) {
+                    kubeconfig.append("    certificate-authority-data: ").append(fabric8Config.getCaCertData()).append("\n");
+                } else if (fabric8Config.getCaCertFile() != null) {
+                    kubeconfig.append("    certificate-authority: ").append(fabric8Config.getCaCertFile()).append("\n");
+                }
+                
+                // 클러스터 이름은 DB의 ID 사용
+                String clusterName = cluster.getId();
+                kubeconfig.append("  name: ").append(clusterName).append("\n");
+                
+                kubeconfig.append("contexts:\n");
+                kubeconfig.append("- context:\n");
+                kubeconfig.append("    cluster: ").append(clusterName).append("\n");
+                kubeconfig.append("    user: ").append(clusterName).append("-user\n");
+                kubeconfig.append("  name: ").append(clusterName).append("\n");
+                kubeconfig.append("current-context: ").append(clusterName).append("\n");
+                
+                kubeconfig.append("users:\n");
+                kubeconfig.append("- name: ").append(clusterName).append("-user\n");
+                kubeconfig.append("  user:\n");
+                
+                // 인증 정보 처리
+                if (fabric8Config.getOauthToken() != null && !fabric8Config.getOauthToken().isEmpty()) {
+                    kubeconfig.append("    token: ").append(fabric8Config.getOauthToken()).append("\n");
+                } else {
+                    // 클라이언트 인증서 사용
+                    if (fabric8Config.getClientCertData() != null && !fabric8Config.getClientCertData().isEmpty()) {
+                        kubeconfig.append("    client-certificate-data: ").append(fabric8Config.getClientCertData()).append("\n");
+                    } else if (fabric8Config.getClientCertFile() != null) {
+                        kubeconfig.append("    client-certificate: ").append(fabric8Config.getClientCertFile()).append("\n");
+                    }
+                    
+                    if (fabric8Config.getClientKeyData() != null && !fabric8Config.getClientKeyData().isEmpty()) {
+                        kubeconfig.append("    client-key-data: ").append(fabric8Config.getClientKeyData()).append("\n");
+                    } else if (fabric8Config.getClientKeyFile() != null) {
+                        kubeconfig.append("    client-key: ").append(fabric8Config.getClientKeyFile()).append("\n");
+                    }
+                }
+
+                // 임시 파일 생성
+                String tempDir = System.getProperty("java.io.tmpdir");
+                String fileName = "kubeconfig_" + cluster.getId() + "_" + System.currentTimeMillis() + ".yaml";
+                Path kubeconfigPath = Paths.get(tempDir, fileName);
+                
+                Files.write(kubeconfigPath, kubeconfig.toString().getBytes(StandardCharsets.UTF_8));
+                
+                log.debug("Created temporary kubeconfig file using Fabric8: {}", kubeconfigPath.toString());
+                return kubeconfigPath.toString();
+                
+            } finally {
+                // 클라이언트 정리
+                k8sConfig.closeClient();
+            }
+            
+        } catch (Exception e) {
+            log.error("Failed to create kubeconfig using Fabric8 for cluster: {}", cluster.getId(), e);
+            throw new IOException("Failed to create kubeconfig for cluster " + cluster.getId() + ": " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 임시 kubeconfig 파일을 삭제합니다.
+     */
+    private void deleteKubeconfigFile(String kubeconfigPath) {
+        try {
+            Path path = Paths.get(kubeconfigPath);
+            if (Files.exists(path)) {
+                Files.delete(path);
+                log.debug("Deleted temporary kubeconfig file: {}", kubeconfigPath);
+            }
+        } catch (IOException e) {
+            log.warn("Failed to delete temporary kubeconfig file: {}", kubeconfigPath, e);
+        }
+    }
+
+    /**
+     * Fabric8 Kubernetes Client를 사용하여 클러스터 연결을 테스트합니다.
+     */
+    private boolean testClusterConnection(ClusterEntity cluster) {
+        try {
+            KubernetesClientConfig k8sConfig = new KubernetesClientConfig(cluster);
+            KubernetesClient client = k8sConfig.getClient();
+            
+            try {
+                // 간단한 API 호출로 연결 테스트
+                client.getApiVersion();
+                log.info("Successfully connected to cluster: {}", cluster.getId());
+                return true;
+            } catch (Exception e) {
+                log.error("Failed to connect to cluster: {}", cluster.getId(), e);
+                return false;
+            } finally {
+                k8sConfig.closeClient();
+            }
+        } catch (Exception e) {
+            log.error("Error testing cluster connection: {}", cluster.getId(), e);
+            return false;
+        }
     }
 
     /**
@@ -421,7 +613,7 @@ public class ChartServiceImpl implements ChartService {
     /**
      * Helm install 명령어를 빌드합니다.
      */
-    private String buildHelmInstallCommand(HelmRepoEntity repository, String chartName, ChartDeployDto deployDto) {
+    private String buildHelmInstallCommand(HelmRepoEntity repository, String chartName, ChartDeployDto deployDto, String kubeconfigPath) {
         // 먼저 repository를 추가
         String repoAddCommand = buildHelmRepoAddCommand(repository);
         
@@ -433,6 +625,9 @@ public class ChartServiceImpl implements ChartService {
             .append(repository.getName())
             .append("/")
             .append(chartName);
+
+        // kubeconfig 파일 지정
+        command.append(" --kubeconfig ").append(kubeconfigPath);
 
         if (deployDto.getNamespace() != null && !deployDto.getNamespace().trim().isEmpty()) {
             command.append(" --namespace ").append(deployDto.getNamespace())
@@ -453,19 +648,118 @@ public class ChartServiceImpl implements ChartService {
 
         // values 오버라이드 처리
         if (deployDto.getValues() != null && !deployDto.getValues().isEmpty()) {
-            for (Map.Entry<String, Object> entry : deployDto.getValues().entrySet()) {
-                command.append(" --set ")
-                       .append(entry.getKey())
-                       .append("=")
-                       .append(entry.getValue());
-            }
+            addNestedValuesToCommand(command, deployDto.getValues(), "");
         }
 
         return command.toString();
     }
 
-    private String executeHelmCommand(String command) throws IOException, InterruptedException {
+    /**
+     * Helm 명령어에서 사용할 값 포맷팅
+     */
+    private String formatValueForHelm(Object value) {
+        if (value == null) {
+            return "";
+        }
+        
+        if (value instanceof String) {
+            return (String) value;
+        }
+        
+        if (value instanceof Number || value instanceof Boolean) {
+            return value.toString();
+        }
+        
+        if (value instanceof Map) {
+            // 중첩된 객체는 JSON 문자열로 변환
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                return mapper.writeValueAsString(value);
+            } catch (Exception e) {
+                log.warn("Failed to convert value to JSON: {}", value, e);
+                return value.toString();
+            }
+        }
+        
+        return value.toString();
+    }
+
+    /**
+     * 중첩된 Map을 Helm의 점 표기법으로 변환
+     */
+    private void addNestedValuesToCommand(StringBuilder command, Map<String, Object> values, String prefix) {
+        for (Map.Entry<String, Object> entry : values.entrySet()) {
+            String key = prefix.isEmpty() ? entry.getKey() : prefix + "." + entry.getKey();
+            Object value = entry.getValue();
+            
+            if (value instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> nestedMap = (Map<String, Object>) value;
+                addNestedValuesToCommand(command, nestedMap, key);
+            } else {
+                command.append(" --set ")
+                       .append(key)
+                       .append("=")
+                       .append(formatValueForHelm(value));
+            }
+        }
+    }
+
+    /**
+     * Helm status 명령어를 빌드합니다.
+     */
+    private String buildHelmStatusCommand(String releaseName, String namespace, String kubeconfigPath) {
+        StringBuilder command = new StringBuilder();
+        command.append("helm status ")
+            .append(releaseName);
+
+        // kubeconfig 파일 지정
+        command.append(" --kubeconfig ").append(kubeconfigPath);
+
+        if (namespace != null && !namespace.trim().isEmpty()) {
+            command.append(" --namespace ").append(namespace);
+        }
+
+        return command.toString();
+    }
+
+    private String executeHelmCommand(String command, String kubeconfigPath) throws IOException, InterruptedException {
         log.debug("Executing helm command: {}", command);
+
+        ProcessBuilder processBuilder = new ProcessBuilder();
+        processBuilder.command("sh", "-c", command);
+        processBuilder.redirectErrorStream(true);
+        
+        // kubeconfig 환경변수 설정
+        Map<String, String> environment = processBuilder.environment();
+        environment.put("KUBECONFIG", kubeconfigPath);
+
+        Process process = processBuilder.start();
+
+        StringBuilder output = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+        }
+
+        boolean finished = process.waitFor(60, TimeUnit.SECONDS);
+        if (!finished) {
+            process.destroyForcibly();
+            throw new HelmDeploymentException("Helm command timed out: " + command);
+        }
+
+        int exitCode = process.exitValue();
+        if (exitCode != 0) {
+            throw new HelmDeploymentException("Helm command failed with exit code " + exitCode + ": " + output.toString());
+        }
+
+        return output.toString();
+    }
+
+    private String executeHelmCommandWithoutKubeconfig(String command) throws IOException, InterruptedException {
+        log.debug("Executing helm command (without kubeconfig): {}", command);
 
         ProcessBuilder processBuilder = new ProcessBuilder();
         processBuilder.command("sh", "-c", command);

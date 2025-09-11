@@ -18,6 +18,7 @@ headers {
 body:json {
   {
     "releaseName": "nginx-test-release",
+    "clusterId": "{{cluster_id}}",
     "namespace": "default",
     "version": "15.4.4",
     "values": {
@@ -28,18 +29,38 @@ body:json {
         "pullPolicy": "IfNotPresent"
       },
       "service": {
-        "type": "ClusterIP",
-        "port": 80
+        "type": "NodePort",
+        "port": 80,
+        "nodePort": 30080
+      },
+      "ingress": {
+        "enabled": true,
+        "className": "",
+        "annotations": {
+          "nginx.ingress.kubernetes.io/rewrite-target": "/"
+        },
+        "hosts": [
+          {
+            "host": "nginx.local",
+            "paths": [
+              {
+                "path": "/",
+                "pathType": "Prefix"
+              }
+            ]
+          }
+        ]
       }
     },
     "wait": true,
-    "timeout": "5m"
+    "timeout": 300
   }
 }
 
 vars:pre-request {
   repo_name: chart-museum
   chart_name: nginx
+  cluster_id: cluster-001
 }
 
 tests {
@@ -58,6 +79,7 @@ tests {
     if (data.data) {
       expect(data.data).to.have.property('releaseName');
       expect(data.data).to.have.property('namespace');
+      expect(data.data).to.have.property('clusterId');
     }
   });
 }

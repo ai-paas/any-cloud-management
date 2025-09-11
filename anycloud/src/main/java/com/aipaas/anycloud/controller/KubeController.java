@@ -25,10 +25,19 @@ public class KubeController {
 	private final KubeService kubeService;
 
 	/**
-	 * [KubeController] 쿠버네티스 리소스 목록 조회 함수
+	 * [KubeController] 클러스터 연결 테스트 함수
 	 *
-	 * @return 쿠버네티스 특정 리소스 전체 목록을 반환합니다.
+	 * @return 클러스터 연결 상태를 반환합니다.
 	 */
+	@GetMapping("/test-connection")
+	@Operation(summary = "클러스터 연결 테스트", description = "클러스터 연결 상태를 테스트합니다.")
+	public ResponseEntity<?> testConnection(
+		@RequestParam(required = true) String clusterName
+	) {
+		return new ResponseEntity<>(kubeService.testConnection(clusterName),
+			new HttpHeaders(),
+			HttpStatus.OK);
+	}
 	@GetMapping("/{resource_type}")
 	@Operation(summary = "쿠버네티스 특정 리소스 목록 조회", description = "쿠버네티스 특정 리소스 전체를 조회합니다.")
 	public ResponseEntity<?> getResources(

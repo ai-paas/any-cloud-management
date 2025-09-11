@@ -1,0 +1,40 @@
+meta {
+  name: Chart Status (차트 배포 상태 확인)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/charts/{{repo_name}}/{{chart_name}}/status?releaseName={{release_name}}&clusterId={{cluster_id}}
+  body: none
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/1.11.0
+}
+
+vars:pre-request {
+  repo_name: chart-museum
+  chart_name: nginx
+  release_name: nginx-test-release
+  cluster_id: cluster-001
+}
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("배포 상태 확인", function() {
+    const data = res.getBody();
+    expect(data).to.not.be.undefined;
+    expect(data.data).to.not.be.undefined;
+    
+    if (data.data) {
+      expect(data.data).to.have.property('status');
+      console.log("Release Status:", data.data.status);
+    }
+  });
+}

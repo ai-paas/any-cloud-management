@@ -32,19 +32,34 @@ public class KubeServiceImpl implements KubeService {
 
 	public List<? extends HasMetadata> getResources(String clusterName, String namespace,
 		String kind) {
-		ClusterEntity cluster = clusterService.getCluster(clusterName);
-		KubernetesClientConfig manager = new KubernetesClientConfig(cluster);
-		KubernetesClient client = manager.getClient();
-
+		log.info("Getting resources for cluster: {}, namespace: {}, kind: {}", clusterName, namespace, kind);
+		
 		try {
-			ResourceType type = ResourceType.fromKind(kind);
-			return type.getResources(client, namespace);
+			ClusterEntity cluster = clusterService.getCluster(clusterName);
+			log.info("Found cluster: {}", cluster.getId());
+			
+			KubernetesClientConfig manager = new KubernetesClientConfig(cluster);
+			KubernetesClient client = manager.getClient();
+			log.info("Created Kubernetes client successfully");
+
+			try {
+				ResourceType type = ResourceType.fromKind(kind);
+				log.info("Found resource type: {}", type);
+				
+				List<? extends HasMetadata> resources = type.getResources(client, namespace);
+				log.info("Retrieved {} resources of type {}", resources.size(), kind);
+				
+				return resources;
+			} catch (Exception e) {
+				log.error("Failed to fetch resources for kind [{}] in namespace [{}]: {}", kind,
+					namespace, e.getMessage(), e);
+				return Collections.emptyList();
+			} finally {
+				manager.closeClient();
+			}
 		} catch (Exception e) {
-			log.error("Failed to fetch resources for kind [{}] in namespace [{}]: {}", kind,
-				namespace, e.getMessage(), e);
+			log.error("Failed to initialize Kubernetes client for cluster [{}]: {}", clusterName, e.getMessage(), e);
 			return Collections.emptyList();
-		} finally {
-			manager.closeClient();
 		}
 	}
 
@@ -80,6 +95,34 @@ public class KubeServiceImpl implements KubeService {
 			return false;
 		} finally {
 			manager.closeClient();
+		}
+	}
+
+	public boolean testConnection(String clusterName) {
+		log.info("Testing connection to cluster: {}", clusterName);
+		
+		try {
+			ClusterEntity cluster = clusterService.getCluster(clusterName);
+			log.info("Found cluster: {}", cluster.getId());
+			
+			KubernetesClientConfig manager = new KubernetesClientConfig(cluster);
+			KubernetesClient client = manager.getClient();
+			log.info("Created Kubernetes client successfully");
+
+			try {
+				// 간단한 API 호출로 연결 테스트
+				String version = client.getApiVersion();
+				log.info("Successfully connected to cluster. API version: {}", version);
+				return true;
+			} catch (Exception e) {
+				log.error("Failed to connect to cluster [{}]: {}", clusterName, e.getMessage(), e);
+				return false;
+			} finally {
+				manager.closeClient();
+			}
+		} catch (Exception e) {
+			log.error("Failed to initialize Kubernetes client for cluster [{}]: {}", clusterName, e.getMessage(), e);
+			return false;
 		}
 	}
 

@@ -26,6 +26,10 @@ public class ChartDeployDto {
     @Schema(description = "Helm 릴리즈 이름", example = "my-nginx", required = true)
     private String releaseName;
 
+    @NotBlank(message = "클러스터 ID는 필수입니다")
+    @Schema(description = "배포할 클러스터 ID", example = "cluster-001", required = true)
+    private String clusterId;
+
     @Schema(description = "배포할 네임스페이스", example = "default")
     private String namespace;
 

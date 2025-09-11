@@ -28,6 +28,9 @@ public class ChartDeployResponseDto {
     @Schema(description = "네임스페이스", example = "default")
     private String namespace;
 
+    @Schema(description = "배포된 클러스터 ID", example = "cluster-001")
+    private String clusterId;
+
     @Schema(description = "배포된 차트 버전", example = "15.4.4")
     private String chartVersion;
 

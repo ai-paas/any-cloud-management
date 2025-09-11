@@ -20,4 +20,6 @@ public interface KubeService {
 	HasMetadata getResource(String clusterName, String namespace, String kind, String name);
 
 	boolean deleteResource(String clusterName, String namespace, String kind, String name);
+	
+	boolean testConnection(String clusterName);
 }

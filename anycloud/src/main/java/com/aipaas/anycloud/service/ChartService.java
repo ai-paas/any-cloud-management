@@ -61,4 +61,14 @@ public interface ChartService {
      * @return 배포 결과
      */
     ChartDeployResponseDto deployChart(String repositoryName, String chartName, ChartDeployDto deployDto);
+
+    /**
+     * 배포된 차트의 상태를 조회합니다.
+     *
+     * @param releaseName 릴리즈 이름
+     * @param clusterId   클러스터 ID
+     * @param namespace   네임스페이스 (선택사항)
+     * @return 배포 상태
+     */
+    ChartDeployResponseDto getChartStatus(String releaseName, String clusterId, String namespace);
 }
