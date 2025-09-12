@@ -6,61 +6,30 @@ meta {
 
 post {
   url: {{baseUrl}}/charts/{{repo_name}}/{{chart_name}}/deploy
-  body: json
+  body: multipartForm
   auth: none
 }
 
 headers {
-  content-type: application/json
   User-Agent: bruno/1.11.0
 }
 
-body:json {
-  {
-    "releaseName": "nginx-test-release",
-    "clusterId": "{{cluster_id}}",
-    "namespace": "default",
-    "version": "15.4.4",
-    "values": {
-      "replicaCount": 1,
-      "image": {
-        "repository": "nginx",
-        "tag": "1.21",
-        "pullPolicy": "IfNotPresent"
-      },
-      "service": {
-        "type": "NodePort",
-        "port": 80,
-        "nodePort": 30080
-      },
-      "ingress": {
-        "enabled": true,
-        "className": "",
-        "annotations": {
-          "nginx.ingress.kubernetes.io/rewrite-target": "/"
-        },
-        "hosts": [
-          {
-            "host": "nginx.local",
-            "paths": [
-              {
-                "path": "/",
-                "pathType": "Prefix"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    "wait": true,
-    "timeout": 300
-  }
+body:multipartForm {
+  releaseName: {{release_name}}
+  clusterId: {{cluster_id}}
+  namespace: {{namespace}}
+  version: {{version}}
+  valuesFile: @file({{values_file_path}})
 }
 
 vars:pre-request {
   repo_name: chart-museum
   chart_name: nginx
-  cluster_id: cluster-001
+  release_name: nginx-test-release
+  cluster_id: yby654
+  namespace: default
+  version: 
+  values_file_path: values.yaml
 }
 
 tests {
@@ -74,12 +43,14 @@ tests {
     expect(data.data).to.not.be.undefined;
   });
   
-  test("배포 결과 확인", function() {
-    const data = res.getBody();
-    if (data.data) {
-      expect(data.data).to.have.property('releaseName');
-      expect(data.data).to.have.property('namespace');
-      expect(data.data).to.have.property('clusterId');
-    }
-  });
+        test("배포 요청 결과 확인", function() {
+          const data = res.getBody();
+          if (data.data) {
+            expect(data.data).to.have.property('success');
+            expect(data.data).to.have.property('message');
+            expect(data.data.success).to.be.true;
+            expect(data.data.message).to.include('Deployment request submitted');
+            expect(data.data.message).to.include('Check status later');
+          }
+        });
 }

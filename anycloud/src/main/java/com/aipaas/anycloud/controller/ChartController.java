@@ -127,11 +127,19 @@ public class ChartController {
             @PathVariable String repoName,
             @Parameter(description = "차트 이름", required = true, example = "nginx")
             @PathVariable String chartName,
-            @Valid @RequestBody ChartDeployDto deployDto) {
+            @Valid @ModelAttribute ChartDeployDto deployDto) {
 
         log.info("Deploying chart: {}/{} as release: {} to cluster: {}", repoName, chartName, deployDto.getReleaseName(), deployDto.getClusterId());
 
-        ChartDeployResponseDto deployResponse = chartService.deployChart(repoName, chartName, deployDto);
+        ChartDeployResponseDto deployResponse = chartService.deployChart(
+            repoName, 
+            chartName, 
+            deployDto.getReleaseName(), 
+            deployDto.getClusterId(), 
+            deployDto.getNamespace(), 
+            deployDto.getVersion(), 
+            deployDto.getValuesFile()
+        );
         return ResponseEntity.ok(ResultResponse.of(SuccessCode.OK, deployResponse));
     }
 
@@ -154,5 +162,24 @@ public class ChartController {
 
         ChartDeployResponseDto status = chartService.getChartStatus(releaseName, clusterId, namespace);
         return ResponseEntity.ok(ResultResponse.of(SuccessCode.OK, status));
+    }
+
+    @GetMapping("/releases")
+    @Operation(summary = "Helm 릴리즈 목록 조회", description = "Helm CLI를 사용하여 클러스터의 모든 릴리즈 목록을 조회합니다.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "릴리즈 목록 조회 성공"),
+        @ApiResponse(responseCode = "404", description = "클러스터를 찾을 수 없음"),
+        @ApiResponse(responseCode = "500", description = "서버 오류")
+    })
+    public ResponseEntity<ResultResponse> getReleases(
+            @Parameter(description = "클러스터 ID", required = true, example = "cluster-001")
+            @RequestParam String clusterId,
+            @Parameter(description = "네임스페이스 (선택사항)", example = "default")
+            @RequestParam(required = false) String namespace) {
+
+        log.info("Getting releases for cluster: {}, namespace: {}", clusterId, namespace);
+
+        ChartReleasesResponseDto releasesResponse = chartService.getReleases(clusterId, namespace);
+        return ResponseEntity.ok(ResultResponse.of(SuccessCode.OK, releasesResponse));
     }
 }

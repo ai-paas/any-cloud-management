@@ -1,8 +1,8 @@
 package com.aipaas.anycloud.service;
 
-import com.aipaas.anycloud.model.dto.request.ChartDeployDto;
 import com.aipaas.anycloud.model.dto.response.*;
 import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * <pre>
@@ -53,14 +53,18 @@ public interface ChartService {
     ChartReadmeDto getChartReadme(String repositoryName, String chartName, String version);
 
     /**
-     * Helm 차트를 배포합니다.
+     * Helm 차트를 비동기로 배포합니다.
      *
      * @param repositoryName Helm repository 이름
      * @param chartName      차트 이름
-     * @param deployDto      배포 설정
-     * @return 배포 결과
+     * @param releaseName    릴리즈 이름
+     * @param clusterId      클러스터 ID
+     * @param namespace      네임스페이스 (선택사항)
+     * @param version        차트 버전 (선택사항)
+     * @param valuesFile     values.yaml 파일 (선택사항)
+     * @return 배포 요청 결과
      */
-    ChartDeployResponseDto deployChart(String repositoryName, String chartName, ChartDeployDto deployDto);
+    ChartDeployResponseDto deployChart(String repositoryName, String chartName, String releaseName, String clusterId, String namespace, String version, MultipartFile valuesFile);
 
     /**
      * 배포된 차트의 상태를 조회합니다.
@@ -71,4 +75,13 @@ public interface ChartService {
      * @return 배포 상태
      */
     ChartDeployResponseDto getChartStatus(String releaseName, String clusterId, String namespace);
+
+    /**
+     * 클러스터의 모든 Helm 릴리즈 목록을 조회합니다.
+     *
+     * @param clusterId 클러스터 ID
+     * @param namespace 네임스페이스 (선택사항, null일 경우 모든 네임스페이스)
+     * @return 릴리즈 목록
+     */
+    ChartReleasesResponseDto getReleases(String clusterId, String namespace);
 }

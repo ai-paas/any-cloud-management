@@ -10,7 +10,6 @@ import com.aipaas.anycloud.service.PrometheusQueryService;
 import com.aipaas.anycloud.util.PrometheusMetricProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.swagger.v3.core.util.Json;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

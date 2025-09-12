@@ -3,8 +3,7 @@ package com.aipaas.anycloud.model.dto.request;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
-
-import java.util.Map;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * <pre>
@@ -36,14 +35,6 @@ public class ChartDeployDto {
     @Schema(description = "차트 버전 (미지정시 최신 버전)", example = "15.4.4")
     private String version;
 
-    @Schema(description = "values.yaml 오버라이드 값들", example = "{\"replicaCount\": 2, \"image\": {\"tag\": \"1.25.3\"}}")
-    private Map<String, Object> values;
-
-    @Builder.Default
-    @Schema(description = "배포 시 기다릴지 여부", example = "true")
-    private Boolean wait = true;
-
-    @Builder.Default
-    @Schema(description = "배포 타임아웃 (초)", example = "300")
-    private Integer timeout = 300;
+    @Schema(description = "values.yaml 파일 (선택사항)", example = "values.yaml")
+    private MultipartFile valuesFile;
 }

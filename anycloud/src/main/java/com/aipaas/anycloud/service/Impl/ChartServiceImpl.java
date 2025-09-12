@@ -4,7 +4,6 @@ import com.aipaas.anycloud.configuration.bean.KubernetesClientConfig;
 import com.aipaas.anycloud.error.exception.HelmChartNotFoundException;
 import com.aipaas.anycloud.error.exception.HelmDeploymentException;
 import com.aipaas.anycloud.error.exception.HelmRepositoryNotFoundException;
-import com.aipaas.anycloud.model.dto.request.ChartDeployDto;
 import com.aipaas.anycloud.model.dto.response.*;
 import com.aipaas.anycloud.model.entity.ClusterEntity;
 import com.aipaas.anycloud.model.entity.HelmRepoEntity;
@@ -17,8 +16,13 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 
@@ -199,18 +203,38 @@ public class ChartServiceImpl implements ChartService {
         }
     }
 
+    // 비동기 처리를 위한 ExecutorService
+    private final ExecutorService executorService = Executors.newFixedThreadPool(5);
+
     @Override
-    public ChartDeployResponseDto deployChart(String repositoryName, String chartName, ChartDeployDto deployDto) {
-        log.info("Deploying chart: {}/{} as release: {} to cluster: {}", 
-                repositoryName, chartName, deployDto.getReleaseName(), deployDto.getClusterId());
+    public ChartDeployResponseDto deployChart(String repositoryName, String chartName, String releaseName, String clusterId, String namespace, String version, MultipartFile valuesFile) {
+        log.info("Starting deployment request for chart: {}/{} as release: {} to cluster: {}", 
+                repositoryName, chartName, releaseName, clusterId);
 
         HelmRepoEntity repository = getRepository(repositoryName);
-        ClusterEntity cluster = getCluster(deployDto.getClusterId());
+        ClusterEntity cluster = getCluster(clusterId);
 
         // 클러스터 연결 테스트
         if (!testClusterConnection(cluster)) {
-            throw new HelmDeploymentException("Cannot connect to cluster: " + deployDto.getClusterId() + ". Please check cluster configuration.");
+            throw new HelmDeploymentException("Cannot connect to cluster: " + clusterId + ". Please check cluster configuration.");
         }
+
+        // 비동기로 배포 실행 (CompletableFuture 사용)
+        CompletableFuture.runAsync(() -> {
+            executeDeploymentAsync(repository, chartName, releaseName, clusterId, namespace, version, valuesFile, cluster);
+        }, executorService);
+
+        log.info("Deployment request submitted for release: {} to cluster: {}", releaseName, clusterId);
+
+        return ChartDeployResponseDto.builder()
+            .success(true)
+            .message("Deployment request submitted for release " + releaseName + " to cluster " + clusterId + ". Check status later.")
+            .build();
+    }
+
+    private void executeDeploymentAsync(HelmRepoEntity repository, String chartName, String releaseName, String clusterId, String namespace, String version, MultipartFile valuesFile, ClusterEntity cluster) {
+        log.info("Executing async deployment for chart: {}/{} as release: {} to cluster: {}", 
+                repository.getName(), chartName, releaseName, clusterId);
 
         try {
             // kubeconfig 파일 생성
@@ -218,27 +242,18 @@ public class ChartServiceImpl implements ChartService {
             
             try {
                 // Helm CLI를 사용하여 차트 배포 (kubeconfig 사용)
-                String command = buildHelmInstallCommand(repository, chartName, deployDto, kubeconfigPath);
-                String output = executeHelmCommand(command, kubeconfigPath);
+                String command = buildHelmInstallCommand(repository, chartName, releaseName, namespace, version, valuesFile, kubeconfigPath);
+                executeHelmCommand(command, kubeconfigPath);
 
-                return ChartDeployResponseDto.builder()
-                    .success(true)
-                    .releaseName(deployDto.getReleaseName())
-                    .namespace(deployDto.getNamespace() != null ? deployDto.getNamespace() : "default")
-                    .chartVersion(deployDto.getVersion())
-                    .clusterId(deployDto.getClusterId())
-                    .status("deployed")
-                    .message("Release " + deployDto.getReleaseName() + " has been deployed successfully to cluster " + deployDto.getClusterId())
-                    .output(output)
-                    .build();
+                log.info("Successfully deployed chart: {}/{} as release: {} to cluster: {}", 
+                        repository.getName(), chartName, releaseName, clusterId);
             } finally {
                 // 임시 kubeconfig 파일 삭제
                 deleteKubeconfigFile(kubeconfigPath);
             }
 
         } catch (Exception e) {
-            log.error("Failed to deploy chart: {}/{} to cluster: {}", repositoryName, chartName, deployDto.getClusterId(), e);
-            throw new HelmDeploymentException("Failed to deploy chart: " + repositoryName + "/" + chartName + " to cluster " + deployDto.getClusterId() + ". " + e.getMessage());
+            log.error("Failed to deploy chart: {}/{} to cluster: {} in async execution", repository.getName(), chartName, clusterId, e);
         }
     }
 
@@ -258,14 +273,12 @@ public class ChartServiceImpl implements ChartService {
                 String command = buildHelmStatusCommand(releaseName, targetNamespace, kubeconfigPath);
                 String output = executeHelmCommand(command, kubeconfigPath);
 
+                // Helm 상태 출력 파싱
+                String status = parseHelmStatusOutput(output);
+                
                 return ChartDeployResponseDto.builder()
                     .success(true)
-                    .releaseName(releaseName)
-                    .namespace(targetNamespace)
-                    .clusterId(clusterId)
-                    .status("checked")
-                    .message("Release " + releaseName + " status retrieved successfully")
-                    .output(output)
+                    .message("Release " + releaseName + " status: " + status)
                     .build();
 
             } finally {
@@ -275,7 +288,10 @@ public class ChartServiceImpl implements ChartService {
 
         } catch (Exception e) {
             log.error("Failed to get chart status for release: {} in cluster: {}", releaseName, clusterId, e);
-            throw new HelmDeploymentException("Failed to get chart status for release: " + releaseName + " in cluster " + clusterId + ". " + e.getMessage());
+            return ChartDeployResponseDto.builder()
+                .success(false)
+                .message("Failed to get chart status for release: " + releaseName + " in cluster " + clusterId + ". " + e.getMessage())
+                .build();
         }
     }
 
@@ -613,14 +629,14 @@ public class ChartServiceImpl implements ChartService {
     /**
      * Helm install 명령어를 빌드합니다.
      */
-    private String buildHelmInstallCommand(HelmRepoEntity repository, String chartName, ChartDeployDto deployDto, String kubeconfigPath) {
+    private String buildHelmInstallCommand(HelmRepoEntity repository, String chartName, String releaseName, String namespace, String version, MultipartFile valuesFile, String kubeconfigPath) {
         // 먼저 repository를 추가
         String repoAddCommand = buildHelmRepoAddCommand(repository);
         
         StringBuilder command = new StringBuilder();
         command.append(repoAddCommand).append(" && ");
         command.append("helm install ")
-            .append(deployDto.getReleaseName())
+            .append(releaseName)
             .append(" ")
             .append(repository.getName())
             .append("/")
@@ -629,81 +645,53 @@ public class ChartServiceImpl implements ChartService {
         // kubeconfig 파일 지정
         command.append(" --kubeconfig ").append(kubeconfigPath);
 
-        if (deployDto.getNamespace() != null && !deployDto.getNamespace().trim().isEmpty()) {
-            command.append(" --namespace ").append(deployDto.getNamespace())
+        if (namespace != null && !namespace.trim().isEmpty()) {
+            command.append(" --namespace ").append(namespace)
                    .append(" --create-namespace");
         }
 
-        if (deployDto.getVersion() != null && !deployDto.getVersion().trim().isEmpty()) {
-            command.append(" --version ").append(deployDto.getVersion());
+        if (version != null && !version.trim().isEmpty()) {
+            command.append(" --version ").append(version);
+        } else {
+            // 버전이 지정되지 않으면 최신 버전 사용
+            log.info("No version specified, using latest version");
         }
 
-        if (deployDto.getWait() != null && deployDto.getWait()) {
-            command.append(" --wait");
+        // values 파일이 있으면 사용
+        if (valuesFile != null && !valuesFile.isEmpty() && valuesFile.getSize() > 0) {
+            try {
+                // 임시 파일로 저장
+                String tempValuesPath = saveValuesFile(valuesFile);
+                command.append(" --values ").append(tempValuesPath);
+                log.info("Using values file: {}", tempValuesPath);
+            } catch (IOException e) {
+                log.error("Failed to save values file", e);
+                throw new HelmDeploymentException("Failed to process values file: " + e.getMessage());
+            }
+        } else {
+            log.info("No values file provided, using default values");
         }
 
-        if (deployDto.getTimeout() != null && deployDto.getTimeout() > 0) {
-            command.append(" --timeout ").append(deployDto.getTimeout()).append("s");
-        }
-
-        // values 오버라이드 처리
-        if (deployDto.getValues() != null && !deployDto.getValues().isEmpty()) {
-            addNestedValuesToCommand(command, deployDto.getValues(), "");
-        }
+        // 배포 옵션 추가 (atomic 제거하여 타임아웃 방지)
+        command.append(" --timeout 10m");
 
         return command.toString();
     }
 
     /**
-     * Helm 명령어에서 사용할 값 포맷팅
+     * MultipartFile을 임시 파일로 저장합니다.
      */
-    private String formatValueForHelm(Object value) {
-        if (value == null) {
-            return "";
-        }
+    private String saveValuesFile(MultipartFile valuesFile) throws IOException {
+        String tempDir = System.getProperty("java.io.tmpdir");
+        String fileName = "values-" + System.currentTimeMillis() + ".yaml";
+        Path tempFile = Paths.get(tempDir, fileName);
         
-        if (value instanceof String) {
-            return (String) value;
-        }
+        Files.write(tempFile, valuesFile.getBytes());
+        log.info("Saved values file to: {}", tempFile.toString());
         
-        if (value instanceof Number || value instanceof Boolean) {
-            return value.toString();
-        }
-        
-        if (value instanceof Map) {
-            // 중첩된 객체는 JSON 문자열로 변환
-            try {
-                ObjectMapper mapper = new ObjectMapper();
-                return mapper.writeValueAsString(value);
-            } catch (Exception e) {
-                log.warn("Failed to convert value to JSON: {}", value, e);
-                return value.toString();
-            }
-        }
-        
-        return value.toString();
+        return tempFile.toString();
     }
 
-    /**
-     * 중첩된 Map을 Helm의 점 표기법으로 변환
-     */
-    private void addNestedValuesToCommand(StringBuilder command, Map<String, Object> values, String prefix) {
-        for (Map.Entry<String, Object> entry : values.entrySet()) {
-            String key = prefix.isEmpty() ? entry.getKey() : prefix + "." + entry.getKey();
-            Object value = entry.getValue();
-            
-            if (value instanceof Map) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> nestedMap = (Map<String, Object>) value;
-                addNestedValuesToCommand(command, nestedMap, key);
-            } else {
-                command.append(" --set ")
-                       .append(key)
-                       .append("=")
-                       .append(formatValueForHelm(value));
-            }
-        }
-    }
 
     /**
      * Helm status 명령어를 빌드합니다.
@@ -799,5 +787,125 @@ public class ChartServiceImpl implements ChartService {
         }
         
         return headers;
+    }
+
+    @Override
+    public ChartReleasesResponseDto getReleases(String clusterId, String namespace) {
+        log.info("Getting releases for cluster: {}, namespace: {}", clusterId, namespace);
+
+        try {
+            ClusterEntity cluster = getCluster(clusterId);
+            
+            // kubeconfig 파일 생성
+            String kubeconfigPath = createKubeconfigFile(cluster);
+            
+            try {
+                // Helm list 명령어 실행
+                String command = buildHelmListCommand(namespace, kubeconfigPath);
+                String output = executeHelmCommand(command, kubeconfigPath);
+                
+                // 출력 파싱
+                List<ChartReleasesResponseDto.ReleaseInfo> releases = parseHelmListOutput(output);
+                
+                log.info("Successfully retrieved {} releases for cluster: {}", releases.size(), clusterId);
+                
+                return ChartReleasesResponseDto.builder()
+                    .success(true)
+                    .message("Releases retrieved successfully")
+                    .releases(releases)
+                    .build();
+                    
+            } finally {
+                // 임시 kubeconfig 파일 삭제
+                deleteKubeconfigFile(kubeconfigPath);
+            }
+            
+        } catch (Exception e) {
+            log.error("Failed to get releases for cluster: {}", clusterId, e);
+            return ChartReleasesResponseDto.builder()
+                .success(false)
+                .message("Failed to retrieve releases: " + e.getMessage())
+                .releases(new ArrayList<>())
+                .build();
+        }
+    }
+
+    /**
+     * Helm list 명령어를 빌드합니다.
+     */
+    private String buildHelmListCommand(String namespace, String kubeconfigPath) {
+        StringBuilder command = new StringBuilder();
+        command.append("helm list --output json");
+
+        // kubeconfig 파일 지정
+        command.append(" --kubeconfig ").append(kubeconfigPath);
+
+        if (namespace != null && !namespace.trim().isEmpty()) {
+            command.append(" --namespace ").append(namespace);
+        } else {
+            command.append(" --all-namespaces");
+        }
+
+        return command.toString();
+    }
+
+    /**
+     * Helm list 출력을 파싱하여 릴리즈 목록을 생성합니다.
+     */
+    private List<ChartReleasesResponseDto.ReleaseInfo> parseHelmListOutput(String output) {
+        List<ChartReleasesResponseDto.ReleaseInfo> releases = new ArrayList<>();
+        
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode rootNode = mapper.readTree(output);
+            
+            if (rootNode.isArray()) {
+                for (JsonNode releaseNode : rootNode) {
+                    ChartReleasesResponseDto.ReleaseInfo release = ChartReleasesResponseDto.ReleaseInfo.builder()
+                        .name(releaseNode.path("name").asText())
+                        .namespace(releaseNode.path("namespace").asText())
+                        .chart(releaseNode.path("chart").asText())
+                        .chartVersion(releaseNode.path("chart_version").asText())
+                        .revision(releaseNode.path("revision").asText())
+                        .status(releaseNode.path("status").asText())
+                        .updated(releaseNode.path("updated").asText())
+                        .build();
+                    
+                    releases.add(release);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to parse helm list output", e);
+        }
+        
+        return releases;
+    }
+
+    /**
+     * Helm status 출력을 파싱하여 상태 정보를 추출합니다.
+     */
+    private String parseHelmStatusOutput(String output) {
+        try {
+            // Helm status 출력에서 상태 정보 추출
+            String[] lines = output.split("\n");
+            for (String line : lines) {
+                if (line.contains("STATUS:")) {
+                    String[] parts = line.split("STATUS:");
+                    if (parts.length > 1) {
+                        return parts[1].trim();
+                    }
+                }
+            }
+            
+            // STATUS 라인을 찾지 못한 경우 전체 출력 반환 (최대 200자)
+            if (output.length() > 200) {
+                return output.substring(0, 200) + "...";
+            }
+            return output;
+            
+        } catch (Exception e) {
+            log.error("Failed to parse helm status output", e);
+            return "Unknown status";
+        }
     }
 }

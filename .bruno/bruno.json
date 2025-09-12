@@ -13,5 +13,16 @@
     "filesystemAccess": {
       "allow": true
     }
-  }
+  },
+  "environments": [
+    {
+      "name": "local",
+      "variables": [
+        {
+          "name": "baseUrl",
+          "value": "http://localhost:8888"
+        }
+      ]
+    }
+  ]
 }
