@@ -19,7 +19,7 @@ body:multipartForm {
   clusterId: {{cluster_id}}
   namespace: {{namespace}}
   version: {{version}}
-  valuesFile: @file({{values_file_path}})
+  ~valuesFile: @file({{values_file_path}})
 }
 
 vars:pre-request {
@@ -30,6 +30,8 @@ vars:pre-request {
   namespace: default
   version: 
   values_file_path: values.yaml
+  // 파일을 업로드하지 않으려면 values_file_path를 비워두세요
+  // values_file_path: 
 }
 
 tests {

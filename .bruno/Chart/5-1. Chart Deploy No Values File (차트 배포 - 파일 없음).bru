@@ -1,0 +1,54 @@
+meta {
+  name: Chart Deploy No Values File (차트 배포 - 파일 없음)
+  type: http
+  seq: 5.1
+}
+
+post {
+  url: {{baseUrl}}/charts/{{repo_name}}/{{chart_name}}/deploy
+  body: multipartForm
+  auth: none
+}
+
+headers {
+  User-Agent: bruno/1.11.0
+}
+
+body:multipartForm {
+  releaseName: {{release_name}}
+  clusterId: {{cluster_id}}
+  namespace: {{namespace}}
+  version: {{version}}
+}
+
+vars:pre-request {
+  repo_name: chart-museum
+  chart_name: nginx
+  release_name: nginx-no-values-test
+  cluster_id: yby654
+  namespace: default
+  version: 
+}
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response Data 확인", function() {
+    const data = res.getBody();
+    expect(data).to.not.be.undefined;
+    expect(data.data).to.not.be.undefined;
+  });
+  
+  test("배포 요청 결과 확인", function() {
+    const data = res.getBody();
+    if (data.data) {
+      expect(data.data).to.have.property('success');
+      expect(data.data).to.have.property('message');
+      expect(data.data.success).to.be.true;
+      expect(data.data.message).to.include('Deployment request submitted');
+      expect(data.data.message).to.include('Check status later');
+    }
+  });
+}

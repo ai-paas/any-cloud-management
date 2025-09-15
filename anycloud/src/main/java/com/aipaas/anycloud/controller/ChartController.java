@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -114,8 +113,8 @@ public class ChartController {
         return ResponseEntity.ok(ResultResponse.of(SuccessCode.OK, chartReadme));
     }
 
-    @PostMapping("/{repoName}/{chartName}/deploy")
-    @Operation(summary = "차트 배포", description = "ProcessBuilder를 사용하여 Helm CLI(helm install/upgrade)를 호출하여 차트를 배포합니다. namespace 지정 및 values override가 가능합니다.")
+    @PostMapping(value = "/{repoName}/{chartName}/deploy", consumes = "multipart/form-data")
+    @Operation(summary = "차트 배포", description = "ProcessBuilder를 사용하여 Helm CLI(helm install/upgrade)를 호출하여 차트를 배포합니다. values.yaml 파일 업로드가 가능합니다.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "차트 배포 성공"),
         @ApiResponse(responseCode = "400", description = "잘못된 요청"),
@@ -127,23 +126,19 @@ public class ChartController {
             @PathVariable String repoName,
             @Parameter(description = "차트 이름", required = true, example = "nginx")
             @PathVariable String chartName,
-            @Valid @ModelAttribute ChartDeployDto deployDto) {
+            @Parameter(description = "차트 배포 요청 데이터")
+            @ModelAttribute ChartDeployDto deployDto) {
 
-        log.info("Deploying chart: {}/{} as release: {} to cluster: {}", repoName, chartName, deployDto.getReleaseName(), deployDto.getClusterId());
+        log.info("Deploying chart: {}/{} as release: {} to cluster: {}", 
+                repoName, chartName, deployDto.getReleaseName(), deployDto.getClusterId());
 
         ChartDeployResponseDto deployResponse = chartService.deployChart(
-            repoName, 
-            chartName, 
-            deployDto.getReleaseName(), 
-            deployDto.getClusterId(), 
-            deployDto.getNamespace(), 
-            deployDto.getVersion(), 
-            deployDto.getValuesFile()
-        );
+                repoName, chartName, deployDto.getReleaseName(), deployDto.getClusterId(), 
+                deployDto.getNamespace(), deployDto.getVersion(), deployDto.getValuesFile());
         return ResponseEntity.ok(ResultResponse.of(SuccessCode.OK, deployResponse));
     }
 
-    @GetMapping("/status")
+    @GetMapping("/{repoName}/{chartName}/status")
     @Operation(summary = "차트 배포 상태 조회", description = "Helm CLI를 사용하여 특정 릴리즈의 배포 상태를 조회합니다.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "배포 상태 조회 성공"),
@@ -151,6 +146,10 @@ public class ChartController {
         @ApiResponse(responseCode = "500", description = "서버 오류")
     })
     public ResponseEntity<ResultResponse> getChartStatus(
+            @Parameter(description = "Helm repository 이름", required = true, example = "my-repo")
+            @PathVariable String repoName,
+            @Parameter(description = "차트 이름", required = true, example = "nginx")
+            @PathVariable String chartName, 
             @Parameter(description = "릴리즈 이름", required = true, example = "nginx-test-release")
             @RequestParam String releaseName,
             @Parameter(description = "클러스터 ID", required = true, example = "cluster-001")
