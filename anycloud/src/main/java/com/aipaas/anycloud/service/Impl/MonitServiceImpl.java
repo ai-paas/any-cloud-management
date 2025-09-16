@@ -33,7 +33,6 @@ public class MonitServiceImpl implements MonitService {
 
 	private final ObjectMapper objectMapper;
 	private final ClusterRepository clusterRepository;
-	private final PrometheusMetricProperties metricProperties;
 	private final WebClient webClient;
 	private final PrometheusQueryService prometheusQueryService;
 

@@ -104,3 +104,22 @@ prometheus:
       total: "sum(kube_node_status_capacity{resource=\"pods\", ${NODE_FILTER} })"
       used_node: "kubelet_running_pods{${NODE_FILTER}}"
       used_namespace: "count(kube_pod_info{${NODE_FILTER}) by (namespace)"
+    top5: 
+      cpu: "topk(5, sum by (node) (rate(container_cpu_usage_seconds_total{${NODE_FILTER},${NAMESPACE_FILTER}}[5m]))) by (node)"
+      memory: "topk(5, sum by (node) (container_memory_usage_bytes{${NODE_FILTER},${NAMESPACE_FILTER}})) by (node) / 1024 / 1024 / 1024" 
+      disk: "topk(5, sum by (node) (kubelet_volume_stats_used_bytes{${NODE_FILTER},${NAMESPACE_FILTER}})) by (node) "
+      filesystem: |
+        topk(5, sum by(node) (
+                    sum by (internal_ip) (
+                      label_replace(
+                        sum by (instance, device) (node_filesystem_size_bytes{fstype=~"ext4|xfs|btrfs", mountpoint="/"}-node_filesystem_free_bytes{fstype=~"ext4|xfs|btrfs", mountpoint="/"}),
+                        "internal_ip",
+                        "$1",
+                        "instance",
+                        "(.*):[0-9]+"
+                      )
+                    )
+                    * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+                  ) /1024 /1024 /1024)
+      pod: "topk(5, count(kube_pod_info{${NODE_FILTER},${NAMESPACE_FILTER}}) by (node)) by (node)"
+      gpu: "topk(5, sum by (node) (kube_pod_container_resource_requests{resource='nvidia_com_gpu',${NODE_FILTER},${NAMESPACE_FILTER}})) by (node)"
