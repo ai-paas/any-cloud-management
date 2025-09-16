@@ -63,6 +63,11 @@ public class ClusterServiceImpl implements ClusterService {
 			throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
 		}
 
+		// 중복 체크: 같은 이름의 클러스터가 이미 존재하는지 확인
+		if (clusterRepository.findByName(cluster.getClusterName()).isPresent()) {
+			throw new CustomException(ErrorCode.DUPLICATE);
+		}
+
 		ClusterEntity clusterEntity = ClusterEntity.builder()
 				.id(cluster.getClusterName())
 				.description(cluster.getDescription())
@@ -99,9 +104,9 @@ public class ClusterServiceImpl implements ClusterService {
 	/**
 	 * [ClusterServiceImpl] 클러스터 중복 확인 함수
 	 *
-	 * @return 쿠버네티스 클러스터를 중복 체크합니다.
+	 * @return 쿠버네티스 클러스터가 존재하는지 확인합니다.
 	 */
 	public Boolean isClusterExist(String clusterName) {
-		return clusterRepository.findByName(clusterName).isEmpty();
+		return clusterRepository.findByName(clusterName).isPresent();
 	}
 }

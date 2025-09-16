@@ -44,7 +44,7 @@ public class BeanConfig {
 	@Bean
 	public WebClient webClient() {
 		return WebClient.builder()
-			.build();
+				.build();
 	}
 
 	@Bean
@@ -52,19 +52,19 @@ public class BeanConfig {
 		try {
 			// SSL 컨텍스트 생성 (모든 인증서 신뢰)
 			SSLContext sslContext = SSLContextBuilder
-				.create()
-				.loadTrustMaterial(TrustAllStrategy.INSTANCE)
-				.build();
+					.create()
+					.loadTrustMaterial(TrustAllStrategy.INSTANCE)
+					.build();
 
 			// HTTP 클라이언트 설정
 			CloseableHttpClient httpClient = HttpClients.custom()
-				.setConnectionManager(
-					PoolingHttpClientConnectionManagerBuilder.create()
-						.setSSLSocketFactory(SSLConnectionSocketFactoryBuilder.create()
-							.setSslContext(sslContext)
-							.build())
-						.build())
-				.build();
+					.setConnectionManager(
+							PoolingHttpClientConnectionManagerBuilder.create()
+									.setSSLSocketFactory(SSLConnectionSocketFactoryBuilder.create()
+											.setSslContext(sslContext)
+											.build())
+									.build())
+					.build();
 
 			// RestTemplate 설정
 			HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
@@ -73,7 +73,7 @@ public class BeanConfig {
 			factory.setConnectionRequestTimeout(10000); // 10초
 
 			RestTemplate restTemplate = new RestTemplate(factory);
-			
+
 			// User-Agent 헤더 추가
 			restTemplate.getInterceptors().add((request, body, execution) -> {
 				if (!request.getHeaders().containsKey("User-Agent")) {
@@ -81,9 +81,9 @@ public class BeanConfig {
 				}
 				return execution.execute(request, body);
 			});
-			
+
 			return restTemplate;
-			
+
 		} catch (Exception e) {
 			// SSL 설정 실패 시 기본 RestTemplate 반환
 			return new RestTemplate();
