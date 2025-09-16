@@ -129,7 +129,8 @@ public class KubernetesClientConfig {
 		kubeconfig.append("kind: Config\n");
 		kubeconfig.append("clusters:\n");
 		kubeconfig.append("- cluster:\n");
-		kubeconfig.append("    certificate-authority-data: ").append(cluster.getServerCa()).append("\n");
+		// kubeconfig.append("    certificate-authority-data: ").append(cluster.getServerCa()).append("\n");
+		kubeconfig.append("    insecure-skip-tls-verify: ").append("true").append("\n");
 		kubeconfig.append("    server: ").append(cluster.getApiServerUrl()).append("\n");
 		kubeconfig.append("  name: ").append(cluster.getId()).append("\n");
 		kubeconfig.append("contexts:\n");
