@@ -16,7 +16,6 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
@@ -61,99 +60,92 @@ public class ChartServiceImpl implements ChartService {
     @Override
     public ChartListDto getChartList(String repositoryName) {
         log.info("Getting chart list for repository: {}", repositoryName);
-    
+
         HelmRepoEntity repository = getRepository(repositoryName);
-    
+
         try {
             // Helm repository의 index.yaml을 다운로드하여 파싱
-            String indexUrl = repository.getUrl().endsWith("/") ? 
-                repository.getUrl() + "index.yaml" : 
-                repository.getUrl() + "/index.yaml";
-    
+            String indexUrl = repository.getUrl().endsWith("/") ? repository.getUrl() + "index.yaml"
+                    : repository.getUrl() + "/index.yaml";
+
             log.debug("Fetching index.yaml from URL: {}", indexUrl);
-    
-        
+
             HttpHeaders headers = createAuthHeaders(repository);
             HttpEntity<String> entity = new HttpEntity<>(headers);
-            
+
             ResponseEntity<String> response = restTemplate.exchange(
-                indexUrl, 
-                HttpMethod.GET, 
-                entity, 
-                String.class
-            );
-        
-            log.debug("Response status: {}, Content length: {}", 
-                response.getStatusCode(), 
-                response.getBody() != null ? response.getBody().length() : 0);
-    
+                    indexUrl,
+                    HttpMethod.GET,
+                    entity,
+                    String.class);
+
+            log.debug("Response status: {}, Content length: {}",
+                    response.getStatusCode(),
+                    response.getBody() != null ? response.getBody().length() : 0);
+
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 return parseIndexYaml(repositoryName, response.getBody());
             } else {
                 throw new HelmChartNotFoundException(
-                    "Unable to fetch index.yaml from repository: " + repositoryName + 
-                    " (HTTP " + response.getStatusCode() + ")"
-                );
+                        "Unable to fetch index.yaml from repository: " + repositoryName +
+                                " (HTTP " + response.getStatusCode() + ")");
             }
-    
+
         } catch (HelmChartNotFoundException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Failed to get chart list for repository: {} from URL: {}", repositoryName, repository.getUrl(), e);
+            log.error("Failed to get chart list for repository: {} from URL: {}", repositoryName, repository.getUrl(),
+                    e);
             throw new HelmChartNotFoundException(
-                "Failed to fetch charts from repository: " + repositoryName + 
-                " - " + e.getMessage()
-            );
+                    "Failed to fetch charts from repository: " + repositoryName +
+                            " - " + e.getMessage());
         }
     }
 
     @Override
     public ChartDetailDto getChartDetail(String repositoryName, String chartName) {
-    log.info("Getting chart detail for repository: {}, chart: {}", repositoryName, chartName);
+        log.info("Getting chart detail for repository: {}, chart: {}", repositoryName, chartName);
 
-    HelmRepoEntity repository = getRepository(repositoryName);
+        HelmRepoEntity repository = getRepository(repositoryName);
 
-    try {
-        // Helm repository의 index.yaml을 다운로드하여 파싱
-        String indexUrl = repository.getUrl().endsWith("/") ? 
-            repository.getUrl() + "index.yaml" : 
-            repository.getUrl() + "/index.yaml";
+        try {
+            // Helm repository의 index.yaml을 다운로드하여 파싱
+            String indexUrl = repository.getUrl().endsWith("/") ? repository.getUrl() + "index.yaml"
+                    : repository.getUrl() + "/index.yaml";
 
-        log.debug("Fetching index.yaml from URL: {}", indexUrl);
+            log.debug("Fetching index.yaml from URL: {}", indexUrl);
 
-        HttpHeaders headers = createAuthHeaders(repository);
-        HttpEntity<String> entity = new HttpEntity<>(headers);
+            HttpHeaders headers = createAuthHeaders(repository);
+            HttpEntity<String> entity = new HttpEntity<>(headers);
 
-        ResponseEntity<String> response = restTemplate.exchange(
-            indexUrl,
-            HttpMethod.GET,
-            entity,
-            String.class
-        );
+            ResponseEntity<String> response = restTemplate.exchange(
+                    indexUrl,
+                    HttpMethod.GET,
+                    entity,
+                    String.class);
 
-        log.debug("Response status: {}, Content length: {}", 
-            response.getStatusCode(), 
-            response.getBody() != null ? response.getBody().length() : 0);
+            log.debug("Response status: {}, Content length: {}",
+                    response.getStatusCode(),
+                    response.getBody() != null ? response.getBody().length() : 0);
 
-        if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-            return parseChartDetail(repositoryName, response.getBody(), chartName);
-        } else {
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                return parseChartDetail(repositoryName, response.getBody(), chartName);
+            } else {
+                throw new HelmChartNotFoundException(
+                        "Unable to fetch index.yaml from repository: " + repositoryName +
+                                " (HTTP " + response.getStatusCode() + ")");
+            }
+
+        } catch (HelmChartNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to get chart detail for repository: {}, chart: {} from URL: {}", repositoryName,
+                    chartName, repository.getUrl(), e);
             throw new HelmChartNotFoundException(
-                "Unable to fetch index.yaml from repository: " + repositoryName + 
-                " (HTTP " + response.getStatusCode() + ")"
-            );
+                    "Failed to fetch chart detail from repository: " + repositoryName +
+                            " - " + e.getMessage());
         }
-
-    } catch (HelmChartNotFoundException e) {
-        throw e;
-    } catch (Exception e) {
-        log.error("Failed to get chart detail for repository: {}, chart: {} from URL: {}", repositoryName, chartName, repository.getUrl(), e);
-        throw new HelmChartNotFoundException(
-            "Failed to fetch chart detail from repository: " + repositoryName + 
-            " - " + e.getMessage()
-        );
     }
-}
 
     @Override
     public ChartValuesDto getChartValues(String repositoryName, String chartName, String version) {
@@ -167,11 +159,11 @@ public class ChartServiceImpl implements ChartService {
             String valuesContent = executeHelmCommandWithoutKubeconfig(command);
 
             return ChartValuesDto.builder()
-                .repositoryName(repositoryName)
-                .chartName(chartName)
-                .version(version)
-                .valuesContent(valuesContent)
-                .build();
+                    .repositoryName(repositoryName)
+                    .chartName(chartName)
+                    .version(version)
+                    .valuesContent(valuesContent)
+                    .build();
 
         } catch (Exception e) {
             log.error("Failed to get values for chart: {}/{}", repositoryName, chartName, e);
@@ -191,11 +183,11 @@ public class ChartServiceImpl implements ChartService {
             String readmeContent = executeHelmCommandWithoutKubeconfig(command);
 
             return ChartReadmeDto.builder()
-                .repositoryName(repositoryName)
-                .chartName(chartName)
-                .version(version)
-                .readmeContent(readmeContent)
-                .build();
+                    .repositoryName(repositoryName)
+                    .chartName(chartName)
+                    .version(version)
+                    .readmeContent(readmeContent)
+                    .build();
 
         } catch (Exception e) {
             log.error("Failed to get README for chart: {}/{}", repositoryName, chartName, e);
@@ -207,8 +199,9 @@ public class ChartServiceImpl implements ChartService {
     private final ExecutorService executorService = Executors.newFixedThreadPool(5);
 
     @Override
-    public ChartDeployResponseDto deployChart(String repositoryName, String chartName, String releaseName, String clusterId, String namespace, String version, MultipartFile valuesFile) {
-        log.info("Starting deployment request for chart: {}/{} as release: {} to cluster: {}", 
+    public ChartDeployResponseDto deployChart(String repositoryName, String chartName, String releaseName,
+            String clusterId, String namespace, String version, MultipartFile valuesFile) {
+        log.info("Starting deployment request for chart: {}/{} as release: {} to cluster: {}",
                 repositoryName, chartName, releaseName, clusterId);
 
         HelmRepoEntity repository = getRepository(repositoryName);
@@ -216,36 +209,41 @@ public class ChartServiceImpl implements ChartService {
 
         // 클러스터 연결 테스트
         if (!testClusterConnection(cluster)) {
-            throw new HelmDeploymentException("Cannot connect to cluster: " + clusterId + ". Please check cluster configuration.");
+            throw new HelmDeploymentException(
+                    "Cannot connect to cluster: " + clusterId + ". Please check cluster configuration.");
         }
 
         // 비동기로 배포 실행 (CompletableFuture 사용)
         CompletableFuture.runAsync(() -> {
-            executeDeploymentAsync(repository, chartName, releaseName, clusterId, namespace, version, valuesFile, cluster);
+            executeDeploymentAsync(repository, chartName, releaseName, clusterId, namespace, version, valuesFile,
+                    cluster);
         }, executorService);
 
         log.info("Deployment request submitted for release: {} to cluster: {}", releaseName, clusterId);
 
         return ChartDeployResponseDto.builder()
-            .success(true)
-            .message("Deployment request submitted for release " + releaseName + " to cluster " + clusterId + ". Check status later.")
-            .build();
+                .success(true)
+                .message("Deployment request submitted for release " + releaseName + " to cluster " + clusterId
+                        + ". Check status later.")
+                .build();
     }
 
-    private void executeDeploymentAsync(HelmRepoEntity repository, String chartName, String releaseName, String clusterId, String namespace, String version, MultipartFile valuesFile, ClusterEntity cluster) {
-        log.info("Executing async deployment for chart: {}/{} as release: {} to cluster: {}", 
+    private void executeDeploymentAsync(HelmRepoEntity repository, String chartName, String releaseName,
+            String clusterId, String namespace, String version, MultipartFile valuesFile, ClusterEntity cluster) {
+        log.info("Executing async deployment for chart: {}/{} as release: {} to cluster: {}",
                 repository.getName(), chartName, releaseName, clusterId);
 
         try {
             // kubeconfig 파일 생성
             String kubeconfigPath = createKubeconfigFile(cluster);
-            
+
             try {
                 // Helm CLI를 사용하여 차트 배포 (kubeconfig 사용)
-                String command = buildHelmInstallCommand(repository, chartName, releaseName, namespace, version, valuesFile, kubeconfigPath);
+                String command = buildHelmInstallCommand(repository, chartName, releaseName, namespace, version,
+                        valuesFile, kubeconfigPath);
                 executeHelmCommand(command, kubeconfigPath);
 
-                log.info("Successfully deployed chart: {}/{} as release: {} to cluster: {}", 
+                log.info("Successfully deployed chart: {}/{} as release: {} to cluster: {}",
                         repository.getName(), chartName, releaseName, clusterId);
             } finally {
                 // 임시 kubeconfig 파일 삭제
@@ -253,7 +251,8 @@ public class ChartServiceImpl implements ChartService {
             }
 
         } catch (Exception e) {
-            log.error("Failed to deploy chart: {}/{} to cluster: {} in async execution", repository.getName(), chartName, clusterId, e);
+            log.error("Failed to deploy chart: {}/{} to cluster: {} in async execution", repository.getName(),
+                    chartName, clusterId, e);
         }
     }
 
@@ -267,7 +266,7 @@ public class ChartServiceImpl implements ChartService {
         try {
             // kubeconfig 파일 생성
             String kubeconfigPath = createKubeconfigFile(cluster);
-            
+
             try {
                 // Helm CLI를 사용하여 릴리즈 상태 조회
                 String command = buildHelmStatusCommand(releaseName, targetNamespace, kubeconfigPath);
@@ -275,11 +274,11 @@ public class ChartServiceImpl implements ChartService {
 
                 // Helm 상태 출력 파싱
                 String status = parseHelmStatusOutput(output);
-                
+
                 return ChartDeployResponseDto.builder()
-                    .success(true)
-                    .message("Release " + releaseName + " status: " + status)
-                    .build();
+                        .success(true)
+                        .message("Release " + releaseName + " status: " + status)
+                        .build();
 
             } finally {
                 // 임시 kubeconfig 파일 삭제
@@ -289,9 +288,10 @@ public class ChartServiceImpl implements ChartService {
         } catch (Exception e) {
             log.error("Failed to get chart status for release: {} in cluster: {}", releaseName, clusterId, e);
             return ChartDeployResponseDto.builder()
-                .success(false)
-                .message("Failed to get chart status for release: " + releaseName + " in cluster " + clusterId + ". " + e.getMessage())
-                .build();
+                    .success(false)
+                    .message("Failed to get chart status for release: " + releaseName + " in cluster " + clusterId
+                            + ". " + e.getMessage())
+                    .build();
         }
     }
 
@@ -317,14 +317,14 @@ public class ChartServiceImpl implements ChartService {
             // Fabric8 Kubernetes Client를 사용하여 클러스터 정보 조회
             KubernetesClientConfig k8sConfig = new KubernetesClientConfig(cluster);
             KubernetesClient client = k8sConfig.getClient();
-            
+
             try {
                 // 클러스터 연결 테스트
                 client.getApiVersion();
-                
+
                 // Fabric8의 Config 객체를 사용하여 kubeconfig 생성
                 Config fabric8Config = client.getConfiguration();
-                
+
                 // kubeconfig YAML 생성
                 StringBuilder kubeconfig = new StringBuilder();
                 kubeconfig.append("apiVersion: v1\n");
@@ -332,42 +332,46 @@ public class ChartServiceImpl implements ChartService {
                 kubeconfig.append("clusters:\n");
                 kubeconfig.append("- cluster:\n");
                 kubeconfig.append("    server: ").append(fabric8Config.getMasterUrl()).append("\n");
-                
+
                 // CA 인증서 처리
                 if (fabric8Config.getCaCertData() != null && !fabric8Config.getCaCertData().isEmpty()) {
-                    kubeconfig.append("    certificate-authority-data: ").append(fabric8Config.getCaCertData()).append("\n");
+                    kubeconfig.append("    certificate-authority-data: ").append(fabric8Config.getCaCertData())
+                            .append("\n");
                 } else if (fabric8Config.getCaCertFile() != null) {
                     kubeconfig.append("    certificate-authority: ").append(fabric8Config.getCaCertFile()).append("\n");
                 }
-                
+
                 // 클러스터 이름은 DB의 ID 사용
                 String clusterName = cluster.getId();
                 kubeconfig.append("  name: ").append(clusterName).append("\n");
-                
+
                 kubeconfig.append("contexts:\n");
                 kubeconfig.append("- context:\n");
                 kubeconfig.append("    cluster: ").append(clusterName).append("\n");
                 kubeconfig.append("    user: ").append(clusterName).append("-user\n");
                 kubeconfig.append("  name: ").append(clusterName).append("\n");
                 kubeconfig.append("current-context: ").append(clusterName).append("\n");
-                
+
                 kubeconfig.append("users:\n");
                 kubeconfig.append("- name: ").append(clusterName).append("-user\n");
                 kubeconfig.append("  user:\n");
-                
+
                 // 인증 정보 처리
                 if (fabric8Config.getOauthToken() != null && !fabric8Config.getOauthToken().isEmpty()) {
                     kubeconfig.append("    token: ").append(fabric8Config.getOauthToken()).append("\n");
                 } else {
                     // 클라이언트 인증서 사용
                     if (fabric8Config.getClientCertData() != null && !fabric8Config.getClientCertData().isEmpty()) {
-                        kubeconfig.append("    client-certificate-data: ").append(fabric8Config.getClientCertData()).append("\n");
+                        kubeconfig.append("    client-certificate-data: ").append(fabric8Config.getClientCertData())
+                                .append("\n");
                     } else if (fabric8Config.getClientCertFile() != null) {
-                        kubeconfig.append("    client-certificate: ").append(fabric8Config.getClientCertFile()).append("\n");
+                        kubeconfig.append("    client-certificate: ").append(fabric8Config.getClientCertFile())
+                                .append("\n");
                     }
-                    
+
                     if (fabric8Config.getClientKeyData() != null && !fabric8Config.getClientKeyData().isEmpty()) {
-                        kubeconfig.append("    client-key-data: ").append(fabric8Config.getClientKeyData()).append("\n");
+                        kubeconfig.append("    client-key-data: ").append(fabric8Config.getClientKeyData())
+                                .append("\n");
                     } else if (fabric8Config.getClientKeyFile() != null) {
                         kubeconfig.append("    client-key: ").append(fabric8Config.getClientKeyFile()).append("\n");
                     }
@@ -377,20 +381,21 @@ public class ChartServiceImpl implements ChartService {
                 String tempDir = System.getProperty("java.io.tmpdir");
                 String fileName = "kubeconfig_" + cluster.getId() + "_" + System.currentTimeMillis() + ".yaml";
                 Path kubeconfigPath = Paths.get(tempDir, fileName);
-                
+
                 Files.write(kubeconfigPath, kubeconfig.toString().getBytes(StandardCharsets.UTF_8));
-                
+
                 log.debug("Created temporary kubeconfig file using Fabric8: {}", kubeconfigPath.toString());
                 return kubeconfigPath.toString();
-                
+
             } finally {
                 // 클라이언트 정리
                 k8sConfig.closeClient();
             }
-            
+
         } catch (Exception e) {
             log.error("Failed to create kubeconfig using Fabric8 for cluster: {}", cluster.getId(), e);
-            throw new IOException("Failed to create kubeconfig for cluster " + cluster.getId() + ": " + e.getMessage(), e);
+            throw new IOException("Failed to create kubeconfig for cluster " + cluster.getId() + ": " + e.getMessage(),
+                    e);
         }
     }
 
@@ -416,7 +421,7 @@ public class ChartServiceImpl implements ChartService {
         try {
             KubernetesClientConfig k8sConfig = new KubernetesClientConfig(cluster);
             KubernetesClient client = k8sConfig.getClient();
-            
+
             try {
                 // 간단한 API 호출로 연결 테스트
                 client.getApiVersion();
@@ -458,16 +463,15 @@ public class ChartServiceImpl implements ChartService {
                                     .map(JsonNode::asText)
                                     .toArray(String[]::new);
                         }
-                        
 
                         ChartListDto.ChartInfo chartInfo = ChartListDto.ChartInfo.builder()
-                            .name(chartName)
-                            .version(latestVersion.path("version").asText())
-                            .description(latestVersion.path("description").asText(null))
-                            .appVersion(latestVersion.path("appVersion").asText(null))
-                            .keywords(keywords)
-                            .created(latestVersion.path("created").asText(null))
-                            .build();
+                                .name(chartName)
+                                .version(latestVersion.path("version").asText())
+                                .description(latestVersion.path("description").asText(null))
+                                .appVersion(latestVersion.path("appVersion").asText(null))
+                                .keywords(keywords)
+                                .created(latestVersion.path("created").asText(null))
+                                .build();
 
                         charts.add(chartInfo);
                     }
@@ -475,16 +479,15 @@ public class ChartServiceImpl implements ChartService {
             }
 
             return ChartListDto.builder()
-                .repositoryName(repositoryName)
-                .charts(charts)
-                .build();
+                    .repositoryName(repositoryName)
+                    .charts(charts)
+                    .build();
 
         } catch (Exception e) {
             log.error("Failed to parse index.yaml", e);
             throw new HelmChartNotFoundException("Failed to parse repository index: " + repositoryName);
         }
     }
-
 
     /**
      * index.yaml 내용을 파싱하여 특정 차트의 상세 정보를 반환합니다.
@@ -494,23 +497,24 @@ public class ChartServiceImpl implements ChartService {
             ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
             JsonNode rootNode = yamlMapper.readTree(indexContent);
             JsonNode entriesNode = rootNode.get("entries");
-    
+
             if (entriesNode != null && entriesNode.isObject() && entriesNode.has(targetChartName)) {
                 JsonNode chartVersions = entriesNode.get(targetChartName);
                 if (chartVersions.isArray() && chartVersions.size() > 0) {
-    
+
                     // 버전 히스토리 생성
-                    List<ChartDetailDto.VersionHistory> versionHistory = StreamSupport.stream(chartVersions.spliterator(), false)
+                    List<ChartDetailDto.VersionHistory> versionHistory = StreamSupport
+                            .stream(chartVersions.spliterator(), false)
                             .map(v -> ChartDetailDto.VersionHistory.builder()
                                     .version(v.path("version").asText())
                                     .appVersion(v.path("appVersion").asText())
                                     .created(v.path("created").asText(null))
                                     .build())
                             .toList();
-    
+
                     // 최신 버전 정보 (첫 번째 요소)
                     JsonNode latestVersion = chartVersions.get(0);
-    
+
                     // keywords 처리
                     JsonNode keywordsNode = latestVersion.path("keywords");
                     String[] keywords = null;
@@ -519,7 +523,7 @@ public class ChartServiceImpl implements ChartService {
                                 .map(JsonNode::asText)
                                 .toArray(String[]::new);
                     }
-    
+
                     // maintainers 처리
                     JsonNode maintainersNode = latestVersion.path("maintainers");
                     List<Map<String, Object>> maintainers = null;
@@ -534,7 +538,7 @@ public class ChartServiceImpl implements ChartService {
                                 })
                                 .toList();
                     }
-    
+
                     // dependencies 처리
                     JsonNode dependenciesNode = latestVersion.path("dependencies");
                     List<ChartDetailDto.Dependency> dependencies = null;
@@ -547,7 +551,7 @@ public class ChartServiceImpl implements ChartService {
                                         .build())
                                 .toList();
                     }
-    
+
                     return ChartDetailDto.builder()
                             .repositoryName(repositoryName)
                             .name(targetChartName)
@@ -567,22 +571,23 @@ public class ChartServiceImpl implements ChartService {
                             .build();
                 }
             }
-    
-            throw new HelmChartNotFoundException("Chart not found: " + targetChartName + " in repository " + repositoryName);
-    
+
+            throw new HelmChartNotFoundException(
+                    "Chart not found: " + targetChartName + " in repository " + repositoryName);
+
         } catch (Exception e) {
             log.error("Failed to parse index.yaml", e);
             throw new HelmChartNotFoundException("Failed to parse repository index: " + repositoryName);
         }
     }
-    
+
     /**
      * Helm show 명령어를 빌드합니다.
      */
     private String buildHelmShowCommand(String showType, HelmRepoEntity repository, String chartName, String version) {
         // 먼저 repository를 추가
         String repoAddCommand = buildHelmRepoAddCommand(repository);
-        
+
         StringBuilder command = new StringBuilder();
         command.append(repoAddCommand).append(" && ");
         command.append("helm show ").append(showType).append(" ");
@@ -603,8 +608,8 @@ public class ChartServiceImpl implements ChartService {
         command.append(repository.getName()).append(" ").append(repository.getUrl());
 
         // Basic Authentication 처리
-        if (repository.getUsername() != null && repository.getPassword() != null && 
-            !repository.getUsername().trim().isEmpty() && !repository.getPassword().trim().isEmpty()) {
+        if (repository.getUsername() != null && repository.getPassword() != null &&
+                !repository.getUsername().trim().isEmpty() && !repository.getPassword().trim().isEmpty()) {
             command.append(" --username ").append(repository.getUsername());
             command.append(" --password ").append(repository.getPassword());
             log.debug("Added authentication for repository: {}", repository.getName());
@@ -629,25 +634,26 @@ public class ChartServiceImpl implements ChartService {
     /**
      * Helm install 명령어를 빌드합니다.
      */
-    private String buildHelmInstallCommand(HelmRepoEntity repository, String chartName, String releaseName, String namespace, String version, MultipartFile valuesFile, String kubeconfigPath) {
+    private String buildHelmInstallCommand(HelmRepoEntity repository, String chartName, String releaseName,
+            String namespace, String version, MultipartFile valuesFile, String kubeconfigPath) {
         // 먼저 repository를 추가
         String repoAddCommand = buildHelmRepoAddCommand(repository);
-        
+
         StringBuilder command = new StringBuilder();
         command.append(repoAddCommand).append(" && ");
         command.append("helm install ")
-            .append(releaseName)
-            .append(" ")
-            .append(repository.getName())
-            .append("/")
-            .append(chartName);
+                .append(releaseName)
+                .append(" ")
+                .append(repository.getName())
+                .append("/")
+                .append(chartName);
 
         // kubeconfig 파일 지정
         command.append(" --kubeconfig ").append(kubeconfigPath);
 
         if (namespace != null && !namespace.trim().isEmpty()) {
             command.append(" --namespace ").append(namespace)
-                   .append(" --create-namespace");
+                    .append(" --create-namespace");
         }
 
         if (version != null && !version.trim().isEmpty()) {
@@ -685,13 +691,12 @@ public class ChartServiceImpl implements ChartService {
         String tempDir = System.getProperty("java.io.tmpdir");
         String fileName = "values-" + System.currentTimeMillis() + ".yaml";
         Path tempFile = Paths.get(tempDir, fileName);
-        
+
         Files.write(tempFile, valuesFile.getBytes());
         log.info("Saved values file to: {}", tempFile.toString());
-        
+
         return tempFile.toString();
     }
-
 
     /**
      * Helm status 명령어를 빌드합니다.
@@ -699,7 +704,7 @@ public class ChartServiceImpl implements ChartService {
     private String buildHelmStatusCommand(String releaseName, String namespace, String kubeconfigPath) {
         StringBuilder command = new StringBuilder();
         command.append("helm status ")
-            .append(releaseName);
+                .append(releaseName);
 
         // kubeconfig 파일 지정
         command.append(" --kubeconfig ").append(kubeconfigPath);
@@ -717,7 +722,7 @@ public class ChartServiceImpl implements ChartService {
         ProcessBuilder processBuilder = new ProcessBuilder();
         processBuilder.command("sh", "-c", command);
         processBuilder.redirectErrorStream(true);
-        
+
         // kubeconfig 환경변수 설정
         Map<String, String> environment = processBuilder.environment();
         environment.put("KUBECONFIG", kubeconfigPath);
@@ -740,7 +745,8 @@ public class ChartServiceImpl implements ChartService {
 
         int exitCode = process.exitValue();
         if (exitCode != 0) {
-            throw new HelmDeploymentException("Helm command failed with exit code " + exitCode + ": " + output.toString());
+            throw new HelmDeploymentException(
+                    "Helm command failed with exit code " + exitCode + ": " + output.toString());
         }
 
         return output.toString();
@@ -771,7 +777,8 @@ public class ChartServiceImpl implements ChartService {
 
         int exitCode = process.exitValue();
         if (exitCode != 0) {
-            throw new HelmDeploymentException("Helm command failed with exit code " + exitCode + ": " + output.toString());
+            throw new HelmDeploymentException(
+                    "Helm command failed with exit code " + exitCode + ": " + output.toString());
         }
 
         return output.toString();
@@ -779,13 +786,13 @@ public class ChartServiceImpl implements ChartService {
 
     private HttpHeaders createAuthHeaders(HelmRepoEntity repository) {
         HttpHeaders headers = new HttpHeaders();
-        
+
         if (repository.getUsername() != null && repository.getPassword() != null) {
             String auth = repository.getUsername() + ":" + repository.getPassword();
             String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
             headers.set("Authorization", "Basic " + encodedAuth);
         }
-        
+
         return headers;
     }
 
@@ -795,38 +802,38 @@ public class ChartServiceImpl implements ChartService {
 
         try {
             ClusterEntity cluster = getCluster(clusterId);
-            
+
             // kubeconfig 파일 생성
             String kubeconfigPath = createKubeconfigFile(cluster);
-            
+
             try {
                 // Helm list 명령어 실행
                 String command = buildHelmListCommand(namespace, kubeconfigPath);
                 String output = executeHelmCommand(command, kubeconfigPath);
-                
+
                 // 출력 파싱
                 List<ChartReleasesResponseDto.ReleaseInfo> releases = parseHelmListOutput(output);
-                
+
                 log.info("Successfully retrieved {} releases for cluster: {}", releases.size(), clusterId);
-                
+
                 return ChartReleasesResponseDto.builder()
-                    .success(true)
-                    .message("Releases retrieved successfully")
-                    .releases(releases)
-                    .build();
-                    
+                        .success(true)
+                        .message("Releases retrieved successfully")
+                        .releases(releases)
+                        .build();
+
             } finally {
                 // 임시 kubeconfig 파일 삭제
                 deleteKubeconfigFile(kubeconfigPath);
             }
-            
+
         } catch (Exception e) {
             log.error("Failed to get releases for cluster: {}", clusterId, e);
             return ChartReleasesResponseDto.builder()
-                .success(false)
-                .message("Failed to retrieve releases: " + e.getMessage())
-                .releases(new ArrayList<>())
-                .build();
+                    .success(false)
+                    .message("Failed to retrieve releases: " + e.getMessage())
+                    .releases(new ArrayList<>())
+                    .build();
         }
     }
 
@@ -854,30 +861,30 @@ public class ChartServiceImpl implements ChartService {
      */
     private List<ChartReleasesResponseDto.ReleaseInfo> parseHelmListOutput(String output) {
         List<ChartReleasesResponseDto.ReleaseInfo> releases = new ArrayList<>();
-        
+
         try {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode rootNode = mapper.readTree(output);
-            
+
             if (rootNode.isArray()) {
                 for (JsonNode releaseNode : rootNode) {
                     ChartReleasesResponseDto.ReleaseInfo release = ChartReleasesResponseDto.ReleaseInfo.builder()
-                        .name(releaseNode.path("name").asText())
-                        .namespace(releaseNode.path("namespace").asText())
-                        .chart(releaseNode.path("chart").asText())
-                        .chartVersion(releaseNode.path("chart_version").asText())
-                        .revision(releaseNode.path("revision").asText())
-                        .status(releaseNode.path("status").asText())
-                        .updated(releaseNode.path("updated").asText())
-                        .build();
-                    
+                            .name(releaseNode.path("name").asText())
+                            .namespace(releaseNode.path("namespace").asText())
+                            .chart(releaseNode.path("chart").asText())
+                            .chartVersion(releaseNode.path("chart_version").asText())
+                            .revision(releaseNode.path("revision").asText())
+                            .status(releaseNode.path("status").asText())
+                            .updated(releaseNode.path("updated").asText())
+                            .build();
+
                     releases.add(release);
                 }
             }
         } catch (Exception e) {
             log.error("Failed to parse helm list output", e);
         }
-        
+
         return releases;
     }
 
@@ -896,13 +903,13 @@ public class ChartServiceImpl implements ChartService {
                     }
                 }
             }
-            
+
             // STATUS 라인을 찾지 못한 경우 전체 출력 반환 (최대 200자)
             if (output.length() > 200) {
                 return output.substring(0, 200) + "...";
             }
             return output;
-            
+
         } catch (Exception e) {
             log.error("Failed to parse helm status output", e);
             return "Unknown status";

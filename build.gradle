@@ -1,12 +1,12 @@
 plugins {
-    id 'org.springframework.boot' version '3.0.2'
+    id 'org.springframework.boot' version '3.2.5'
     id 'io.spring.dependency-management' version '1.1.0'
     id 'idea'
     id 'java'
 }
 
 wrapper {
-    gradleVersion = '8.2.1'
+    gradleVersion = '8.10.2'
 }
 
 bootJar { enabled = false }
@@ -43,9 +43,9 @@ subprojects {
 
     // 관리하는 모듈에 공통 dependencies
     dependencies {
-        compileOnly 'org.projectlombok:lombok:1.18.26'
-        annotationProcessor 'org.projectlombok:lombok:1.18.26'
-        developmentOnly 'org.springframework.boot:spring-boot-devtools:3.0.2'
+        compileOnly 'org.projectlombok:lombok:1.18.34'
+        annotationProcessor 'org.projectlombok:lombok:1.18.34'
+        developmentOnly 'org.springframework.boot:spring-boot-devtools:3.2.5'
         implementation 'org.springframework.boot:spring-boot-starter-webflux'
     }
 }

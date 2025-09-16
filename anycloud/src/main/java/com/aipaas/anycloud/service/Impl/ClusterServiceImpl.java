@@ -49,7 +49,7 @@ public class ClusterServiceImpl implements ClusterService {
 	@Transactional(readOnly = true)
 	public ClusterEntity getCluster(String clusterName) {
 		return clusterRepository.findByName(clusterName).orElseThrow(
-			() -> new EntityNotFoundException("Cluster with Name " + clusterName + " Not Found."));
+				() -> new EntityNotFoundException("Cluster with Name " + clusterName + " Not Found."));
 	}
 
 	/**
@@ -64,15 +64,18 @@ public class ClusterServiceImpl implements ClusterService {
 		}
 
 		ClusterEntity clusterEntity = ClusterEntity.builder()
-			.id(cluster.getClusterName())
-			.description(cluster.getDescription())
-			.version(null)
-			.apiServerUrl(cluster.getApiServerUrl())
-			.apiServerIp(cluster.getApiServerIp())
-			.serverCa(cluster.getServerCA())
-			.clientCa(cluster.getClientCA())
-			.clientKey(cluster.getClientKey())
-			.build();
+				.id(cluster.getClusterName())
+				.description(cluster.getDescription())
+				.version(null)
+				.apiServerUrl(cluster.getApiServerUrl())
+				.apiServerIp(cluster.getApiServerIp())
+				.serverCa(cluster.getServerCA())
+				.clientCa(cluster.getClientCA())
+				.clientKey(cluster.getClientKey())
+				.monitServerUrl(cluster.getMonitServerURL())
+				.clusterType(cluster.getClusterType())
+				.clusterProvider(cluster.getClusterProvider())
+				.build();
 
 		try {
 			clusterRepository.save(clusterEntity);
@@ -82,7 +85,6 @@ public class ClusterServiceImpl implements ClusterService {
 		return HttpStatus.CREATED;
 	}
 
-
 	/**
 	 * [ClusterServiceImpl] 클러스터 삭제 함수
 	 *
@@ -90,7 +92,7 @@ public class ClusterServiceImpl implements ClusterService {
 	 */
 	public HttpStatus deleteCluster(String clusterName) {
 		clusterRepository.delete(clusterRepository.findByName(clusterName).orElseThrow(
-			() -> new EntityNotFoundException("Cluster with Name " + clusterName + " Not Found.")));
+				() -> new EntityNotFoundException("Cluster with Name " + clusterName + " Not Found.")));
 		return HttpStatus.OK;
 	}
 

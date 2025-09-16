@@ -27,7 +27,6 @@ public class PrometheusQueryService {
 		// ConfigurationProperties에서 메트릭 설정 가져오기
 		Map<String, Map<String, String>> metrics = metricProperties.getMetrics();
 
-
 		Map<String, String> groupMap = metrics.get(group);
 		if (groupMap == null) {
 			throw new EntityNotFoundException("Invalid metric group: " + group);
@@ -52,7 +51,6 @@ public class PrometheusQueryService {
 			query = cleanupCommas(query);
 
 		}
-
 
 		return query;
 	}
@@ -105,49 +103,49 @@ public class PrometheusQueryService {
 		}
 
 		// 시간 범위
-//		String durationStr = queryParams.get("duration");
-//		if (durationStr != null && !durationStr.isEmpty()) {
-//
-//			// 1. duration 파싱 (숫자 검증)
-//			long durationInput;
-//			try {
-//				durationInput = Long.parseLong(durationStr);
-//			} catch (NumberFormatException e) {
-//				throw new IllegalArgumentException("duration 값이 숫자가 아닙니다: " + durationStr);
-//			}
-//
-//			// 2. duration 단위 판별 (기본: 분)
-//			//    1시간 이상인데 10000 이상이면 초 단위로 간주
-//			boolean isSeconds = durationInput > 10000;
-//			long durationSeconds = isSeconds ? durationInput : durationInput * 60;
-//
-//			// 3. 기준 시각 하나로 고정
-//			long end = Instant.now().getEpochSecond();
-//			long start = end - durationSeconds;
-//
-//			// 4. step 계산 (20 포인트)
-//			int points = 20;
-//			long step = (end - start) / points;
-//
-//			// 5. 사람이 읽기 쉽게 변환
-//			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-//				.withZone(ZoneId.of("Asia/Seoul"));
-//			String startHuman = formatter.format(Instant.ofEpochSecond(start));
-//			String endHuman = formatter.format(Instant.ofEpochSecond(end));
-//
-//			// 6. 로그 출력
-//			log.info("[Prometheus Time Range]");
-//			log.info("duration (입력): " + durationInput + (isSeconds ? " sec" : " min"));
-//			log.info("start = " + start + " (" + startHuman + ")");
-//			log.info("end   = " + end   + " (" + endHuman   + ")");
-//			log.info("step  = " + step  + " sec");
-//
-//			// 7. 쿼리 문자열 생성
-//			variables.put("start", String.valueOf(start));
-//			variables.put("end", String.valueOf(end));
-//			variables.put("step", String.valueOf(step));
-//		}
-
+		// String durationStr = queryParams.get("duration");
+		// if (durationStr != null && !durationStr.isEmpty()) {
+		//
+		// // 1. duration 파싱 (숫자 검증)
+		// long durationInput;
+		// try {
+		// durationInput = Long.parseLong(durationStr);
+		// } catch (NumberFormatException e) {
+		// throw new IllegalArgumentException("duration 값이 숫자가 아닙니다: " + durationStr);
+		// }
+		//
+		// // 2. duration 단위 판별 (기본: 분)
+		// // 1시간 이상인데 10000 이상이면 초 단위로 간주
+		// boolean isSeconds = durationInput > 10000;
+		// long durationSeconds = isSeconds ? durationInput : durationInput * 60;
+		//
+		// // 3. 기준 시각 하나로 고정
+		// long end = Instant.now().getEpochSecond();
+		// long start = end - durationSeconds;
+		//
+		// // 4. step 계산 (20 포인트)
+		// int points = 20;
+		// long step = (end - start) / points;
+		//
+		// // 5. 사람이 읽기 쉽게 변환
+		// DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd
+		// HH:mm:ss")
+		// .withZone(ZoneId.of("Asia/Seoul"));
+		// String startHuman = formatter.format(Instant.ofEpochSecond(start));
+		// String endHuman = formatter.format(Instant.ofEpochSecond(end));
+		//
+		// // 6. 로그 출력
+		// log.info("[Prometheus Time Range]");
+		// log.info("duration (입력): " + durationInput + (isSeconds ? " sec" : " min"));
+		// log.info("start = " + start + " (" + startHuman + ")");
+		// log.info("end = " + end + " (" + endHuman + ")");
+		// log.info("step = " + step + " sec");
+		//
+		// // 7. 쿼리 문자열 생성
+		// variables.put("start", String.valueOf(start));
+		// variables.put("end", String.valueOf(end));
+		// variables.put("step", String.valueOf(step));
+		// }
 
 		return variables;
 	}
@@ -173,20 +171,23 @@ public class PrometheusQueryService {
 		if (values.size() == 1) {
 			String singleValue = values.get(0);
 			switch (operator) {
-				case "=": return key + "=\"" + singleValue + "\"";
-				case "=~": return key + "=~\"" + singleValue + "\"";
-				case "!=": return key + "!=\"" + singleValue + "\"";
-				case "!~": return key + "!~\"" + singleValue + "\"";
-				default: return key + "=\"" + singleValue + "\"";
+				case "=":
+					return key + "=\"" + singleValue + "\"";
+				case "=~":
+					return key + "=~\"" + singleValue + "\"";
+				case "!=":
+					return key + "!=\"" + singleValue + "\"";
+				case "!~":
+					return key + "!~\"" + singleValue + "\"";
+				default:
+					return key + "=\"" + singleValue + "\"";
 			}
 		} else {
 			// 다중값: 정규식 패턴 - 괄호 없이 단순하게
 			String regex = values.stream()
-				.collect(Collectors.joining("|"));
+					.collect(Collectors.joining("|"));
 
-			return operator.startsWith("!") ?
-				key + "!~\"" + regex + "\"" :
-				key + "=~\"" + regex + "\"";
+			return operator.startsWith("!") ? key + "!~\"" + regex + "\"" : key + "=~\"" + regex + "\"";
 		}
 	}
 
@@ -210,9 +211,9 @@ public class PrometheusQueryService {
 		}
 
 		return Arrays.stream(parts)
-			.map(String::trim)
-			.filter(s -> !s.isEmpty())
-			.collect(Collectors.toList());
+				.map(String::trim)
+				.filter(s -> !s.isEmpty())
+				.collect(Collectors.toList());
 	}
 
 	/**
@@ -227,8 +228,8 @@ public class PrometheusQueryService {
 			return key + "=\"" + values.get(0) + "\"";
 		} else {
 			String regex = values.stream()
-				.map(String::trim) // 필요시 공백 제거
-				.collect(Collectors.joining("|"));
+					.map(String::trim) // 필요시 공백 제거
+					.collect(Collectors.joining("|"));
 			return key + "=~\"" + regex + "\"";
 		}
 	}
@@ -240,7 +241,6 @@ public class PrometheusQueryService {
 
 		// %2B를 +로 복원 (URL 인코딩된 경우)
 		query = query.replace("%2B", "+");
-
 
 		return query;
 	}

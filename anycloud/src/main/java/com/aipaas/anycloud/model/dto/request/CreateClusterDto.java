@@ -24,6 +24,10 @@ public class CreateClusterDto implements Serializable {
 	private static final long serialVersionUID = -2290543268215032683L;
 
 	@NotBlank
+	@Schema(description = "클러스터 유형")
+	private String clusterType;
+
+	@NotBlank
 	@Schema(description = "클러스터 공급자")
 	private String clusterProvider;
 

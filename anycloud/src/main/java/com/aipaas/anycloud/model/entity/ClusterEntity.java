@@ -34,8 +34,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "cluster", schema = "aipaas")
-@JsonPropertyOrder({"id", "description", "version", "api_server_url", "api_server_ip", "server_ca",
-	"client_ca", "client_key", "created_at", "updated_at"})
+@JsonPropertyOrder({ "id", "description", "version", "api_server_url", "api_server_ip", "server_ca",
+		"client_ca", "client_key", "monit_server_url", "cluster_type", "cluster_provider", "created_at", "updated_at" })
 public class ClusterEntity implements Serializable {
 
 	@Serial
@@ -79,6 +79,14 @@ public class ClusterEntity implements Serializable {
 	@Size(max = 100)
 	@Column(name = "monit_server_url", nullable = false, length = 100)
 	private String monitServerUrl;
+
+	@Size(max = 100)
+	@Column(name = "cluster_type", nullable = false, length = 100)
+	private String clusterType;
+
+	@Size(max = 100)
+	@Column(name = "cluster_provider", nullable = false, length = 100)
+	private String clusterProvider;
 
 	@Builder.Default
 	@Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
