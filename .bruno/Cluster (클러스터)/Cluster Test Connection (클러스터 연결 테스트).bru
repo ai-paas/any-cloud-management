@@ -1,0 +1,19 @@
+meta {
+  name: Cluster Test Connection (클러스터 연결 테스트)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/kubernetes/test-connection?clusterName=test
+  body: none
+  auth: inherit
+}
+
+params:query {
+  clusterName: test
+}
+
+settings {
+  encodeUrl: true
+}

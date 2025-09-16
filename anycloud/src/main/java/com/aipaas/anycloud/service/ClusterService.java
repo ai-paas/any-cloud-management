@@ -26,4 +26,6 @@ public interface ClusterService {
 	HttpStatus deleteCluster(String clusterName);
 
 	Boolean isClusterExist(String clusterName);
+
+	void updateAllClusterStatuses();
 }

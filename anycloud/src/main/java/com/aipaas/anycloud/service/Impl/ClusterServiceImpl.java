@@ -1,5 +1,6 @@
 package com.aipaas.anycloud.service.Impl;
 
+import com.aipaas.anycloud.configuration.bean.KubernetesClientConfig;
 import com.aipaas.anycloud.error.enums.ErrorCode;
 import com.aipaas.anycloud.error.exception.CustomException;
 import com.aipaas.anycloud.error.exception.EntityNotFoundException;
@@ -7,11 +8,14 @@ import com.aipaas.anycloud.model.dto.request.CreateClusterDto;
 import com.aipaas.anycloud.model.entity.ClusterEntity;
 import com.aipaas.anycloud.repository.ClusterRepository;
 import com.aipaas.anycloud.service.ClusterService;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -71,7 +75,8 @@ public class ClusterServiceImpl implements ClusterService {
 		ClusterEntity clusterEntity = ClusterEntity.builder()
 				.id(cluster.getClusterName())
 				.description(cluster.getDescription())
-				.version(null)
+				.status("UNKNOWN") // 초기 상태
+				.version(null) // 나중에 업데이트
 				.apiServerUrl(cluster.getApiServerUrl())
 				.apiServerIp(cluster.getApiServerIp())
 				.serverCa(cluster.getServerCA())
@@ -83,7 +88,13 @@ public class ClusterServiceImpl implements ClusterService {
 				.build();
 
 		try {
+			// 먼저 클러스터를 저장
 			clusterRepository.save(clusterEntity);
+			log.info("Cluster {} saved successfully, initiating background status update", clusterEntity.getId());
+
+			// 비동기적으로 Kubernetes 버전 조회 및 상태 업데이트
+			updateClusterVersionAndStatusAsync(clusterEntity);
+
 		} catch (DataIntegrityViolationException e) {
 			throw new CustomException(ErrorCode.DATA_INTEGRITY);
 		}
@@ -108,5 +119,135 @@ public class ClusterServiceImpl implements ClusterService {
 	 */
 	public Boolean isClusterExist(String clusterName) {
 		return clusterRepository.findByName(clusterName).isPresent();
+	}
+
+	/**
+	 * [ClusterServiceImpl] 클러스터 버전 및 상태 비동기 업데이트 함수
+	 *
+	 * @param clusterEntity 업데이트할 클러스터 엔티티
+	 */
+	@Async
+	public CompletableFuture<Void> updateClusterVersionAndStatusAsync(ClusterEntity clusterEntity) {
+		log.info("Starting async version and status update for cluster: {}", clusterEntity.getId());
+
+		try {
+			updateClusterVersionAndStatus(clusterEntity);
+			log.info("Async version and status update completed for cluster: {}", clusterEntity.getId());
+		} catch (Exception e) {
+			log.error("Async version and status update failed for cluster {}: {}",
+					clusterEntity.getId(), e.getMessage(), e);
+		}
+
+		return CompletableFuture.completedFuture(null);
+	}
+
+	/**
+	 * [ClusterServiceImpl] 클러스터 버전 및 상태 업데이트 함수
+	 *
+	 * @param clusterEntity 업데이트할 클러스터 엔티티
+	 */
+	public void updateClusterVersionAndStatus(ClusterEntity clusterEntity) {
+		log.info("Updating version and status for cluster: {}", clusterEntity.getId());
+
+		KubernetesClientConfig manager = new KubernetesClientConfig(clusterEntity);
+		KubernetesClient client = manager.getClient();
+
+		try {
+			// 클러스터 상태 확인 (간단한 API 호출)
+			client.namespaces().list();
+
+			// Kubernetes 클러스터 버전 정보 조회
+			String version = "Unknown";
+			try {
+				// /version 엔드포인트를 통해 실제 클러스터 버전 조회
+				var versionInfo = client.getKubernetesVersion();
+				if (versionInfo != null && versionInfo.getGitVersion() != null) {
+					version = versionInfo.getGitVersion();
+				}
+			} catch (Exception versionException) {
+				log.warn("Failed to get Kubernetes version for cluster {}: {}",
+						clusterEntity.getId(), versionException.getMessage());
+				version = "Version Unknown";
+			}
+
+			// 상태와 버전 업데이트
+			clusterEntity.setStatus("ACTIVE");
+			clusterEntity.setVersion(version);
+
+			clusterRepository.save(clusterEntity);
+			log.info("Successfully updated cluster {} - Status: {}, Version: {}",
+					clusterEntity.getId(), clusterEntity.getStatus(), clusterEntity.getVersion());
+
+		} catch (Exception e) {
+			log.error("Failed to update cluster {}: {}", clusterEntity.getId(), e.getMessage(), e);
+			clusterEntity.setStatus("INACTIVE");
+			clusterEntity.setVersion("UNKNOWN");
+			clusterRepository.save(clusterEntity);
+		} finally {
+			manager.closeClient();
+		}
+	}
+
+	/**
+	 * [ClusterServiceImpl] 모든 클러스터의 상태 업데이트 함수
+	 */
+	public void updateAllClusterStatuses() {
+		log.info("Starting periodic cluster status update");
+
+		List<ClusterEntity> clusters = clusterRepository.findAll();
+		for (ClusterEntity cluster : clusters) {
+			try {
+				updateClusterStatus(cluster);
+			} catch (Exception e) {
+				log.error("Failed to update status for cluster {}: {}", cluster.getId(), e.getMessage());
+			}
+		}
+
+		log.info("Completed periodic cluster status update for {} clusters", clusters.size());
+	}
+
+	/**
+	 * [ClusterServiceImpl] 클러스터 상태 및 버전 업데이트 함수
+	 *
+	 * @param clusterEntity 업데이트할 클러스터 엔티티
+	 */
+	public void updateClusterStatus(ClusterEntity clusterEntity) {
+		log.info("Updating status and version for cluster: {}", clusterEntity.getId());
+
+		KubernetesClientConfig manager = new KubernetesClientConfig(clusterEntity);
+		KubernetesClient client = manager.getClient();
+
+		try {
+			// 간단한 API 호출로 연결 상태 확인
+			client.namespaces().list();
+
+			// Kubernetes 클러스터 버전 정보 조회
+			String version = "Unknown";
+			try {
+				// /version 엔드포인트를 통해 실제 클러스터 버전 조회
+				var versionInfo = client.getKubernetesVersion();
+				if (versionInfo != null && versionInfo.getGitVersion() != null) {
+					version = versionInfo.getGitVersion();
+				}
+			} catch (Exception versionException) {
+				log.warn("Failed to get Kubernetes version for cluster {}: {}",
+						clusterEntity.getId(), versionException.getMessage());
+				version = "Version Unknown";
+			}
+
+			// 상태와 버전 업데이트
+			clusterEntity.setStatus("ACTIVE");
+			clusterEntity.setVersion(version);
+			clusterRepository.save(clusterEntity);
+			log.info("Cluster {} status updated to ACTIVE, version: {}", clusterEntity.getId(), version);
+
+		} catch (Exception e) {
+			log.warn("Cluster {} is not accessible: {}", clusterEntity.getId(), e.getMessage());
+			clusterEntity.setStatus("INACTIVE");
+			clusterEntity.setVersion("UNKNOWN");
+			clusterRepository.save(clusterEntity);
+		} finally {
+			manager.closeClient();
+		}
 	}
 }

@@ -35,14 +35,14 @@ public class ClusterController {
 	 * [ClusterController] 클러스터 목록 조회 함수
 	 *
 	 * @return 클러스터 전체 목록을 반환합니다.
-	 * <p>
+	 *         <p>
 	 */
 	@GetMapping("/clusters")
 	@Operation(summary = "클러스터 목록 조회", description = "클러스터 전체 목록을 조회합니다.")
 	public ResponseEntity<List<ClusterEntity>> getClusters() {
 		return new ResponseEntity<>(clusterService.getClusters(),
-			new HttpHeaders(),
-			HttpStatus.OK);
+				new HttpHeaders(),
+				HttpStatus.OK);
 	}
 
 	/**
@@ -50,15 +50,15 @@ public class ClusterController {
 	 *
 	 * @param clusterName 클러스터 이름
 	 * @return 클러스터 정보를 반환합니다.
-	 * <p>
+	 *         <p>
 	 */
 	@GetMapping("/cluster/{cluster_name}")
 	@Operation(summary = "클러스터 조회", description = "클러스터를 조회합니다.")
 	public ResponseEntity<ClusterEntity> getCluster(
-		@PathVariable("cluster_name") String clusterName) {
+			@PathVariable("cluster_name") String clusterName) {
 		return new ResponseEntity<>(clusterService.getCluster(clusterName),
-			new HttpHeaders(),
-			HttpStatus.OK);
+				new HttpHeaders(),
+				HttpStatus.OK);
 	}
 
 	/**
@@ -66,14 +66,14 @@ public class ClusterController {
 	 *
 	 * @param cluster 클러스터 생성 정보
 	 * @return 클러스터를 생성합니다.
-	 * <p>
+	 *         <p>
 	 */
 	@PostMapping("/cluster")
-	@Operation(summary = "클러스터 생성", description = "클러스터를 생성합니다.")
+	@Operation(summary = "클러스터 생성", description = "클러스터를 생성하고 자동으로 상태를 업데이트합니다.")
 	public ResponseEntity<HttpStatus> createCluster(@Valid @RequestBody CreateClusterDto cluster) {
 		return new ResponseEntity<>(clusterService.createCluster(cluster),
-			new HttpHeaders(),
-			HttpStatus.OK);
+				new HttpHeaders(),
+				HttpStatus.OK);
 	}
 
 	/**
@@ -81,14 +81,14 @@ public class ClusterController {
 	 *
 	 * @param clusterName 클러스터 이름
 	 * @return 클러스터 삭제합니다.
-	 * <p>
+	 *         <p>
 	 */
 	@DeleteMapping("/cluster/{cluster_name}")
 	@Operation(summary = "패키지 삭제", description = "패키지를 삭제합니다.")
 	public ResponseEntity<HttpStatus> deletePackage(
-		@PathVariable("cluster_name") String clusterName) {
+			@PathVariable("cluster_name") String clusterName) {
 		return new ResponseEntity<>(clusterService.deleteCluster(clusterName), new HttpHeaders(),
-			HttpStatus.OK);
+				HttpStatus.OK);
 	}
 
 	/**
@@ -96,15 +96,15 @@ public class ClusterController {
 	 *
 	 * @param clusterName 클러스터 이름
 	 * @return 클러스터 등록 정보를 확인합니다.
-	 * <p>
+	 *         <p>
 	 */
 	@GetMapping("/cluster/exists")
 	@Operation(summary = "클러스터 조회", description = "클러스터를 조회합니다.")
 	public ResponseEntity<Boolean> isClusterExist(
-		@Parameter(name = "clusterId", description = "조회할 클러스터 아이디",
-			required = true, in = ParameterIn.QUERY) String clusterName) {
+			@Parameter(name = "clusterId", description = "조회할 클러스터 아이디", required = true, in = ParameterIn.QUERY) String clusterName) {
 		return new ResponseEntity<>(clusterService.isClusterExist(clusterName),
-			new HttpHeaders(),
-			HttpStatus.OK);
+				new HttpHeaders(),
+				HttpStatus.OK);
 	}
+
 }

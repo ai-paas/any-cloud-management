@@ -52,6 +52,10 @@ public class ClusterEntity implements Serializable {
 	private String description;
 
 	@Size(max = 45)
+	@Column(name = "status", length = 45)
+	private String status;
+
+	@Size(max = 45)
 	@Column(name = "version", length = 45)
 	private String version;
 
