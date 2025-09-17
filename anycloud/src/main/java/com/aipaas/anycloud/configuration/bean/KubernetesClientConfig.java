@@ -121,7 +121,7 @@ public class KubernetesClientConfig {
 	/**
 	 * kubeconfig 내용을 직접 생성하여 반환
 	 */
-	private String createKubeconfigContent(ClusterEntity cluster) throws Exception {
+	public static String createKubeconfigContent(ClusterEntity cluster) throws Exception {
 		log.info("Creating kubeconfig content for cluster: {}", cluster.getId());
 		
 		StringBuilder kubeconfig = new StringBuilder();

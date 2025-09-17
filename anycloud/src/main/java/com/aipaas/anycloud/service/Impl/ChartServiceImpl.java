@@ -207,10 +207,26 @@ public class ChartServiceImpl implements ChartService {
         HelmRepoEntity repository = getRepository(repositoryName);
         ClusterEntity cluster = getCluster(clusterId);
 
-        // 클러스터 연결 테스트
-        if (!testClusterConnection(cluster)) {
+        // kubeconfig 파일 생성 및 Kubernetes 클러스터 응답 테스트
+        try {
+            String testKubeconfigPath = createKubeconfigFile(cluster);
+            
+            try {
+                KubernetesClientConfig manager = new KubernetesClientConfig(cluster);
+                KubernetesClient client = manager.getClient();
+                client.getApiVersion();
+                
+                // 릴리즈 이름 중복 체크 (사전 검증)
+                checkReleaseNameDuplicate(testKubeconfigPath, releaseName, namespace);
+                
+            } finally {
+                deleteKubeconfigFile(testKubeconfigPath); // 테스트 후 즉시 삭제
+            }
+            
+        } catch (Exception e) {
+            log.error("Failed kubeconfig or connectivity test for cluster: {}", clusterId, e);
             throw new HelmDeploymentException(
-                    "Cannot connect to cluster: " + clusterId + ". Please check cluster configuration.");
+                    "Cannot connect to cluster: " + clusterId + ". Error: " + e.getMessage());
         }
 
         // 비동기로 배포 실행 (CompletableFuture 사용)
@@ -266,7 +282,8 @@ public class ChartServiceImpl implements ChartService {
         try {
             // kubeconfig 파일 생성
             String kubeconfigPath = createKubeconfigFile(cluster);
-
+     
+            
             try {
                 // Helm CLI를 사용하여 릴리즈 상태 조회
                 String command = buildHelmStatusCommand(releaseName, targetNamespace, kubeconfigPath);
@@ -310,90 +327,28 @@ public class ChartServiceImpl implements ChartService {
     }
 
     /**
-     * Fabric8 Kubernetes Client를 사용하여 클러스터 정보를 기반으로 임시 kubeconfig 파일을 생성합니다.
+     * 클러스터 정보를 기반으로 임시 kubeconfig 파일을 생성합니다.
      */
     private String createKubeconfigFile(ClusterEntity cluster) throws IOException {
+        if (cluster.getVersion() == null || cluster.getVersion().isEmpty() || cluster.getVersion().equals("UNKNOWN")) {
+            throw new HelmDeploymentException("Cluster status is unknown");
+        }
         try {
-            // Fabric8 Kubernetes Client를 사용하여 클러스터 정보 조회
-            KubernetesClientConfig k8sConfig = new KubernetesClientConfig(cluster);
-            KubernetesClient client = k8sConfig.getClient();
+            // KubernetesClientConfig의 createKubeconfigContent 메서드 사용 (중복 제거)
+            String kubeconfigContent = KubernetesClientConfig.createKubeconfigContent(cluster);
 
-            try {
-                // 클러스터 연결 테스트
-                client.getApiVersion();
+            // 임시 파일 생성
+            String tempDir = System.getProperty("java.io.tmpdir");
+            String fileName = "kubeconfig_" + cluster.getId() + "_" + System.currentTimeMillis() + ".yaml";
+            Path kubeconfigPath = Paths.get(tempDir, fileName);
 
-                // Fabric8의 Config 객체를 사용하여 kubeconfig 생성
-                Config fabric8Config = client.getConfiguration();
+            Files.write(kubeconfigPath, kubeconfigContent.getBytes(StandardCharsets.UTF_8));
 
-                // kubeconfig YAML 생성
-                StringBuilder kubeconfig = new StringBuilder();
-                kubeconfig.append("apiVersion: v1\n");
-                kubeconfig.append("kind: Config\n");
-                kubeconfig.append("clusters:\n");
-                kubeconfig.append("- cluster:\n");
-                kubeconfig.append("    server: ").append(fabric8Config.getMasterUrl()).append("\n");
-
-                // CA 인증서 처리
-                if (fabric8Config.getCaCertData() != null && !fabric8Config.getCaCertData().isEmpty()) {
-                    kubeconfig.append("    certificate-authority-data: ").append(fabric8Config.getCaCertData())
-                            .append("\n");
-                } else if (fabric8Config.getCaCertFile() != null) {
-                    kubeconfig.append("    certificate-authority: ").append(fabric8Config.getCaCertFile()).append("\n");
-                }
-
-                // 클러스터 이름은 DB의 ID 사용
-                String clusterName = cluster.getId();
-                kubeconfig.append("  name: ").append(clusterName).append("\n");
-
-                kubeconfig.append("contexts:\n");
-                kubeconfig.append("- context:\n");
-                kubeconfig.append("    cluster: ").append(clusterName).append("\n");
-                kubeconfig.append("    user: ").append(clusterName).append("-user\n");
-                kubeconfig.append("  name: ").append(clusterName).append("\n");
-                kubeconfig.append("current-context: ").append(clusterName).append("\n");
-
-                kubeconfig.append("users:\n");
-                kubeconfig.append("- name: ").append(clusterName).append("-user\n");
-                kubeconfig.append("  user:\n");
-
-                // 인증 정보 처리
-                if (fabric8Config.getOauthToken() != null && !fabric8Config.getOauthToken().isEmpty()) {
-                    kubeconfig.append("    token: ").append(fabric8Config.getOauthToken()).append("\n");
-                } else {
-                    // 클라이언트 인증서 사용
-                    if (fabric8Config.getClientCertData() != null && !fabric8Config.getClientCertData().isEmpty()) {
-                        kubeconfig.append("    client-certificate-data: ").append(fabric8Config.getClientCertData())
-                                .append("\n");
-                    } else if (fabric8Config.getClientCertFile() != null) {
-                        kubeconfig.append("    client-certificate: ").append(fabric8Config.getClientCertFile())
-                                .append("\n");
-                    }
-
-                    if (fabric8Config.getClientKeyData() != null && !fabric8Config.getClientKeyData().isEmpty()) {
-                        kubeconfig.append("    client-key-data: ").append(fabric8Config.getClientKeyData())
-                                .append("\n");
-                    } else if (fabric8Config.getClientKeyFile() != null) {
-                        kubeconfig.append("    client-key: ").append(fabric8Config.getClientKeyFile()).append("\n");
-                    }
-                }
-
-                // 임시 파일 생성
-                String tempDir = System.getProperty("java.io.tmpdir");
-                String fileName = "kubeconfig_" + cluster.getId() + "_" + System.currentTimeMillis() + ".yaml";
-                Path kubeconfigPath = Paths.get(tempDir, fileName);
-
-                Files.write(kubeconfigPath, kubeconfig.toString().getBytes(StandardCharsets.UTF_8));
-
-                log.debug("Created temporary kubeconfig file using Fabric8: {}", kubeconfigPath.toString());
-                return kubeconfigPath.toString();
-
-            } finally {
-                // 클라이언트 정리
-                k8sConfig.closeClient();
-            }
+            log.debug("Created temporary kubeconfig file: {}", kubeconfigPath.toString());
+            return kubeconfigPath.toString();
 
         } catch (Exception e) {
-            log.error("Failed to create kubeconfig using Fabric8 for cluster: {}", cluster.getId(), e);
+            log.error("Failed to create kubeconfig file for cluster: {}", cluster.getId(), e);
             throw new IOException("Failed to create kubeconfig for cluster " + cluster.getId() + ": " + e.getMessage(),
                     e);
         }
@@ -415,28 +370,68 @@ public class ChartServiceImpl implements ChartService {
     }
 
     /**
-     * Fabric8 Kubernetes Client를 사용하여 클러스터 연결을 테스트합니다.
+     * 릴리즈 이름 중복을 체크합니다 (비동기 실행 전 사전 검증).
      */
-    private boolean testClusterConnection(ClusterEntity cluster) {
-        try {
-            KubernetesClientConfig k8sConfig = new KubernetesClientConfig(cluster);
-            KubernetesClient client = k8sConfig.getClient();
-
-            try {
-                // 간단한 API 호출로 연결 테스트
-                client.getApiVersion();
-                log.info("Successfully connected to cluster: {}", cluster.getId());
-                return true;
-            } catch (Exception e) {
-                log.error("Failed to connect to cluster: {}", cluster.getId(), e);
-                return false;
-            } finally {
-                k8sConfig.closeClient();
-            }
-        } catch (Exception e) {
-            log.error("Error testing cluster connection: {}", cluster.getId(), e);
-            return false;
+    private void checkReleaseNameDuplicate(String kubeconfigPath, String releaseName, String namespace) throws Exception {
+        log.info("Checking release name duplicate for: {}", releaseName);
+        
+        // helm list 명령어로 기존 릴리즈 확인
+        StringBuilder command = new StringBuilder();
+        command.append("helm list --kubeconfig ").append(kubeconfigPath);
+        
+        if (namespace != null && !namespace.trim().isEmpty()) {
+            command.append(" --namespace ").append(namespace);
+        } else {
+            command.append(" --all-namespaces");
         }
+        
+        command.append(" --output json");
+        
+        ProcessBuilder processBuilder = new ProcessBuilder();
+        processBuilder.command("sh", "-c", command.toString());
+        processBuilder.redirectErrorStream(true);
+        
+        Process process = processBuilder.start();
+        
+        StringBuilder output = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+        }
+        
+        boolean finished = process.waitFor(30, TimeUnit.SECONDS);
+        if (!finished) {
+            process.destroyForcibly();
+            log.warn("Helm list command timed out during release name check");
+            return; // 타임아웃 시에는 체크를 건너뛰고 배포 진행
+        }
+        
+        int exitCode = process.exitValue();
+        if (exitCode != 0) {
+            log.warn("Helm list command failed during release name check. Exit code: {}, Output: {}", 
+                    exitCode, output.toString());
+            return; // 실패 시에는 체크를 건너뛰고 배포 진행
+        }
+        
+        String listOutput = output.toString();
+        log.debug("Helm list output: {}", listOutput);
+        
+        // JSON 파싱해서 릴리즈 이름 확인
+        if (listOutput.trim().isEmpty() || listOutput.equals("[]")) {
+            log.info("No existing releases found. Release name {} is available.", releaseName);
+            return;
+        }
+        
+        // 간단한 문자열 검사로 릴리즈 이름 존재 여부 확인
+        if (listOutput.contains("\"name\":\"" + releaseName + "\"")) {
+            throw new HelmDeploymentException(
+                "Release name '" + releaseName + "' already exists. " +
+                "Please use a different release name or uninstall the existing release first.");
+        }
+        
+        log.info("Release name {} is available for deployment.", releaseName);
     }
 
     /**
@@ -680,6 +675,9 @@ public class ChartServiceImpl implements ChartService {
 
         // 배포 옵션 추가 (atomic 제거하여 타임아웃 방지)
         command.append(" --timeout 10m");
+        
+        // TLS 검증 건너뛰기 (자체 서명된 인증서 또는 인증서 없는 클러스터 지원)
+        command.append(" --insecure-skip-tls-verify");
 
         return command.toString();
     }
@@ -744,9 +742,38 @@ public class ChartServiceImpl implements ChartService {
         }
 
         int exitCode = process.exitValue();
-        if (exitCode != 0) {
-            throw new HelmDeploymentException(
-                    "Helm command failed with exit code " + exitCode + ": " + output.toString());
+        String commandOutput = output.toString();
+        
+        // 디버깅을 위한 상세 로깅
+        log.info("Helm command executed. Exit code: {}, Output length: {}", exitCode, commandOutput.length());
+        log.debug("Helm command output: {}", commandOutput);
+        
+        // exit code와 관계없이 에러 패턴도 확인 (일부 Helm 명령어는 에러가 있어도 exit code 0을 반환할 수 있음)
+        boolean hasError = exitCode != 0 || 
+                          commandOutput.contains("Error:") || 
+                          commandOutput.contains("INSTALLATION FAILED") ||
+                          commandOutput.contains("FAILED");
+        
+        if (hasError) {
+            log.error("Helm command error detected. Exit code: {}, Output: {}", exitCode, commandOutput);
+            
+            // 특정 에러 패턴 감지 및 맞춤형 에러 메시지 제공
+            if (commandOutput.contains("cannot re-use a name that is still in use")) {
+                throw new HelmDeploymentException(
+                    "Release name already exists. Please use a different release name or uninstall the existing release first. " +
+                    "Error details: " + commandOutput);
+            } else if (commandOutput.contains("tls: failed to verify certificate")) {
+                throw new HelmDeploymentException(
+                    "TLS certificate verification failed. Please check cluster certificate configuration. " +
+                    "Error details: " + commandOutput);
+            } else if (commandOutput.contains("connection refused") || commandOutput.contains("unable to connect")) {
+                throw new HelmDeploymentException(
+                    "Unable to connect to Kubernetes cluster. Please check cluster connectivity. " +
+                    "Error details: " + commandOutput);
+            } else {
+                throw new HelmDeploymentException(
+                    "Helm command failed with exit code " + exitCode + ": " + commandOutput);
+            }
         }
 
         return output.toString();
