@@ -1,6 +1,7 @@
 package com.aipaas.anycloud.service.Impl;
 
 import com.aipaas.anycloud.configuration.bean.KubernetesClientConfig;
+import com.aipaas.anycloud.error.exception.EntityNotFoundException;
 import com.aipaas.anycloud.model.entity.ClusterEntity;
 import com.aipaas.anycloud.model.enums.ResourceType;
 import com.aipaas.anycloud.service.ClusterService;
@@ -12,7 +13,6 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * <pre>
@@ -24,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Slf4j
 @Service("kubeServiceImpl")
-@Transactional
 @RequiredArgsConstructor
 public class KubeServiceImpl implements KubeService {
 
@@ -32,6 +31,10 @@ public class KubeServiceImpl implements KubeService {
 
 	public List<? extends HasMetadata> getResources(String clusterName, String namespace,
 			String kind) {
+		// namespace가 빈값이면 "default"로 설정
+		if (namespace == null || namespace.trim().isEmpty()) {
+			namespace = "default";
+		}
 		log.info("Getting resources for cluster: {}, namespace: {}, kind: {}", clusterName, namespace, kind);
 
 		try {
@@ -57,6 +60,10 @@ public class KubeServiceImpl implements KubeService {
 			} finally {
 				manager.closeClient();
 			}
+		} catch (EntityNotFoundException e) {
+			// 클러스터를 찾을 수 없는 경우 EntityNotFoundException을 그대로 전파
+			log.warn("Cluster not found: {}", clusterName);
+			throw e;
 		} catch (Exception e) {
 			log.error("Failed to initialize Kubernetes client for cluster [{}]: {}", clusterName, e.getMessage(), e);
 			return Collections.emptyList();
@@ -64,66 +71,94 @@ public class KubeServiceImpl implements KubeService {
 	}
 
 	public HasMetadata getResource(String clusterName, String namespace, String kind, String name) {
-		ClusterEntity cluster = clusterService.getCluster(clusterName);
-		KubernetesClientConfig manager = new KubernetesClientConfig(cluster);
-		KubernetesClient client = manager.getClient();
-
+		// namespace가 빈값이면 "default"로 설정
+		if (namespace == null || namespace.trim().isEmpty()) {
+			namespace = "default";
+		}
+		
 		try {
-			ResourceType type = ResourceType.fromKind(kind);
-			return type.getResourceByName(client, namespace, name);
-		} catch (Exception e) {
-			log.error("Failed to fetch resource [{}] of kind [{}] in namespace [{}]: {}", name,
-					kind, namespace, e.getMessage(), e);
-			return null;
-		} finally {
-			manager.closeClient();
+			ClusterEntity cluster = clusterService.getCluster(clusterName);
+			KubernetesClientConfig manager = new KubernetesClientConfig(cluster);
+			KubernetesClient client = manager.getClient();
+
+			try {
+				ResourceType type = ResourceType.fromKind(kind);
+				return type.getResourceByName(client, namespace, name);
+			} catch (Exception e) {
+				log.error("Failed to fetch resource [{}] of kind [{}] in namespace [{}]: {}", name,
+						kind, namespace, e.getMessage(), e);
+				return null;
+			} finally {
+				manager.closeClient();
+			}
+		} catch (EntityNotFoundException e) {
+			// 클러스터를 찾을 수 없는 경우 EntityNotFoundException을 그대로 전파
+			log.warn("Cluster not found: {}", clusterName);
+			throw e;
 		}
 	}
 
 	public boolean deleteResource(String clusterName, String namespace, String kind, String name) {
-		ClusterEntity cluster = clusterService.getCluster(clusterName);
-		KubernetesClientConfig manager = new KubernetesClientConfig(cluster);
-		KubernetesClient client = manager.getClient();
-
+		// namespace가 빈값이면 "default"로 설정
+		if (namespace == null || namespace.trim().isEmpty()) {
+			namespace = "default";
+		}
+		
 		try {
-			ResourceType type = ResourceType.fromKind(kind);
-			return type.deleteResource(client, namespace, name);
-		} catch (Exception e) {
-			log.error("Failed to delete [{}] resource [{}] in namespace [{}]: {}", kind, name,
-					namespace,
-					e.getMessage(), e);
-			return false;
-		} finally {
-			manager.closeClient();
+			ClusterEntity cluster = clusterService.getCluster(clusterName);
+			KubernetesClientConfig manager = new KubernetesClientConfig(cluster);
+			KubernetesClient client = manager.getClient();
+
+			try {
+				ResourceType type = ResourceType.fromKind(kind);
+				return type.deleteResource(client, namespace, name);
+			} catch (Exception e) {
+				log.error("Failed to delete [{}] resource [{}] in namespace [{}]: {}", kind, name,
+						namespace,
+						e.getMessage(), e);
+				return false;
+			} finally {
+				manager.closeClient();
+			}
+		} catch (EntityNotFoundException e) {
+			// 클러스터를 찾을 수 없는 경우 EntityNotFoundException을 그대로 전파
+			log.warn("Cluster not found: {}", clusterName);
+			throw e;
 		}
 	}
 
 	public boolean testConnection(String clusterName) {
 		log.info("Testing connection to cluster: {}", clusterName);
 
-		// 클러스터가 존재하지 않으면 EntityNotFoundException을 그대로 전파
-		ClusterEntity cluster = clusterService.getCluster(clusterName);
-		log.info("Found cluster: {}", cluster.getId());
-
-		KubernetesClientConfig manager = new KubernetesClientConfig(cluster);
-		KubernetesClient client = manager.getClient();
-		log.info("Created Kubernetes client successfully");
-
 		try {
-			// 실제 API 호출로 연결 테스트 - 네임스페이스 목록 조회
-			var namespaces = client.namespaces().list();
-			log.info("Successfully connected to cluster. Found {} namespaces", namespaces.getItems().size());
+			// 클러스터가 존재하지 않으면 EntityNotFoundException을 그대로 전파
+			ClusterEntity cluster = clusterService.getCluster(clusterName);
+			log.info("Found cluster: {}", cluster.getId());
 
-			// 추가로 노드 정보도 조회해서 더 확실한 연결 테스트
-			var nodes = client.nodes().list();
-			log.info("Successfully retrieved {} nodes from cluster", nodes.getItems().size());
+			KubernetesClientConfig manager = new KubernetesClientConfig(cluster);
+			KubernetesClient client = manager.getClient();
+			log.info("Created Kubernetes client successfully");
 
-			return true;
-		} catch (Exception e) {
-			log.error("Failed to connect to cluster [{}]: {}", clusterName, e.getMessage(), e);
-			return false;
-		} finally {
-			manager.closeClient();
+			try {
+				// 실제 API 호출로 연결 테스트 - 네임스페이스 목록 조회
+				var namespaces = client.namespaces().list();
+				log.info("Successfully connected to cluster. Found {} namespaces", namespaces.getItems().size());
+
+				// 추가로 노드 정보도 조회해서 더 확실한 연결 테스트
+				var nodes = client.nodes().list();
+				log.info("Successfully retrieved {} nodes from cluster", nodes.getItems().size());
+
+				return true;
+			} catch (Exception e) {
+				log.error("Failed to connect to cluster [{}]: {}", clusterName, e.getMessage(), e);
+				return false;
+			} finally {
+				manager.closeClient();
+			}
+		} catch (EntityNotFoundException e) {
+			// 클러스터를 찾을 수 없는 경우 EntityNotFoundException을 그대로 전파
+			log.warn("Cluster not found: {}", clusterName);
+			throw e;
 		}
 	}
 }

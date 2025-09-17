@@ -1,14 +1,6 @@
 package com.aipaas.anycloud.util;
 
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.data.domain.Sort;
-import org.springframework.util.StringUtils;
-
-import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Pattern;
-import java.net.UnknownHostException;
 
 public class Common {
 
