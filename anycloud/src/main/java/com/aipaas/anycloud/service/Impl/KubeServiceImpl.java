@@ -1,7 +1,7 @@
 package com.aipaas.anycloud.service.Impl;
 
 import com.aipaas.anycloud.configuration.bean.KubernetesClientConfig;
-import com.aipaas.anycloud.error.exception.EntityNotFoundException;
+import com.aipaas.anycloud.error.exception.ClusterNotFoundException;
 import com.aipaas.anycloud.model.entity.ClusterEntity;
 import com.aipaas.anycloud.model.enums.ResourceType;
 import com.aipaas.anycloud.service.ClusterService;
@@ -60,8 +60,8 @@ public class KubeServiceImpl implements KubeService {
 			} finally {
 				manager.closeClient();
 			}
-		} catch (EntityNotFoundException e) {
-			// 클러스터를 찾을 수 없는 경우 EntityNotFoundException을 그대로 전파
+		} catch (ClusterNotFoundException e) {
+			// 클러스터를 찾을 수 없는 경우 ClusterNotFoundException을 그대로 전파
 			log.warn("Cluster not found: {}", clusterName);
 			throw e;
 		} catch (Exception e) {
@@ -91,8 +91,8 @@ public class KubeServiceImpl implements KubeService {
 			} finally {
 				manager.closeClient();
 			}
-		} catch (EntityNotFoundException e) {
-			// 클러스터를 찾을 수 없는 경우 EntityNotFoundException을 그대로 전파
+		} catch (ClusterNotFoundException e) {
+			// 클러스터를 찾을 수 없는 경우 ClusterNotFoundException을 그대로 전파
 			log.warn("Cluster not found: {}", clusterName);
 			throw e;
 		}
@@ -120,8 +120,8 @@ public class KubeServiceImpl implements KubeService {
 			} finally {
 				manager.closeClient();
 			}
-		} catch (EntityNotFoundException e) {
-			// 클러스터를 찾을 수 없는 경우 EntityNotFoundException을 그대로 전파
+		} catch (ClusterNotFoundException e) {
+			// 클러스터를 찾을 수 없는 경우 ClusterNotFoundException을 그대로 전파
 			log.warn("Cluster not found: {}", clusterName);
 			throw e;
 		}
@@ -131,7 +131,7 @@ public class KubeServiceImpl implements KubeService {
 		log.info("Testing connection to cluster: {}", clusterName);
 
 		try {
-			// 클러스터가 존재하지 않으면 EntityNotFoundException을 그대로 전파
+			// 클러스터가 존재하지 않으면 ClusterNotFoundException을 그대로 전파
 			ClusterEntity cluster = clusterService.getCluster(clusterName);
 			log.info("Found cluster: {}", cluster.getId());
 
@@ -155,8 +155,8 @@ public class KubeServiceImpl implements KubeService {
 			} finally {
 				manager.closeClient();
 			}
-		} catch (EntityNotFoundException e) {
-			// 클러스터를 찾을 수 없는 경우 EntityNotFoundException을 그대로 전파
+		} catch (ClusterNotFoundException e) {
+			// 클러스터를 찾을 수 없는 경우 ClusterNotFoundException을 그대로 전파
 			log.warn("Cluster not found: {}", clusterName);
 			throw e;
 		}

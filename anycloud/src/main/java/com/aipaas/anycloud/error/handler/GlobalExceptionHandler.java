@@ -2,6 +2,7 @@ package com.aipaas.anycloud.error.handler;
 
 import com.aipaas.anycloud.error.ErrorResponse;
 import com.aipaas.anycloud.error.enums.ErrorCode;
+import com.aipaas.anycloud.error.exception.ClusterNotFoundException;
 import com.aipaas.anycloud.error.exception.CustomException;
 import com.aipaas.anycloud.error.exception.EntityNotFoundException;
 import com.aipaas.anycloud.error.exception.HelmChartNotFoundException;
@@ -118,6 +119,16 @@ public class GlobalExceptionHandler {
         log.error(e.getMessage());
         // e.printStackTrace();
         final ErrorResponse response = ErrorResponse.of(ErrorCode.ENTITY_NOT_FOUND);
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    /**
+     * 클러스터를 찾을 수 없을 때 발생하는 예외 처리
+     */
+    @ExceptionHandler(ClusterNotFoundException.class)
+    protected ResponseEntity<ErrorResponse> handleClusterNotFoundException(ClusterNotFoundException e) {
+        log.error("Cluster not found: {}", e.getMessage());
+        final ErrorResponse response = ErrorResponse.of(e.getErrorCode(), e.getMessage());
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 

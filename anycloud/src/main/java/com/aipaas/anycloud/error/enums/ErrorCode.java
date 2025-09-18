@@ -29,7 +29,12 @@ public enum ErrorCode {
 	ACCESS_DENIED_EXCEPTION(401, "인증 정보가 유효하지 않습니다."),
 	DUPLICATE(409, "중복된 데이터가 있습니다."),
 	NO_BODY(400, "입력된 바디 또는 파라미터가 없습니다."),
-	DATA_INTEGRITY(403, "데이터가 정상적으로 처리되지 못했습니다.");
+	DATA_INTEGRITY(403, "데이터가 정상적으로 처리되지 못했습니다."),
+
+	// Cluster related errors
+	CLUSTER_NOT_FOUND(404, "클러스터를 찾을 수 없습니다."),
+	CLUSTER_CONNECTION_FAILED(503, "클러스터 연결에 실패했습니다."),
+	CLUSTER_INVALID_CONFIG(400, "클러스터 설정이 유효하지 않습니다.");
 
 	private final int status;
 	private final String message;

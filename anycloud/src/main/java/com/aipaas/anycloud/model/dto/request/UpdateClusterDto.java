@@ -30,6 +30,8 @@ public class UpdateClusterDto implements Serializable {
 	private String description;
 
 	@Schema(description = "클러스터 유형 (Public, Private)")
+	// @Pattern(regexp = "^(Public|Private)$", message = "클러스터 유형은 Public 또는
+	// Private이어야 합니다")
 	private String clusterType;
 
 	@Schema(description = "클러스터 공급자 (AWS, GCP, Azure, OpenStack 등)")
@@ -37,9 +39,12 @@ public class UpdateClusterDto implements Serializable {
 	private String clusterProvider;
 
 	@Schema(description = "클러스터 API 서버 URL")
+	// @Pattern(regexp = "^https?://.*", message = "올바른 URL 형식이어야 합니다")
 	private String apiServerUrl;
 
 	@Schema(description = "클러스터 API 서버 IP")
+	// @Pattern(regexp = "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$", message = "올바른 IP 주소
+	// 형식이어야 합니다")
 	private String apiServerIp;
 
 	@Schema(description = "클러스터 ServerCA (Base64 인코딩된 인증서)")
@@ -52,5 +57,6 @@ public class UpdateClusterDto implements Serializable {
 	private String clientKey;
 
 	@Schema(description = "클러스터 모니터링 서버 URL")
+	// @Pattern(regexp = "^https?://.*", message = "올바른 URL 형식이어야 합니다")
 	private String monitServerUrl;
 }

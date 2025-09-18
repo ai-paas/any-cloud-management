@@ -113,13 +113,13 @@ public class ClusterController {
 	 * [ClusterController] 클러스터 등록 여부 확인 함수
 	 *
 	 * @param clusterName 클러스터 이름
-	 * @return 클러스터 등록 정보를 확인합니다.
+	 * @return 클러스터 등록 여부를 확인합니다.
 	 *         <p>
 	 */
 	@GetMapping("/cluster/exists")
-	@Operation(summary = "클러스터 조회", description = "클러스터를 조회합니다.")
+	@Operation(summary = "클러스터 등록 여부 확인", description = "클러스터가 등록되어 있는지 확인합니다.")
 	public ResponseEntity<Boolean> isClusterExist(
-			@Parameter(name = "clusterId", description = "조회할 클러스터 아이디", required = true, in = ParameterIn.QUERY) String clusterName) {
+			@Parameter(name = "clusterId", description = "확인할 클러스터 아이디", required = true, in = ParameterIn.QUERY) String clusterName) {
 		return new ResponseEntity<>(clusterService.isClusterExist(clusterName),
 				new HttpHeaders(),
 				HttpStatus.OK);

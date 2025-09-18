@@ -20,10 +20,6 @@ headers {
   User-Agent: bruno/1.11.0
 }
 
-script:post-response {
-  bru.setEnvVar("cluster_name", res.body[0].id);
-}
-
 tests {
   test("상태 코드 200 확인", function() {
     expect(res.getStatus()).to.equal(200);

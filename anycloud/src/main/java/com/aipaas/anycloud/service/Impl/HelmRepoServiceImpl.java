@@ -50,7 +50,7 @@ public class HelmRepoServiceImpl implements HelmRepoService {
 	@Transactional(readOnly = true)
 	public HelmRepoEntity getHelmRepo(String helmRepoName) {
 		return helmRepoRepository.findByName(helmRepoName).orElseThrow(
-			() -> new EntityNotFoundException("HelmRepo with Name " + helmRepoName + " Not Found."));
+				() -> new EntityNotFoundException("HelmRepo with Name " + helmRepoName + " Not Found."));
 	}
 
 	/**
@@ -65,20 +65,19 @@ public class HelmRepoServiceImpl implements HelmRepoService {
 			throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
 		}
 
-
 		log.error(isHelmExist(helmRepo.getName()).toString());
 
 		if (isHelmExist(helmRepo.getName())) {
 			throw new CustomException(ErrorCode.DUPLICATE);
 		}
 		HelmRepoEntity helmRepoEntity = HelmRepoEntity.builder()
-			.name(helmRepo.getName())
-			.url(helmRepo.getUrl())
-			.username(helmRepo.getUsername())
-			.password(helmRepo.getPassword())
-			.caFile(helmRepo.getCaFile())
-			.insecureSkipTlsVerify(helmRepo.isInsecureSkipTlsVerify())
-			.build();
+				.name(helmRepo.getName())
+				.url(helmRepo.getUrl())
+				.username(helmRepo.getUsername())
+				.password(helmRepo.getPassword())
+				.caFile(helmRepo.getCaFile())
+				.insecureSkipTlsVerify(helmRepo.isInsecureSkipTlsVerify())
+				.build();
 
 		try {
 			helmRepoRepository.save(helmRepoEntity);
@@ -91,15 +90,15 @@ public class HelmRepoServiceImpl implements HelmRepoService {
 		return HttpStatus.CREATED;
 	}
 
-
 	/**
 	 * [HelmRepoServiceImpl] 헬름저장소 삭제 함수
 	 *
 	 * @return 헬름저장소를 삭제합니다.
 	 */
+	@Transactional
 	public HttpStatus deleteHelmRepo(String helmRepoName) {
 		helmRepoRepository.delete(helmRepoRepository.findByName(helmRepoName).orElseThrow(
-			() -> new EntityNotFoundException("HelmRepo with Name " + helmRepoName + " Not Found.")));
+				() -> new EntityNotFoundException("HelmRepo with Name " + helmRepoName + " Not Found.")));
 		return HttpStatus.OK;
 	}
 
@@ -110,5 +109,5 @@ public class HelmRepoServiceImpl implements HelmRepoService {
 	 */
 	public Boolean isHelmExist(String helmRepoName) {
 		return helmRepoRepository.existsByName(helmRepoName);
-		}
+	}
 }

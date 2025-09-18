@@ -2,6 +2,7 @@ package com.aipaas.anycloud.service.Impl;
 
 import com.aipaas.anycloud.configuration.bean.KubernetesClientConfig;
 import com.aipaas.anycloud.error.enums.ErrorCode;
+import com.aipaas.anycloud.error.exception.ClusterNotFoundException;
 import com.aipaas.anycloud.error.exception.CustomException;
 import com.aipaas.anycloud.error.exception.EntityNotFoundException;
 import com.aipaas.anycloud.model.dto.request.CreateClusterDto;
@@ -9,9 +10,9 @@ import com.aipaas.anycloud.model.dto.request.UpdateClusterDto;
 import com.aipaas.anycloud.model.entity.ClusterEntity;
 import com.aipaas.anycloud.repository.ClusterRepository;
 import com.aipaas.anycloud.service.ClusterService;
+import com.aipaas.anycloud.util.Common;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -54,8 +55,8 @@ public class ClusterServiceImpl implements ClusterService {
 	 */
 	@Transactional(readOnly = true)
 	public ClusterEntity getCluster(String clusterName) {
-		return clusterRepository.findByName(clusterName).orElseThrow(
-				() -> new EntityNotFoundException("Cluster with Name " + clusterName + " Not Found."));
+		return clusterRepository.findById(clusterName).orElseThrow(
+				() -> new ClusterNotFoundException(clusterName));
 	}
 
 	/**
@@ -70,7 +71,7 @@ public class ClusterServiceImpl implements ClusterService {
 		}
 
 		// 중복 체크: 같은 이름의 클러스터가 이미 존재하는지 확인
-		if (clusterRepository.findByName(cluster.getClusterName()).isPresent()) {
+		if (clusterRepository.findById(cluster.getClusterName()).isPresent()) {
 			throw new CustomException(ErrorCode.DUPLICATE);
 		}
 
@@ -104,159 +105,81 @@ public class ClusterServiceImpl implements ClusterService {
 	}
 
 	/**
-	 * [ClusterServiceImpl] 클러스터 업데이트 함수 (개선된 버전)
+	 * [ClusterServiceImpl] 클러스터 업데이트 함수
 	 *
 	 * @param clusterName 업데이트할 클러스터 이름
 	 * @param updateDto   업데이트할 클러스터 정보
 	 * @return 업데이트 결과
 	 */
+	@Transactional
 	public HttpStatus updateCluster(String clusterName, UpdateClusterDto updateDto) {
 		log.info("Starting cluster update for: {}", clusterName);
 
 		// 1. 클러스터 존재 확인
-		ClusterEntity clusterEntity = clusterRepository.findByName(clusterName).orElseThrow(
-				() -> new EntityNotFoundException("Cluster with Name " + clusterName + " Not Found."));
+		ClusterEntity clusterEntity = clusterRepository.findById(clusterName).orElseThrow(
+				() -> new ClusterNotFoundException(clusterName));
 
 		log.info("Found cluster: {} (Status: {}, Version: {})",
 				clusterEntity.getId(), clusterEntity.getStatus(), clusterEntity.getVersion());
 
-		// 2. 업데이트 전 백업 (롤백용)
-		ClusterEntity originalCluster = createBackup(clusterEntity);
+		// 2. 부분 업데이트 수행
+		updateClusterFields(clusterEntity, updateDto);
+		log.info("Updated cluster fields for: {}", clusterName);
 
-		try {
-			// 3. 부분 업데이트 수행
-			updateClusterFields(clusterEntity, updateDto);
-			log.info("Updated cluster fields for: {}", clusterName);
+		// 3. 데이터베이스에 저장
+		clusterRepository.save(clusterEntity);
+		log.info("Successfully saved updated cluster: {}", clusterName);
 
-			// 4. 데이터베이스에 저장
-			clusterRepository.save(clusterEntity);
-			log.info("Successfully saved updated cluster: {}", clusterName);
-
-			// 5. 연결 정보가 변경된 경우 연결 테스트 수행
-			if (isConnectionInfoChanged(originalCluster, clusterEntity)) {
-				log.info("Connection info changed, performing connection test for: {}", clusterName);
-				updateClusterVersionAndStatusAsync(clusterEntity);
-			}
-
-			log.info("Cluster update completed successfully for: {}", clusterName);
-			return HttpStatus.OK;
-
-		} catch (Exception e) {
-			log.error("Failed to update cluster {}: {}", clusterName, e.getMessage(), e);
-
-			// 롤백 수행
-			try {
-				rollbackCluster(clusterEntity, originalCluster);
-				log.info("Successfully rolled back cluster: {}", clusterName);
-			} catch (Exception rollbackException) {
-				log.error("Failed to rollback cluster {}: {}", clusterName, rollbackException.getMessage(), rollbackException);
-			}
-
-			throw new CustomException("Failed to update cluster: " + e.getMessage(), ErrorCode.INTERNAL_SERVER_ERROR);
+		// 4. 연결 정보가 변경된 경우 연결 테스트 수행
+		if (isConnectionInfoChanged(updateDto)) {
+			log.info("Connection info changed, performing connection test for: {}", clusterName);
+			updateClusterVersionAndStatusAsync(clusterEntity);
 		}
+
+		log.info("Cluster update completed successfully for: {}", clusterName);
+		return HttpStatus.OK;
 	}
 
 	/**
 	 * 클러스터 필드 부분 업데이트
 	 */
 	private void updateClusterFields(ClusterEntity clusterEntity, UpdateClusterDto updateDto) {
-		if (updateDto.getDescription() != null) {
-			clusterEntity.setDescription(updateDto.getDescription());
-			log.debug("Updated description for cluster: {}", clusterEntity.getId());
-		}
+		Common.updateIfNotNull(updateDto.getDescription(), clusterEntity::setDescription, log,
+				"Updated description for cluster: {}", clusterEntity.getId());
 
-		if (updateDto.getClusterType() != null) {
-			clusterEntity.setClusterType(updateDto.getClusterType());
-			log.debug("Updated cluster type for cluster: {}", clusterEntity.getId());
-		}
+		Common.updateIfNotNull(updateDto.getClusterType(), clusterEntity::setClusterType, log,
+				"Updated cluster type for cluster: {}", clusterEntity.getId());
 
-		if (updateDto.getClusterProvider() != null) {
-			clusterEntity.setClusterProvider(updateDto.getClusterProvider());
-			log.debug("Updated cluster provider for cluster: {}", clusterEntity.getId());
-		}
+		Common.updateIfNotNull(updateDto.getClusterProvider(), clusterEntity::setClusterProvider, log,
+				"Updated cluster provider for cluster: {}", clusterEntity.getId());
 
-		if (updateDto.getApiServerUrl() != null) {
-			clusterEntity.setApiServerUrl(updateDto.getApiServerUrl());
-			log.debug("Updated API server URL for cluster: {}", clusterEntity.getId());
-		}
+		Common.updateIfNotNull(updateDto.getApiServerUrl(), clusterEntity::setApiServerUrl, log,
+				"Updated API server URL for cluster: {}", clusterEntity.getId());
 
-		if (updateDto.getApiServerIp() != null) {
-			clusterEntity.setApiServerIp(updateDto.getApiServerIp());
-			log.debug("Updated API server IP for cluster: {}", clusterEntity.getId());
-		}
+		Common.updateIfNotNull(updateDto.getApiServerIp(), clusterEntity::setApiServerIp, log,
+				"Updated API server IP for cluster: {}", clusterEntity.getId());
 
-		if (updateDto.getServerCa() != null) {
-			clusterEntity.setServerCa(updateDto.getServerCa());
-			log.debug("Updated server CA for cluster: {}", clusterEntity.getId());
-		}
+		Common.updateIfNotNull(updateDto.getServerCa(), clusterEntity::setServerCa, log,
+				"Updated server CA for cluster: {}", clusterEntity.getId());
 
-		if (updateDto.getClientCa() != null) {
-			clusterEntity.setClientCa(updateDto.getClientCa());
-			log.debug("Updated client CA for cluster: {}", clusterEntity.getId());
-		}
+		Common.updateIfNotNull(updateDto.getClientCa(), clusterEntity::setClientCa, log,
+				"Updated client CA for cluster: {}", clusterEntity.getId());
 
-		if (updateDto.getClientKey() != null) {
-			clusterEntity.setClientKey(updateDto.getClientKey());
-			log.debug("Updated client key for cluster: {}", clusterEntity.getId());
-		}
+		Common.updateIfNotNull(updateDto.getClientKey(), clusterEntity::setClientKey, log,
+				"Updated client key for cluster: {}", clusterEntity.getId());
 
-		if (updateDto.getMonitServerUrl() != null) {
-			clusterEntity.setMonitServerUrl(updateDto.getMonitServerUrl());
-			log.debug("Updated monitoring server URL for cluster: {}", clusterEntity.getId());
-		}
+		Common.updateIfNotNull(updateDto.getMonitServerUrl(), clusterEntity::setMonitServerUrl, log,
+				"Updated monitoring server URL for cluster: {}", clusterEntity.getId());
 	}
 
 	/**
 	 * 연결 정보가 변경되었는지 확인
 	 */
-	private boolean isConnectionInfoChanged(ClusterEntity original, ClusterEntity updated) {
-		return !Objects.equals(original.getApiServerUrl(), updated.getApiServerUrl()) ||
-				!Objects.equals(original.getServerCa(), updated.getServerCa()) ||
-				!Objects.equals(original.getClientCa(), updated.getClientCa()) ||
-				!Objects.equals(original.getClientKey(), updated.getClientKey()) ||
-				!Objects.equals(original.getClientToken(), updated.getClientToken());
-	}
-
-	/**
-	 * 클러스터 백업 생성
-	 */
-	private ClusterEntity createBackup(ClusterEntity original) {
-		ClusterEntity backup = new ClusterEntity();
-		backup.setId(original.getId());
-		backup.setDescription(original.getDescription());
-		backup.setStatus(original.getStatus());
-		backup.setVersion(original.getVersion());
-		backup.setApiServerUrl(original.getApiServerUrl());
-		backup.setApiServerIp(original.getApiServerIp());
-		backup.setServerCa(original.getServerCa());
-		backup.setClientCa(original.getClientCa());
-		backup.setClientKey(original.getClientKey());
-		backup.setClientToken(original.getClientToken());
-		backup.setMonitServerUrl(original.getMonitServerUrl());
-		backup.setClusterType(original.getClusterType());
-		backup.setClusterProvider(original.getClusterProvider());
-		backup.setCreatedAt(original.getCreatedAt());
-		backup.setUpdatedAt(original.getUpdatedAt());
-		return backup;
-	}
-
-	/**
-	 * 클러스터 롤백
-	 */
-	private void rollbackCluster(ClusterEntity current, ClusterEntity original) {
-		current.setDescription(original.getDescription());
-		current.setStatus(original.getStatus());
-		current.setVersion(original.getVersion());
-		current.setApiServerUrl(original.getApiServerUrl());
-		current.setApiServerIp(original.getApiServerIp());
-		current.setServerCa(original.getServerCa());
-		current.setClientCa(original.getClientCa());
-		current.setClientKey(original.getClientKey());
-		current.setClientToken(original.getClientToken());
-		current.setMonitServerUrl(original.getMonitServerUrl());
-		current.setClusterType(original.getClusterType());
-		current.setClusterProvider(original.getClusterProvider());
-		clusterRepository.save(current);
+	private boolean isConnectionInfoChanged(UpdateClusterDto updateDto) {
+		return updateDto.getApiServerUrl() != null ||
+				updateDto.getServerCa() != null ||
+				updateDto.getClientCa() != null ||
+				updateDto.getClientKey() != null;
 	}
 
 	/**
@@ -264,9 +187,10 @@ public class ClusterServiceImpl implements ClusterService {
 	 *
 	 * @return 쿠버네티스 클러스터를 삭제합니다.
 	 */
+	@Transactional
 	public HttpStatus deleteCluster(String clusterName) {
-		clusterRepository.delete(clusterRepository.findByName(clusterName).orElseThrow(
-				() -> new EntityNotFoundException("Cluster with Name " + clusterName + " Not Found.")));
+		clusterRepository.delete(clusterRepository.findById(clusterName).orElseThrow(
+				() -> new ClusterNotFoundException(clusterName)));
 		return HttpStatus.OK;
 	}
 
@@ -276,7 +200,7 @@ public class ClusterServiceImpl implements ClusterService {
 	 * @return 쿠버네티스 클러스터가 존재하는지 확인합니다.
 	 */
 	public Boolean isClusterExist(String clusterName) {
-		return clusterRepository.findByName(clusterName).isPresent();
+		return clusterRepository.findById(clusterName).isPresent();
 	}
 
 	/**
@@ -289,8 +213,8 @@ public class ClusterServiceImpl implements ClusterService {
 		log.info("Testing connection for cluster: {}", clusterName);
 
 		try {
-			ClusterEntity cluster = clusterRepository.findByName(clusterName).orElseThrow(
-					() -> new EntityNotFoundException("Cluster with Name " + clusterName + " Not Found."));
+			ClusterEntity cluster = clusterRepository.findById(clusterName).orElseThrow(
+					() -> new ClusterNotFoundException(clusterName));
 
 			KubernetesClientConfig manager = new KubernetesClientConfig(cluster);
 			KubernetesClient client = manager.getClient();
@@ -327,8 +251,8 @@ public class ClusterServiceImpl implements ClusterService {
 		log.info("Starting forced status refresh for cluster: {}", clusterName);
 
 		try {
-			ClusterEntity cluster = clusterRepository.findByName(clusterName).orElseThrow(
-					() -> new EntityNotFoundException("Cluster with Name " + clusterName + " Not Found."));
+			ClusterEntity cluster = clusterRepository.findById(clusterName).orElseThrow(
+					() -> new ClusterNotFoundException(clusterName));
 
 			// 즉시 상태 업데이트 수행
 			updateClusterVersionAndStatus(cluster);
