@@ -1,6 +1,7 @@
 package com.aipaas.anycloud.controller;
 
 import com.aipaas.anycloud.model.dto.request.CreateClusterDto;
+import com.aipaas.anycloud.model.dto.request.UpdateClusterDto;
 import com.aipaas.anycloud.model.entity.ClusterEntity;
 import com.aipaas.anycloud.service.ClusterService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -77,6 +79,22 @@ public class ClusterController {
 	}
 
 	/**
+	 * [ClusterController] 클러스터 업데이트 함수
+	 *
+	 * @param clusterName 클러스터 이름
+	 * @return 클러스터 업데이트합니다.
+	 *         <p>
+	 */
+	@PutMapping("/cluster/{cluster_name}")
+	@Operation(summary = "클러스터 업데이트", description = "클러스터를 업데이트합니다.")
+	public ResponseEntity<HttpStatus> updateCluster(
+			@PathVariable("cluster_name") String clusterName,
+			@Valid @RequestBody UpdateClusterDto cluster) {
+		return new ResponseEntity<>(clusterService.updateCluster(clusterName, cluster), new HttpHeaders(),
+				HttpStatus.OK);
+	}
+
+	/**
 	 * [ClusterController] 클러스터 삭제 함수
 	 *
 	 * @param clusterName 클러스터 이름
@@ -107,4 +125,35 @@ public class ClusterController {
 				HttpStatus.OK);
 	}
 
+	/**
+	 * [ClusterController] 클러스터 연결 테스트 함수
+	 *
+	 * @param clusterName 클러스터 이름
+	 * @return 클러스터 연결 상태를 테스트합니다.
+	 *         <p>
+	 */
+	@GetMapping("/cluster/{cluster_name}/test-connection")
+	@Operation(summary = "클러스터 연결 테스트", description = "클러스터 연결 상태를 테스트합니다.")
+	public ResponseEntity<Boolean> testClusterConnection(
+			@PathVariable("cluster_name") String clusterName) {
+		return new ResponseEntity<>(clusterService.testClusterConnection(clusterName),
+				new HttpHeaders(),
+				HttpStatus.OK);
+	}
+
+	/**
+	 * [ClusterController] 클러스터 상태 강제 업데이트 함수
+	 *
+	 * @param clusterName 클러스터 이름
+	 * @return 클러스터 상태를 강제로 업데이트합니다.
+	 *         <p>
+	 */
+	@PostMapping("/cluster/{cluster_name}/refresh")
+	@Operation(summary = "클러스터 상태 강제 업데이트", description = "클러스터 상태를 강제로 업데이트합니다.")
+	public ResponseEntity<HttpStatus> refreshClusterStatus(
+			@PathVariable("cluster_name") String clusterName) {
+		return new ResponseEntity<>(clusterService.refreshClusterStatus(clusterName),
+				new HttpHeaders(),
+				HttpStatus.OK);
+	}
 }

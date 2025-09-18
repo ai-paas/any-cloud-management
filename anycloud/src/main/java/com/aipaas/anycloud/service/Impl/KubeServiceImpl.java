@@ -75,7 +75,7 @@ public class KubeServiceImpl implements KubeService {
 		if (namespace == null || namespace.trim().isEmpty()) {
 			namespace = "default";
 		}
-		
+
 		try {
 			ClusterEntity cluster = clusterService.getCluster(clusterName);
 			KubernetesClientConfig manager = new KubernetesClientConfig(cluster);
@@ -103,7 +103,7 @@ public class KubeServiceImpl implements KubeService {
 		if (namespace == null || namespace.trim().isEmpty()) {
 			namespace = "default";
 		}
-		
+
 		try {
 			ClusterEntity cluster = clusterService.getCluster(clusterName);
 			KubernetesClientConfig manager = new KubernetesClientConfig(cluster);

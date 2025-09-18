@@ -4,7 +4,7 @@ meta {
   seq: 4
 }
 
-patch {
+put {
   url: {{baseUrl}}/system/cluster/{{cluster_name}}
   body: json
   auth: none
@@ -15,13 +15,11 @@ headers {
   User-Agent: bruno/1.11.0
 }
 
-
 body:json {
   {
-    "clusterName": "aws-kubernetes-001"
+    "description": "업데이트 테스트"
   }
 }
-
 
 tests {
   test("상태 코드 200 확인", function() {

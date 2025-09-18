@@ -5,13 +5,9 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/kubernetes/test-connection?clusterName=test
+  url: {{baseUrl}}/system/cluster/{{cluster_name}}/test-connection
   body: none
   auth: inherit
-}
-
-params:query {
-  clusterName: test
 }
 
 settings {

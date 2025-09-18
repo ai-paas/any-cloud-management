@@ -1,6 +1,7 @@
 package com.aipaas.anycloud.service;
 
 import com.aipaas.anycloud.model.dto.request.CreateClusterDto;
+import com.aipaas.anycloud.model.dto.request.UpdateClusterDto;
 import com.aipaas.anycloud.model.entity.ClusterEntity;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -23,9 +24,15 @@ public interface ClusterService {
 
 	HttpStatus createCluster(CreateClusterDto cluster);
 
+	HttpStatus updateCluster(String clusterName, UpdateClusterDto cluster);
+
 	HttpStatus deleteCluster(String clusterName);
 
 	Boolean isClusterExist(String clusterName);
+
+	Boolean testClusterConnection(String clusterName);
+
+	HttpStatus refreshClusterStatus(String clusterName);
 
 	void updateAllClusterStatuses();
 }
