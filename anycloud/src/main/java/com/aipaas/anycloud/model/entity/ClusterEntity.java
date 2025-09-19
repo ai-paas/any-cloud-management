@@ -81,7 +81,7 @@ public class ClusterEntity implements Serializable {
 	private String clientToken;
 
 	@Size(max = 100)
-	@Column(name = "monit_server_url", nullable = false, length = 100)
+	@Column(name = "monit_server_url",  length = 100)
 	private String monitServerUrl;
 
 	@Size(max = 100)

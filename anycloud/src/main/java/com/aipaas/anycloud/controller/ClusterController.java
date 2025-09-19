@@ -102,7 +102,7 @@ public class ClusterController {
 	 *         <p>
 	 */
 	@DeleteMapping("/cluster/{cluster_name}")
-	@Operation(summary = "패키지 삭제", description = "패키지를 삭제합니다.")
+	@Operation(summary = "클러스터 정보 삭제", description = "클러스터 연동 정보를 삭제합니다.")
 	public ResponseEntity<HttpStatus> deletePackage(
 			@PathVariable("cluster_name") String clusterName) {
 		return new ResponseEntity<>(clusterService.deleteCluster(clusterName), new HttpHeaders(),

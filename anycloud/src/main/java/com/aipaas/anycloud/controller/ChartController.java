@@ -40,7 +40,7 @@ public class ChartController {
         @ApiResponse(responseCode = "500", description = "서버 오류")
     })
     public ResponseEntity<ResultResponse> getChartList(
-            @Parameter(description = "Helm repository 이름", required = true, example = "chart-museum")
+            @Parameter(description = "Helm repository 이름", required = true, example = "chart-museum-external")
 			@PathVariable String repoName) {
 
         log.info("Getting chart list for repository: {}", repoName);
@@ -60,7 +60,7 @@ public class ChartController {
         @ApiResponse(responseCode = "500", description = "서버 오류")
     })
     public ResponseEntity<ResultResponse> getChartDetail(
-            @Parameter(description = "Helm repository 이름", required = true, example = "chart-museum")
+            @Parameter(description = "Helm repository 이름", required = true, example = "chart-museum-external")
             @PathVariable String repoName,
             @Parameter(description = "조회할 차트 이름", required = true, example = "nginx")
             @PathVariable String chartName) {

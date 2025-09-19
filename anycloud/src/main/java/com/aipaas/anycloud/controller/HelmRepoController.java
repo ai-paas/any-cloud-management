@@ -56,7 +56,8 @@ public class HelmRepoController {
 	@GetMapping("/{helmRepoName}")
 	@Operation(summary = "헬름 저장소 조회", description = "헬름 저장소를 조회합니다.")
 	public ResponseEntity<HelmRepoEntity> getHelmRepo(
-			@Parameter(description = "Helm repository 이름", required = true, example = "chart-museum") @PathVariable("helmRepoName") String helmRepoName) {
+		@Parameter(description = "Helm repository 이름", required = true, example = "chart-museum-external")
+		@PathVariable("helmRepoName") String helmRepoName) {
 		return new ResponseEntity<>(helmRepoService.getHelmRepo(helmRepoName),
 				new HttpHeaders(),
 				HttpStatus.OK);
@@ -85,7 +86,7 @@ public class HelmRepoController {
 	 *         <p>
 	 */
 	@DeleteMapping("/{helmRepoName}")
-	@Operation(summary = "패키지 삭제", description = "패키지를 삭제합니다.")
+	@Operation(summary = "헬름 저장소 정보 삭제", description = "헬름 저장소 정보를 삭제합니다.")
 	public ResponseEntity<HttpStatus> deletePackage(
 			@PathVariable("helmRepoName") String clusterName) {
 		return new ResponseEntity<>(helmRepoService.deleteHelmRepo(clusterName), new HttpHeaders(),
@@ -102,7 +103,8 @@ public class HelmRepoController {
 	@GetMapping("/{helmRepoName}/exists")
 	@Operation(summary = "헬름 저장소 조회", description = "헬름 저장소를 조회합니다.")
 	public ResponseEntity<Boolean> isHelmRepoExist(
-			@Parameter(description = "Helm repository 이름", required = true, example = "chart-museum") @PathVariable("helmRepoName") String helmRepoName) {
+		@Parameter(description = "Helm repository 이름", required = true, example = "chart-museum-external")
+		@PathVariable("helmRepoName") String helmRepoName) {
 		return new ResponseEntity<>(helmRepoService.isHelmExist(helmRepoName),
 				new HttpHeaders(),
 				HttpStatus.OK);
