@@ -47,12 +47,21 @@ public class ChartParser {
                     if (chartVersions.isArray() && chartVersions.size() > 0) {
                         // 최신 버전만 사용 (첫 번째 요소)
                         JsonNode latestVersion = chartVersions.get(0);
+                        JsonNode keywordsNode = latestVersion.path("keywords");
+                        String[] keywords = null;
+                        if (keywordsNode.isArray()) {
+                            keywords = StreamSupport.stream(keywordsNode.spliterator(), false)
+                                    .map(JsonNode::asText)
+                                    .toArray(String[]::new);
+                        }
 
                         charts.add(ChartListDto.ChartInfo.builder()
                                 .name(chartName)
                                 .version(latestVersion.path("version").asText())
                                 .description(latestVersion.path("description").asText(null))
                                 .appVersion(latestVersion.path("appVersion").asText(null))
+                                .keywords(keywords)
+                                .icon(latestVersion.path("icon").asText(null))
                                 .created(latestVersion.path("created").asText(null))
                                 .build());
                     }
@@ -124,6 +133,17 @@ public class ChartParser {
                                 .toList();
                     }
                     
+                    // versionHistory 처리
+                    // JsonNode versionHistoryNode = latestVersion.path("versionHistory");
+                    List<ChartDetailDto.VersionHistory> versionHistory = StreamSupport.stream(chartVersions.spliterator(), false)
+                            .map(v -> ChartDetailDto.VersionHistory.builder()
+                                    .version(v.path("version").asText())
+                                    .appVersion(v.path("appVersion").asText())
+                                    .created(v.path("created").asText(null))
+                                    .build())
+                            .toList();
+    
+
                     return ChartDetailDto.builder()
                             .repositoryName(repositoryName)
                             .name(targetChartName)
@@ -137,7 +157,9 @@ public class ChartParser {
                                     latestVersion.path("sources").size() > 0 ?
                                     latestVersion.path("sources").get(0).asText(null) : null)
                             .home(latestVersion.path("home").asText(null))
+                            .icon(latestVersion.path("icon").asText(null))
                             .dependencies(dependencies)
+                            .versionHistory(versionHistory)
                             .build();
                 }
             }

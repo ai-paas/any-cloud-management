@@ -49,6 +49,9 @@ public class ChartListDto {
         @Schema(description = "차트 키워드", example = "[\"web\", \"nginx\"]")
         private String[] keywords;
 
+        @Schema(description = "차트 아이콘 URL", example = "https://nginx.org/icon.png")
+        private String icon;
+    
         @Schema(description = "차트 생성일", example = "2023-10-20T10:15:30Z")
         private String created;
     }
