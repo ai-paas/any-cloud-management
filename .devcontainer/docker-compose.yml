@@ -1,0 +1,56 @@
+name: anycloud-devcontainer
+services:
+  anycloud-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ../:/workspace:cached
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: sleep infinity
+    environment:
+      - JAVA_HOME=/usr/local/openjdk-21
+      - PATH=/usr/local/openjdk-21/bin:$PATH
+      - DATABASE_HOST=anycloud-db
+      - DATABASE_PORT=3306
+      - DATABASE_NAME=anycloud
+      - DATABASE_USERID=anycloud
+      - DATABASE_USERPASS=anycloud
+      - THANOS_URL=https://localhost:9000
+    ports:
+      - "8888:8888"
+      - "8080:8080"
+    depends_on:
+      - anycloud-db
+    networks:
+      - anycloud-network
+
+  anycloud-db:
+    image: 'linuxserver/mariadb:10.11.3'
+    container_name: anycloud-db-dev
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+    environment:
+      MYSQL_ROOT_PASSWORD: yourP@ssW0rds
+      MYSQL_DATABASE: anycloud
+      MYSQL_USER: anycloud
+      MYSQL_PASSWORD: anycloud
+      PUID: 1001
+      PGID: 1001
+      TZ: Asia/Seoul
+    ports:
+      - "3306:3306"
+    volumes:
+      - anycloud-db-data:/config
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - anycloud-network
+
+volumes:
+  anycloud-db-data:
+
+networks:
+  anycloud-network:
+    driver: bridge

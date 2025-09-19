@@ -55,8 +55,6 @@ bin/
 !.vscode/launch.json
 !.vscode/extensions.json
 
-### DevContainer ###
-.devcontainer/
 
 ### Mac OS ###
 .DS_Store
