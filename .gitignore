@@ -50,6 +50,13 @@ bin/
 
 ### VS Code ###
 .vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+### DevContainer ###
+.devcontainer/
 
 ### Mac OS ###
 .DS_Store

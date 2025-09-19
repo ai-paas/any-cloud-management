@@ -24,3 +24,9 @@ springdoc.swagger-ui.operations-sorter=alpha
 
 # Thanos
 com.innogrid.rndplan.medge.monitoringUrl=https://localhost:9000
+
+# Spring Boot Actuator Configuration
+management.endpoints.web.exposure.include=health,info,metrics
+management.endpoint.health.show-details=when-authorized
+management.endpoint.health.show-components=always
+management.health.defaults.enabled=true

@@ -9,7 +9,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication(exclude = { SecurityAutoConfiguration.class })
-@ComponentScan(basePackages = "com.*")
+@ComponentScan(basePackages = "com.aipaas.anycloud")
 @Configuration
 @EnableAsync
 @EnableScheduling
