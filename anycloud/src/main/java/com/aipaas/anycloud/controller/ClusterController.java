@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -119,7 +120,7 @@ public class ClusterController {
 	@GetMapping("/cluster/exists")
 	@Operation(summary = "클러스터 등록 여부 확인", description = "클러스터가 등록되어 있는지 확인합니다.")
 	public ResponseEntity<Boolean> isClusterExist(
-			@Parameter(name = "clusterId", description = "확인할 클러스터 아이디", required = true, in = ParameterIn.QUERY) String clusterName) {
+			@Parameter(name = "clusterId", description = "확인할 클러스터 아이디", required = true, in = ParameterIn.QUERY) @RequestParam("clusterId") String clusterName) {
 		return new ResponseEntity<>(clusterService.isClusterExist(clusterName),
 				new HttpHeaders(),
 				HttpStatus.OK);
