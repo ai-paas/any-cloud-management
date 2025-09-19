@@ -48,15 +48,15 @@ public class UpdateClusterDto implements Serializable {
 	private String apiServerIp;
 
 	@Schema(description = "클러스터 ServerCA (Base64 인코딩된 인증서)")
-	private String serverCa;
+	private String serverCA;
 
 	@Schema(description = "클러스터 ClientCA (Base64 인코딩된 인증서)")
-	private String clientCa;
+	private String clientCA;
 
 	@Schema(description = "클러스터 ClientKey (Base64 인코딩된 키)")
 	private String clientKey;
 
 	@Schema(description = "클러스터 모니터링 서버 URL")
 	// @Pattern(regexp = "^https?://.*", message = "올바른 URL 형식이어야 합니다")
-	private String monitServerUrl;
+	private String monitServerURL;
 }

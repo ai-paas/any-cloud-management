@@ -159,16 +159,16 @@ public class ClusterServiceImpl implements ClusterService {
 		Common.updateIfNotNull(updateDto.getApiServerIp(), clusterEntity::setApiServerIp, log,
 				"Updated API server IP for cluster: {}", clusterEntity.getId());
 
-		Common.updateIfNotNull(updateDto.getServerCa(), clusterEntity::setServerCa, log,
+		Common.updateIfNotNull(updateDto.getServerCA(), clusterEntity::setServerCa, log,
 				"Updated server CA for cluster: {}", clusterEntity.getId());
 
-		Common.updateIfNotNull(updateDto.getClientCa(), clusterEntity::setClientCa, log,
+		Common.updateIfNotNull(updateDto.getClientCA(), clusterEntity::setClientCa, log,
 				"Updated client CA for cluster: {}", clusterEntity.getId());
 
 		Common.updateIfNotNull(updateDto.getClientKey(), clusterEntity::setClientKey, log,
 				"Updated client key for cluster: {}", clusterEntity.getId());
 
-		Common.updateIfNotNull(updateDto.getMonitServerUrl(), clusterEntity::setMonitServerUrl, log,
+		Common.updateIfNotNull(updateDto.getMonitServerURL(), clusterEntity::setMonitServerUrl, log,
 				"Updated monitoring server URL for cluster: {}", clusterEntity.getId());
 	}
 
@@ -177,8 +177,8 @@ public class ClusterServiceImpl implements ClusterService {
 	 */
 	private boolean isConnectionInfoChanged(UpdateClusterDto updateDto) {
 		return updateDto.getApiServerUrl() != null ||
-				updateDto.getServerCa() != null ||
-				updateDto.getClientCa() != null ||
+				updateDto.getServerCA() != null ||
+				updateDto.getClientCA() != null ||
 				updateDto.getClientKey() != null;
 	}
 
