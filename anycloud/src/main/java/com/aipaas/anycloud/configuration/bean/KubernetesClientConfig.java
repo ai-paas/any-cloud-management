@@ -11,17 +11,21 @@ import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
-import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
+import org.bouncycastle.util.io.pem.PemObject;
+import org.bouncycastle.util.io.pem.PemReader;
 import org.springframework.context.annotation.Configuration;
-
 import java.io.StringReader;
-import java.security.PrivateKey;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.security.Security;
 import java.util.Base64;
+
 
 @Getter
 @Configuration
@@ -45,13 +49,16 @@ public class KubernetesClientConfig {
 
 		try {
 			// kubeconfig 내용을 직접 생성하여 사용
-			String kubeconfigContent = createKubeconfigContent(cluster);
-			log.info("Created kubeconfig content");
-			
-			// kubeconfig 내용을 사용하여 클라이언트 생성
+			// String kubeconfigContent = createKubeconfigContent(cluster);
+			// log.info("Created kubeconfig content");
+			Config config = buildConfig(cluster);
 			client = new KubernetesClientBuilder()
-				.withConfig(Config.fromKubeconfig(kubeconfigContent))
+				.withConfig(config)
 				.build();
+			// kubeconfig 내용을 사용하여 클라이언트 생성
+			// client = new KubernetesClientBuilder()
+			// 	.withConfig(Config.fromKubeconfig(kubeconfigContent))
+			// 	.build();
 			
 			log.info("Successfully created Kubernetes client");
 		} catch (KubernetesClientTimeoutException e) {
@@ -84,39 +91,6 @@ public class KubernetesClientConfig {
 		}
 	}
 
-	private Config buildConfig(ClusterEntity cluster) {
-		log.info("Building config for cluster: {}", cluster.getId());
-		log.info("API Server URL: {}", cluster.getApiServerUrl());
-		log.info("Client Token length: {}", cluster.getClientToken() != null ? cluster.getClientToken().length() : 0);
-		log.info("Client CA length: {}", cluster.getClientCa() != null ? cluster.getClientCa().length() : 0);
-		log.info("Client Key length: {}", cluster.getClientKey() != null ? cluster.getClientKey().length() : 0);
-		
-		ConfigBuilder configBuilder = new ConfigBuilder()
-			.withMasterUrl(cluster.getApiServerUrl())
-			.withCaCertData(cluster.getServerCa());
-
-		if (cluster.getClientToken() != null && !cluster.getClientToken().isBlank()) {
-			log.info("Using token-based authentication");
-			configBuilder.withOauthToken(cluster.getClientToken());
-		} else {
-			log.info("Using certificate-based authentication");
-			configBuilder.withClientCertData(cluster.getClientCa());
-			
-			try {
-				// RSA 키를 PKCS#8 형식으로 변환
-				String pkcs8Key = convertRsaPrivateKeyToPkcs8(cluster.getClientKey());
-				configBuilder.withClientKeyData(pkcs8Key);
-				log.info("Successfully converted RSA private key to PKCS#8");
-			} catch (Exception e) {
-				log.error("Failed to convert RSA private key: {}", e.getMessage(), e);
-				// 변환 실패 시 원본 키 사용
-				configBuilder.withClientKeyData(cluster.getClientKey());
-				log.warn("Using original key format as fallback");
-			}
-		}
-
-		return configBuilder.build();
-	}
 
 	/**
 	 * kubeconfig 내용을 직접 생성하여 반환
@@ -156,70 +130,111 @@ public class KubernetesClientConfig {
 		return kubeconfig.toString();
 	}
 
-	/**
-	 * RSA PRIVATE KEY (.kube/config client-key-data Base64) → PKCS#8 Base64
-	 */
-	private String convertRsaPrivateKeyToPkcs8(String base64Key) {
-		try {
-			log.info("Converting RSA private key to PKCS#8 format");
+	private Config buildConfig(ClusterEntity cluster) {
+		log.info("Building config for cluster: {}", cluster.getId());
+		log.info("API Server URL: {}", cluster.getApiServerUrl());
+		log.info("Client Token length: {}", cluster.getClientToken() != null ? cluster.getClientToken().length() : 0);
+		log.info("Client CA length: {}", cluster.getClientCa() != null ? cluster.getClientCa().length() : 0);
+		log.info("Client Key length: {}", cluster.getClientKey() != null ? cluster.getClientKey().length() : 0);
+		
+		ConfigBuilder configBuilder = new ConfigBuilder()
+			.withMasterUrl(cluster.getApiServerUrl())
+			.withCaCertData(cluster.getServerCa());
+		
+		
+		if (cluster.getClientToken() != null && !cluster.getClientToken().isBlank()) {
+			log.info("Using token-based authentication");
+			configBuilder.withOauthToken(cluster.getClientToken());
+		} else {
+			// log.info("Using certificate-based authentication");
+			configBuilder.withClientCertData(cluster.getClientCa());
+			configBuilder.withTrustCerts(true);
+			log.info("key type: {}", detectKeyAlgorithm(cluster.getClientKey()));
+		  String keyType = detectKeyAlgorithm(cluster.getClientKey());
+			if(keyType.equalsIgnoreCase("EC")) {
 			
-			// Base64 디코딩
-			byte[] derBytes = Base64.getDecoder().decode(base64Key);
-			log.info("Decoded DER bytes length: {}", derBytes.length);
-
-			// PEMParser는 PEM 텍스트 필요 → "-----BEGIN RSA PRIVATE KEY-----" wrapping
-			String pem = wrapDerToPem(derBytes, "RSA PRIVATE KEY");
-			log.info("Wrapped PEM format");
-
-			try (PEMParser parser = new PEMParser(new StringReader(pem))) {
-				Object obj = parser.readObject();
-				log.info("Parsed PEM object type: {}", obj.getClass().getSimpleName());
-				
-				PrivateKeyInfo keyInfo;
-
-				if (obj instanceof PrivateKeyInfo) {
-					keyInfo = (PrivateKeyInfo) obj;
-					log.info("Object is already PrivateKeyInfo");
-				} else if (obj instanceof PEMKeyPair) {
-					PEMKeyPair keyPair = (PEMKeyPair) obj;
-					keyInfo = keyPair.getPrivateKeyInfo();
-					log.info("Extracted PrivateKeyInfo from PEMKeyPair");
-				} else {
-					keyInfo = PrivateKeyInfo.getInstance(obj);
-					log.info("Converted object to PrivateKeyInfo");
-				}
-
-				PrivateKey privateKey = new JcaPEMKeyConverter()
-					.setProvider(BouncyCastleProvider.PROVIDER_NAME)
-					.getPrivateKey(keyInfo);
-				log.info("Converted to PrivateKey successfully");
-
-				// PKCS#8로 변환 후 Base64
-				String pkcs8Key = Base64.getEncoder().encodeToString(privateKey.getEncoded());
-				log.info("Successfully converted to PKCS#8 format");
-				return pkcs8Key;
+				String pkcs8Pem = convertECKeyToPKCS8Pem(cluster.getClientKey());
+				configBuilder.withClientKeyData(pkcs8Pem);
+			} else {
+				configBuilder.withClientKeyData(cluster.getClientKey());
 			}
-		} catch (Exception e) {
-			log.error("RSA clientKey 변환 실패: {}", e.getMessage(), e);
-			throw new RuntimeException("Failed to convert RSA private key", e);
-		}
-	}
-
-	private String wrapDerToPem(byte[] derBytes, String type) {
-		String base64 = Base64.getEncoder().encodeToString(derBytes);
-		StringBuilder pem = new StringBuilder();
-		pem.append("-----BEGIN ").append(type).append("-----\n");
-
-		int index = 0;
-		while (index < base64.length()) {
-			int end = Math.min(index + 64, base64.length());
-			pem.append(base64, index, end).append("\n");
-			index = end;
+				configBuilder.withClientKeyAlgo(keyType);
+		
 		}
 
-		pem.append("-----END ").append(type).append("-----\n");
-		return pem.toString();
+		return configBuilder.build();
+	}
+/**
+     * Base64로 인코딩된 키를 받아 EC/SEC1, RSA/PKCS#1, UNKNOWN 판별
+     */
+		public static String detectKeyAlgorithm(String base64Key) {
+			try {
+					// 1️⃣ Base64 디코딩 → PEM 문자열
+					String pem = new String(Base64.getDecoder().decode(base64Key));
+
+					// 2️⃣ PemReader로 PEM 블록 반복
+					try (PemReader reader = new PemReader(new StringReader(pem))) {
+							PemObject obj;
+							while ((obj = reader.readPemObject()) != null) {
+									String type = obj.getType();
+
+									if ("RSA PRIVATE KEY".equalsIgnoreCase(type)) return "RSA";
+									if ("EC PRIVATE KEY".equalsIgnoreCase(type)) return "EC";
+
+									// PKCS#8 형식 PRIVATE KEY
+									if ("PRIVATE KEY".equalsIgnoreCase(type)) {
+											ASN1Sequence seq = ASN1Sequence.getInstance(obj.getContent());
+											if (seq.size() > 0) {
+													if (seq.getObjectAt(0).toString().contains("1.2.840.113549")) return "RSA";
+													if (seq.getObjectAt(0).toString().contains("1.2.840.10045")) return "EC";
+											}
+									}
+							}
+					}
+			} catch (Exception e) {
+					// 아무것도 못 찾으면 UNKNOWN
+			}
+			return "UNKNOWN";
 	}
 
+	public static String convertECKeyToPKCS8Pem(String base64Key) {
+    try {
+        // 1. Base64 → PEM 문자열
+        String pem = new String(Base64.getDecoder().decode(base64Key), StandardCharsets.UTF_8);
+
+        // 2. PEMParser로 읽기
+        try (PEMParser pemParser = new PEMParser(new StringReader(pem))) {
+            Object object;
+            PrivateKeyInfo privateKeyInfo = null;
+
+            while ((object = pemParser.readObject()) != null) {
+                if (object instanceof PEMKeyPair) {
+                    privateKeyInfo = ((PEMKeyPair) object).getPrivateKeyInfo();
+                    break;
+                } else if (object instanceof PrivateKeyInfo) {
+                    privateKeyInfo = (PrivateKeyInfo) object;
+                    break;
+                }
+                // 그 외 (예: ASN1ObjectIdentifier prime256v1) 은 스킵
+            }
+
+            if (privateKeyInfo == null) {
+                throw new IllegalArgumentException("No EC private key found in PEM");
+            }
+
+            // 3. PKCS#8 PEM으로 다시 직렬화
+            StringWriter sw = new StringWriter();
+            try (JcaPEMWriter pemWriter = new JcaPEMWriter(sw)) {
+                pemWriter.writeObject(privateKeyInfo);
+            }
+            return sw.toString();
+        }
+
+    } catch (Exception e) {
+        throw new RuntimeException("EC Key conversion failed", e);
+    }
 }
+}
+
+
 
