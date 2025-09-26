@@ -237,12 +237,14 @@ public class ChartValidator {
         
         // 3. 클러스터 정보 검증
         validateClusterInfo(clusterId, clusterVersion);
+
+        // 4. Repository 연결 확인
+        checkHelmRepositoryConnectivity(repository);
         
-        // 4. 릴리즈 이름 중복 체크
+        // 5. 릴리즈 이름 중복 체크
         checkReleaseNameDuplicate(kubeconfigPath, releaseName, namespace);
         
-        // 5. Repository 연결 확인
-        checkHelmRepositoryConnectivity(repository);
+ 
         
         log.info("All validation checks passed for deployment: {}/{}", repositoryName, chartName);
     }
