@@ -48,6 +48,11 @@ COPY --from=builder /app/anycloud/build/libs/*-SNAPSHOT.jar app.jar
 # Change ownership to non-root user
 RUN chown -R anycloud:anycloud /app
 
+# Override XDG paths so Helm doesn't touch /home/anycloud
+ENV XDG_CACHE_HOME=/app/.cache \
+    XDG_CONFIG_HOME=/app/.config \
+    XDG_DATA_HOME=/app/.local/share
+
 # Switch to non-root user
 USER anycloud
 
