@@ -7,6 +7,7 @@ import com.aipaas.anycloud.model.dto.request.CreateHelmRepoDto;
 import com.aipaas.anycloud.model.entity.HelmRepoEntity;
 import com.aipaas.anycloud.repository.HelmRepoRepository;
 import com.aipaas.anycloud.service.HelmRepoService;
+import io.fabric8.kubernetes.api.model.HasMetadata;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -110,4 +111,6 @@ public class HelmRepoServiceImpl implements HelmRepoService {
 	public Boolean isHelmExist(String helmRepoName) {
 		return helmRepoRepository.existsByName(helmRepoName);
 	}
+
+	
 }

@@ -6,6 +6,7 @@ import com.aipaas.anycloud.model.entity.ClusterEntity;
 import com.aipaas.anycloud.model.enums.ResourceType;
 import com.aipaas.anycloud.service.ClusterService;
 import com.aipaas.anycloud.service.KubeService;
+import io.fabric8.kubernetes.api.model.GenericKubernetesResourceBuilder;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.Collections;

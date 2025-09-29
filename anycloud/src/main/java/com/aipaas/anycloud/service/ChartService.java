@@ -1,6 +1,8 @@
 package com.aipaas.anycloud.service;
 
 import com.aipaas.anycloud.model.dto.response.*;
+import io.fabric8.kubernetes.api.model.HasMetadata;
+import java.util.List;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -84,4 +86,15 @@ public interface ChartService {
      * @return 릴리즈 목록
      */
     ChartReleasesResponseDto getReleases(String clusterId, String namespace);
+
+
+    /**
+     * 클러스터의 helm 릴리즈 리소스 목록을 조회합니다.
+     *
+     * @param clusterId 클러스터 ID
+     * @param namespace 네임스페이스
+     * @param releaseName 릴리즈 이름
+     * @return 릴리즈 목록
+     */
+    List<? extends HasMetadata> getHelmResources(String clusterName, String namespace, String releaseName);
 }
