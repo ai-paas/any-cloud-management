@@ -185,10 +185,12 @@ public class MonitServiceImpl implements MonitService {
 			log.error("responseBody : {} ", responseBody);
 			JsonNode resultArray = rootNode.path("data").path("result");
 
-			if (resultArray.isArray() && resultArray.size() > 0) {
-				return resultArray;
-			}
-			throw new IllegalStateException("No valid data in Prometheus response");
+			// if (resultArray.isArray() && resultArray.size() > 0) {
+			// 	return resultArray;
+			// }
+
+			return resultArray;
+			// throw new IllegalStateException("No valid data in Prometheus response");
 
 		} catch (Exception e) {
 			log.error("Failed to execute Prometheus query: {}", e.getMessage(), e);
@@ -220,7 +222,7 @@ public class MonitServiceImpl implements MonitService {
 			// 4. step 계산 (20 포인트)
 			int points = 20;
 			long step = (end - start) / points;
-
+ 
 			// 5. 사람이 읽기 쉽게 변환
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 					.withZone(ZoneId.of("Asia/Seoul"));

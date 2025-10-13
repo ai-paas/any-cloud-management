@@ -123,3 +123,14 @@ prometheus:
                   ) /1024 /1024 /1024)
       pod: "topk(5, count(kube_pod_info{${NODE_FILTER},${NAMESPACE_FILTER}}) by (node)) by (node)"
       gpu: "topk(5, sum by (node) (kube_pod_container_resource_requests{resource='nvidia_com_gpu',${NODE_FILTER},${NAMESPACE_FILTER}})) by (node)"
+    tpu: 
+      total: "gke_tpu_node_total"
+      chip_total: "gke_tpu_chip_total"
+      allocated_total: "gke_cluster_tpu_allocated"
+      available_total: "gke_cluster_tpu_available"
+      cpu_usage: "gke_tpu_node_usage{resource_type=\"cpu\", ${NODE_FILTER}}"
+      memory_usage: "gke_tpu_node_usage{resource_type=\"memory\", ${NODE_FILTER}}"
+      tpu_usage: "gke_tpu_node_usage{resource_type=\"tpu\", ${NODE_FILTER}}"
+      ephemeral_storage_usage: "gke_tpu_node_usage{resource_type=\"ephemeral_storage\"}, ${NODE_FILTER}}"
+
+      
