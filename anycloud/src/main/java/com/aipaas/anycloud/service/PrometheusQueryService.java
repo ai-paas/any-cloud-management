@@ -1,6 +1,7 @@
 package com.aipaas.anycloud.service;
 
-import com.aipaas.anycloud.error.exception.EntityNotFoundException;
+import com.aipaas.anycloud.error.enums.ErrorCode;
+import com.aipaas.anycloud.error.exception.CustomException;
 import com.aipaas.anycloud.util.PrometheusMetricProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,12 +30,16 @@ public class PrometheusQueryService {
 
 		Map<String, String> groupMap = metrics.get(group);
 		if (groupMap == null) {
-			throw new EntityNotFoundException("Invalid metric group: " + group);
+			// throw new EntityNotFoundException("Invalid metric group: " + group);
+			throw new CustomException(ErrorCode.ENTITY_NOT_FOUND, "group", group, "Invalid metric group: " + group);
+			// throw new CustomException("Invalid metric group: " + group, ErrorCode.ENTITY_NOT_FOUND);
 		}
 
 		String queryTemplate = groupMap.get(key);
 		if (queryTemplate == null) {
-			throw new EntityNotFoundException("Invalid metric key: " + key + " for group: " + group);
+			// throw new EntityNotFoundException("Invalid metric key: " + key + " for group: " + group);
+			throw new CustomException(ErrorCode.ENTITY_NOT_FOUND, "key", key, "Invalid metric key: " + key + " for group: " + group);
+			// throw new CustomException("Invalid metric key: " + key + " for group: " + group, ErrorCode.ENTITY_NOT_FOUND);
 		}
 
 		String query = queryTemplate;

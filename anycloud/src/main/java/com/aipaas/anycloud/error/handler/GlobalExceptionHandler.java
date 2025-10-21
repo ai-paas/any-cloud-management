@@ -113,7 +113,17 @@ public class GlobalExceptionHandler {
         log.error(e.getMessage());
         // e.printStackTrace();
         final ErrorCode errorCode = e.getErrorCode();
-        final ErrorResponse response = ErrorResponse.of(errorCode);
+        ErrorResponse response;
+        if (e.getField() != null) {
+            response = ErrorResponse.of(
+                    e.getErrorCode(),
+                    ErrorResponse.FieldError.of(e.getField(), e.getValue(), e.getReason())
+            );
+        } else {
+            response = ErrorResponse.of(e.getErrorCode());
+        }
+  
+        // final ErrorResponse response = ErrorResponse.of(errorCode);
         return new ResponseEntity<>(response, HttpStatus.valueOf(errorCode.getStatus()));
     }
 
@@ -129,8 +139,8 @@ public class GlobalExceptionHandler {
     protected ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException e) {
         log.error(e.getMessage());
         // e.printStackTrace();
-        final ErrorResponse response = ErrorResponse.of(ErrorCode.ENTITY_NOT_FOUND);
-        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+        final ErrorResponse response = ErrorResponse.of(ErrorCode.ENTITY_NOT_FOUND, e.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     /**
@@ -170,6 +180,6 @@ public class GlobalExceptionHandler {
     protected ResponseEntity<ErrorResponse> handleHelmDeploymentException(HelmDeploymentException e) {
         log.error("Helm deployment failed: {}", e.getMessage());
         final ErrorResponse response = ErrorResponse.of(e.getErrorCode(), e.getMessage());
-        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }

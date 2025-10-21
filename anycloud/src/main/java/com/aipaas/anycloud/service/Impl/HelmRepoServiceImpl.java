@@ -63,13 +63,15 @@ public class HelmRepoServiceImpl implements HelmRepoService {
 	public HttpStatus createHelmRepo(CreateHelmRepoDto helmRepo) {
 
 		if (helmRepo == null) {
-			throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+			// throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+			throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "helmRepo", "null", "HelmRepo is null.");
 		}
 
 		log.error(isHelmExist(helmRepo.getName()).toString());
 
 		if (isHelmExist(helmRepo.getName())) {
-			throw new CustomException(ErrorCode.DUPLICATE);
+			// throw new CustomException(ErrorCode.DUPLICATE);
+			throw new CustomException(ErrorCode.DUPLICATE, "name", helmRepo.getName(), "HelmRepo with Name " + helmRepo.getName() + " Already Exists.");
 		}
 		HelmRepoEntity helmRepoEntity = HelmRepoEntity.builder()
 				.name(helmRepo.getName())
@@ -99,7 +101,9 @@ public class HelmRepoServiceImpl implements HelmRepoService {
 	@Transactional
 	public HttpStatus deleteHelmRepo(String helmRepoName) {
 		helmRepoRepository.delete(helmRepoRepository.findByName(helmRepoName).orElseThrow(
-				() -> new EntityNotFoundException("HelmRepo with Name " + helmRepoName + " Not Found.")));
+				// () -> new EntityNotFoundException("HelmRepo with Name " + helmRepoName + " Not Found.")
+				() -> new CustomException(ErrorCode.ENTITY_NOT_FOUND, "name", helmRepoName, "HelmRepo with Name " + helmRepoName + " Not Found.")
+				));
 		return HttpStatus.OK;
 	}
 
