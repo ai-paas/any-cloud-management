@@ -16,6 +16,6 @@ public class ClusterStatusScheduler {
   @Scheduled(fixedRate = 300000) // 5분마다 실행 (300000ms)
   public void updateClusterStatuses() {
     log.info("Starting scheduled cluster status update");
-    clusterServiceImpl.updateAllClusterStatuses();
+    // clusterServiceImpl.updateAllClusterStatuses(); // 공인인증 이후 주석 해제 예정
   }
 }
