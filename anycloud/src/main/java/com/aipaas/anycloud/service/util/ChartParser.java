@@ -55,6 +55,16 @@ public class ChartParser {
                                     .toArray(String[]::new);
                         }
 
+                        // versionHistory 처리
+                        List<ChartDetailDto.VersionHistory> versionHistory = StreamSupport
+                                .stream(chartVersions.spliterator(), false)
+                                .map(v -> ChartDetailDto.VersionHistory.builder()
+                                        .version(v.path("version").asText())
+                                        .appVersion(v.path("appVersion").asText())
+                                        .created(v.path("created").asText(null))
+                                        .build())
+                                .toList();
+
                         charts.add(ChartListDto.ChartInfo.builder()
                                 .name(chartName)
                                 .version(latestVersion.path("version").asText())
@@ -63,6 +73,7 @@ public class ChartParser {
                                 .keywords(keywords)
                                 .icon(latestVersion.path("icon").asText(null))
                                 .created(latestVersion.path("created").asText(null))
+                                .versionHistory(versionHistory)
                                 .build());
                     }
                 });
@@ -83,8 +94,15 @@ public class ChartParser {
 
     /**
      * index.yaml에서 특정 차트의 상세 정보를 파싱합니다.
+     *
+     * @param repositoryName  Repository 이름
+     * @param targetChartName 차트 이름
+     * @param targetVersion   차트 버전 (null일 경우 최신 버전)
+     * @param indexContent    index.yaml 내용
+     * @return 차트 상세 정보
      */
-    public ChartDetailDto parseChartDetail(String repositoryName, String targetChartName, String indexContent) {
+    public ChartDetailDto parseChartDetail(String repositoryName, String targetChartName, String targetVersion,
+            String indexContent) {
         try {
             JsonNode rootNode = yamlMapper.readTree(indexContent);
             JsonNode entriesNode = rootNode.get("entries");
@@ -92,21 +110,35 @@ public class ChartParser {
             if (entriesNode != null && entriesNode.has(targetChartName)) {
                 JsonNode chartVersions = entriesNode.get(targetChartName);
                 if (chartVersions.isArray() && chartVersions.size() > 0) {
-                    // 최신 버전 정보 사용
-                    JsonNode latestVersion = chartVersions.get(0);
+                    // 버전이 지정된 경우 해당 버전을 찾고, 없으면 최신 버전 사용
+                    JsonNode selectedVersion = null;
+                    if (targetVersion != null && !targetVersion.trim().isEmpty()) {
+                        for (JsonNode versionNode : chartVersions) {
+                            if (targetVersion.equals(versionNode.path("version").asText())) {
+                                selectedVersion = versionNode;
+                                break;
+                            }
+                        }
+                        if (selectedVersion == null) {
+                            throw new HelmChartNotFoundException(
+                                    "Chart version not found: " + targetVersion + " for chart: " + targetChartName);
+                        }
+                    } else {
+                        // 최신 버전 정보 사용 (첫 번째 요소)
+                        selectedVersion = chartVersions.get(0);
+                    }
 
                     // keywords 처리
-                       // keywords 처리
-                    JsonNode keywordsNode = latestVersion.path("keywords");
+                    JsonNode keywordsNode = selectedVersion.path("keywords");
                     String[] keywords = null;
                     if (keywordsNode.isArray()) {
                         keywords = StreamSupport.stream(keywordsNode.spliterator(), false)
                                 .map(JsonNode::asText)
                                 .toArray(String[]::new);
                     }
-   
+
                     // maintainers 처리
-                    JsonNode maintainersNode = latestVersion.path("maintainers");
+                    JsonNode maintainersNode = selectedVersion.path("maintainers");
                     List<Map<String, Object>> maintainers = null;
                     if (maintainersNode.isArray()) {
                         maintainers = StreamSupport.stream(maintainersNode.spliterator(), false)
@@ -121,7 +153,7 @@ public class ChartParser {
                     }
 
                     // dependencies 처리
-                    JsonNode dependenciesNode = latestVersion.path("dependencies");
+                    JsonNode dependenciesNode = selectedVersion.path("dependencies");
                     List<ChartDetailDto.Dependency> dependencies = null;
                     if (dependenciesNode.isArray()) {
                         dependencies = StreamSupport.stream(dependenciesNode.spliterator(), false)
@@ -132,39 +164,40 @@ public class ChartParser {
                                         .build())
                                 .toList();
                     }
-                    
-                    // versionHistory 처리
-                    // JsonNode versionHistoryNode = latestVersion.path("versionHistory");
-                    List<ChartDetailDto.VersionHistory> versionHistory = StreamSupport.stream(chartVersions.spliterator(), false)
+
+                    // versionHistory 처리 (모든 버전 정보)
+                    List<ChartDetailDto.VersionHistory> versionHistory = StreamSupport
+                            .stream(chartVersions.spliterator(), false)
                             .map(v -> ChartDetailDto.VersionHistory.builder()
                                     .version(v.path("version").asText())
                                     .appVersion(v.path("appVersion").asText())
                                     .created(v.path("created").asText(null))
                                     .build())
                             .toList();
-    
 
                     return ChartDetailDto.builder()
                             .repositoryName(repositoryName)
                             .name(targetChartName)
-                            .version(latestVersion.path("version").asText())
-                            .description(latestVersion.path("description").asText(null))
-                            .appVersion(latestVersion.path("appVersion").asText(null))
+                            .version(selectedVersion.path("version").asText())
+                            .description(selectedVersion.path("description").asText(null))
+                            .appVersion(selectedVersion.path("appVersion").asText(null))
                             .keywords(keywords)
-                            .created(latestVersion.path("created").asText(null))
+                            .created(selectedVersion.path("created").asText(null))
                             .maintainers(maintainers)
-                            .source(latestVersion.path("sources").isArray() &&
-                                    latestVersion.path("sources").size() > 0 ?
-                                    latestVersion.path("sources").get(0).asText(null) : null)
-                            .home(latestVersion.path("home").asText(null))
-                            .icon(latestVersion.path("icon").asText(null))
+                            .source(selectedVersion.path("sources").isArray() &&
+                                    selectedVersion.path("sources").size() > 0
+                                            ? selectedVersion.path("sources").get(0).asText(null)
+                                            : null)
+                            .home(selectedVersion.path("home").asText(null))
+                            .icon(selectedVersion.path("icon").asText(null))
                             .dependencies(dependencies)
                             .versionHistory(versionHistory)
                             .build();
                 }
             }
 
-            throw new HelmChartNotFoundException("Chart not found: " + targetChartName + " in repository: " + repositoryName);
+            throw new HelmChartNotFoundException(
+                    "Chart not found: " + targetChartName + " in repository: " + repositoryName);
 
         } catch (HelmChartNotFoundException e) {
             throw e;

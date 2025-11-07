@@ -30,9 +30,10 @@ public interface ChartService {
      *
      * @param repositoryName Helm repository 이름
      * @param chartName Helm chart 이름
+     * @param version 차트 버전 (선택사항, null일 경우 최신 버전)
      * @return 차트 상세 정보
      */
-    ChartDetailDto getChartDetail(String repositoryName, String chartName);
+    ChartDetailDto getChartDetail(String repositoryName, String chartName, String version);
 
     /**
      * 지정된 차트의 values.yaml 내용을 조회합니다.

@@ -54,5 +54,8 @@ public class ChartListDto {
     
         @Schema(description = "차트 생성일", example = "2023-10-20T10:15:30Z")
         private String created;
+
+        @Schema(description = "버전 히스토리")
+        private List<ChartDetailDto.VersionHistory> versionHistory;
     }
 }

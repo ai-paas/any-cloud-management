@@ -103,8 +103,8 @@ public class ChartServiceImpl implements ChartService {
     }
 
     @Override
-    public ChartDetailDto getChartDetail(String repositoryName, String chartName) {
-        log.info("Getting chart detail for repository: {}, chart: {}", repositoryName, chartName);
+    public ChartDetailDto getChartDetail(String repositoryName, String chartName, String version) {
+        log.info("Getting chart detail for repository: {}, chart: {}, version: {}", repositoryName, chartName, version);
 
         HelmRepoEntity repository = getRepository(repositoryName);
 
@@ -129,7 +129,7 @@ public class ChartServiceImpl implements ChartService {
                     response.getBody() != null ? response.getBody().length() : 0);
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                return chartParser.parseChartDetail(repositoryName, chartName, response.getBody());
+                return chartParser.parseChartDetail(repositoryName, chartName, version, response.getBody());
             } else {
                 throw new HelmChartNotFoundException(
                         "Unable to fetch index.yaml from repository: " + repositoryName +
@@ -195,7 +195,6 @@ public class ChartServiceImpl implements ChartService {
         }
     }
 
-
     @Override
     public ChartDeployResponseDto deployChart(String repositoryName, String chartName, String releaseName,
             String clusterId, String namespace, String version, MultipartFile valuesFile) {
@@ -208,21 +207,20 @@ public class ChartServiceImpl implements ChartService {
         // kubeconfig 파일 생성 및 Kubernetes 클러스터 응답 테스트
         try {
             String testKubeconfigPath = createKubeconfigFile(cluster);
-            
+
             try {
                 KubernetesClientConfig manager = new KubernetesClientConfig(cluster);
                 KubernetesClient client = manager.getClient();
                 client.getApiVersion();
-                
+
                 // 전체 배포 사전 검증 수행
-                chartValidator.validateBeforeDeployment(repositoryName, chartName, releaseName, 
-                    clusterId, namespace, cluster.getVersion(), testKubeconfigPath, repository);
-              
-                
+                chartValidator.validateBeforeDeployment(repositoryName, chartName, releaseName,
+                        clusterId, namespace, cluster.getVersion(), testKubeconfigPath, repository);
+
             } finally {
                 deleteKubeconfigFile(testKubeconfigPath); // 테스트 후 즉시 삭제
             }
-            
+
         } catch (Exception e) {
             log.error("Failed kubeconfig or connectivity test for cluster: {}", clusterId, e);
             throw new HelmDeploymentException(
@@ -230,7 +228,7 @@ public class ChartServiceImpl implements ChartService {
         }
 
         // 비동기로 배포 실행 (DeploymentOrchestrator 사용)
-        deploymentOrchestrator.executeDeploymentAsync(repository, chartName, releaseName, clusterId, namespace, 
+        deploymentOrchestrator.executeDeploymentAsync(repository, chartName, releaseName, clusterId, namespace,
                 version, valuesFile, cluster, this::createKubeconfigFile, this::deleteKubeconfigFile);
 
         log.info("Deployment request submitted for release: {} to cluster: {}", releaseName, clusterId);
@@ -242,7 +240,6 @@ public class ChartServiceImpl implements ChartService {
                 .build();
     }
 
-
     @Override
     public ChartDeployResponseDto getChartStatus(String releaseName, String clusterId, String namespace) {
         log.info("Getting chart status for release: {} in cluster: {}", releaseName, clusterId);
@@ -253,11 +250,11 @@ public class ChartServiceImpl implements ChartService {
         try {
             // kubeconfig 파일 생성
             String kubeconfigPath = createKubeconfigFile(cluster);
-     
-            
+
             try {
                 // Helm CLI를 사용하여 릴리즈 상태 조회
-                String command = helmCommandExecutor.buildHelmStatusCommand(releaseName, targetNamespace, kubeconfigPath);
+                String command = helmCommandExecutor.buildHelmStatusCommand(releaseName, targetNamespace,
+                        kubeconfigPath);
                 String output = helmCommandExecutor.executeHelmCommand(command, kubeconfigPath);
 
                 // Helm 상태 출력 파싱
@@ -337,8 +334,6 @@ public class ChartServiceImpl implements ChartService {
         }
     }
 
-
-
     private HttpHeaders createAuthHeaders(HelmRepoEntity repository) {
         HttpHeaders headers = new HttpHeaders();
 
@@ -397,7 +392,5 @@ public class ChartServiceImpl implements ChartService {
         ClusterEntity cluster = clusterService.getCluster(clusterName);
         return helmReleaseScanner.scanReleaseResources(cluster, namespace, releaseName);
     }
-
-
 
 }
