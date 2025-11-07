@@ -16,7 +16,7 @@ headers {
 }
 
 script:post-response {
-  bru.setEnvVar("cluster_name", res.body[0].id);
+  bru.setEnvVar("helmRepo-name", res.body[0].name);
 }
 
 tests {
