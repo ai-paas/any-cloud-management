@@ -5,9 +5,13 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/charts/{{repo_name}}/{{chart_name}}/detail
+  url: {{baseUrl}}/charts/{{repo_name}}/{{chart_name}}/detail?version=21.1.21
   body: none
   auth: none
+}
+
+params:query {
+  version: 21.1.21
 }
 
 headers {

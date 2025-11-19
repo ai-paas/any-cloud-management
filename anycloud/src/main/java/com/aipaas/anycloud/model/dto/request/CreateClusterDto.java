@@ -50,13 +50,14 @@ public class CreateClusterDto implements Serializable {
 	@Schema(description = "클러스터 ServerCA")
 	private String serverCA;
 
-	@NotBlank
 	@Schema(description = "클러스터 ClientCA")
 	private String clientCA;
 
-	@NotBlank
 	@Schema(description = "클러스터 ClientKey")
 	private String clientKey;
+
+	@Schema(description = "클러스터 ClientToken")
+	private String clientToken;
 
 	@Schema(description = "모니터링 서버 URL")
 	private String monitServerURL;

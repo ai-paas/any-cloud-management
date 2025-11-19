@@ -170,6 +170,9 @@ public class ClusterServiceImpl implements ClusterService {
 
 		Common.updateIfNotNull(updateDto.getMonitServerURL(), clusterEntity::setMonitServerUrl, log,
 				"Updated monitoring server URL for cluster: {}", clusterEntity.getId());
+
+		Common.updateIfNotNull(updateDto.getClientToken(), clusterEntity::setClientToken, log,
+				"Updated client token for cluster: {}", clusterEntity.getId());
 	}
 
 	/**

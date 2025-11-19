@@ -132,5 +132,6 @@ prometheus:
       memory_usage: "gke_tpu_node_usage{resource_type=\"memory\", ${NODE_FILTER}}"
       tpu_usage: "gke_tpu_node_usage{resource_type=\"tpu\", ${NODE_FILTER}}"
       ephemeral_storage_usage: "gke_tpu_node_usage{resource_type=\"ephemeral_storage\"}, ${NODE_FILTER}}"
+      capacity_total: "gke_tpu_node_capacity{${NODE_FILTER}}"
 
       

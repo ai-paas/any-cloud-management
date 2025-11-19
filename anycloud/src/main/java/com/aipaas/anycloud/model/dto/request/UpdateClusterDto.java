@@ -1,8 +1,6 @@
 package com.aipaas.anycloud.model.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.io.Serial;
 import java.io.Serializable;
@@ -59,4 +57,7 @@ public class UpdateClusterDto implements Serializable {
 	@Schema(description = "클러스터 모니터링 서버 URL")
 	// @Pattern(regexp = "^https?://.*", message = "올바른 URL 형식이어야 합니다")
 	private String monitServerURL;
+
+	@Schema(description = "클러스터 ClientToken")
+	private String clientToken;
 }
