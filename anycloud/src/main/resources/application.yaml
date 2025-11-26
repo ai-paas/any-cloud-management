@@ -103,7 +103,7 @@ prometheus:
     pod:
       total: "sum(kube_node_status_capacity{resource=\"pods\", ${NODE_FILTER} })"
       used_node: "kubelet_running_pods{${NODE_FILTER}}"
-      usage_namespace: "count(kube_pod_info{${NODE_FILTER}) by (namespace)"
+      usage_namespace: "count(kube_pod_info{${NODE_FILTER}}) by (namespace)"
     top5: 
       cpu: "topk(5, sum by (node) (rate(container_cpu_usage_seconds_total{${NODE_FILTER},${NAMESPACE_FILTER}}[5m]))) by (node)"
       memory: "topk(5, sum by (node) (container_memory_usage_bytes{${NODE_FILTER},${NAMESPACE_FILTER}})) by (node) " 
