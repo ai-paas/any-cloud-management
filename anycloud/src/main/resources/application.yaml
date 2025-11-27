@@ -65,7 +65,7 @@ prometheus:
              )
              * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
            ) 
-      used: |
+      usage: |
         sum by(node) (
                   sum by (internal_ip) (
                     label_replace(
