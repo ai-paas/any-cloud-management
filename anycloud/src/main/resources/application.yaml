@@ -157,7 +157,7 @@ prometheus:
           )
           * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
         )
-        receive_err: |
+      receive_err: |
         sum by (node) (
           sum by (internal_ip) (
             label_replace(
