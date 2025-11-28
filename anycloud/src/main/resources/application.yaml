@@ -109,7 +109,7 @@ prometheus:
         sum by (node) (
           sum by (internal_ip) (
             label_replace(
-              rate(node_network_receive_bytes_total{device!=\"lo\"}[5m]),
+              rate(node_network_receive_bytes_total{device!="lo"}[5m]),
               "internal_ip",
               "$1",
               "instance",
@@ -122,7 +122,7 @@ prometheus:
         sum by (node) (
           sum by (internal_ip) (
             label_replace(
-              rate(node_network_transmit_bytes_total{device!=\"lo\"}[5m]),
+              rate(node_network_transmit_bytes_total{device!="lo"}[5m]),
               "internal_ip",
               "$1",
               "instance",
