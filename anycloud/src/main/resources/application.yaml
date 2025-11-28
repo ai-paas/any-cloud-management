@@ -78,15 +78,111 @@ prometheus:
                 ) 
       usage_namespace: "sum by(namespace) (kubelet_volume_stats_used_bytes {}) "
     disk:
-      read_bytes: "sum by (node) (rate(node_disk_read_bytes_total{node=~\"$1\"}[5m]))"
-      write_bytes: "sum by (node) (rate(node_disk_written_bytes_total{node=~\"$1\"}[5m]))"
+      read_bytes: |
+        sum by (node) (
+          sum by (internal_ip) (
+            label_replace(
+              rate(node_disk_read_bytes_total{${NODE_FILTER}}[5m]),
+              "internal_ip",
+              "$1",
+              "instance",
+              "(.*):[0-9]+"
+            )
+          )
+          * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+        )
+      write_bytes: |
+        sum by (node) (
+          sum by (internal_ip) (
+            label_replace(
+              rate(node_disk_written_bytes_total{${NODE_FILTER}}[5m]),
+              "internal_ip",
+              "$1",
+              "instance",
+              "(.*):[0-9]+"
+            )
+          )
+          * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+        ) 
     network:
-      receive_bytes: "sum by (node) (rate(node_network_receive_bytes_total{node=~\"$1\", device!=\"lo\"}[5m]))"
-      transmit_bytes: "sum by (node) (rate(node_network_transmit_bytes_total{node=~\"$1\", device!=\"lo\"}[5m]))"
-      receive_drop: "sum by (node) (rate(node_network_receive_drop_total{node=~\"$1\"}[5m]))"
-      transmit_drop: "sum by (node) (rate(node_network_transmit_drop_total{node=~\"$1\"}[5m]))"
-      receive_err: "sum by (node) (rate(node_network_receive_errs_total{node=~\"$1\"}[5m]))"
-      transmit_err: "sum by (node) (rate(node_network_transmit_errs_total{node=~\"$1\"}[5m]))"
+      receive_bytes: |
+        sum by (node) (
+          sum by (internal_ip) (
+            label_replace(
+              rate(node_network_receive_bytes_total{{${NODE_FILTER}}, device!=\"lo\"}[5m]),
+              "internal_ip",
+              "$1",
+              "instance",
+              "(.*):[0-9]+"
+            )
+          )
+          * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+        )
+      transmit_bytes : |  
+        sum by (node) (
+          sum by (internal_ip) (
+            label_replace(
+              rate(node_network_transmit_bytes_total{node=~\"$1\", device!=\"lo\"}[5m]),
+              "internal_ip",
+              "$1",
+              "instance",
+              "(.*):[0-9]+"
+            )
+          )
+          * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+        )
+      receive_drop : |   
+          sum by (node) (
+          sum by (internal_ip) (
+            label_replace(
+              rate(node_network_receive_drop_total{{${NODE_FILTER}}}[5m]),
+              "internal_ip",
+              "$1",
+              "instance",
+              "(.*):[0-9]+"
+            )
+          )
+          * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+          )
+      transmit_drop: |
+        sum by (node) (
+          sum by (internal_ip) (
+            label_replace(
+              rate(node_network_transmit_drop_total{${NODE_FILTER}}[5m]),
+              "internal_ip",
+              "$1",
+              "instance",
+              "(.*):[0-9]+"
+            )
+          )
+          * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+        )
+        receive_err: |
+        sum by (node) (
+          sum by (internal_ip) (
+            label_replace(
+              rate(node_network_receive_errs_total{${NODE_FILTER}}[5m]),
+              "internal_ip",
+              "$1",
+              "instance",
+              "(.*):[0-9]+"
+            )
+          )
+          * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+        )
+      transmit_err: |
+        sum by (node) (
+          sum by (internal_ip) (
+            label_replace(
+              rate(node_network_transmit_errs_total{${NODE_FILTER}}[5m]),
+              "internal_ip",
+              "$1",
+              "instance",
+              "(.*):[0-9]+"
+            )
+          )
+          * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+        )
     gpu:
       total: "gpu_operator_gpu_nodes_total"
       usage_namespace: |
@@ -97,7 +193,7 @@ prometheus:
       request: "sum by(node) (kube_pod_container_resource_requests{resource=\"nvidia_com_gpu\",${NODE_FILTER},${NAMESPACE_FILTER} })"
       limit: "sum by(node) (kube_pod_container_resource_limits{resource=\"nvidia_com_gpu\",${NODE_FILTER},${NAMESPACE_FILTER} })"
 
-      memcpy_utilization: "avg by (node) (dcgm_memcpy_utilization{node=~\"$1\"})"
+      memcpy_utilization: "avg by (node) (dcgm_memcpy_utilization{${NODE_FILTER}})"
     pod:
       total: "sum(kube_node_status_capacity{resource=\"pods\", ${NODE_FILTER} })"
       used_node: "kubelet_running_pods{${NODE_FILTER}}"
