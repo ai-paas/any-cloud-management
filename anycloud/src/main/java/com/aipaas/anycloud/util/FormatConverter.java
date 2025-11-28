@@ -85,4 +85,25 @@ public class FormatConverter {
 			return bytes + "Bytes";
 		}
 	}
+
+	/**
+	 * Bytes를 GB로 변환 (double 반환)
+	 */
+	public static double convertBytesToGB(double bytes) {
+		return bytes / (1024.0 * 1024.0 * 1024.0);
+	}
+
+	/**
+	 * Bytes/sec를 MB/s로 변환 (double 반환)
+	 */
+	public static double convertBytesPerSecToMBPerSec(double bytesPerSec) {
+		return bytesPerSec / (1024.0 * 1024.0);
+	}
+
+	/**
+	 * Bytes/sec를 GB/s로 변환 (double 반환)
+	 */
+	public static double convertBytesPerSecToGBPerSec(double bytesPerSec) {
+		return bytesPerSec / (1024.0 * 1024.0 * 1024.0);
+	}
 }

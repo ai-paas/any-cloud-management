@@ -6,6 +6,7 @@ import com.aipaas.anycloud.model.entity.MonitEntity;
 import com.aipaas.anycloud.repository.ClusterRepository;
 import com.aipaas.anycloud.service.MonitService;
 import com.aipaas.anycloud.service.PrometheusQueryService;
+import com.aipaas.anycloud.util.FormatConverter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -114,9 +115,11 @@ public class MonitServiceImpl implements MonitService {
 			for (JsonNode node : result) {
 				ArrayList<MonitEntity.Values> valuesArrayList = new ArrayList<>();
 				for (JsonNode values : node.get("values")) {
+					double rawValue = values.get(1).asDouble();
+					double convertedValue = convertMetricValue(Type, key, rawValue);
 					MonitEntity.Values value = MonitEntity.Values.builder()
 							.time(UnixToDate(values.get(0).toString()))
-							.value(values.get(1).asDouble())
+							.value(convertedValue)
 							.build();
 					valuesArrayList.add(value);
 				}
@@ -133,17 +136,21 @@ public class MonitServiceImpl implements MonitService {
 			if (result.isArray()) {
 				ArrayList<MonitEntity.VectorMonit> monitArray = new ArrayList<>();
 				for (JsonNode node : result) {
+					double rawValue = node.get("value").get(1).asDouble();
+					double convertedValue = convertMetricValue(Type, key, rawValue);
 					MonitEntity.VectorMonit usage_val = MonitEntity.VectorMonit.builder()
 							.info(node.get("metric"))
-							.value(node.get("value").get(1).asDouble())
+							.value(convertedValue)
 							.build();
 					monitArray.add(usage_val);
 				}
 				return monitArray;
 			} else {
+				double rawValue = result.get(0).get("value").get(1).asDouble();
+				double convertedValue = convertMetricValue(Type, key, rawValue);
 				MonitEntity.VectorMonit monit = MonitEntity.VectorMonit.builder()
 						.info(result.get(0).get("metric"))
-						.value(result.get(0).get("value").get(1).asDouble())
+						.value(convertedValue)
 						.build();
 
 				return monit;
@@ -256,6 +263,72 @@ public class MonitServiceImpl implements MonitService {
 			return Date.from(instant);
 		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException("Invalid Unix timestamp: " + unixtime, e);
+		}
+	}
+
+	/**
+	 * 메트릭 타입과 키에 따라 값을 적절한 단위로 변환
+	 * 
+	 * @param type 메트릭 타입 (cpu, memory, disk, network, filesystem, gpu, pod 등)
+	 * @param key 메트릭 키 (usage, total, request, limit 등)
+	 * @param rawValue 원본 값
+	 * @return 변환된 값
+	 */
+	private double convertMetricValue(String type, String key, double rawValue) {
+		if (rawValue < 0) {
+			return rawValue; // 음수는 그대로 반환
+		}
+
+		switch (type.toLowerCase()) {
+			case "cpu":
+				// CPU는 이미 cores 단위이므로 변환 불필요
+				return rawValue;
+
+			case "memory":
+				// Memory: bytes → GB
+				if (key.contains("usage") || key.contains("total") || key.contains("request") 
+						|| key.contains("limit") || key.contains("usage_namespace")) {
+					return FormatConverter.convertBytesToGB(rawValue);
+				}
+				return rawValue;
+
+			case "disk":
+				// Disk: bytes/sec → MB/s
+				if (key.contains("read_bytes") || key.contains("write_bytes")) {
+					return FormatConverter.convertBytesPerSecToMBPerSec(rawValue);
+				}
+				return rawValue;
+
+			case "network":
+				// Network: bytes/sec → MB/s
+				if (key.contains("receive_bytes") || key.contains("transmit_bytes")) {
+					return FormatConverter.convertBytesPerSecToMBPerSec(rawValue);
+				}
+				// drop, err는 개수이므로 변환 불필요
+				return rawValue;
+
+			case "filesystem":
+				// Filesystem: bytes → GB
+				if (key.contains("usage") || key.contains("total") || key.contains("usage_namespace")) {
+					return FormatConverter.convertBytesToGB(rawValue);
+				}
+				return rawValue;
+
+			case "gpu":
+				// GPU는 개수 또는 퍼센트이므로 변환 불필요
+				return rawValue;
+
+			case "pod":
+				// Pod는 개수이므로 변환 불필요
+				return rawValue;
+
+			case "tpu":
+				// TPU는 개수이므로 변환 불필요
+				return rawValue;
+
+			default:
+				// 알 수 없는 타입은 그대로 반환
+				return rawValue;
 		}
 	}
 }
