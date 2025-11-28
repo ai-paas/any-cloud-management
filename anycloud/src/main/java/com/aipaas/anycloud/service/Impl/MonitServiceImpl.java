@@ -110,9 +110,9 @@ public class MonitServiceImpl implements MonitService {
 		if (QueryFilter.get("duration") != null) {
 			Map<String, Long> timeQueryParams = timeRangeCreate(QueryFilter.get("duration"));
 			result = executeQueryRaw(monitUrl, "query_range", resolve_query, timeQueryParams);
-			ArrayList<MonitEntity.Values> valuesArrayList = new ArrayList<>();
 			ArrayList<MonitEntity.MetrixMonit> metrixMonits = new ArrayList<>();
 			for (JsonNode node : result) {
+				ArrayList<MonitEntity.Values> valuesArrayList = new ArrayList<>();
 				for (JsonNode values : node.get("values")) {
 					MonitEntity.Values value = MonitEntity.Values.builder()
 							.time(UnixToDate(values.get(0).toString()))

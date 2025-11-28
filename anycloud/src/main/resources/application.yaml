@@ -6,14 +6,12 @@ prometheus:
       total: "sum(kube_node_status_capacity{resource=\"cpu\", ${NODE_FILTER} })"
       usage: |
         sum by (node) (
-          sum by (internal_ip) (
-            label_replace(
-              rate(node_cpu_seconds_total{mode!="idle"}[5m]),
-              "internal_ip",
-              "$1",
-              "instance",
-              "(.*):[0-9]+"
-            )
+          label_replace(
+            rate(node_cpu_seconds_total{mode!="idle"}[5m]),
+            "internal_ip",
+            "$1",
+            "instance",
+            "(.*):[0-9]+"
           )
           * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
         )
