@@ -85,6 +85,7 @@ public class ClusterServiceImpl implements ClusterService {
 				.serverCa(cluster.getServerCA())
 				.clientCa(cluster.getClientCA())
 				.clientKey(cluster.getClientKey())
+				.clientToken(cluster.getClientToken())
 				.monitServerUrl(cluster.getMonitServerURL())
 				.clusterType(cluster.getClusterType())
 				.clusterProvider(cluster.getClusterProvider())

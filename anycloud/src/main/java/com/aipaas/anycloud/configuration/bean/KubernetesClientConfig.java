@@ -20,6 +20,7 @@ import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.StringUtils;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
@@ -136,41 +137,65 @@ public class KubernetesClientConfig {
 		log.info("Client Token length: {}", cluster.getClientToken() != null ? cluster.getClientToken().length() : 0);
 		log.info("Client CA length: {}", cluster.getClientCa() != null ? cluster.getClientCa().length() : 0);
 		log.info("Client Key length: {}", cluster.getClientKey() != null ? cluster.getClientKey().length() : 0);
-		
+
+		String normalizedServerCa = normalizeEncodedData(cluster.getServerCa());
+		String normalizedClientCert = normalizeEncodedData(cluster.getClientCa());
+		String normalizedClientKey = normalizeEncodedData(cluster.getClientKey());
+
 		ConfigBuilder configBuilder = new ConfigBuilder()
 			.withMasterUrl(cluster.getApiServerUrl())
-			.withCaCertData(cluster.getServerCa());
-		
-		
+			.withCaCertData(normalizedServerCa);
+
 		if (cluster.getClientToken() != null && !cluster.getClientToken().isBlank()) {
 			log.info("Using token-based authentication");
 			configBuilder.withOauthToken(cluster.getClientToken());
-		} else {
-			// log.info("Using certificate-based authentication");
-			configBuilder.withClientCertData(cluster.getClientCa());
+		} else if (StringUtils.hasText(normalizedClientCert) && StringUtils.hasText(normalizedClientKey)) {
+			log.info("Using certificate-based authentication");
+			configBuilder.withClientCertData(normalizedClientCert);
 			configBuilder.withTrustCerts(true);
-			log.info("key type: {}", detectKeyAlgorithm(cluster.getClientKey()));
-		  String keyType = detectKeyAlgorithm(cluster.getClientKey());
-			if(keyType.equalsIgnoreCase("EC")) {
-			
+			String keyType = detectKeyAlgorithm(cluster.getClientKey());
+			log.info("key type: {}", keyType);
+
+			if ("EC".equalsIgnoreCase(keyType)) {
 				String pkcs8Pem = convertECKeyToPKCS8Pem(cluster.getClientKey());
-				configBuilder.withClientKeyData(pkcs8Pem);
+				configBuilder.withClientKeyData(normalizeEncodedData(pkcs8Pem));
 			} else {
-				configBuilder.withClientKeyData(cluster.getClientKey());
+				configBuilder.withClientKeyData(normalizedClientKey);
 			}
+
+			if (StringUtils.hasText(keyType) && !"UNKNOWN".equalsIgnoreCase(keyType)) {
 				configBuilder.withClientKeyAlgo(keyType);
-		
+			}
+		} else {
+			log.warn("Client token is empty and certificate-based auth data is incomplete for cluster: {}", cluster.getId());
+			configBuilder.withTrustCerts(true);
 		}
 
 		return configBuilder.build();
 	}
+
+	private static String normalizeEncodedData(String value) {
+		if (!StringUtils.hasText(value)) {
+			return value;
+		}
+
+		String trimmed = value.trim();
+		if (trimmed.contains("-----BEGIN")) {
+			return Base64.getEncoder().encodeToString(trimmed.getBytes(StandardCharsets.UTF_8));
+		}
+
+		return trimmed;
+	}
+
 /**
      * Base64로 인코딩된 키를 받아 EC/SEC1, RSA/PKCS#1, UNKNOWN 판별
      */
 		public static String detectKeyAlgorithm(String base64Key) {
 			try {
-					// 1️⃣ Base64 디코딩 → PEM 문자열
-					String pem = new String(Base64.getDecoder().decode(base64Key));
+					String pem = decodePemContent(base64Key);
+					if (!StringUtils.hasText(pem)) {
+						return "UNKNOWN";
+					}
 
 					// 2️⃣ PemReader로 PEM 블록 반복
 					try (PemReader reader = new PemReader(new StringReader(pem))) {
@@ -199,8 +224,10 @@ public class KubernetesClientConfig {
 
 	public static String convertECKeyToPKCS8Pem(String base64Key) {
     try {
-        // 1. Base64 → PEM 문자열
-        String pem = new String(Base64.getDecoder().decode(base64Key), StandardCharsets.UTF_8);
+        String pem = decodePemContent(base64Key);
+        if (!StringUtils.hasText(pem)) {
+            throw new IllegalArgumentException("No EC private key found in PEM");
+        }
 
         // 2. PEMParser로 읽기
         try (PEMParser pemParser = new PEMParser(new StringReader(pem))) {
@@ -234,7 +261,24 @@ public class KubernetesClientConfig {
         throw new RuntimeException("EC Key conversion failed", e);
     }
 }
-}
 
+	private static String decodePemContent(String value) {
+		if (!StringUtils.hasText(value)) {
+			return null;
+		}
+
+		String trimmed = value.trim();
+		if (trimmed.contains("-----BEGIN")) {
+			return trimmed;
+		}
+
+		try {
+			String decoded = new String(Base64.getDecoder().decode(trimmed), StandardCharsets.UTF_8);
+			return decoded.contains("-----BEGIN") ? decoded : null;
+		} catch (IllegalArgumentException ignored) {
+			return null;
+		}
+	}
+}
 
 

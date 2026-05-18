@@ -32,9 +32,9 @@ public class KubeServiceImpl implements KubeService {
 
 	public List<? extends HasMetadata> getResources(String clusterName, String namespace,
 			String kind) {
-		// namespace가 빈값이면 "default"로 설정
-		if (namespace == null || namespace.trim().isEmpty()) {
-			namespace = "default";
+		// 목록 조회에서는 namespace가 비어 있으면 전체 네임스페이스를 조회한다.
+		if (namespace != null && namespace.trim().isEmpty()) {
+			namespace = null;
 		}
 		log.info("Getting resources for cluster: {}, namespace: {}, kind: {}", clusterName, namespace, kind);
 
