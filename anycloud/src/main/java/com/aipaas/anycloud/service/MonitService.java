@@ -1,10 +1,7 @@
 package com.aipaas.anycloud.service;
 
-import com.aipaas.anycloud.model.entity.MonitEntity;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * <pre>
@@ -17,12 +14,24 @@ import java.util.Map;
 @Component
 public interface MonitService {
 
-	List<MonitEntity.NodeStatus> nodeStatus(String clusterName);
-	Object resourceMonit (String clusterName, String type, String key, Map<String, String> filter);
-	//Object executeQuery(String url, String query);
-
-//	String getMonitUrl(String ClusterName);
-//	MonitEntity realTimeMonit(String ClusterName, Map<String, String> filter);
-	// MonitEntity clusterQuery(String ClusterName);
-
+	JsonNode query(
+		String clusterName,
+		String query,
+		String time,
+		String timeout,
+		Integer limit,
+		String lookbackDelta,
+		String stats
+	);
+	JsonNode queryRange(
+		String clusterName,
+		String query,
+		String start,
+		String end,
+		String step,
+		String timeout,
+		Integer limit,
+		String lookbackDelta,
+		String stats
+	);
 }
