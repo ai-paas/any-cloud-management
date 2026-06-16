@@ -1,24 +1,24 @@
 meta {
-  name: Chart Values (차트 Values)
+  name: 3. Chart Values (차트 Values)
   type: http
   seq: 3
 }
 
 get {
-  url: {{baseUrl}}/charts/{{repo_name}}/{{chart_name}}/values?version={{chart_version}}
+  url: {{baseUrl}}/v1/helm-repos/{{repo_name}}/charts/{{chart_name}}/values?version={{chart_version}}
   body: none
   auth: none
 }
 
 headers {
   content-type: application/json
-  User-Agent: bruno/1.11.0
+  User-Agent: bruno/3.3.0
 }
 
 vars:pre-request {
   repo_name: chart-museum-external
-  chart_name: nginx
-  chart_version: 21.1.23
+  chart_name: ingress-nginx
+  chart_version: 4.15.1
 }
 
 tests {
@@ -28,6 +28,8 @@ tests {
   
   test("Response Data 확인", function() {
     const data = res.getBody();
+    expect(data.success).to.equal(true);
+    expect(data.status).to.equal(200);
     expect(data).to.not.be.undefined;
     expect(data.data).to.not.be.undefined;
   });

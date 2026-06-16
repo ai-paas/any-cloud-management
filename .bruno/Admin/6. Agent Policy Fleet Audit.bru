@@ -1,0 +1,84 @@
+meta {
+  name: 6. Agent Policy Fleet Audit
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/agent/policy/audit
+  body: none
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+docs {
+  zz (Sprint 4 후속) — 모든 등록 cluster 의 agent policy 일관성 검증. HIGH severity 우선 정렬.
+
+  파라미터 없음. agent unreachable cluster 는 UNREACHABLE 로 분류.
+
+  응답 schema:
+  {
+    "data": {
+      "totalClusters": 12,
+      "scannedClusters": 11,
+      "unreachableClusters": 1,
+      "totalWarnings": 8,
+      "bySeverity": {
+        "HIGH": 2,
+        "MEDIUM": 4,
+        "LOW": 1,
+        "INFO": 4,
+        "NONE": 0,
+        "UNREACHABLE": 1
+      },
+      "clusters": [
+        {
+          "clusterName": "...",
+          "clusterStatus": "ACTIVE",
+          "highestSeverity": "HIGH",
+          "warningCount": 3,
+          "topCodes": ["MISSING_SECRETS_DENY", "MISSING_RBAC_DENY"],
+          "lastReloadAt": "2026-05-21T08:00:00Z",
+          "configMapResourceVersion": "12345"
+        },
+        ...
+      ]
+    }
+  }
+
+  활용:
+    - 운영 dashboard 의 "Policy Health Overview" 위젯
+    - CI/CD pre-deploy 검증 — HIGH 가 0 이 되도록 정책 정비 후 deploy
+    - On-call alerting — bySeverity.HIGH > 0 일 때 알람
+}
+
+tests {
+  test("상태 코드 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("응답 schema 확인", function() {
+    const data = res.getBody().data;
+    expect(data).to.have.property("totalClusters");
+    expect(data).to.have.property("bySeverity");
+    expect(data).to.have.property("clusters");
+    expect(Array.isArray(data.clusters)).to.equal(true);
+  });
+
+  test("HIGH 가 가장 앞에 정렬 (있는 경우)", function() {
+    const clusters = res.getBody().data.clusters;
+    if (clusters.length > 0) {
+      // 처음 entry 가 HIGH 가 아니면 — fleet 에 HIGH 가 없는 정상 상태
+      const firstSeverity = clusters[0].highestSeverity;
+      // sanity check: 다른 entry 의 severity rank 가 first 보다 같거나 큰지
+      const rank = (s) => ({ HIGH: 0, UNREACHABLE: 1, MEDIUM: 2, LOW: 3, INFO: 4, NONE: 5 }[s] ?? 99);
+      for (let i = 1; i < clusters.length; i++) {
+        expect(rank(clusters[i].highestSeverity)).to.be.at.least(rank(firstSeverity));
+      }
+    }
+  });
+}

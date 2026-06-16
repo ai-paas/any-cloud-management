@@ -1,0 +1,28 @@
+meta {
+  name: 4. Operation Events (SSE)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/v1/operations/{{last_operation_id}}/events
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: text/event-stream
+  User-Agent: bruno/3.3.0
+}
+
+docs {
+  ## Server-Sent Events
+  Bruno 의 표준 응답 뷰는 SSE 스트리밍을 부분적으로만 보여줍니다. curl 등 CLI 가 더 적합:
+
+  ```
+  curl -N -H 'Accept: text/event-stream' \
+       http://localhost:8080/v1/operations/op-7f3a/events
+  ```
+
+  본 요청은 첫 chunk 까지의 응답을 빠르게 확인하는 용도.
+}

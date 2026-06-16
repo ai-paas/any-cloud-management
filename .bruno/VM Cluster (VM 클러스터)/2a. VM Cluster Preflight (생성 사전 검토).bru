@@ -1,0 +1,85 @@
+meta {
+  name: 2a. VM Cluster Preflight (생성 사전 검토)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/v1/cluster-validations
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+body:json {
+  {
+    "clusterProvider": "{{provision_provider}}",
+    "clusterName": "{{provision_cluster_name}}",
+    "description": "CSP VM 기반 Kubernetes 클러스터 사전 검토 테스트",
+    "environment": "{{provision_environment}}",
+    "region": "{{provision_region}}",
+    "credentialId": "{{credential_id}}",
+    "config": {
+      "anycloud-k8s:masterInstanceType": "{{master_vm_spec}}",
+      "anycloud-k8s:workerInstanceType": "{{worker_vm_spec}}",
+      "anycloud-k8s:workerCount": "{{worker_count}}",
+      "anycloud-k8s:kubernetesVersion": "{{kubernetes_version}}",
+      "anycloud-k8s:vpcCidr": "{{vpc_cidr}}",
+      "anycloud-k8s:podCidr": "{{pod_cidr}}",
+      "anycloud-k8s:serviceCidr": "{{service_cidr}}",
+      "anycloud-k8s:enableIngress": "{{enable_ingress}}",
+      "anycloud-k8s:enableGpuOperator": "{{enable_gpu_operator}}",
+      "anycloud-k8s:dbEnabled": "false",
+      "anycloud-k8s:gcpProject": "{{gcp_project}}",
+      "anycloud-k8s:azureResourceGroup": "{{azure_resource_group}}",
+      "anycloud-k8s:openstackImageName": "{{openstack_image_name}}",
+      "anycloud-k8s:openstackFlavorName": "{{openstack_flavor_name}}",
+      "anycloud-k8s:openstackExternalNetworkId": "{{openstack_external_network_id}}",
+      "anycloud-k8s:openstackFloatingIpPool": "{{openstack_floating_ip_pool}}",
+      "anycloud-k8s:ociCompartmentId": "{{oci_compartment_id}}",
+      "anycloud-k8s:proxmoxNodeName": "{{proxmox_node_name}}",
+      "anycloud-k8s:proxmoxTemplateVmId": "{{proxmox_template_vm_id}}",
+      "anycloud-k8s:proxmoxDatastoreId": "{{proxmox_datastore_id}}",
+      "anycloud-k8s:proxmoxNetworkBridge": "{{proxmox_network_bridge}}"
+    }
+  }
+}
+
+tests {
+  test("status is 201 (검증 결과 자원)", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("links.createCluster 가 다음 단계 URL", function() {
+    const body = res.getBody();
+    expect(body.links).to.have.property("createCluster");
+    expect(body.links.createCluster).to.equal("/v1/clusters");
+  });
+
+  test("preflight response includes readiness hints", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("success");
+    expect(body).to.have.property("data");
+    expect(body.data).to.have.property("readyToProvision");
+    expect(body.data).to.have.property("stackName");
+    expect(body.data).to.have.property("normalizedConfig");
+    expect(body.data).to.have.property("appliedDefaults");
+    expect(body.data).to.have.property("requiredCredentialKeys");
+    expect(body.data).to.have.property("missingCredentialKeys");
+    expect(body.data).to.have.property("vmOptionsDiscoveryChecked");
+    expect(body.data).to.have.property("vmOptionsDiscoveryReady");
+    expect(body.data).to.have.property("vmOptionsDiscoveryMessages");
+    expect(body.data).to.have.property("providerReadinessChecked");
+    expect(body.data).to.have.property("providerReadinessReady");
+    expect(body.data).to.have.property("providerReadinessMessages");
+    expect(body.data).to.have.property("e2eChecklistItems");
+    expect(body.data).to.have.property("warnings");
+    expect(body.data).to.have.property("errors");
+    expect(body.data).to.have.property("warningItems");
+    expect(body.data).to.have.property("errorItems");
+  });
+}

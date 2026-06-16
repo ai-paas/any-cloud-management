@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Spring Boot 의 기본 console/file appender 위에 MDC 컨텍스트 키를 표시한다.
+  Workflow 비동기 경로(PROVISION→BOOTSTRAP→VERIFY)에서 다음 키가 채워지면 자동 출력:
+    clusterName, messageId, step, retryCount, provisioningId
+  값이 없으면 단축 표시되어 잡음을 줄인다.
+
+  Sprint 3 — JSON structured logging profile 추가:
+    SPRING_PROFILES_ACTIVE=...,json  → logstash JSON 인코더 활성 (ELK 호환)
+    그 외 (default) → 기존 string pattern 유지 (가독성 우선)
+-->
+<configuration>
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+  <!--
+    MDC 키들을 한 토큰으로 합쳐 표현. 모두 비어 있으면 빈 문자열.
+    형식 예: [cluster=demo-aws-01 msg=1f… step=BOOTSTRAP retry=1]
+  -->
+  <conversionRule conversionWord="anycloudMdc"
+                  converterClass="com.aipaas.anycloud.common.logging.LoggingMdcConverter"/>
+
+  <!--
+    AWS Access Key ID / ARN / Account ID / UUID / OCI fingerprint / OCID / PEM private key 를
+    log message 에서 자동 마스킹. credential-failure-policy.md § 3 reconnaissance 정보 보호.
+  -->
+  <conversionRule conversionWord="redactedMsg"
+                  converterClass="com.aipaas.anycloud.common.logging.RedactingMessageConverter"/>
+
+  <property name="ANYCLOUD_LOG_PATTERN"
+            value="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} ${LOG_LEVEL_PATTERN:-%5p} [%t] %anycloudMdc%logger{36} - %redactedMsg%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+
+  <!-- JSON profile: structured logging for ELK / Loki / Datadog 등 collector. -->
+  <springProfile name="json">
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+        <includeContext>false</includeContext>
+        <!-- 핵심 MDC 키 — RequestMdcFilter / LoggingMdc 가 채움. -->
+        <includeMdcKeyName>requestId</includeMdcKeyName>
+        <includeMdcKeyName>clusterName</includeMdcKeyName>
+        <includeMdcKeyName>step</includeMdcKeyName>
+        <includeMdcKeyName>messageId</includeMdcKeyName>
+        <includeMdcKeyName>retryCount</includeMdcKeyName>
+        <includeMdcKeyName>provisioningId</includeMdcKeyName>
+        <includeMdcKeyName>principal</includeMdcKeyName>
+        <customFields>{"app":"anycloud-backend"}</customFields>
+      </encoder>
+    </appender>
+  </springProfile>
+
+  <!-- 기본 profile: string pattern (개발 / docker 출력 가독성). -->
+  <springProfile name="!json">
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder>
+        <pattern>${ANYCLOUD_LOG_PATTERN}</pattern>
+        <charset>${CONSOLE_LOG_CHARSET:-UTF-8}</charset>
+      </encoder>
+    </appender>
+  </springProfile>
+
+  <root level="${LOG_LEVEL_ROOT:-INFO}">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+
+  <!-- 운영 환경에서 라이브러리 잡음 억제 (필요 시 dev/profile 별 override). -->
+  <logger name="org.springframework.amqp.rabbit.connection" level="WARN"/>
+  <logger name="org.hibernate.engine.jdbc.spi.SqlExceptionHelper" level="WARN"/>
+</configuration>

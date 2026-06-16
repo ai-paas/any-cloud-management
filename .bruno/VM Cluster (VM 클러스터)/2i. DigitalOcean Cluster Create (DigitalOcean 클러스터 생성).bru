@@ -1,0 +1,74 @@
+meta {
+  name: 2i. DigitalOcean Cluster Create (DigitalOcean 클러스터 생성)
+  type: http
+  seq: 18
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+}
+
+body:json {
+  {
+    "source": "vm",
+    "clusterName": "{{provision_cluster_name}}",
+    "spec": {
+      "provider": "DIGITALOCEAN",
+      "description": "DigitalOcean Droplet 기반 Kubernetes 클러스터",
+      "environment": "{{provision_environment}}",
+      "region": "{{provision_region}}",
+      "credentialId": "{{credential_id}}",
+      "config": {
+        "anycloud-k8s:masterInstanceType": "{{master_vm_spec}}",
+        "anycloud-k8s:workerInstanceType": "{{worker_vm_spec}}",
+        "anycloud-k8s:workerCount": "{{worker_count}}",
+        "anycloud-k8s:kubernetesVersion": "{{kubernetes_version}}",
+        "anycloud-k8s:vpcCidr": "{{vpc_cidr}}",
+        "anycloud-k8s:podCidr": "{{pod_cidr}}",
+        "anycloud-k8s:serviceCidr": "{{service_cidr}}",
+        "anycloud-k8s:enableIngress": "{{enable_ingress}}",
+        "anycloud-k8s:enableGpuOperator": "{{enable_gpu_operator}}"
+      }
+    }
+  }
+}
+
+script:post-response {
+  if (res.body && res.body.data && res.body.data.id) {
+    bru.setEnvVar('last_operation_id', res.body.data.id);
+  }
+}
+
+tests {
+  test("상태 코드 202", function() {
+    expect(res.getStatus()).to.equal(202);
+  });
+}
+
+docs {
+  ## DigitalOcean Droplet 기반 cluster 생성
+
+  ### Required env vars (local-digitalocean-provisioning.bru)
+  - `provision_provider: DIGITALOCEAN`
+  - `provision_region`: e.g. `nyc1`, `sgp1`, `fra1`
+  - `credential_id`: DigitalOcean credential UUID
+  - `master_vm_spec` / `worker_vm_spec`: e.g. `s-4vcpu-8gb`, `g-2vcpu-8gb`, `c-4`
+
+  ### DigitalOcean 만의 config — **없음** (기본 K8s 공통 config 만).
+  - VPC + Firewall 자동 생성 (Firewall 은 droplet 생성 후 attach)
+  - 옵션: `anycloud-k8s:osImage` — DO image slug (예: `ubuntu-22-04-x64`)
+  - Spot/preemptible 미지원
+
+  ### 실행
+  ```bash
+  bru run "VM Cluster (VM 클러스터)/2i. DigitalOcean Cluster Create (DigitalOcean 클러스터 생성).bru" \
+      --env local-digitalocean-provisioning
+  ```
+}

@@ -1,38 +1,83 @@
 meta {
-  name: Helm repo Create (헬름저장소 생성)
+  name: 2. HelmRepo Create (헬름저장소 생성)
   type: http
   seq: 2
 }
 
 post {
-  url: {{baseUrl}}/helm-repos
+  url: {{baseUrl}}/v1/helm-repos
   body: json
   auth: none
 }
 
 headers {
   content-type: application/json
-  User-Agent: bruno/1.11.0
+  User-Agent: bruno/3.3.0
 }
 
 body:json {
- {
-   "name": "chart-museum-external",
-   "url": "http://192.168.190.148:5080",
-   "insecureSkipTLSVerify": true,
-   "username" : "admin",
-   "password": "cXdlMTIxMiFR"
- }
+   {
+     "name": "chart-museum-external",
+     "url": "http://chartmuseum:8080",
+     "insecureSkipTLSVerify": true,
+     "username": "anycloud",
+     "password": "dev-only-pass-do-not-use-in-prod",
+     "source": "INTERNAL",
+     "tags": "private,chartmuseum"
+   }
+}
+
+script:post-response {
+  // helm repo name 을 env 로 promotion — 후속 Info / Delete / Charts list 에서 사용.
+  if (res && res.body && res.body.data && res.body.data.resourceId) {
+    bru.setEnvVar('helmRepo_name', res.body.data.resourceId);
+    bru.setEnvVar('repo_name', res.body.data.resourceId);
+  }
 }
 
 tests {
-  test("상태 코드 200 확인", function() {
-    expect(res.getStatus()).to.equal(200);
+  test("상태 코드 201 확인", function() {
+    expect(res.getStatus()).to.equal(201);
   });
   
-  test("Response Data 확인", function() {
+  test("성공 envelope 확인", function() {
     const data = res.getBody();
-    // console.log("   ✓ data length", Object.keys(data).length);
-    expect(data).to.not.be.undefined;
+    expect(data.success).to.equal(true);
+    expect(data.status).to.equal(201);
+    expect(data.data.operation).to.equal("create");
+    expect(data.data.resourceType).to.equal("helmRepository");
   });
+}
+
+docs {
+  ## URL 주의 (2026-05-27, H-46)
+  Backend 가 docker container 안에서 동작하므로 같은 docker network 의 service
+  alias `chartmuseum:8080` 으로 등록. `localhost:8080` 은 backend container 자신의
+  localhost 라 connection refused. host 의 brower / curl 은 localhost:8080 으로
+  접근 OK — service alias 는 backend ↔ ChartMuseum 컨테이너 간 통신 전용.
+  
+  ## source / tags 필드 (H-47.1, 2026-06-08)
+  - `source`: INTERNAL (자체 운영 ChartMuseum / Harbor) 또는 EXTERNAL (public helm.sh).
+    default EXTERNAL. UI / agent push 결정 시 metadata 로 사용.
+  - `tags`: free-form comma-separated (예: "monitoring,seeded"). UI filter 용.
+  
+  ## name prefix 권장 — `anycloud-` (H-50/H-57, 2026-06-08)
+  Agent 의 orphan cleanup (H-50) 은 RepositoryFile entry 중 `anycloud-` prefix 만
+  관리 대상으로 인식하고 cleanup 수행. 사용자가 prefix 없는 이름으로 등록하면
+  backend 가 DELETE 후에도 agent 의 helm SDK RepositoryFile 에 남음 (사용자
+  직접 helm CLI 추가로 오인해 보존). 따라서 backend 통제 의도면 `anycloud-` prefix
+  권장. prefix 없이 등록한 경우 helm CLI 로 수동 helm repo remove 필요.
+  
+  ## 자동 sync (H-47.3 / H-49 / H-51, 2026-06-08)
+  본 endpoint 호출 후 backend 가 모든 ACTIVE cluster 의 agent ConfigMap 의
+  `helm_repositories` key 를 자동 갱신 (broadcast). agent 는 helm SDK 의
+  RepositoryFile 도 같이 sync — 즉시 `helm install <name>/chart` 사용 가능.
+  
+  ## autoAllowlist 필드 (제거됨, Phase G / V27 migration)
+  backend 가 더 이상 받지 않음 — body 에 포함하면 UnrecognizedPropertyException.
+  
+  ## credentials
+  docker-compose.dev.yml 의 BASIC_AUTH_USER / BASIC_AUTH_PASS 와 동일해야 backend
+  의 등록 시 BASIC auth 통과. dev default 그대로 사용 시 username=anycloud /
+  password=dev-only-pass-do-not-use-in-prod.
 }

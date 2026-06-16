@@ -1,0 +1,110 @@
+name: Publish OpenAPI Spec
+
+# anycloud backend 의 OpenAPI 3.x spec 을 추출해 artifact + Pages 로 publish.
+# frontend / 외부 consumer 가 openapi-generator-cli 로 type-safe client 자동 생성 →
+# API 변경 시 frontend 가 컴파일 에러로 즉시 인지.
+#
+# Trigger:
+#   - tag push (vX.Y.Z) : openapi/vX.Y.Z/ 로 versioned Pages publish. main branch tag 면
+#                         openapi/latest/ alias 도 같이 갱신.
+#   - workflow_dispatch : 응급 수동 publish — 같은 tag-driven path 사용.
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: publish-openapi-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  extract-and-publish:
+    name: Extract OpenAPI + publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine source branch
+        id: branch
+        run: |
+          BRANCH=$(git branch -r --contains ${{ github.sha }} \
+            | grep -v 'HEAD' \
+            | sed 's|^\s*origin/||' \
+            | grep -E '^(main|hotfix/|release/)' \
+            | head -1 \
+            | xargs)
+          if [ -z "$BRANCH" ]; then BRANCH="detached"; fi
+          echo "name=$BRANCH" >> "$GITHUB_OUTPUT"
+          if [ "$BRANCH" = "main" ]; then
+            echo "is_main=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_main=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle (with cache)
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Start backend (SPRING_PROFILES_ACTIVE=test)
+        run: |
+          ./gradlew :anycloud:bootRun --no-daemon \
+            -Dspring-boot.run.profiles=test \
+            -Dspring-boot.run.jvmArguments="-Dspring.main.web-application-type=servlet" &
+          BACKEND_PID=$!
+          echo "BACKEND_PID=$BACKEND_PID" >> $GITHUB_ENV
+
+      - name: Wait for backend
+        run: |
+          for i in {1..30}; do
+            curl -fsS http://localhost:8888/v3/api-docs > /dev/null 2>&1 && break
+            sleep 5
+          done
+
+      - name: Extract OpenAPI spec (JSON + YAML)
+        run: |
+          mkdir -p dist/openapi
+          curl -fsS http://localhost:8888/v3/api-docs > dist/openapi/openapi.json
+          curl -fsS http://localhost:8888/v3/api-docs.yaml > dist/openapi/openapi.yaml || true
+
+      - name: Stop backend
+        if: always()
+        run: kill ${{ env.BACKEND_PID }} || true
+
+      - name: Upload as artifact (versioned)
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-spec-${{ github.ref_name }}
+          path: dist/openapi/
+          retention-days: 90
+
+      - name: Publish to gh-pages (versioned)
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: dist/openapi
+          destination_dir: openapi/${{ github.ref_name }}
+          keep_files: true
+          commit_message: "Publish OpenAPI spec ${{ github.ref_name }} from ${{ steps.branch.outputs.name }}"
+
+      - name: Publish to gh-pages (latest alias, main branch tag only)
+        if: steps.branch.outputs.is_main == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: dist/openapi
+          destination_dir: openapi/latest
+          keep_files: true
+          commit_message: "Publish OpenAPI spec latest (${{ github.ref_name }})"

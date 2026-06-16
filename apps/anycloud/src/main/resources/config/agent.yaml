@@ -1,0 +1,95 @@
+# anycloud — Cluster Agent 생태계 설정 (가장 자주 손대는 영역).
+#   cluster-agent  : Cluster Agent Spring Boot Starter — JWT / health / exec / routing
+#   agent          : Anycloud 호스트 자체 — gRPC public endpoint / image / kubeconfig cleanup
+#   grpc           : net.devh grpc-server-spring-boot-starter
+#
+#  · cluster-agent.jwt.secret       HS256 서명 키 (env 필수, dev 는 fallback 경고).
+#  · cluster-agent.jwt.issuer/audience  JWT iss/aud claim.
+#  · cluster-agent.jwt.ttl-seconds  registration_token 만료. PDF 권장 600 (10분).
+#  · cluster-agent.identity-ttl-days  agent_identity_token 만료. 60 일 (k8s/istio/teleport 관례).
+#  · agent.grpc.port                gRPC server listen port. HTTP/2 plaintext (dev).
+#
+# Cluster Agent Spring Boot Starter 의 표준 설정 prefix. 호스트 (anycloud) 가 동일 prefix
+# 로 추가 옵션 (grpc/manifest 등) 도 묶는다.
+cluster-agent:
+  jwt:
+    secret: ${ANYCLOUD_AGENT_JWT_SECRET:}
+    issuer: ${ANYCLOUD_AGENT_JWT_ISSUER:anycloud-bootstrap}
+    audience: ${ANYCLOUD_AGENT_JWT_AUDIENCE:cluster-agent-registration}
+    ttl-seconds: ${ANYCLOUD_AGENT_JWT_TTL:600}
+  identity:
+    ttl-days: ${ANYCLOUD_AGENT_IDENTITY_TTL_DAYS:60}
+  health:
+    heartbeat-staleness-threshold: ${ANYCLOUD_AGENT_HEARTBEAT_STALENESS:90s}
+  exec:
+    bind-timeout: ${ANYCLOUD_AGENT_EXEC_BIND_TIMEOUT:30s}
+    websocket-buffer-bytes: ${ANYCLOUD_AGENT_WS_BUFFER:65536}
+  # Day-2 K8s ops (logs/get/list/delete/apply) + Helm release ops 를 agent stream 으로 routing.
+  # Phase 3 이후 항상 agent-only — fabric8 fall-through 가 모두 제거됐고 strict-mode toggle
+  # 도 사라졌다. agent 가 inactive 면 즉시 503 AGENT_UNAVAILABLE 반환 — 운영자가 agent 복구.
+  # routing.enabled 는 starter 의 backwards compat 토글로만 남아 있음 (기본 true).
+  routing:
+    enabled: ${ANYCLOUD_AGENT_ROUTING_ENABLED:true}
+    command-timeout-seconds: ${ANYCLOUD_AGENT_ROUTING_TIMEOUT:15}
+
+# Anycloud 전용 — 본 starter 와 무관하게 anycloud 가 자체 사용.
+agent:
+  grpc:
+    port: ${ANYCLOUD_AGENT_GRPC_PORT:9090}
+    # agent → backend 가 outbound 로 접속할 public endpoint. ingress / NodePort / LB 의 DNS.
+    # dev 에서는 host.docker.internal:9090 (docker-desktop 의 host 주소).
+    public-endpoint: ${ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT:host.docker.internal:9090}
+    # TLS — chart values 의 backend.tls.* 자동 주입 (AgentChartRenderer).
+    # enabled=true 면 agent 가 BACKEND_GRPC_TLS_ENABLED=true 로 부팅. ca-cert 는 chart 의
+    # values.backend.tls.caCert 로 inline 주입 → agent 의 BACKEND_CA_CERT_PEM env 로 전달.
+    tls:
+      enabled: ${ANYCLOUD_AGENT_TLS_ENABLED:false}
+      # backend 의 server cert 검증용 CA cert (PEM). 비우면 system roots 시도.
+      # cert-manager / Let's Encrypt 라면 비워둬도 됨. self-signed 면 명시.
+      ca-cert: ${ANYCLOUD_AGENT_TLS_CA_CERT:}
+      # SNI override. 비우면 public-endpoint 의 host 부분 자동 사용.
+      server-name: ${ANYCLOUD_AGENT_TLS_SERVER_NAME:}
+      # dev 편의 — production 절대 사용 금지.
+      insecure-skip-verify: ${ANYCLOUD_AGENT_TLS_INSECURE_SKIP_VERIFY:false}
+  # Phase 7 — Pulumi-provisioned cluster 에 BOOTSTRAP 직후 자동 agent 설치 (API_MANAGED 모드).
+  api-managed:
+    enabled: ${ANYCLOUD_AGENT_API_MANAGED_ENABLED:true}
+  # Manifest template 의 image / namespace / pull policy.
+  manifest:
+    image: ${ANYCLOUD_AGENT_IMAGE:aipaas/cluster-agent:dev}
+    namespace: ${ANYCLOUD_AGENT_NAMESPACE:aipaas-system}
+    image-pull-policy: ${ANYCLOUD_AGENT_IMAGE_PULL_POLICY:IfNotPresent}
+  # 사용자가 helm install 로 agent 를 직접 배포할 때 응답에 들어가는 정보 (HELM_BOOTSTRAP / MANUAL mode).
+  # backend 의 자동 install (API_MANAGED) 에는 영향 없음.
+  helm:
+    repo-alias: ${ANYCLOUD_AGENT_HELM_REPO_ALIAS:anycloud}
+    repo-url: ${ANYCLOUD_AGENT_HELM_REPO_URL:http://chartmuseum:8080}
+    chart-name: ${ANYCLOUD_AGENT_HELM_CHART_NAME:cluster-agent}
+    chart-version: ${ANYCLOUD_AGENT_HELM_CHART_VERSION:0.1.0}
+  # Agent ACTIVE 시 ClusterEntity 의 kubeconfig 필드 (server_ca/client_ca/client_key/client_token) 비동기 NULL.
+  # agent path 안정 후 활성 권장 — 보안 우위.
+  kubeconfig:
+    cleanup-on-active: ${ANYCLOUD_AGENT_KUBECONFIG_CLEANUP:false}
+
+# agent.policy.* 는 ConfigMap 이 단일 truth — backend defaults 없음.
+# 정책 변경은 PUT/PATCH /v1/admin/clusters/{c}/agent-policy 로 운영자가 명시.
+
+# net.devh grpc-server-spring-boot-starter — gRPC server 자동 설정.
+#
+# mTLS 미지원 — Rancher 와 동일한 bearer + TLS server cert 모델 (단일 인증 path: Authorization Bearer).
+#
+# TLS 정책:
+#   - default: plaintext (개발 편의). production 권장: 아래 env 로 활성.
+#   - ANYCLOUD_GRPC_TLS_ENABLED=true 면 server TLS 활성. 클라이언트 (agent) 는 BACKEND_GRPC_TLS_ENABLED=true
+#     + CA cert 로 검증.
+#   - certificate-chain / private-key 는 PEM 파일 경로. K8s Secret mount 또는 cert-manager 발급 권장.
+grpc:
+  server:
+    port: ${ANYCLOUD_AGENT_GRPC_PORT:9090}
+    # chart .tgz tarball push (base64 in INSTALL_ADDON params) 를 위해 default 4 MB
+    # → 16 MB 확장. 일반 chart 100KB~2MB, kube-prometheus-stack 등 큰 chart 도 5MB 안. cap 충분.
+    max-inbound-message-size: ${ANYCLOUD_GRPC_MAX_INBOUND:16777216}
+    security:
+      enabled: ${ANYCLOUD_GRPC_TLS_ENABLED:false}
+      certificate-chain: ${ANYCLOUD_GRPC_TLS_CERT_PATH:}
+      private-key: ${ANYCLOUD_GRPC_TLS_KEY_PATH:}

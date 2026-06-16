@@ -1,0 +1,54 @@
+meta {
+  name: 7a. VM SSH Key (SSH 키 발급)
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters/{{provision_cluster_name}}/ssh-key?format=json
+  body: none
+  auth: none
+}
+
+params:query {
+  format: json
+}
+
+headers {
+  User-Agent: bruno/3.3.0
+}
+
+settings {
+  timeout: 60000
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("key and per-node ssh commands", function() {
+    const body = res.getBody();
+    expect(body.data.privateKeyPem).to.contain("PRIVATE KEY");
+    expect(body.data.nodes[0]).to.have.property("sshCommand");
+  });
+}
+
+docs {
+  # VM SSH Key 발급 (III-49)
+
+  Pulumi 가 cluster 생성 시 만든 SSH keypair 의 **private key (PEM)** 를 state 에서
+  복호화해 반환 — 운영자가 노드에 직접 접속할 때 사용. CSP 무관 동일 동작.
+
+  - `?format=pem` — `{cluster}-ssh.pem` 파일 직접 다운로드
+  - `?format=json` (기본) — key + 노드별 ssh 명령 포함
+
+  사용 예:
+  ```
+  curl -X POST '{{baseUrl}}/v1/clusters/demo-aws-01/ssh-key?format=pem' -o demo-aws-01-ssh.pem
+  chmod 600 demo-aws-01-ssh.pem
+  ssh -i demo-aws-01-ssh.pem ubuntu@<publicIp>
+  ```
+
+  ⚠ key 소지 = 전 노드 root 등가. Pulumi CLI 호출이 있어 수 초 걸린다.
+}

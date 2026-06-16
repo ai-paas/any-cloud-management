@@ -1,0 +1,34 @@
+# OpenStack flavor pricing.
+#
+# OpenStack 은 private cloud — flavor 이름과 가격이 deployment 마다 다름. 본 catalog 는 일반적인
+# Telco/Enterprise OpenStack 가격대를 baseline 으로 제공. 사용자는 자체 deployment 에 맞춰 본 YAML
+# 을 override 권장 (Spring's @ConditionalOnMissingBean 으로 PriceCatalog 교체).
+provider: openstack
+currency: USD
+region: default
+spotDiscount: 0.0         # OpenStack 은 spot 개념 표준 미정의 (Blazar pre-reservation 별도)
+updatedAt: "2026-05-24"
+notes: |
+  Pricing for OpenStack is deployment-specific — list values here are PLACEHOLDER
+  baselines from typical Telco/Enterprise self-hosted private clouds (TCO basis,
+  not retail). Override this catalog in your deployment by providing your own
+  pricing/openstack.yaml with @ConditionalOnMissingBean(PriceCatalog.class).
+  Reported as "best-effort estimate" — accuracyNote should reflect this.
+
+instanceTypes:
+  # Generic m1 series (most OpenStack deployments customize these)
+  m1.small:        { hourly: 0.020, vcpu: 1, memoryGb: 2 }
+  m1.medium:       { hourly: 0.040, vcpu: 2, memoryGb: 4 }
+  m1.large:        { hourly: 0.080, vcpu: 4, memoryGb: 8 }
+  m1.xlarge:       { hourly: 0.160, vcpu: 8, memoryGb: 16 }
+  m1.2xlarge:      { hourly: 0.320, vcpu: 16, memoryGb: 32 }
+  # Compute-optimized
+  c1.medium:       { hourly: 0.030, vcpu: 2, memoryGb: 2 }
+  c1.large:        { hourly: 0.060, vcpu: 4, memoryGb: 4 }
+  c1.xlarge:       { hourly: 0.120, vcpu: 8, memoryGb: 8 }
+  # Memory-optimized
+  r1.medium:       { hourly: 0.060, vcpu: 2, memoryGb: 16 }
+  r1.large:        { hourly: 0.120, vcpu: 4, memoryGb: 32 }
+  # GPU
+  g1.medium:       { hourly: 0.400, vcpu: 4, memoryGb: 16, gpu: 1 }
+  g1.large:        { hourly: 0.800, vcpu: 8, memoryGb: 32, gpu: 1 }

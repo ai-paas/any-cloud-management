@@ -1,0 +1,73 @@
+meta {
+  name: 5. Agent Policy Patch (partial update)
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/v1/admin/clusters/{{cluster_name}}/agent-policy
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+body:json {
+  {
+    "allowedCharts": [
+      "prometheus-community/kube-prometheus-stack:45.0.0-65.0.0",
+      "ingress-nginx/ingress-nginx:4.8.0-4.15.1",
+      "chart-museum-external/ingress-nginx:1.0.0-9.9.9"
+    ],
+    "force": false
+  }
+}
+
+vars:pre-request {
+  cluster_name: orb-kubernetes-001
+}
+
+docs {
+  부분 갱신 (PATCH). 보내지 않은 필드는 현재 ConfigMap 값 유지 — backend 가 GET → merge → PUT.
+
+  예시 사용:
+    - allowedCharts 만 보내면 → namespaces / commands / resource_policy 는 그대로
+    - allowedNamespaces 에 ["monitoring"] 만 보내면 다른 모든 필드 유지
+
+  응답 (ww 의 diff 포함):
+    {
+      "data": {
+        "method": "PATCH",
+        "appliedResourceVersion": "12347",
+        "diff": {
+          "allowedCharts": {
+            "added": ["chart-museum-external/ingress-nginx:1.0.0-9.9.9"],
+            "removed": []
+          },
+          "allowedNamespaces": { "added": [], "removed": [] },
+          "allowedCommands":   { "added": [], "removed": [] },
+          ...
+        },
+        "warnings": [...],
+        "highestSeverity": "MEDIUM"
+      }
+    }
+}
+
+tests {
+  test("상태 코드 200 / 422 / 503", function() {
+    expect([200, 422, 503]).to.include(res.getStatus());
+  });
+
+  test("200 시 diff 포함 확인", function() {
+    if (res.getStatus() === 200) {
+      const data = res.getBody().data;
+      expect(data.method).to.equal("PATCH");
+      expect(data).to.have.property("diff");
+      expect(data).to.have.property("appliedResourceVersion");
+    }
+  });
+}

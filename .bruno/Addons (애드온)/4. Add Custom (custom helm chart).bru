@@ -1,0 +1,45 @@
+meta {
+  name: 4. Add Custom (custom helm chart)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/addons
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+body:json {
+  {
+    "type": "GENERIC",
+    "releaseName": "my-redis",
+    "namespace": "default",
+    "chartRepo": "bitnami",
+    "chartName": "redis",
+    "chartVersion": "19.6.4",
+    "repoUrl": "https://charts.bitnami.com/bitnami",
+    "valuesJson": "{\"auth\":{\"enabled\":false}}",
+    "enabled": true
+  }
+}
+
+vars:pre-request {
+  cluster_name: orb-kubernetes-001
+}
+
+tests {
+  test("상태 코드 202", function() {
+    expect(res.getStatus()).to.equal(202);
+  });
+}
+
+docs {
+  Catalog 외 helm chart 직접 install — type=GENERIC + chart 필드 모두 명시.
+  repoUrl 명시하면 agent 의 RepositoryFile alias resolve 우회 (M8).
+}

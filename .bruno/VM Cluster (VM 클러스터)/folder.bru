@@ -1,0 +1,87 @@
+meta {
+  name: VM Cluster (VM 클러스터)
+}
+
+docs {
+  # VM Cluster — Pulumi 기반 multi-CSP K8s 클러스터 라이프사이클
+
+  ## TL;DR — 새 CSP 에 클러스터 만들기 3단계
+
+  ```bash
+  # 1. credential 등록 (한 번만)
+  bru run "VM Credentials (VM 자격증명)/2b. AWS Credential Create.bru" \
+      --env local-aws-provisioning
+
+  # 2. (선택) 사전 검토 — quota / region / instance type 가용성 + 예상 비용
+  bru run "VM Cluster (VM 클러스터)/2a. VM Cluster Preflight.bru" \
+      --env local-aws-provisioning
+
+  # 3. CSP 별 cluster 생성 — 8개 중 해당 .bru 선택
+  bru run "VM Cluster (VM 클러스터)/2b. AWS Cluster Create.bru" \
+      --env local-aws-provisioning
+  ```
+
+  ## .bru 파일 매핑
+
+  | seq | 파일 | 용도 |
+  |-----|------|------|
+  | 1   | VM Cluster List              | `GET /v1/clusters?source=vm` |
+  | 2   | VM Cluster Create (generic)  | 모든 CSP config key 를 한 body 에 (legacy/reference) |
+  | 2a  | VM Cluster Preflight         | 생성 사전 검토 (credential / quota / cost) |
+  | 2b  | **AWS** Cluster Create       | AWS EC2 전용 — 기본 K8s config 만 |
+  | 2c  | **GCP** Cluster Create       | GCP Compute — `gcp_project` 추가 필수 |
+  | 2d  | **Azure** Cluster Create     | Azure VM — `azure_resource_group` 추가 필수 |
+  | 2e  | **Alibaba** Cluster Create   | Alibaba ECS — 기본 K8s config 만 |
+  | 2f  | **OpenStack** Cluster Create | OpenStack Nova — image/flavor/external network/floating pool 추가 필수 |
+  | 2g  | **Proxmox** Cluster Create   | Proxmox VE — node/template/datastore/bridge 추가 필수 |
+  | 2h  | **OCI** Cluster Create       | Oracle Cloud — `oci_compartment_id` 추가 필수 |
+  | 2i  | **DigitalOcean** Cluster Create | DO Droplet — 기본 K8s config 만 |
+  | 3   | VM Cluster Status            | 생성 진행 상태 |
+  | 4   | VM Cluster Register Retry    | 등록 재시도 |
+  | 5   | VM Cluster Delete            | 삭제 (Pulumi destroy) |
+  | 6   | VM Cluster Scale             | worker count 변경 (PATCH) |
+  | 7   | VM Cluster Upgrade           | K8s 버전 업그레이드 (PATCH) |
+  | 8   | VM Cluster Retry Workflow    | BLOCKED 상태 해제 |
+  | 9   | Agent Registration Token     | cluster-agent helm install 용 token |
+
+  ## CSP 별 추가 필수 config 한눈에
+
+  | CSP | 추가 필수 | 추가 옵션 |
+  |-----|-----------|-----------|
+  | **AWS** | (없음) | `osImage` (AMI ID) |
+  | **GCP** | `gcp_project` | `osImage` (image self-link) |
+  | **Azure** | `azure_resource_group` | `osImage` (`Publisher:Offer:Sku:Version`) |
+  | **Alibaba** | (없음) | `osImage` (ImageId) |
+  | **OpenStack** | `openstack_image_name`, `openstack_flavor_name`, `openstack_external_network_id`, `openstack_floating_ip_pool` | — |
+  | **Proxmox** | `proxmox_node_name`, `proxmox_template_vm_id`, `proxmox_datastore_id`, `proxmox_network_bridge` | — |
+  | **OCI** | `oci_compartment_id` | `osImage` (image OCID) |
+  | **DigitalOcean** | (없음) | `osImage` (DO slug) |
+
+  ## Environment 매핑 (`.bruno/environments/`)
+
+  | env file | 용도 |
+  |----------|------|
+  | `local-aws-provisioning.bru`         | AWS quick-start (region=ap-northeast-2, t3.large) |
+  | `local-gcp-provisioning.bru`         | GCP quick-start |
+  | `local-azure-provisioning.bru`       | Azure quick-start |
+  | `local-alibaba-provisioning.bru`     | Alibaba quick-start |
+  | `local-openstack-provisioning.bru`   | OpenStack quick-start |
+  | `local-proxmox-provisioning.bru`     | Proxmox quick-start |
+  | `local-oci-provisioning.bru`         | OCI quick-start |
+  | `local-digitalocean-provisioning.bru` | DO quick-start |
+  | `local-provisioning-template.bru`    | 새 CSP 추가 시 복사 베이스 |
+
+  env file 안에 `provision_provider`, `provision_region`, CSP 별 필수 키가 미리 채워져 있음 —
+  `credential_id` 만 GET /v1/credentials 응답에서 복사하면 즉시 동작.
+
+  ## 자주 만나는 오류
+
+  | 응답 | 원인 |
+  |------|------|
+  | 400 `INVALID_PARAMS: missing gcpProject` | GCP cluster 에 `gcp_project` 누락 — `2c` 사용했는지 확인 |
+  | 400 `INVALID_PARAMS: missing azureResourceGroup` | Azure cluster 에 `azure_resource_group` 누락 |
+  | 400 `INVALID_PARAMS: openstack* required` | OpenStack 4개 키 중 하나 비어있음 |
+  | 401 `CREDENTIAL_NOT_FOUND` | `credential_id` 가 stale / 다른 provider |
+  | 409 `CLUSTER_NAME_CONFLICT` | 같은 `clusterName` 이미 존재 — env 의 `provision_cluster_name` 변경 |
+  | 202 → 이후 RUNNING 에서 BLOCKED | quota 초과 또는 region capacity 부족 — `2a Preflight` 결과 확인 |
+}

@@ -1,0 +1,44 @@
+# backup-agent Helm values.
+#
+# Image 는 GHCR 의 publish-agents.yml workflow 가 release tag push 시 빌드/push.
+# default 는 :latest (= main branch tag 의 latest semver). 외부 사용자가 자기 registry 로
+# 옮길 경우 image.repository / image.tag override.
+#
+# 운영에서는 image.tag 를 pin (예: v0.1.0) 권장 — :latest 가 다음 release 로 silent 갱신되는
+# 위험 회피. nodeSelector/tolerations 로 배포 범위 좁히기 권장.
+
+image:
+  repository: ghcr.io/aipaas/backup-agent
+  tag: latest                # 운영에서 specific version (e.g. v0.1.0) 권장
+  pullPolicy: IfNotPresent
+
+# 본 DaemonSet 은 모든 노드 (master 포함) 에 배포 — etcd snapshot 은 control-plane 노드에서만
+# 의미가 있으나, PKI tar 은 모든 노드에서 가능하므로 fan-out. 특정 노드만 대상으로 좁히고 싶으면
+# nodeSelector 추가.
+nodeSelector: {}
+
+tolerations:
+  - operator: Exists         # 모든 taint 무시 — master taint 포함.
+
+# Service / pod 의 priority. system-node-critical 는 ResourceQuota 우회 + eviction 보호.
+priorityClassName: system-node-critical
+
+# gRPC 포트. cluster-agent 가 nodeIP 의 본 hostPort 로 접근.
+port: 9090
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# etcdctl snapshot save 의 임시 파일 emptyDir 크기. 대규모 cluster 의 etcd snapshot 이 4Gi
+# 초과하면 override.
+tmpSizeLimit: 4Gi
+
+# 호스트 마운트 경로. 다른 distro (RHEL/SUSE) 가 PKI dir 위치 다르면 override.
+# /etc/kubernetes 만 마운트 — etcd cert + manifests/etcd.yaml + pki/* 모두 본 디렉토리 하위.
+hostPaths:
+  etcKubernetes: /etc/kubernetes

@@ -1,0 +1,76 @@
+meta {
+  name: 3. Agent Policy Preview (policy + warnings)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/agent/policy/preview?cluster={{cluster_name}}
+  body: none
+  auth: none
+}
+
+params:query {
+  cluster: {{cluster_name}}
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+vars:pre-request {
+  cluster_name: orb-kubernetes-001
+}
+
+docs {
+  cluster-agent 의 in-memory allowlist + resource_policy snapshot + backend 의 validation warnings.
+
+  query param:
+    cluster : 대상 cluster name (required)
+
+  응답 schema:
+  {
+    "data": {
+      "snapshot": {
+        "allowedNamespaces": [...],
+        "allowAllNamespaces": false,
+        "allowedCommands": [...],
+        "allowedCharts": [...],
+        "resourcePolicy": {
+          "mode": "allow_all_discovered",
+          "deny":  [{kind, namespace}],
+          "allow": []
+        },
+        "lastReloadAt": "2026-05-20T07:00:00Z",
+        "configMapResourceVersion": "12345678"
+      },
+      "warnings": [
+        { "severity": "HIGH", "code": "MISSING_SECRETS_DENY", "message": "..." }
+      ],
+      "highestSeverity": "HIGH"
+    }
+  }
+
+  활용:
+    - 운영자가 ConfigMap edit 후 즉시 적용/일관성 확인
+    - CI/CD pre-prod 검증 (highestSeverity == HIGH 면 fail)
+    - UI Settings → Agent Policy 페이지 데이터 소스
+}
+
+tests {
+  test("상태 코드 200 또는 503", function() {
+    expect([200, 503]).to.include(res.getStatus());
+  });
+
+  test("snapshot 또는 error code", function() {
+    const data = res.getBody().data;
+    if (res.getStatus() === 200) {
+      expect(data).to.have.property("snapshot");
+      expect(data).to.have.property("warnings");
+      expect(data).to.have.property("highestSeverity");
+    } else if (res.getStatus() === 503) {
+      expect(data.code).to.equal("AGENT_UNAVAILABLE");
+    }
+  });
+}

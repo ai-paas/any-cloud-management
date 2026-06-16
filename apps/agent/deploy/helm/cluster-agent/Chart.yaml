@@ -1,0 +1,37 @@
+apiVersion: v2
+name: cluster-agent
+description: anycloud cluster agent — bootstraps a remote Kubernetes cluster to the anycloud control plane via outbound gRPC.
+type: application
+
+# chart version — chartmuseum 의 lookup 키 + GHCR OCI 좌표.
+# Dev iteration 동안 0.1.0 에 고정 (ChartMuseum 의 ALLOW_OVERWRITE=true 와 조합). 매 publish
+# 마다 overwrite 되므로 Bruno body 의 "version": "0.1.0" 은 항상 동일. Release tag (v*.*.*)
+# push 시 release prep PR 에서 본 값을 갱신하는 패턴 권장.
+version: 0.1.0
+
+# 본 chart 가 deploy 하는 cluster-agent image 의 version. Helm chart version 과 일치 권장
+# (release tag 와 동기화). Makefile 의 agent-chart-package 는 dev iter 의 traceability 를 위해
+# git short SHA 로 override 주입 가능 — 운영 release 에서는 본 default 가 사용됨.
+appVersion: "0.1.0"
+
+# helm 클라이언트 최소 버전. 3.8+ 가 OCI 등 신규 기능 안정.
+kubeVersion: ">=1.23.0-0"
+
+home: https://github.com/ai-paas
+sources:
+  - https://github.com/ai-paas/any-cloud-management
+
+maintainers:
+  - name: aipaas-team
+    email: baul@innogrid.com
+
+keywords:
+  - any-cloud-management
+  - cluster-agent
+  - kubernetes
+  - gpu
+  - observability
+
+annotations:
+  category: Infrastructure
+  licenses: Apache-2.0

@@ -1,0 +1,46 @@
+meta {
+  name: 8. Kind Cache Flush (single cluster)
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/clusters/{{cluster_name}}/kind-cache:flush
+  body: none
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+vars:pre-request {
+  cluster_name: orb-kubernetes-001
+}
+
+docs {
+  KindResolver cache (cluster → kind metadata schema) 를 즉시 무효화한다.
+
+  K-1 (2026-06-08) — schema cache 만 보유 (실제 resource data 는 캐시 안 됨) → 안전한 flush.
+  blast radius: 다음 호출 1회의 agent RESOLVE_RESOURCE 추가.
+
+  사용 시나리오:
+    - kubectl / ArgoCD / operator chart 가 backend 우회로 CRD 등록 → 즉시 flush
+    - 어떤 이유로든 stale schema 의심 — sanity flush
+    - 일반 운영에서는 TTL 30분 + addon install hook 자동 invalidate 로 충분
+
+  운영 빈도: 거의 0회 (TTL + auto-invalidate 정상 동작 환경).
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("scope=single + clusterName 일치", function() {
+    const data = res.getBody().data;
+    expect(data.scope).to.equal("single");
+    expect(data.clusterName).to.equal(bru.getVar("cluster_name"));
+  });
+}

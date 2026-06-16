@@ -1,0 +1,35 @@
+# DigitalOcean Droplet pricing.
+#
+# 출처: https://www.digitalocean.com/pricing/droplets. DO 는 region 별 가격이 거의 동일 (flat).
+# DO 는 commodity spot/preemptible 미지원 (NodeSpec.UseSpot=no-op).
+provider: digitalocean
+currency: USD
+region: nyc1
+spotDiscount: 0.0         # DO 표준 spot 미지원
+updatedAt: "2026-05-24"
+notes: |
+  Prices reflect global Droplet list price as of 2026-05-24 — DigitalOcean
+  uses near-flat region pricing. Backups (20% surcharge) and DigitalOcean
+  Managed Kubernetes control-plane fee NOT included.
+
+instanceTypes:
+  # Basic (shared CPU, dev/CI)
+  s-1vcpu-1gb:           { hourly: 0.00744, vcpu: 1, memoryGb: 1 }
+  s-1vcpu-2gb:           { hourly: 0.01786, vcpu: 1, memoryGb: 2 }
+  s-2vcpu-2gb:           { hourly: 0.02679, vcpu: 2, memoryGb: 2 }
+  s-2vcpu-4gb:           { hourly: 0.03571, vcpu: 2, memoryGb: 4 }
+  s-4vcpu-8gb:           { hourly: 0.07143, vcpu: 4, memoryGb: 8 }
+  s-8vcpu-16gb:          { hourly: 0.14286, vcpu: 8, memoryGb: 16 }
+  # General Purpose (dedicated CPU)
+  g-2vcpu-8gb:           { hourly: 0.09375, vcpu: 2,  memoryGb: 8 }
+  g-4vcpu-16gb:          { hourly: 0.1875,  vcpu: 4,  memoryGb: 16 }
+  g-8vcpu-32gb:          { hourly: 0.375,   vcpu: 8,  memoryGb: 32 }
+  # CPU-Optimized
+  c-2:                   { hourly: 0.06250, vcpu: 2, memoryGb: 4 }
+  c-4:                   { hourly: 0.12500, vcpu: 4, memoryGb: 8 }
+  c-8:                   { hourly: 0.25000, vcpu: 8, memoryGb: 16 }
+  # Memory-Optimized
+  m-2vcpu-16gb:          { hourly: 0.12500, vcpu: 2, memoryGb: 16 }
+  m-4vcpu-32gb:          { hourly: 0.25000, vcpu: 4, memoryGb: 32 }
+  # GPU (Paperspace)
+  gpu-h100x1-80gb:       { hourly: 6.74,    vcpu: 20, memoryGb: 240, gpu: 1 }

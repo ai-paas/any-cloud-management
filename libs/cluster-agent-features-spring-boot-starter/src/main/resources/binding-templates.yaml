@@ -1,0 +1,66 @@
+# cluster-agent-rbac-spring-boot-starter 의 binding template catalog.
+#
+# 운영자가 본 파일을 직접 수정 (또는 host classpath:binding-templates.yaml 로 override).
+# starter 부팅 시 1회 로드 — runtime reload 미지원.
+#
+# 두 form 지원:
+#   1. tieredRoleRefs (default, 권장) — cluster tier 별 다른 권한
+#   2. forClusters: matchLabels (advanced) — 임의 라벨 매칭
+#
+# 본 파일은 default empty — host application 이 자체 catalog 채움.
+
+templates: []
+
+# ============================================================================
+# 예시 (참고용)
+# ============================================================================
+#
+# templates:
+#
+#   # Form 1: tieredRoleRefs (권장) — anycloud.io/tier 라벨 기준 cluster 별 다른 권한.
+#   - id: team-x
+#     oidcGroupSelector:
+#       kind: Group              # default: Group (selector 가 OIDC group claim 매칭). User 도 가능.
+#       matchExact: ["team-x"]
+#     targetSubjects:            # 선택 — 미지정 시 selector 매칭 group 자동 사용 ($oidcGroup).
+#       - kind: Group
+#         name: $oidcGroup
+#     tieredRoleRefs:
+#       tierLabel: anycloud.io/tier
+#       tiers:
+#         prod:
+#           - kind: ClusterRole
+#             name: view
+#             scope: ClusterScope
+#         stg:
+#           - kind: ClusterRole
+#             name: edit
+#             scope: ClusterScope
+#         dev:
+#           - kind: ClusterRole
+#             name: admin
+#             scope: ClusterScope
+#
+#   # Form 2: forClusters (advanced) — 임의 cluster label selector + 단일 roleRefs.
+#   # 사용 시점: tier 외 label 매칭 (region, customer 등) 필요할 때.
+#   - id: ops-fleet-admin
+#     oidcGroupSelector:
+#       matchExact: ["ops-team"]
+#     forClusters:
+#       matchLabels: {}                 # 모든 cluster
+#     roleRefs:
+#       - kind: ClusterRole
+#         name: cluster-admin
+#         scope: ClusterScope
+#
+#   # Namespaced binding 예시 — RoleBinding 이 각 namespace 에 생성됨.
+#   - id: team-x-app-edit
+#     oidcGroupSelector:
+#       matchExact: ["team-x"]
+#     forClusters:
+#       matchLabels: { anycloud.io/tier: dev }
+#     roleRefs:
+#       - kind: ClusterRole
+#         name: edit
+#         scope: Namespaced
+#         namespaces: ["team-x-staging", "team-x-dev"]

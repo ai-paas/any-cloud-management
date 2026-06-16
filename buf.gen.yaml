@@ -1,0 +1,17 @@
+# buf code generation — agent Go.
+# 사용 (repo root 에서): buf generate
+#
+# Java 는 Gradle protobuf plugin 이 starter 모듈 자체 빌드 시 자동 생성하므로 여기서 다루지 않음.
+version: v2
+plugins:
+  # Go protobuf (messages)
+  - remote: buf.build/protocolbuffers/go
+    out: apps/agent/internal/gen
+    opt:
+      - paths=source_relative
+
+  # Go gRPC (services)
+  - remote: buf.build/grpc/go
+    out: apps/agent/internal/gen
+    opt:
+      - paths=source_relative

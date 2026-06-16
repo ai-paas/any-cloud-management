@@ -1,0 +1,361 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {"type": "grafana", "uid": "-- Grafana --"},
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Anycloud cluster-agent fleet 의 health, heartbeat freshness, gRPC stream 활성도, status 분포. anycloud backend 의 AgentHealthMetricsBinder 가 노출하는 anycloud_agent_* 시계열 기반.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Total clusters",
+      "description": "Anycloud 가 알고 있는 cluster 수 (cluster_agent row 가 존재하든 안 하든).",
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+      "targets": [
+        {
+          "expr": "count(anycloud_agent_healthy)",
+          "refId": "A",
+          "legendFormat": "total"
+        }
+      ],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "graphMode": "none",
+        "colorMode": "value",
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "blue", "value": null}]
+          },
+          "unit": "none"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Healthy clusters",
+      "description": "anycloud_agent_healthy == 1 (status ACTIVE + stream alive + heartbeat fresh).",
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+      "targets": [
+        {
+          "expr": "sum(anycloud_agent_healthy == 1) OR on() vector(0)",
+          "refId": "A",
+          "legendFormat": "healthy"
+        }
+      ],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "graphMode": "none",
+        "colorMode": "value",
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "green", "value": 1}
+            ]
+          },
+          "unit": "none"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Unhealthy clusters",
+      "description": "anycloud_agent_healthy == 0 (agent 있음 + 한 가지 이상 신호 끊김 또는 stale).",
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
+      "targets": [
+        {
+          "expr": "sum(anycloud_agent_healthy == 0) OR on() vector(0)",
+          "refId": "A",
+          "legendFormat": "unhealthy"
+        }
+      ],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "graphMode": "none",
+        "colorMode": "value",
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 1}
+            ]
+          },
+          "unit": "none"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "No agent",
+      "description": "anycloud_agent_status{status=\"NONE\"} — cluster 등록은 됐으나 agent install 아직 안 됨.",
+      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
+      "targets": [
+        {
+          "expr": "sum(anycloud_agent_status{status=\"NONE\"}) OR on() vector(0)",
+          "refId": "A",
+          "legendFormat": "no agent"
+        }
+      ],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "graphMode": "none",
+        "colorMode": "value",
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "blue", "value": null},
+              {"color": "yellow", "value": 1}
+            ]
+          },
+          "unit": "none"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "piechart",
+      "title": "Status distribution",
+      "description": "Agent status 별 cluster 수. ACTIVE > 0 이 정상, FAILED/REVOKED > 0 이 위험.",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0},
+      "targets": [
+        {
+          "expr": "sum by (status) (anycloud_agent_status)",
+          "refId": "A",
+          "legendFormat": "{{status}}"
+        }
+      ],
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "pieType": "donut",
+        "displayLabels": ["percent", "name"],
+        "legend": {"displayMode": "list", "placement": "right", "values": ["value"]}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "mappings": [],
+          "unit": "none"
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "FAILED"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]},
+          {"matcher": {"id": "byName", "options": "REVOKED"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "dark-red"}}]},
+          {"matcher": {"id": "byName", "options": "DEGRADED"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "orange"}}]},
+          {"matcher": {"id": "byName", "options": "ACTIVE"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}]}
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Heartbeat age per cluster (seconds)",
+      "description": "최근 heartbeat 이후 경과한 초. 30 이하 정상, 60 초과면 alert.",
+      "gridPos": {"h": 8, "w": 16, "x": 0, "y": 4},
+      "targets": [
+        {
+          "expr": "anycloud_agent_heartbeat_age_seconds",
+          "refId": "A",
+          "legendFormat": "{{cluster}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 5,
+            "spanNulls": false
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 30},
+              {"color": "red", "value": 60}
+            ]
+          },
+          "unit": "s"
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Healthy clusters over time",
+      "description": "healthy=1 인 cluster 수의 시간 추이. 갑작스러운 dip 은 backend 또는 fleet incident 신호.",
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 12},
+      "targets": [
+        {
+          "expr": "sum(anycloud_agent_healthy == 1)",
+          "refId": "A",
+          "legendFormat": "healthy"
+        },
+        {
+          "expr": "sum(anycloud_agent_healthy == 0)",
+          "refId": "B",
+          "legendFormat": "unhealthy"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "fillOpacity": 30,
+            "stacking": {"mode": "normal", "group": "A"}
+          },
+          "unit": "none"
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      }
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "Per-cluster current status",
+      "description": "각 cluster 의 현재 status / stream / heartbeat — 운영자가 즉시 문제 cluster 찾기.",
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 12},
+      "targets": [
+        {
+          "expr": "anycloud_agent_healthy",
+          "refId": "A",
+          "format": "table",
+          "instant": true
+        },
+        {
+          "expr": "anycloud_agent_heartbeat_age_seconds",
+          "refId": "B",
+          "format": "table",
+          "instant": true
+        },
+        {
+          "expr": "anycloud_agent_stream_active",
+          "refId": "C",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {"byField": "cluster", "mode": "outer"}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Time 1": true, "Time 2": true, "Time 3": true,
+              "__name__ 1": true, "__name__ 2": true, "__name__ 3": true
+            },
+            "renameByName": {
+              "cluster": "Cluster",
+              "Value #A": "Healthy",
+              "Value #B": "Heartbeat age (s)",
+              "Value #C": "Stream"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"custom": {"align": "auto"}},
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "Healthy"},
+            "properties": [
+              {"id": "custom.cellOptions", "value": {"type": "color-background"}},
+              {"id": "mappings", "value": [
+                {"type": "value", "options": {"0": {"text": "No", "color": "red"}}},
+                {"type": "value", "options": {"1": {"text": "Yes", "color": "green"}}}
+              ]}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "Stream"},
+            "properties": [
+              {"id": "mappings", "value": [
+                {"type": "value", "options": {"0": {"text": "Down", "color": "red"}}},
+                {"type": "value", "options": {"1": {"text": "Up", "color": "green"}}}
+              ]}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "Heartbeat age (s)"},
+            "properties": [
+              {"id": "unit", "value": "s"},
+              {"id": "thresholds", "value": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 30},
+                  {"color": "red", "value": 60}
+                ]
+              }},
+              {"id": "custom.cellOptions", "value": {"type": "color-text"}}
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["anycloud", "cluster-agent", "fleet"],
+  "templating": {"list": []},
+  "time": {"from": "now-1h", "to": "now"},
+  "timepicker": {},
+  "timezone": "",
+  "title": "Anycloud — Cluster Agent Fleet Health",
+  "uid": "anycloud-cluster-agent-health",
+  "version": 1,
+  "weekStart": ""
+}

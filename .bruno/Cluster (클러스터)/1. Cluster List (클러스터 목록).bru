@@ -1,22 +1,25 @@
 meta {
-  name: Cluster List (클러스터 목록)
+  name: 1. Cluster List (클러스터 목록)
   type: http
   seq: 1
 }
 
 get {
-  url: {{baseUrl}}/system/clusters
+  url: {{baseUrl}}/v1/clusters?source=registered
   body: none
   auth: none
 }
 
 headers {
   content-type: application/json
-  User-Agent: bruno/1.11.0
+  User-Agent: bruno/3.3.0
 }
 
 script:post-response {
-  bru.setEnvVar("cluster_name", res.body[0].id);
+  // v1 응답: data.items 가 PagedData<UnifiedClusterDto>
+  if (res.body && res.body.data && Array.isArray(res.body.data.items) && res.body.data.items.length > 0) {
+    bru.setEnvVar("cluster_name", res.body.data.items[0].clusterName);
+  }
 }
 
 tests {
@@ -26,7 +29,7 @@ tests {
   
   test("Response Data 확인", function() {
     const data = res.getBody();
-    // console.log("   ✓ data length", Object.keys(data).length);
-    expect(data).to.not.be.undefined;
+    expect(data).to.have.property("success");
+    expect(data).to.have.property("data");
   });
 }

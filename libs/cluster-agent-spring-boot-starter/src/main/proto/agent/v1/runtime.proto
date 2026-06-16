@@ -1,0 +1,566 @@
+// ClusterAgent runtime RPC — agent 가 backend 와 지속 연결되어 명령 수신 + 응답 발신.
+//
+// 인증: gRPC metadata "authorization: Bearer <agent_identity_token>".
+// 연결 모델: bidirectional streaming. Agent 가 outbound 로 stream 열고, backend 가 명령 push.
+// 끊기면 agent 가 exponential backoff 로 재연결.
+//
+// 명령 타입:
+//   - LIST_PODS       — kubectl get pods 등가
+//   - GET_LOG         — pod 로그 snapshot
+//   - SCALE_DEPLOYMENT — replicas 변경
+//   - INSTALL_ADDON   — helm install (allowlist 검증)
+//   - UNINSTALL_ADDON — helm uninstall
+//   - HEARTBEAT       — agent 생존 신호 (양방향)
+//
+// 모든 명령은 agent 내부의 AllowList ConfigMap 으로 추가 검증.
+
+syntax = "proto3";
+
+package com.aipaas.anycloud.agent.v1;
+
+option java_multiple_files = true;
+// Java namespace 가 host 이름(anycloud) 에 묶이지 않게 starter coord (io.aipaas.cluster) 로 정렬.
+// 주의: 위 `package com.aipaas.anycloud.agent.v1;` 는 wire identifier (gRPC route, FQ message name) —
+// 변경 시 agent ↔ backend 양측 동시 deploy 강제 + 외부 client 호환성 깨짐. 그래서 유지.
+option java_package = "io.aipaas.cluster.agent.v1";
+option java_outer_classname = "RuntimeProto";
+option go_package = "anycloud/proto/agent/v1;agentv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+service AgentRuntime {
+  // Bidi streaming — backend 가 명령 push, agent 가 결과/heartbeat/event publish.
+  rpc Stream(stream AgentMessage) returns (stream ControlMessage);
+
+  // Pod exec WebSocket terminal.
+  //
+  // 첫 client→server 패킷은 ExecRequest 여야 함 (namespace/pod/container/command/tty).
+  // 이후 stdin_data 가 agent 로, stdout_data/stderr_data 가 backend 로 흐름.
+  // TerminalSize 는 client→agent 단방향 (PTY resize).
+  // 종료 시 agent 가 ExecStatus 를 마지막 패킷으로 보내고 stream close.
+  //
+  // 인증: 일반 Stream RPC 와 동일하게 metadata "authorization: Bearer <agent_identity_token>".
+  // AllowList: agent 측에서 namespace 검증 (allowed_exec_namespaces).
+  rpc PodExec(stream ExecPacket) returns (stream ExecPacket);
+
+  // Pod log streaming (tail -f). PodExec 와 동일한 패턴:
+  //   1. Backend SSE controller 가 ControlMessage.OpenLogStream 으로 agent 에게 "stream open" 지시
+  //   2. Agent 가 새 StreamPodLogs bidi 호출 개시
+  //   3. 첫 LogPacket 으로 LogStreamRequest (session_id echo), 이후 LogChunk packet 들
+  //   4. K8s stream 종료 또는 backend cancel (response stream complete) 시 onCompleted
+  //
+  // 인증: gRPC metadata Bearer agent_identity_token. AllowList: namespace 검증 (agent).
+  rpc StreamPodLogs(stream LogPacket) returns (stream LogPacket);
+}
+
+// Backend → Agent: 명령 push.
+message ControlMessage {
+  // 명령 추적용 UUID — agent 가 응답 시 같은 ID 로 매핑.
+  string request_id = 1;
+
+  oneof payload {
+    CommandRequest command = 2;
+    Heartbeat heartbeat = 3;
+    Shutdown shutdown = 4;     // graceful — agent 가 in-flight 명령 완료 후 종료.
+    OpenExecSession open_exec_session = 5;  // agent 에게 PodExec stream 개시 지시.
+    OpenLogStream open_log_stream = 6;      // agent 에게 StreamPodLogs stream 개시 지시.
+  }
+}
+
+// backend 가 user WebSocket 을 받고 agent 에게 "별도 PodExec stream 열어라" 지시.
+// Agent 는 이 메시지를 받으면 AgentRuntime/PodExec RPC 를 새로 open 하고,
+// 첫 ExecPacket 으로 ExecRequest 를 보냄 (session_id 동봉).
+// Backend 는 session_id 로 대기 중인 WebSocket 과 stream 을 매칭.
+message OpenExecSession {
+  string session_id = 1;     // Backend-issued nonce. PodExec stream 의 첫 ExecRequest 에 echo.
+  ExecRequest request = 2;
+}
+
+// Agent → Backend: 응답 / event / heartbeat.
+message AgentMessage {
+  // ControlMessage.request_id 와 매칭 (응답인 경우). heartbeat/event 면 비어있을 수 있음.
+  string request_id = 1;
+
+  oneof payload {
+    CommandResponse response = 2;
+    Heartbeat heartbeat = 3;
+    AgentEvent event = 4;      // unsolicited event (예: pod crash, addon install completed).
+  }
+}
+
+message CommandRequest {
+  CommandType type = 1;
+
+  // 명령별 파라미터 — google.protobuf.Struct 로 JSON-like.
+  // 예: SCALE_DEPLOYMENT → {namespace, deployment, replicas}.
+  google.protobuf.Struct params = 2;
+
+  // Timeout (초). 0 이면 server default (5분).
+  int32 timeout_seconds = 3;
+
+  // K8s Impersonation pass-through.
+  //
+  // 빈 값 (모든 field) → 현재 admin-equivalent 동작 (agent SA 의 ClusterRole 그대로).
+  // 채워진 경우 → agent 가 K8s rest.Config.Impersonate 에 매핑해 K8s API 가 해당 user 의
+  // RBAC 로 권한 평가. Backend 의 security.auth.enabled toggle 이 ON 일 때만 backend interceptor
+  // 가 채움. async / system 동작 (e.g. RabbitMQ INSTALL_ADDON, scheduled monitor) 은 빈 채로 송신
+  // → admin path 유지.
+  //
+  // Agent SA 가 별도로 ClusterRole 의 impersonate verb (users/groups/serviceaccounts resource) 를
+  // 가져야 동작. 없으면 K8s 가 403 → backend 는 FORBIDDEN 라벨로 그대로 전달.
+
+  // K8s user identity (RFC 6749 의 'sub' 또는 OIDC username). 비면 impersonation 미사용.
+  string impersonate_user = 4;
+
+  // K8s group memberships (OIDC groups claim 또는 gateway 가 매핑). 비어도 OK — user 만 명시 가능.
+  repeated string impersonate_groups = 5;
+
+  // K8s impersonation extras (X-Remote-Extra-* 헤더 등가). key 는 lowercase, value 는 multi-string.
+  // 예: {"scopes.authentication.kubernetes.io": ["view", "admin"]}. 거의 비어있음.
+  map<string, ImpersonateExtra> impersonate_extras = 6;
+}
+
+// Multi-value 의 single key — K8s rest.Config.Impersonate.Extra 가 map[string][]string 이라
+// proto 의 map<string, repeated> 직접 표현 불가 → wrapper message.
+message ImpersonateExtra {
+  repeated string values = 1;
+}
+
+message CommandResponse {
+  Status status = 1;
+
+  // Status=OK 일 때 결과 페이로드. Struct 로 명령 종류별 schema 자유.
+  google.protobuf.Struct result = 2;
+
+  // Status != OK 일 때 사용자에게 노출 가능한 메시지.
+  string error_message = 3;
+
+  // 에러 코드 (예: "KUBERNETES_AUTH_FAILED", "CHART_NOT_ALLOWED").
+  string error_code = 4;
+
+  google.protobuf.Timestamp completed_at = 5;
+
+  // Binary payload — base64 inflation 회피용. Backup 명령 (BACKUP_ETCD, BACKUP_PKI) 등이 raw bytes
+  // 반환할 때 사용. gRPC max message size 한계 — backend / cluster-agent 양측 모두
+  // maxInboundMessageSize 를 적절히 증가시켜야 함 (default 4MB → PoC 는 ~128MB 권장).
+  // 실 운영의 multi-GB 백업은 별도 streaming RPC 필요.
+  bytes binary_payload = 6;
+}
+
+enum CommandType {
+  COMMAND_TYPE_UNSPECIFIED = 0;
+  LIST_PODS = 1;
+  GET_LOG = 2;
+  SCALE_DEPLOYMENT = 3;
+  INSTALL_ADDON = 4;
+  UNINSTALL_ADDON = 5;
+  GET_CLUSTER_INFO = 6;     // version, node count, etc.
+  LIST_RESOURCES = 7;       // paginated K8s 자원 list (kind 별). K8s 전용 (helm 은 LIST_HELM_RELEASES 로 분리).
+  APPLY_MANIFEST = 8;       // kubectl apply 등가 (allowlist 검증).
+  DELETE_RESOURCE = 9;
+  GET_RESOURCE = 10;        // 단일 자원 조회 (kind + namespace + name).
+  LIST_HELM_RELEASES = 11;  // helm list namespace. LIST_RESOURCES 와 분리된 별도 명령.
+
+  // ============================================================================
+  // Observability (cluster-agent-observability-spring-boot-starter)
+  // 각 cluster 안의 Prometheus/Alertmanager/Grafana 와 통신하기 위한 명령들.
+  // ============================================================================
+
+  // kube-prometheus-stack helm chart 자동 설치. params: { namespace, release_name, chart_version,
+  // values_yaml(optional) }. 결과: { release, chart_version, status }.
+  INSTALL_OBSERVABILITY_STACK = 12;
+
+  // Prometheus HTTP API /api/v1/query (instant) 또는 /api/v1/query_range. params: { query,
+  // time(optional), start/end/step(range), prometheus_url(optional override) }. 결과는 Prometheus
+  // 의 raw JSON 응답을 result.data 에 그대로 담음.
+  QUERY_METRICS = 13;
+
+  // Prometheus /api/v1/targets — scrape target health. params: { state(optional: "active"|"dropped") }.
+  LIST_METRIC_TARGETS = 14;
+
+  // Alertmanager /api/v2/alerts — 현재 활성 alert. params: { silenced, inhibited, active, unprocessed }.
+  LIST_ALERTS = 15;
+
+  // Grafana ingress / service URL 조회 (cluster 내부 Grafana 의 외부 접근 URL). params: { namespace,
+  // service_name(default: "kube-prometheus-stack-grafana") }. 결과: { url, ingress_host, port }.
+  // URL 없으면 status=FAILED + error_code=GRAFANA_NOT_EXPOSED.
+  GET_DASHBOARD_URL = 16;
+
+  // ============================================================================
+  // Kubeconfig short-lived export.
+  // Agent 가 K8s TokenRequest API 로 ServiceAccount 의 한시 token 발급 후 kubeconfig YAML 합성.
+  // ============================================================================
+
+  // params: { namespace, service_account, ttl_seconds(optional, default 3600),
+  //           cluster_name(YAML 의 cluster 이름), context_namespace(default current namespace) }.
+  // 결과: { kubeconfig_yaml, expires_at, service_account, namespace }.
+  // 미존재 SA 면 status=FAILED + error_code=SERVICE_ACCOUNT_NOT_FOUND.
+  GENERATE_KUBECONFIG = 17;
+
+  // ============================================================================
+  // Node debug shell.
+  // Agent 가 hostPID/Network + privileged debug pod 을 생성 후 pod 정보 반환.
+  // 호출자는 반환된 (namespace, pod_name) 으로 기존 PodExec WebSocket 으로 연결.
+  // ============================================================================
+
+  // params: { node_name, namespace(default "kube-system"), image(default
+  //   "registry.k8s.io/e2e-test-images/agnhost:2.40"), pod_name(optional, 미지정시 자동 생성),
+  //   ttl_seconds(default 1800 — TTL 지나면 cleanup 권장) }.
+  // 결과: { namespace, pod_name, expires_at }.
+  CREATE_NODE_DEBUG_POD = 18;
+
+  // ============================================================================
+  // Helm release resource enumeration.
+  // 한 helm release (app.kubernetes.io/instance=<release>) 가 만든 K8s 자원들을 한 번에 list.
+  // Backend 가 이전에 fabric8 로 11 종 자원을 직렬 호출하던 HelmReleaseScanner 를 agent 로 이전.
+  // ============================================================================
+
+  // params: { namespace(required), release(required) }.
+  // 결과: { items: [{kind, namespace, name, apiVersion}, ...] }.
+  // PVC 의 boundPV 도 자동 포함. label "app.kubernetes.io/instance=<release>" 기준.
+  LIST_HELM_RELEASE_RESOURCES = 19;
+
+  // ============================================================================
+  // Helm release status — single release 의 현재 상태.
+  // backend 의 ChartServiceImpl.getChartStatus 가 helm CLI + kubeconfig fall-through 대신
+  // 사용. helm SDK 의 action.NewStatus 가 in-cluster 에서 1 회 호출.
+  // ============================================================================
+
+  // params: { namespace(required), release(required) }.
+  // 결과: { name, namespace, chart, version, app_version, revision, status, updated, notes(optional) }.
+  // release 가 없으면 status=FAILED + error_code=HELM_NOT_FOUND.
+  GET_HELM_RELEASE_STATUS = 20;
+
+  // ============================================================================
+  // Helm release history — revision 이력 조회.
+  // backend 의 ChartServiceImpl.getReleaseHistory 가 helm CLI + kubeconfig 대신 사용.
+  // helm SDK 의 action.NewHistory 호출.
+  // ============================================================================
+
+  // params: { namespace(required), release(required), max(optional, 0 = helm default) }.
+  // 결과: { revisions: [{revision, updated, status, chart, app_version, description}, ...] }.
+  GET_HELM_RELEASE_HISTORY = 21;
+
+  // ============================================================================
+  // Helm release rollback — 지정 revision 으로 복원.
+  // backend 의 ChartServiceImpl.rollbackRelease 가 helm CLI + kubeconfig 대신 사용.
+  // helm SDK 의 action.NewRollback 호출. rollback 후 release status 도 같이 반환.
+  // ============================================================================
+
+  // params: { namespace(required), release(required), revision(required, 0 = previous successful),
+  //           wait(optional, "true" → 자원 ready 까지 대기) }.
+  // 결과: { name, namespace, chart, version, revision, status, updated }.
+  ROLLBACK_HELM_RELEASE = 22;
+
+  // ============================================================================
+  // Discovery / catalog — cluster 가 지원하는 모든 API resource (kind) enumerate.
+  // backend 가 UI 의 "resource kind picker" 채울 때 사용. CRD 도 포함.
+  // ============================================================================
+
+  // params: 없음. 결과: { kinds: [{plural, singular, kind, group, version, namespaced, short_names:[...]}, ...] }
+  // RBAC 부족 / discovery 실패 시 status=FAILED + error_code=DISCOVERY_FAILED.
+  LIST_RESOURCE_KINDS = 23;
+
+  // ============================================================================
+  // Single-kind resolution — 사용자 입력 (단축이름/plural/CRD 등) 을 정규화.
+  // y 의 LIST_RESOURCE_KINDS 와 보완 — list 가 아닌 1건 resolve.
+  // ============================================================================
+
+  // params: { input(required) — "pvc" / "pods" / "Pod" / "storageclasses" 등 }.
+  // 결과 OK: { plural, singular, kind, group, version, namespaced, short_names: [...] }.
+  // 실패 시 status=INVALID_PARAMS + error_code=UNSUPPORTED_KIND.
+  //   result.data.suggestions: [<top-3 fuzzy match plurals>]  (있을 때만, Levenshtein 거리 ≤ 3)
+  RESOLVE_RESOURCE = 24;
+
+  // ============================================================================
+  // Self-introspection — agent 의 현재 in-memory allowlist + resource_policy snapshot.
+  // UI 가 운영자에게 "지금 적용 중인 policy" 표시. ConfigMap edit 후 watch reload 검증용.
+  // ============================================================================
+
+  // params 없음. 결과:
+  //   {
+  //     "allowed_namespaces": ["*"] | ["explicit", ...],
+  //     "allow_all_namespaces": bool,
+  //     "allowed_commands": ["LIST_PODS", ...],
+  //     "allowed_charts": ["repo/chart:min-max", ...],
+  //     "allowed_exec_namespaces": [...],
+  //     "allow_all_exec_namespaces": bool,
+  //     "resource_policy": {
+  //       "mode": "allow_all_discovered" | "strict" | "",  // "" = legacy nil policy
+  //       "deny": [{kind, namespace}, ...],
+  //       "allow": [{kind, namespace}, ...]
+  //     },
+  //     "last_reload_at": "2026-05-20T07:00:00Z",   // 또는 "" 가 한 번도 reload 못한 경우
+  //     "configmap_resource_version": "12345678"    // 또는 ""
+  //   }
+  GET_AGENT_CONFIG = 25;
+
+  // ============================================================================
+  // Apply policy snapshot — backend 가 PUT /v1/admin/clusters/{c}/agent-policy 받아
+  // agent 에 새 allowlist + resource_policy snapshot 을 push. agent 가 자기 ConfigMap
+  // (aipaas-agent-allowlist) 를 K8s API 로 update → 기존 watch 가 자동 reload.
+  // ============================================================================
+
+  // params (모두 JSON 문자열, agent 가 parse):
+  //   "allowed_namespaces"      : JSON array of strings (e.g. ["*"] or ["monitoring","app"])
+  //   "allowed_commands"        : JSON array of strings
+  //   "allowed_charts"          : JSON array of strings (format: "repo/chart:min-max")
+  //   "allowed_exec_namespaces" : JSON array of strings (optional, empty array OK)
+  //   "resource_policy"         : YAML string of resource_policy section (optional, empty OK)
+  //   "helm_repositories"       : JSON array of {name, url, source, tags?, username?, password?, caFile?, insecureSkipTlsVerify?}
+  //   "oidc_bindings"           : JSON array of fleet-wide OIDC group → K8s binding 정책
+  //                               형식: [{name, spec: {oidcGroupSelector, targetSubjects, roleRefs, reconcile}}]
+  //                               operator 의 OidcGroupBindingSpec 와 1:1. agent 는 in-cluster ConfigMap
+  //                               (aipaas-oidc-bindings) 으로 desired-state 저장. operator 또는 agent
+  //                               자체 reconciler 가 ClusterRoleBinding 으로 변환.
+  //                               빈 array 면 모든 OIDC binding 제거 (operator 가 cleanup).
+  // 결과 OK: { applied: true, resource_version: "..." } — patched ConfigMap 의 resourceVersion
+  // 실패 시 status=FAILED + error_code 중 하나:
+  //   CONFIGMAP_NOT_FOUND  — ConfigMap 자체가 없음 (chart 미배포)
+  //   FORBIDDEN            — RBAC update 권한 없음
+  //   INVALID_PAYLOAD      — JSON parse 실패
+  //   K8S_API_ERROR        — 그 외 K8s API 오류
+  APPLY_AGENT_CONFIG = 26;
+
+  // ============================================================================
+  // ConfigMap annotation backfill — Helm upgrade 시 ConfigMap 보존을 위한
+  // helm.sh/resource-policy=keep annotation 을 멱등적으로 추가. data 는 미변경.
+  // HHH 의 migration runbook 의 §4 자동화 — backend 가 startup 시 모든 ACTIVE cluster
+  // 에 호출해 legacy ConfigMap 을 backfill.
+  // ============================================================================
+
+  // params 없음. 결과 OK: { ensured: true, resource_version: "...", already_present: bool }
+  //   already_present=true 면 annotation 이 이미 있어 변경 없었음을 의미 (no-op 성공).
+  // 실패: status=FAILED + error_code 중 하나:
+  //   CONFIGMAP_NOT_FOUND, FORBIDDEN, K8S_API_ERROR
+  ENSURE_AGENT_CONFIG_ANNOTATIONS = 27;
+
+  // ============================================================================
+  // Helm UPGRADE — 기존 release 를 새 chart version / values 로 업그레이드.
+  // backend 의 ClusterHelmReleaseController.upgradeRelease 가 사용.
+  // Agent 측은 helm SDK 의 action.NewUpgrade 호출. install path 와 동일 release lock 공유.
+  // ============================================================================
+
+  // params (모두 string):
+  //   namespace(required), release(required), chart(required, "repo/name"),
+  //   version(required), repoUrl(optional, helm_repo URL hint),
+  //   chartTarballBase64(optional, .tgz pre-fetch — air-gapped 지원),
+  //   valuesYaml(optional, 새 values), atomic(optional "true" — 실패 시 자동 rollback),
+  //   reuseValues(optional "true" — 기존 values 보존 + 새 values merge),
+  //   resetValues(optional "true" — 기존 values 전체 리셋),
+  //   timeout(optional seconds, default 600).
+  // 결과 OK: { name, namespace, chart, version, revision, status, updated }.
+  // 실패 시 status=FAILED + error_code:
+  //   HELM_NOT_FOUND        — release 가 없음 (먼저 install 필요)
+  //   HELM_UPGRADE_FAILED   — chart resolution 또는 K8s apply 실패
+  //   CHART_NOT_ALLOWED     — allowlist 위반
+  UPGRADE_ADDON = 28;
+
+  // ============================================================================
+  // Alertmanager silences.
+  // backend 의 ObservabilityController 가 활성 silence 조회 + 신규 등록 + 만료/제거.
+  // Alertmanager /api/v2/silences 위임 — agent 는 단순 HTTP proxy.
+  // ============================================================================
+
+  // params: { alertmanager_url(optional, override) }. 결과: { alertmanager_url, raw (JSON array) }.
+  LIST_ALERT_SILENCES = 29;
+
+  // params (모두 string):
+  //   alertmanager_url(optional override),
+  //   matchers(required) — JSON array of {name, value, isRegex(bool), isEqual(bool)} (Alertmanager schema),
+  //   startsAt(required, RFC3339), endsAt(required, RFC3339),
+  //   createdBy(required, audit), comment(required, audit).
+  // 결과 OK: { silence_id, alertmanager_url }. 실패: AM_NON_2XX / INVALID_PAYLOAD.
+  CREATE_ALERT_SILENCE = 30;
+
+  // params: { alertmanager_url(optional), silence_id(required) }. 결과 OK: { deleted: true }.
+  DELETE_ALERT_SILENCE = 31;
+
+  // ============================================================================
+  // etcd snapshot 백업.
+  //
+  // cluster-agent 가 control-plane 노드 1개 선택 → 그 노드의 backup-agent.BackupEtcd 호출
+  // (server-streaming) → 모든 chunk 를 메모리에 buffer (max 100MB PoC 한계) → SHA-256 검증 →
+  // CommandResponse.binary_payload 로 반환.
+  //
+  // params:
+  //   endpoint(optional, default https://127.0.0.1:2379)
+  //   ca_cert_path / client_cert_path / client_key_path (optional, kubeadm 기본값)
+  // 결과 OK: binary_payload=snapshot bytes,
+  //         result.fields = { size_bytes, sha256, etcd_version, node_name }.
+  // 실패: NO_NODE_AGENT / NO_CONTROL_PLANE / BACKUP_FAILED / SIZE_LIMIT_EXCEEDED.
+  BACKUP_ETCD = 33;
+
+  // ============================================================================
+  // PKI 백업.
+  //
+  // 노드의 /etc/kubernetes/pki 를 tar+gzip 으로 묶어 streaming. cluster-agent 가 buffer +
+  // CommandResponse.binary_payload 로 반환.
+  //
+  // 경고: PKI 는 cluster root key. 호스트 (anycloud) 가 storage 에 올리기 전 KEK 로 encrypt 필수.
+  //
+  // params:
+  //   include_paths(optional, JSON array — 미지정 시 전체 /etc/kubernetes/pki).
+  // 결과 OK: binary_payload=tar.gz bytes,
+  //         result.fields = { size_bytes, sha256, file_count, node_name }.
+  // 실패: NO_NODE_AGENT / NO_CONTROL_PLANE / PKI_NOT_FOUND / BACKUP_FAILED.
+  BACKUP_PKI = 34;
+}
+
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  OK = 1;
+  FAILED = 2;
+  PERMISSION_DENIED = 3;     // allowlist 위반.
+  TIMEOUT = 4;
+  INVALID_PARAMS = 5;
+  AGENT_UNAVAILABLE = 6;     // K8s API down, etc.
+}
+
+message Heartbeat {
+  google.protobuf.Timestamp sent_at = 1;
+
+  // Agent → Backend heartbeat 일 때 채워짐.
+  AgentHealth health = 2;
+}
+
+message AgentHealth {
+  // K8s API server 응답성 (마지막 성공 시각).
+  google.protobuf.Timestamp last_k8s_api_ok = 1;
+  // 현재 진행 중인 명령 수.
+  int32 in_flight_commands = 2;
+  // Agent 메모리 / CPU usage (선택).
+  int64 memory_bytes = 3;
+
+  // cluster 내 GPU 노드 수. nvidia.com/gpu resource > 0 인 Ready 노드 count.
+  // Agent 가 5 분마다 K8s API 로 refresh 후 캐시한 값을 매 heartbeat 에 piggy-back.
+  // backend 의 ClusterCapabilitiesSink 가 본 값을 보고 cluster.has_gpu_nodes 자동 backfill.
+  int32 gpu_node_count = 4;
+}
+
+// Unsolicited event — agent 가 클러스터 내부 변화 감지 시 backend 에 push.
+message AgentEvent {
+  string event_type = 1;     // "pod.crashed", "addon.installed", "node.notready" 등.
+  google.protobuf.Timestamp occurred_at = 2;
+  google.protobuf.Struct payload = 3;
+}
+
+message Shutdown {
+  string reason = 1;
+  // graceful 종료 max wait (초). 0 = 즉시 종료.
+  int32 grace_period_seconds = 2;
+}
+
+// ============================================================================
+// PodExec.
+// ============================================================================
+
+// Bidi 단일 메시지 — 방향 무관 (client→agent 또는 agent→client).
+// 각 패킷은 정확히 하나의 payload 필드를 가짐.
+message ExecPacket {
+  oneof payload {
+    // 첫 client→agent 패킷. 1회 한정.
+    ExecRequest request = 1;
+
+    // client→agent: 사용자 키 입력 (raw bytes, TTY 모드면 키스트로크).
+    bytes stdin_data = 2;
+
+    // agent→client: pod stdout.
+    bytes stdout_data = 3;
+
+    // agent→client: pod stderr (TTY 모드에선 stdout 으로 머지됨).
+    bytes stderr_data = 4;
+
+    // client→agent: PTY 사이즈 변경 (SIGWINCH).
+    TerminalSize resize = 5;
+
+    // agent→client: 종료 상태. 마지막 패킷.
+    ExecStatus end = 6;
+  }
+}
+
+message ExecRequest {
+  // OpenExecSession 으로 받은 session_id 를 그대로 echo. Backend 가 WebSocket 매칭에 사용.
+  string session_id = 1;
+  string namespace = 2;
+  string pod = 3;
+  // 비어있으면 pod 의 첫 컨테이너 사용.
+  string container = 4;
+  // 실행할 명령. 예: ["/bin/sh"] 또는 ["bash", "-l"].
+  repeated string command = 5;
+  // TTY 할당 여부 (인터랙티브 shell 이면 true).
+  bool tty = 6;
+  // stdin 연결 여부 (대부분 true).
+  bool stdin = 7;
+  // 초기 PTY 크기 (tty=true 일 때만 유효, 0 이면 80x24 기본값).
+  TerminalSize initial_size = 8;
+}
+
+message TerminalSize {
+  uint32 cols = 1;
+  uint32 rows = 2;
+}
+
+message ExecStatus {
+  // 정상 종료면 0. shell exit code.
+  int32 exit_code = 1;
+  // 비정상 종료 또는 권한 거부 시 메시지.
+  string message = 2;
+  // 권한/검증 실패 분류 ("PERMISSION_DENIED", "NAMESPACE_DENIED", "POD_NOT_FOUND").
+  string error_code = 3;
+}
+
+// ============================================================================
+// Pod log streaming (StreamPodLogs RPC) — bidi.
+//
+// 흐름:
+//   1. Backend SSE controller 가 session_id 생성 + LogStreamBridge 등록
+//   2. AgentSessionRegistry 가 ControlMessage.OpenLogStream 으로 agent push
+//   3. Agent 가 StreamPodLogs bidi stream open + 첫 LogPacket{request, session_id} 송신
+//   4. Backend 가 session_id 로 bridge match → agent → backend chunks 가 SSE sink 로
+//   5. K8s stream EOF → agent 가 onCompleted(). Backend SSE client disconnect →
+//      backend 가 response stream complete → agent 가 Recv 에서 detect 후 CloseSend.
+// ============================================================================
+
+// Bidi packet — 대부분 agent→backend (chunk). backend→agent 는 close 신호 외 X.
+message LogPacket {
+  oneof payload {
+    LogStreamRequest request = 1;     // first agent→backend packet (1회)
+    LogChunk chunk = 2;                // agent→backend
+  }
+}
+
+message LogStreamRequest {
+  string session_id = 1;     // OpenLogStream.session_id echo — bridge match 용
+  string namespace = 2;
+  string pod = 3;
+  // 비어있으면 pod 의 첫 컨테이너.
+  string container = 4;
+  // 초기 출력 라인 (helm style tail). 0 이면 default (100). 음수면 모든 로그.
+  int32 tail_lines = 5;
+  // false 면 snapshot 후 종료. true 면 tail -f.
+  bool follow = 6;
+  // 0 이면 무관. >0 이면 N 초 이전부터의 로그.
+  int32 since_seconds = 7;
+  // 0 이면 server default (10분). >0 이면 N 초 후 agent 가 강제 close. follow=true 보호용.
+  int32 max_duration_seconds = 8;
+  // 운영 권장 false — K8s logs 는 기본 stdout+stderr merge.
+  bool include_stderr = 9;
+  // false 면 raw 로그. true 면 RFC3339 prefix.
+  bool timestamps = 10;
+}
+
+message LogChunk {
+  // UTF-8 raw bytes. 한 chunk 는 여러 라인 가능 — backend 가 라인 split 처리.
+  bytes data = 1;
+  // chunk 가 stderr 면 true. include_stderr=true 일 때만 의미.
+  bool stderr = 2;
+}
+
+// backend 가 user SSE 요청 받고 agent 에게 "별도 StreamPodLogs stream 열어라" 지시.
+// PodExec 의 OpenExecSession 과 동일 패턴.
+message OpenLogStream {
+  string session_id = 1;     // Backend-issued nonce. StreamPodLogs 의 첫 LogPacket{request} 에 echo.
+  LogStreamRequest request = 2;
+}

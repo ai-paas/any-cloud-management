@@ -1,0 +1,12 @@
+{{/*
+agent.namespace 가 Release namespace 와 다를 때만 생성. 보통 같음 (aipaas-system).
+managed-by: anycloud 라벨은 backend 의 cleanup sweeper 가 식별용으로 사용.
+*/}}
+{{- if ne .Values.agent.namespace .Release.Namespace }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.agent.namespace }}
+  labels:
+    {{- include "cluster-agent.labels" . | nindent 4 }}
+{{- end }}

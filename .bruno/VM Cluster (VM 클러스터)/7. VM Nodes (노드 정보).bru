@@ -1,0 +1,38 @@
+meta {
+  name: 7. VM Nodes (노드 정보)
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{provision_cluster_name}}/vm-nodes
+  body: none
+  auth: none
+}
+
+headers {
+  User-Agent: bruno/3.3.0
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("nodes with role and ip", function() {
+    const body = res.getBody();
+    expect(body.data).to.have.property("sshUser");
+    expect(body.data.nodes).to.be.an("array");
+    expect(body.data.nodes[0]).to.have.property("role");
+  });
+}
+
+docs {
+  # VM Nodes (III-49)
+
+  Provision 된 VM 노드 목록 — role / publicIp / privateIp 등.
+  표준 ProvisioningOutput 기반이라 **8개 CSP 동일 schema**.
+  DB 저장본에서 즉시 반환 (Pulumi 호출 없음).
+
+  PROVISION 완료 전이면 409 OUTPUTS_NOT_READY.
+}

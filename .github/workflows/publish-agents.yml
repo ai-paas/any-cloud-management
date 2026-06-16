@@ -1,0 +1,105 @@
+name: Publish Agent Images (GHCR)
+
+# cluster-agent + backup-agent 두 binary 를 단일 Dockerfile + CMD_TARGET build arg 로 빌드해
+# ghcr.io/<owner>/{cluster-agent,backup-agent} 로 push.
+#
+# 발동 조건:
+#   - tag push (vX.Y.Z)     → :vX.Y.Z, :X.Y, :sha-<short>, :{branch}-vX.Y.Z, :latest(main only)
+#   - workflow_dispatch     → :<input.tag>(옵션), :sha-<short>
+#
+# main push 는 publish 안 함 — 회귀 검증은 ci.yml 에서. release tag (semver) 만 publish.
+# :latest 는 tag 가 main branch 의 commit 일 때만 부착 — hotfix branch tag 등은 :latest 안 됨.
+# Image 는 처음 push 시 GHCR 에서 private. public 공개는 GitHub Packages UI 에서 1회 토글.
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Optional manual tag (e.g. v0.1.0-rc1)'
+        required: false
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-agents-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-push:
+    name: Build & push ${{ matrix.target.image }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - { cmd: cluster-agent, image: cluster-agent }
+          - { cmd: backup-agent,  image: backup-agent }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # branch detect 가 origin/* refs 필요.
+          fetch-depth: 0
+
+      - name: Determine source branch
+        id: branch
+        run: |
+          BRANCH=$(git branch -r --contains ${{ github.sha }} \
+            | grep -v 'HEAD' \
+            | sed 's|^\s*origin/||' \
+            | grep -E '^(main|hotfix/|release/)' \
+            | head -1 \
+            | xargs)
+          if [ -z "$BRANCH" ]; then BRANCH="detached"; fi
+          echo "name=$BRANCH" >> "$GITHUB_OUTPUT"
+          if [ "$BRANCH" = "main" ]; then
+            echo "is_main=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_main=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Detected source branch: $BRANCH"
+
+      - name: Set up QEMU (cross-arch)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.target.image }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable=${{ steps.branch.outputs.is_main == 'true' }}
+            type=raw,value=${{ steps.branch.outputs.name }}-${{ github.ref_name }},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '' }}
+
+      - name: Build & push (${{ matrix.target.cmd }})
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/agent
+          file: apps/agent/Dockerfile
+          build-args: |
+            CMD_TARGET=${{ matrix.target.cmd }}
+            VERSION=${{ steps.meta.outputs.version }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.target.cmd }}
+          cache-to: type=gha,scope=${{ matrix.target.cmd }},mode=max

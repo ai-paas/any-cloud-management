@@ -1,0 +1,69 @@
+{{- /*
+deployment.mode 분기:
+  single: 1 Deployment (현재 동작 보존). SA = installer (mutating + core read 자동 binding).
+  split : 2 Deployment. core (read-only RPC) + installer (mutating RPC). SA 분리.
+
+agent dispatcher 의 mode-aware RPC allowlist (AGENT_MODE 기반) enforce 는 미구현 — 현재
+split mode 는 *권한 분리* 까지만, RPC dispatching 은 양쪽 다 동일 binary.
+*/}}
+{{- $mode := .Values.deployment.mode | default "single" -}}
+
+{{- if eq $mode "single" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cluster-agent.fullname" . }}
+  namespace: {{ .Values.agent.namespace }}
+  labels:
+    {{- include "cluster-agent.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: {{ .Values.strategy.type }}
+  selector:
+    matchLabels:
+      {{- include "cluster-agent.selectorLabels" . | nindent 6 }}
+  template:
+    {{- include "cluster-agent.podTemplate" (dict "Values" .Values "Release" .Release "Chart" .Chart "podRole" "single" "serviceAccountName" (include "cluster-agent.serviceAccountName" .) "agentMode" .Values.agent.mode) | nindent 4 }}
+{{- else if eq $mode "split" }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cluster-agent.fullname" . }}-core
+  namespace: {{ .Values.agent.namespace }}
+  labels:
+    {{- include "cluster-agent.labels" . | nindent 4 }}
+    aipaas.io/agent-role: core
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: {{ .Values.strategy.type }}
+  selector:
+    matchLabels:
+      {{- include "cluster-agent.selectorLabels" . | nindent 6 }}
+      aipaas.io/agent-role: core
+  template:
+    {{- include "cluster-agent.podTemplate" (dict "Values" .Values "Release" .Release "Chart" .Chart "podRole" "core" "serviceAccountName" .Values.rbac.core.serviceAccountName "agentMode" "core") | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cluster-agent.fullname" . }}-installer
+  namespace: {{ .Values.agent.namespace }}
+  labels:
+    {{- include "cluster-agent.labels" . | nindent 4 }}
+    aipaas.io/agent-role: installer
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: {{ .Values.strategy.type }}
+  selector:
+    matchLabels:
+      {{- include "cluster-agent.selectorLabels" . | nindent 6 }}
+      aipaas.io/agent-role: installer
+  template:
+    {{- include "cluster-agent.podTemplate" (dict "Values" .Values "Release" .Release "Chart" .Chart "podRole" "installer" "serviceAccountName" .Values.rbac.installer.serviceAccountName "agentMode" "installer") | nindent 4 }}
+{{- else }}
+{{- fail (printf "deployment.mode must be 'single' or 'split', got %q" $mode) }}
+{{- end }}

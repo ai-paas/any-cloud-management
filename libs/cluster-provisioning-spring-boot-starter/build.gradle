@@ -1,0 +1,162 @@
+// Cluster Provisioning Spring Boot Starter
+//
+// VM Kubernetes cluster 의 multi-cloud provisioning 을 Pulumi 로 위임하는 starter. anycloud backend
+// 의 `service/provisioning/` (PulumiProvisioningService / PulumiCommandService / ProvisioningOutputMapper /
+// PulumiStateBackupScheduler 등) 을 host-agnostic SPI 로 추출해 다른 backend (AI/ML 클러스터 SaaS
+// 등) 가 재사용 가능하게 한다.
+//
+// 책임:
+//   - Pulumi CLI 실행 (pulumi up / preview / destroy / refresh / stack ls) — process spawn 추상화
+//   - --json event stream 파싱
+//   - Real-time event SSE — observer pattern
+//   - Multi-cloud provider abstraction — AWS/GCP/Azure/OCI/OpenStack/DigitalOcean/Alibaba/Proxmox
+//   - State backup (RustFS push) + validator
+//
+// 호스트가 구현할 SPI:
+//   - ClusterProvisioningSink — 결과 (stack output / events) 를 host backend 의 DB / message bus 로 push
+//   - PulumiCredentialProvider — CSP 자격증명 lookup (anycloud 는 credentials table)
+//
+// 호스트가 책임지는 영역 (starter 밖):
+//   - ClusterEntity / OperationEntity 영속화
+//   - REST controller / SSE endpoint (starter 는 service bean 만)
+//   - CSP credential 평문 저장 정책 (memory 의 사용자 결정)
+//   - Pulumi binary install / project dir resolution
+//
+// 상세 설계: docs/architecture/starters/cluster-provisioning-starter.md
+//
+// Pulumi CLI 오케스트레이션 starter. PulumiCommandService 기본 impl 제공.
+// OS 프로세스 생성(ProcessExecutor) + 실행 config(PulumiExecutionConfig)는 SPI 포트로 host 에 위임.
+
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'com.diffplug.spotless'
+}
+
+// PulumiCommandService / PulumiProvisioningService / 백업 scheduler · validator 포함.
+group = 'io.aipaas.cluster'
+// publish-starters.yml workflow 가 tag push 시 -PstarterVersion 주입. local dev fallback 'SNAPSHOT'.
+version = findProperty('starterVersion') ?: '0.1.0-SNAPSHOT'
+
+bootJar { enabled = false }
+jar { enabled = true }
+
+spotless {
+    enforceCheck false
+    ratchetFrom 'origin/main'
+    java {
+        target 'src/**/*.java'
+        palantirJavaFormat('2.50.0')
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+dependencies {
+    // Spring Boot core
+    api 'org.springframework.boot:spring-boot-starter:3.2.5'
+    api 'org.springframework.boot:spring-boot-starter-validation:3.2.5'
+
+    // Jackson — Pulumi --json event parsing
+    api "com.fasterxml.jackson.core:jackson-databind:${rootProject.ext.jacksonVersion}"
+
+    // Reactor for ProvisionEventBus (multicast Sinks.Many).
+    api "io.projectreactor:reactor-core:${rootProject.ext.reactorVersion}"
+
+    // Micrometer (Counter / Timer) for backup scheduler observability.
+    api "io.micrometer:micrometer-core:${rootProject.ext.micrometerVersion}"
+
+    // resilience4j @Bulkhead annotation (PulumiCommandServiceImpl 의 동시 CLI
+    // 프로세스 제한). compileOnly: annotation 만 컴파일에 필요하고, AOP aspect 는 host(anycloud 의
+    // resilience4j-spring-boot3)가 런타임에 제공. host 에 resilience4j 가 없으면 annotation 은 무시됨.
+    compileOnly "io.github.resilience4j:resilience4j-annotations:${rootProject.ext.resilience4jVersion}"
+
+    // @Transactional(NOT_SUPPORTED) on PulumiProvisioningServiceImpl: 장시간
+    // Pulumi CLI 호출 동안 caller 의 DB connection 점유를 막기 위해 caller TX 와 분리. compileOnly:
+    // annotation 만 컴파일에 필요하고, TransactionInterceptor 는 host(anycloud)의 tx manager 가 런타임
+    // 제공. host 에 transaction infra 가 없으면 annotation 은 무시됨. (spring-framework 6.1.6 = boot 3.2.5)
+    compileOnly 'org.springframework:spring-tx:6.1.6'
+
+    // @SchedulerLock on PulumiStateBackupScheduler/Validator: HA leader dedup.
+    // compileOnly: annotation 만 컴파일에 필요. ShedLock aspect + LockProvider 는 host(anycloud)가 런타임
+    // 제공. host 에 ShedLock 이 없으면 @SchedulerLock 은 무시되고 @Scheduled 만 동작.
+    compileOnly 'net.javacrumbs.shedlock:shedlock-spring:5.16.0'
+
+    // configuration metadata processor — IDE 가 application.yaml 자동완성.
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:3.2.5'
+
+    // Lombok
+    compileOnly "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+
+    // Test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test:3.2.5'
+    testCompileOnly "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// ============= Publishing =============
+// scaffold 단계라 jar 가 SPI + autoConfig 뿐. publishToMavenLocal 로 외부 consumer 가 dependency
+// 추가 가능. 실 service 이동 후 publish 가치 커짐.
+
+publishing {
+    publications {
+        starter(MavenPublication) {
+            from components.java
+            artifactId = 'cluster-provisioning-spring-boot-starter'
+
+            pom {
+                name = 'Cluster Provisioning Spring Boot Starter'
+                description = 'Spring Boot starter for multi-cloud VM Kubernetes provisioning via ' +
+                    'Pulumi CLI. Provides PulumiCommandService + PulumiProvisioningService + state ' +
+                    'backup scheduler/validator. SPI ports: ProcessExecutor, PulumiExecutionConfig, ' +
+                    'ClusterDescriptorRepository, PulumiBackupPropertiesProvider.'
+                url = 'https://github.com/aipaas/any-cloud-management'
+
+                licenses {
+                    license {
+                        name = 'Apache License, Version 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                        distribution = 'repo'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = 'aipaas'
+                        name = 'AIPaaS Team'
+                        email = 'aipaas@innogrid.com'
+                    }
+                }
+
+                scm {
+                    url = 'https://github.com/aipaas/any-cloud-management'
+                    connection = 'scm:git:https://github.com/aipaas/any-cloud-management.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/aipaas/any-cloud-management.git'
+                }
+            }
+        }
+    }
+
+    repositories {
+        def remoteUrl = findProperty('publishUrl')
+        if (remoteUrl) {
+            maven {
+                name = 'remote'
+                url = remoteUrl
+                allowInsecureProtocol = remoteUrl.toString().startsWith('http://')
+                if (findProperty('publishUsername') && findProperty('publishPassword')) {
+                    credentials {
+                        username = findProperty('publishUsername')
+                        password = findProperty('publishPassword')
+                    }
+                }
+            }
+        }
+    }
+}

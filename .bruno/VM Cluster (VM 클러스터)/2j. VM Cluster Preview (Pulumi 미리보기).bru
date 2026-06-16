@@ -1,0 +1,64 @@
+meta {
+  name: 2j. VM Cluster Preview (Pulumi 미리보기)
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/v1/cluster-validations/preview
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+body:json {
+  {
+    "clusterProvider": "{{provision_provider}}",
+    "clusterName": "{{provision_cluster_name}}",
+    "environment": "{{provision_environment}}",
+    "region": "{{provision_region}}",
+    "credentialId": "{{credential_id}}",
+    "config": {
+      "anycloud-k8s:masterInstanceType": "{{master_vm_spec}}",
+      "anycloud-k8s:workerInstanceType": "{{worker_vm_spec}}",
+      "anycloud-k8s:workerCount": "{{worker_count}}"
+    }
+  }
+}
+
+settings {
+  timeout: 120000
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("preview returns change plan", function() {
+    const body = res.getBody();
+    expect(body.data).to.have.property("stackName");
+    expect(body.data).to.have.property("changeSummary");
+    expect(body.data).to.have.property("hasChanges");
+    expect(body.data).to.have.property("steps");
+  });
+}
+
+docs {
+  # VM Cluster Preview (III-48)
+
+  `pulumi preview --json` 기반 — 실제로 생성/변경될 CSP resource 계획을 반환.
+
+  - **CSP 자원은 만들지 않는다** (dry-run).
+  - preflight (`POST /v1/cluster-validations`, 정적 검증 ~ms) 와 달리 Pulumi CLI 와
+    CSP API 를 실제 호출 — **수십 초** 걸릴 수 있어 timeout 120s 설정.
+  - 신규 cluster: preview 용 stack 임시 생성 후 정리 (`stackExistedBefore: false`).
+  - 기존 cluster: stack 그대로 두고 diff 만 반환 — 변경 예정/drift 확인 용도.
+  - `changeSummary` 예: `{"create": 14}` / steps 의 op: create | update | delete | same | replace.
+
+  권장 순서: preflight (즉시 검증) → preview (실 계획 확인) → create.
+}

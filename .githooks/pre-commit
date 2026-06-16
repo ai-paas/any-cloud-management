@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+#
+# any-cloud-management pre-commit hook.
+#
+# Spotless (Palantir Java Format) + Buf lint 를 로컬에서 강제. CI 에서만 실패하면 push → CI red →
+# 재 commit 의 cycle 이 길어지므로 commit 시점에 즉시 차단한다. Hook 자체는 5 초 내 끝나는 것이
+# 목표 — staged 파일만 검사한다.
+#
+# 설치:
+#   make hooks-install         # git config core.hooksPath .githooks
+#   또는
+#   git config core.hooksPath .githooks
+#
+# 우회 (긴급 패치 등 — 권장 X):
+#   git commit --no-verify
+#
+set -euo pipefail
+
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+
+err() { printf "${RED}[pre-commit] %s${NC}\n" "$*" >&2; }
+warn() { printf "${YELLOW}[pre-commit] %s${NC}\n" "$*" >&2; }
+ok() { printf "${GREEN}[pre-commit] %s${NC}\n" "$*"; }
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 1. Spotless (Java) — apps/anycloud + libs/* 모듈에 staged Java 파일이 있을 때만 실행.
+#    spotlessCheck 는 모든 ratchet 대상 파일을 검사하므로 빠르다 (보통 1-3 초).
+# ──────────────────────────────────────────────────────────────────────────────
+staged_java=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^(apps/anycloud|libs/)/.*\.java$' || true)
+
+if [ -n "$staged_java" ]; then
+  echo "[pre-commit] Spotless check ($(echo "$staged_java" | wc -l | tr -d ' ') Java files staged)..."
+  if ! ./gradlew --quiet spotlessCheck 2>&1 | tail -20; then
+    err "Spotless 검사 실패. ./gradlew spotlessApply 로 자동 포맷 후 재 commit 하세요."
+    err "   변경 파일만 빠르게: ./gradlew :anycloud:spotlessApply"
+    exit 1
+  fi
+  ok "Spotless 통과"
+fi
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 2. Buf lint (Protobuf) — proto/ 디렉토리의 .proto 가 staged 일 때만.
+#    Buf 미설치 환경 (drive-by contributor) 이면 경고만 출력하고 통과.
+# ──────────────────────────────────────────────────────────────────────────────
+staged_proto=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^proto/.*\.proto$' || true)
+
+if [ -n "$staged_proto" ]; then
+  if command -v buf >/dev/null 2>&1; then
+    echo "[pre-commit] Buf lint (proto/)..."
+    if ! (cd proto && buf lint); then
+      err "Buf lint 실패. proto 변경 사항을 확인하세요."
+      exit 1
+    fi
+    ok "Buf lint 통과"
+  else
+    warn "buf 미설치 — proto lint 스킵. CI 에서 검증됨."
+    warn "  로컬 설치: brew install bufbuild/buf/buf  (또는 https://buf.build/docs/installation)"
+  fi
+fi
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 3. 비밀 누출 가벼운 휴리스틱 — .env / *.key / id_rsa 류 staged 차단.
+#    완전한 secret scan 은 아니지만 명백한 실수만 잡는다.
+# ──────────────────────────────────────────────────────────────────────────────
+secret_paths=$(git diff --cached --name-only --diff-filter=ACM | grep -E '(^|/)(\.env(\..*)?$|.*\.pem$|.*\.key$|id_rsa$|id_ed25519$)' || true)
+if [ -n "$secret_paths" ]; then
+  err "비밀 키 또는 .env 파일이 staged 되어 있습니다:"
+  echo "$secret_paths" >&2
+  err "정말 commit 이 필요하면 --no-verify, 아니면 git restore --staged <path>."
+  exit 1
+fi
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 4. Phase / date / ticket / AI-generated marker 차단.
+#    주석은 WHY 만 — history 는 git log 가 책임진다.
+#    금지: "// (YYYY-MM-DD)" / "// III-N" / "// H-NN" / "// [Step|Phase] X" /
+#         "🤖 Generated with" 같은 AI tool 표식.
+# ──────────────────────────────────────────────────────────────────────────────
+staged_text=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(java|kt|gradle|kts|md|yaml|yml)$' || true)
+if [ -n "$staged_text" ]; then
+  banned=$(echo "$staged_text" | xargs grep -lE \
+    "//.*\([0-9]{4}-[0-9]{2}-[0-9]{2}\)|//.*(III-[0-9]+|PP-[0-9]+|H-[0-9]+(\.[0-9]+)?|LL-[0-9]+|N-fe-[A-Z])|// (Step [0-9]|Phase [A-Z])|🤖 Generated with" 2>/dev/null || true)
+  if [ -n "$banned" ]; then
+    err "Phase / date / ticket / AI-generated marker 가 staged 파일에 있습니다:"
+    echo "$banned" >&2
+    err "주석에서 marker 제거 후 재 commit. WHY 만 남기세요."
+    exit 1
+  fi
+fi
+
+exit 0

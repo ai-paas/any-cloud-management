@@ -1,0 +1,183 @@
+plugins {
+    id 'com.diffplug.spotless'
+}
+
+bootJar { enabled = true }
+
+// ----------------------------------------------------------------------------
+// Cluster Agent Helm chart bundling — single source of truth.
+//
+// apps/agent/deploy/helm/cluster-agent/ 가 chart 의 진실. processResources 시점에
+// src/main/resources/agent-chart/ 으로 복사 → backend jar 안 classpath:agent-chart/
+// 로 들어감. AgentChartRenderer 가 런타임에 추출 + `helm template` 으로 manifest 생성.
+//
+// 결과: raw manifest (apps/agent/deploy/k8s/agent.yaml) 는 read-only snapshot 으로만 존재.
+// "내가 어디서 신뢰하지?" 라는 질문이 사라짐 (=chart 하나).
+// ----------------------------------------------------------------------------
+def agentChartSource = rootProject.file('apps/agent/deploy/helm/cluster-agent')
+def agentChartDest   = file("$projectDir/src/main/resources/agent-chart")
+
+tasks.register('copyAgentChartResources', Copy) {
+    description = 'Bundle cluster-agent Helm chart into backend classpath (agent-chart/).'
+    group = 'build'
+    from agentChartSource
+    into agentChartDest
+    // chart 가 변경되면 다시 복사 (Gradle up-to-date check).
+    inputs.dir agentChartSource
+    outputs.dir agentChartDest
+}
+
+processResources {
+    dependsOn 'copyAgentChartResources'
+}
+
+// ----------------------------------------------------------------------------
+// bootRun working directory = repo root.
+//
+// PulumiProperties.resolveProjectDir() 가 `Paths.get("infra/pulumi").toAbsolutePath()`
+// 로 CWD-relative 해석을 함. Gradle subproject 의 default CWD 는 `apps/anycloud/` 라서
+// `apps/anycloud/infra/pulumi` 로 풀리는데, 실제 Pulumi project 는 repo root 의
+// `infra/pulumi/` 에 있다. workingDir 를 rootDir 로 강제 → 절대경로 일관성 회복.
+//
+// 운영 Docker 이미지(Dockerfile.pulumi)는 WORKDIR /app + `COPY infra/pulumi
+// /app/infra/pulumi` 라 영향 없음.
+// ----------------------------------------------------------------------------
+bootRun {
+    workingDir = rootDir
+    doFirst {
+        // PulumiProperties.resolveProjectDir() 의 CWD-relative path resolution 정합성 가시화.
+        // 합류자가 `cd apps/anycloud && ./gradlew bootRun` 같은 실수를 해도 actual workingDir 가
+        // rootDir 임을 banner 로 확인 가능 (Pulumi project 누락 silent fail 방지).
+        logger.lifecycle("===> bootRun workingDir = ${workingDir} (repo root)")
+    }
+}
+
+// 깔끔한 clean 보장 — 복사된 chart 디렉토리도 같이 제거.
+clean {
+    delete agentChartDest
+}
+
+// Spotless: Palantir Java Format
+// 사용:
+//   ./gradlew anycloud:spotlessApply  → 변경 파일 자동 포맷
+//   ./gradlew anycloud:spotlessCheck
+spotless {
+    enforceCheck false
+
+    ratchetFrom 'origin/main'
+    java {
+        target 'src/**/*.java'
+        palantirJavaFormat('2.50.0')
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+    format 'misc', {
+        target 'src/**/*.gradle', 'src/**/*.md', 'src/**/*.yaml', 'src/**/*.yml'
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "io.fabric8:kubernetes-client-bom:7.2.0"
+        mavenBom "org.testcontainers:testcontainers-bom:1.20.4"
+    }
+}
+
+test {
+    useJUnitPlatform()
+    maxHeapSize = '1g'
+    // Pass-through system properties — 통합 테스트 토글용 (e.g. -Dchart.integration=true).
+    // AgentChartRendererTest 의 @EnabledIfSystemProperty 가 본 값을 읽음.
+    if (System.getProperty('chart.integration') != null) {
+        systemProperty 'chart.integration', System.getProperty('chart.integration')
+    }
+}
+
+dependencies {
+    implementation platform('software.amazon.awssdk:bom:2.25.53')
+    implementation 'org.springframework.boot:spring-boot-starter-web:3.2.5'
+    // P1-1 (tech-debt review) — @Audited annotation 의 AOP. AspectJ 자동 proxy 활성화.
+    implementation 'org.springframework.boot:spring-boot-starter-aop:3.2.5'
+    // websocket / jjwt / grpc-* / proto stubs 는 cluster-agent starter 의 api 로 transitively.
+    implementation 'org.springframework.boot:spring-boot-starter-actuator:3.2.5'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+    implementation 'org.springframework.boot:spring-boot-starter-security:3.2.5'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa:3.2.5'
+    implementation 'org.springframework.boot:spring-boot-starter-validation:3.2.5'
+    implementation 'org.springframework.boot:spring-boot-starter-amqp:3.2.5'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-mysql'
+    implementation 'org.springframework.boot:spring-boot-starter-cache:3.2.5'
+    implementation "com.github.ben-manes.caffeine:caffeine:${rootProject.ext.caffeineVersion}"
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0'
+    implementation 'org.mariadb.jdbc:mariadb-java-client:3.1.2'
+    implementation 'io.fabric8:kubernetes-client:7.2.0'
+    implementation 'org.modelmapper:modelmapper:3.1.1'
+    // MapStruct 도입. ModelMapper / static mapper 와 점진 마이그레이션.
+    // lombok-mapstruct-binding 은 annotation processor 순서 (Lombok → MapStruct) 보장 — 둘 다 사용 시 필수.
+    implementation "org.mapstruct:mapstruct:${rootProject.ext.mapstructVersion}"
+    annotationProcessor "org.mapstruct:mapstruct-processor:${rootProject.ext.mapstructVersion}"
+    annotationProcessor "org.projectlombok:lombok-mapstruct-binding:${rootProject.ext.lombokMapstructBindingVersion}"
+    implementation "org.json:json:20230618"
+    implementation "com.google.code.gson:gson:2.10.1"
+    implementation 'com.google.auth:google-auth-library-oauth2-http:1.23.0'
+    implementation "com.fasterxml.jackson.core:jackson-core:${rootProject.ext.jacksonVersion}"
+    implementation "com.fasterxml.jackson.core:jackson-databind:${rootProject.ext.jacksonVersion}"
+    implementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
+    // Helm chart .tgz unpacking — gzip + tar 파서 (subprocess `helm show` 대체).
+    implementation 'org.apache.commons:commons-compress:1.27.1'
+    implementation 'io.hypersistence:hypersistence-utils-hibernate-60:3.5.2'
+    implementation "com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations:${rootProject.ext.jacksonVersion}"
+    implementation "org.bouncycastle:bcprov-jdk18on:${rootProject.ext.bouncyCastleVersion}"
+    implementation "org.bouncycastle:bcpkix-jdk18on:${rootProject.ext.bouncyCastleVersion}"
+    implementation 'software.amazon.awssdk:ec2'
+    // Resilience4j: K8s API CircuitBreaker+Retry, Pulumi CLI Bulkhead.
+    // 외부 시스템(K8s API, Pulumi CLI) 의 부분 장애가 백엔드 전체 가용성을 깎지 않도록 격리.
+    implementation "io.github.resilience4j:resilience4j-spring-boot3:${rootProject.ext.resilience4jVersion}"
+    implementation 'io.github.resilience4j:resilience4j-micrometer:2.2.0'
+
+    // Sprint 3 — JSON structured logging (ELK 호환). 기본 profile 는 string pattern 그대로,
+    // SPRING_PROFILES_ACTIVE 에 'json' 포함 시 logback-spring.xml 의 <springProfile name="json">
+    // 분기가 활성화돼 logstash 인코더로 JSON 출력.
+    implementation 'net.logstash.logback:logstash-logback-encoder:8.0'
+
+    // ShedLock (H5/H11): @Scheduled 의 leader election. replica 여러개 띄워도
+    // cert scan / state backup / DLQ drain 이 한 노드에서만 실행되도록 DB row lock.
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.16.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.16.0'
+
+    // ---- Cluster Agent infrastructure ----
+    implementation project(':cluster-agent-spring-boot-starter')
+    // Layer 2 통합 — RBAC (OIDC group → ClusterRoleBinding) + Backup (Velero / etcd / PKI) +
+    // Observability (PromQL passthrough + alert + dashboard). 3 sub-feature 가 한 artifact.
+    implementation project(':cluster-agent-features-spring-boot-starter')
+    // Pulumi CLI 위임 orchestration — ProvisioningOutput / PulumiCommandResult 등 도메인 타입 보유.
+    implementation project(':cluster-provisioning-spring-boot-starter')
+    compileOnly 'org.apache.tomcat:annotations-api:6.0.53'
+
+    // ---- Test ----
+    // Spring Boot starter-test 가 JUnit 5 / AssertJ / Mockito / spring-test 묶어서 제공.
+    // 예시 통합 테스트는 src/test 의 AbstractIntegrationTest 참조.
+    // DevTools — make dev-run 시 코드 변경 자동 restart (1-2초). production 자동 제외 (developmentOnly).
+    developmentOnly 'org.springframework.boot:spring-boot-devtools:3.2.5'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test:3.2.5'
+    testImplementation 'org.springframework.amqp:spring-rabbit-test'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:mariadb'
+    testImplementation 'org.testcontainers:rabbitmq'
+    // K3s — ephemeral K8s cluster for integration test. 실 K8s API quirk 회귀 검증
+    // (mock 한계 회피). 자세히는 docs/operations/k8s-integration-testing.md.
+    testImplementation 'org.testcontainers:k3s:1.20.1'
+    // LocalStack — AWS API mock (EC2/VPC/IAM/STS/S3 등) for Pulumi e2e. 실 AWS 비용 없이
+    // provisioning 흐름 회귀 검증. 자세히는 docs/operations/pulumi-e2e-testing.md.
+    testImplementation 'org.testcontainers:localstack:1.20.1'
+    testImplementation 'org.springframework.security:spring-security-test'
+
+    // ArchUnit — convention (folder-structure.md) 자동 enforce. internal/ 외부 import 차단,
+    // Controller 가 web/ 거주, @Mapper 가 mapper/ 거주 등 architecture rule 회귀 방지.
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.3.0'
+}

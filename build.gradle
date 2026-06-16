@@ -3,7 +3,10 @@ plugins {
     id 'io.spring.dependency-management' version '1.1.0'
     id 'idea'
     id 'java'
-    id 'checkstyle'
+    id 'com.diffplug.spotless' version '6.25.0' apply false
+    // ClusterAgent gRPC: ../proto/agent/v1 의 .proto 파일을 Java 로 generate.
+    // anycloud 모듈에서 apply 한다 (build.gradle 안에서 추가 설정).
+    id 'com.google.protobuf' version '0.9.4' apply false
 }
 
 wrapper {
@@ -12,6 +15,30 @@ wrapper {
 
 bootJar { enabled = false }
 jar { enabled = true }
+
+// 중앙화 dep version. starter / app 모두 본 ext 변수 참조.
+// 단일 변경 지점 = drift 방지. Spring Boot 의 BOM 으로 관리되지 않는 외부 lib 의 version pinning.
+ext {
+    // Jackson — Spring Boot 3.2.5 의 BOM default = 2.15.4. provisioning starter 만 2.17.0 으로 drift 했던
+    // 이력. 향후 본 ext 변수만 변경.
+    jacksonVersion = '2.17.2'
+    // Lombok — annotationProcessor + compileOnly 양쪽 동일 버전 필요.
+    lombokVersion = '1.18.36'
+    // MapStruct — 신규 mapper 권장. 기존 ModelMapper / static mapper 와 공존.
+    // lombok-mapstruct-binding 이 annotation processor 순서 (Lombok → MapStruct) 보장 — 둘 다 사용 시 필수.
+    mapstructVersion = '1.5.5.Final'
+    lombokMapstructBindingVersion = '0.2.0'
+    // BouncyCastle — jdk15on (EOL jdk8-15) → jdk18on 통합.
+    bouncyCastleVersion = '1.78.1'
+    // Caffeine — backend / starter 공통 cache lib.
+    caffeineVersion = '3.1.8'
+    // Reactor — provisioning starter 의 ProvisionEventBus.
+    reactorVersion = '3.6.5'
+    // Resilience4j — Circuit / Bulkhead / Retry. anycloud + starter 공통.
+    resilience4jVersion = '2.2.0'
+    // Micrometer — observability metric.
+    micrometerVersion = '1.13.4'
+}
 
 // AllProjects 설정
 allprojects {
@@ -29,13 +56,17 @@ allprojects {
     }
 }
 
-// SubProjects 설정
-subprojects {
+// SubProjects 설정 — anycloud 같이 root 가 spring-boot-application 인 모듈만.
+// 제외:
+//  - loadtest        : 비 Spring 모듈, 자체 build.gradle
+//  - cluster-agent-spring-boot-starter : library 모듈로 외부 consumer 한테 publish 됨 — 자체적으로
+//                       필요한 plugin/dependency 만 declare. root 에서 webflux 같은 anycloud 전용
+//                       dependency 를 transitively 끌어가면 외부 consumer POM 오염됨.
+configure(subprojects.findAll { it.name != 'loadtest' && it.name != 'cluster-agent-spring-boot-starter' }) {
     apply plugin: 'java'
     apply plugin: 'java-library'
     apply plugin: 'org.springframework.boot'
     apply plugin: 'io.spring.dependency-management'
-    apply plugin: 'checkstyle'
 
     configurations {
         compileOnly {
@@ -43,18 +74,10 @@ subprojects {
         }
     }
 
-    // Checkstyle 설정
-    checkstyle {
-        toolVersion = '10.12.4'
-        configFile = file("${rootDir}/config/checkstyle/checkstyle.xml")
-        ignoreFailures = false
-        maxWarnings = 0
-    }
-
     // 관리하는 모듈에 공통 dependencies
     dependencies {
-        compileOnly 'org.projectlombok:lombok:1.18.34'
-        annotationProcessor 'org.projectlombok:lombok:1.18.34'
+        compileOnly "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+        annotationProcessor "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
         developmentOnly 'org.springframework.boot:spring-boot-devtools:3.2.5'
         implementation 'org.springframework.boot:spring-boot-starter-webflux'
     }
@@ -63,4 +86,74 @@ subprojects {
 bootRun {
     String activeProfile = System.properties['spring.profiles.active']
     systemProperty "spring.profiles.active", activeProfile
+}
+
+// =============================================================================
+// Jacoco test coverage — anycloud / starter 2 모듈만 측정. loadtest 는 비-Spring,
+// cluster-observability-starter 는 별도 자체 build 파일.
+//
+// 사용:
+//   ./gradlew :anycloud:test :anycloud:jacocoTestReport
+//   ./gradlew :cluster-agent-spring-boot-starter:test :cluster-agent-spring-boot-starter:jacocoTestReport
+//   open apps/anycloud/build/reports/jacoco/test/html/index.html
+//
+// CI gate (선택): ./gradlew jacocoTestCoverageVerification — INSTRUCTION 60% 미달 시 fail.
+// =============================================================================
+configure(subprojects.findAll {
+    it.name == 'anycloud'
+            || it.name == 'cluster-agent-spring-boot-starter'
+            || it.name == 'cluster-agent-observability-spring-boot-starter'
+}) {
+    apply plugin: 'jacoco'
+
+    jacoco {
+        toolVersion = '0.8.12'
+    }
+
+    // Generated / DTO 코드는 측정 제외 — getter/setter / proto stub 은 우리가 통제 못 하는 noise.
+    def coverageExcludes = [
+            '**/gen/agent/v1/**',
+            'com/aipaas/anycloud/agent/v1/**',
+            '**/dto/**',
+            '**/*Dto*',
+    ]
+
+    // Library 모듈 (java-library) 은 자체 build.gradle 에서 java/test task 가 늦게 register —
+    // afterEvaluate 로 모든 plugin 이 settle 된 후 wiring.
+    afterEvaluate {
+        tasks.named('test') {
+            finalizedBy 'jacocoTestReport'
+        }
+
+        tasks.named('jacocoTestReport') {
+            dependsOn 'test'
+            reports {
+                xml.required = true
+                html.required = true
+                csv.required = false
+            }
+            classDirectories.setFrom(files(classDirectories.files.collect {
+                fileTree(dir: it, exclude: coverageExcludes)
+            }))
+        }
+
+        // 운영 게이트 — INSTRUCTION 기준 baseline. 현재 anycloud 19.9% / starter 32.5% / obs 56.8%.
+        // anycloud 가 가장 낮으므로 conservative 20% 부터 시작 — 매 sprint 5%p 씩 상향 (목표 70%).
+        // 자세한 우선순위: docs/operations/test-coverage.md 참조.
+        tasks.named('jacocoTestCoverageVerification') {
+            dependsOn 'jacocoTestReport'
+            violationRules {
+                rule {
+                    limit {
+                        counter = 'INSTRUCTION'
+                        value = 'COVEREDRATIO'
+                        minimum = 0.18
+                    }
+                }
+            }
+            classDirectories.setFrom(files(classDirectories.files.collect {
+                fileTree(dir: it, exclude: coverageExcludes)
+            }))
+        }
+    }
 }

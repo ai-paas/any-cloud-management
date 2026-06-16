@@ -1,0 +1,41 @@
+# GCP on-demand pricing.
+#
+# 출처: us-central1 list price (https://cloud.google.com/compute/all-pricing).
+# GCP 는 일별 sustained use discount (~30%) 자동 적용 — 본 catalog 는 list price 만 표시.
+# 다른 region 은 5-20% 변동.
+provider: gcp
+currency: USD
+region: us-central1
+spotDiscount: 0.6         # GCP preemptible/spot 평균 60% 할인
+updatedAt: "2026-05-23"
+notes: |
+  Prices reflect us-central1 list price as of 2026-05-23. GCP applies a
+  sustained-use discount (up to 30%) automatically after the VM has run for
+  most of the month — this catalog shows the un-discounted hourly rate.
+  Persistent disk / network egress costs NOT included.
+
+instanceTypes:
+  # E2-series (general purpose, cost-optimized)
+  e2-micro:        { hourly: 0.008,  vcpu: 2, memoryGb: 1 }
+  e2-small:        { hourly: 0.017,  vcpu: 2, memoryGb: 2 }
+  e2-medium:       { hourly: 0.034,  vcpu: 2, memoryGb: 4 }
+  e2-standard-2:   { hourly: 0.067,  vcpu: 2, memoryGb: 8 }
+  e2-standard-4:   { hourly: 0.134,  vcpu: 4, memoryGb: 16 }
+  e2-standard-8:   { hourly: 0.268,  vcpu: 8, memoryGb: 32 }
+  e2-standard-16:  { hourly: 0.536,  vcpu: 16, memoryGb: 64 }
+  # N2-series (general purpose, Intel)
+  n2-standard-2:   { hourly: 0.097,  vcpu: 2, memoryGb: 8 }
+  n2-standard-4:   { hourly: 0.194,  vcpu: 4, memoryGb: 16 }
+  n2-standard-8:   { hourly: 0.388,  vcpu: 8, memoryGb: 32 }
+  # C2-series (compute-optimized)
+  c2-standard-4:   { hourly: 0.209,  vcpu: 4, memoryGb: 16 }
+  c2-standard-8:   { hourly: 0.418,  vcpu: 8, memoryGb: 32 }
+  # N1 with T4 GPU (GPU 별도 hourly 더해야 정확하지만 본 catalog 는 단순 GPU bundle)
+  n1-standard-4-t4: { hourly: 0.54,  vcpu: 4, memoryGb: 15, gpu: 1 }
+  n1-standard-8-t4: { hourly: 0.73,  vcpu: 8, memoryGb: 30, gpu: 1 }
+  # G2 (L4) — gpu-medium alias
+  g2-standard-4: { hourly: 0.71,  vcpu: 4,  memoryGb: 16,  gpu: 1 }
+  # A2 (A100 1x) — gpu-large alias
+  a2-highgpu-1g: { hourly: 3.67,  vcpu: 12, memoryGb: 85,  gpu: 1 }
+  # A3 (H100 8x) — gpu-h100 alias
+  a3-highgpu-8g: { hourly: 88.49, vcpu: 208, memoryGb: 1872, gpu: 8 }

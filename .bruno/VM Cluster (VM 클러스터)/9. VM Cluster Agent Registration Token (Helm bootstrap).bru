@@ -1,0 +1,50 @@
+meta {
+  name: 9. VM Cluster Agent Registration Token (Helm bootstrap)
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters/{{provision_cluster_name}}/agent-registration?installMode=HELM_BOOTSTRAP
+  body: none
+  auth: none
+}
+
+docs {
+  Agent bootstrap JWT 발급 — cluster placeholder (source=registered) 등록 후 호출.
+  응답의 `registrationToken` + `controlPlaneEndpoint` 를 cluster-agent Helm chart 의 value 로
+  넘겨 in-cluster agent 가 backend 로 reverse-tunnel 연결.
+
+  installMode 옵션:
+    - HELM_BOOTSTRAP (이 .bru) — Helm chart 의 bootstrap.registrationToken value 로 사용
+    - MANUAL          — kubectl apply 방식
+    - API_MANAGED     — 향후 (Pulumi user-data 자동화 variant)
+
+  TTL: ~10분 (jti 단위 1회 사용 — 같은 token 으로 두 번 Register RPC 호출 시 PERMISSION_DENIED).
+}
+
+script:post-response {
+  // 발급된 bootstrap token + endpoint 을 env 에 promotion — helm install 명령 합성용.
+  if (res && res.body && res.body.data) {
+    const d = res.body.data;
+    if (d.registrationToken) bru.setEnvVar('agent_registration_token', d.registrationToken);
+    if (d.controlPlaneEndpoint) bru.setEnvVar('agent_control_plane_endpoint', d.controlPlaneEndpoint);
+    if (d.expiresAt) bru.setEnvVar('agent_token_expires_at', d.expiresAt);
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("response carries registrationToken + controlPlaneEndpoint", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("data");
+    expect(body.data).to.have.property("registrationToken");
+    expect(body.data).to.have.property("controlPlaneEndpoint");
+    expect(body.data).to.have.property("expiresAt");
+    expect(body.data).to.have.property("ttlSeconds");
+    expect(body.data).to.have.property("installMode");
+  });
+}

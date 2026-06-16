@@ -1,0 +1,33 @@
+# Minimal application.yml 입니다. 4 starter 모두 default 값으로 동작 가능하지만,
+# 의미 있는 운영을 위해서는 host 측에서 SPI bean (ClusterCatalog 등) 을 제공하고
+# 다음 properties 를 환경에 맞게 override 합니다.
+
+server:
+  port: 8080
+
+spring:
+  application:
+    name: spring-boot-host-example
+
+# cluster-agent-spring-boot-starter — gRPC server + JWT issuer
+anycloud:
+  cluster-agent:
+    jwt:
+      # 운영 환경에서는 환경 변수 / Vault 로 주입합니다. 본 값은 예시 전용입니다.
+      secret: "change-me-256-bit-shared-secret-for-bootstrap-jwt-hs256"
+
+# cluster-agent-observability-spring-boot-starter — Prometheus / Grafana 통신
+cluster-observability:
+  alerts:
+    enabled: true
+  dashboards:
+    enabled: true
+
+# cluster-agent-backup-spring-boot-starter — Velero / etcd / PKI backup
+# (별도 properties 없음 — agent gRPC 만 사용)
+
+# cluster-provisioning-spring-boot-starter — Pulumi CLI 위임
+anycloud:
+  cluster-provisioning:
+    # Pulumi project 의 working directory (host 환경 경로) 입니다.
+    project-dir: "./infra/pulumi"

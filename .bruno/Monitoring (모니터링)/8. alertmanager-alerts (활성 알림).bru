@@ -1,0 +1,34 @@
+meta {
+  name: 8. alertmanager-alerts (활성 알림)
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/observability/alerts
+  body: none
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+vars:pre-request {
+  cluster_name: orb-kubernetes-001
+}
+
+docs {
+  Alertmanager `/api/v2/alerts` 프록시 — 현재 firing/silenced/inhibited 알림 전체.
+
+  파라미터 없음 (모든 alert 반환). 향후 filter (silenced/active 등) 추가 시 query param 으로 확장.
+
+  활용: 운영 대시보드의 "active alerts" 패널, 알림 trigger UX.
+}
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

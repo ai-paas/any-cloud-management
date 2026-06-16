@@ -1,0 +1,31 @@
+meta {
+  name: 7. Enqueue All (backfill)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/addons/enqueue
+  body: none
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+tests {
+  test("상태 코드 202", function() {
+    expect(res.getStatus()).to.equal(202);
+  });
+}
+
+docs {
+  Backfill — 해당 cluster 의 PENDING + FAILED + enabled 인 모든 addon row 일괄 enqueue.
+
+  사용 시나리오:
+  - 이미 ACTIVE 인 cluster 에 신규 addon 추가 후 일괄 install 트리거
+  - 운영 중 RabbitMQ broker 장애로 일부 메시지 유실된 경우 복구
+  - addon-workflow.enabled=false 였다가 true 로 toggle 한 후 누적분 처리
+}

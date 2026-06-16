@@ -1,0 +1,18 @@
+# anycloud-default Velero Schedule.
+# 매일 02:00 UTC (= KST 11:00) 전체 cluster 백업, 30일 보존.
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: anycloud-daily-full-cluster
+  namespace: ${NAMESPACE}
+  labels:
+    source: anycloud-default
+    policy: daily-full-cluster
+spec:
+  schedule: "0 2 * * *"
+  template:
+    snapshotVolumes: true
+    storageLocation: default
+    ttl: 720h0m0s
+    # includedNamespaces 미지정 → 전체 cluster.
+    # 운영에서 kube-system 등을 제외하려면 별 schedule (excludedNamespaces 명시).

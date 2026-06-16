@@ -1,0 +1,62 @@
+meta {
+  name: 9. K8s Resource Kinds (catalog discovery)
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/resource-kinds
+  body: none
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+vars:pre-request {
+  cluster_name: orb-kubernetes-001
+}
+
+docs {
+  Cluster 의 discovery API 가 노출하는 모든 API resource (kind) 동적 catalog.
+
+  파라미터 없음. cluster 마다 결과 다름 — CRD 가 다양해서 (cert-manager, ingress-nginx 등).
+
+  응답: data 배열 (group/plural 정렬). 각 entry 의 schema:
+    {
+      "plural":     "pods",
+      "singular":   "pod",
+      "kind":       "Pod",
+      "group":      "",                 // core 자원은 빈 문자열
+      "version":    "v1",
+      "namespaced": true,
+      "shortNames": ["po"]
+    }
+
+  활용:
+    - UI 의 "resource kind picker" / "어떤 kind 가 가능한가?" 데이터 소스.
+    - 새 CRD 설치 후 backend 코드 변경 없이 즉시 노출.
+    - cluster agent 의 동적 client + RESTMapper 가 source of truth.
+
+  503: cluster agent 비활성 시. fallback 으로 빈 list 반환 (caller 가 기본 12 kind 로 degrade 가능).
+}
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("배열 응답 + 표준 kind 포함 확인", function() {
+    const data = res.getBody();
+    expect(data.success).to.equal(true);
+    expect(Array.isArray(data.data)).to.equal(true);
+
+    // 표준 kind 가 있으면 sanity check — agent 가 ACTIVE 일 때만 의미
+    if (data.data.length > 0) {
+      const plurals = data.data.map(k => k.plural);
+      expect(plurals).to.include("pods");
+    }
+  });
+}

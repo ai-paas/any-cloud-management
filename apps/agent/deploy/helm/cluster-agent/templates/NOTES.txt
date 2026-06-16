@@ -1,0 +1,43 @@
+Cluster-Agent {{ .Chart.Version }} ({{ .Values.image.repository }}:{{ .Values.image.tag }}) 설치됨.
+
+  Release  : {{ .Release.Name }}
+  Namespace: {{ .Release.Namespace }}
+  Agent NS : {{ .Values.agent.namespace }}
+  Mode     : {{ .Values.deployment.mode | default "single" }}
+
+{{- if eq (.Values.deployment.mode | default "single") "split" }}
+
+📦  split mode — 2 Deployment 생성됨:
+    - {{ include "cluster-agent.fullname" . }}-core      (SA: {{ .Values.rbac.core.serviceAccountName }}, AGENT_MODE=core)
+    - {{ include "cluster-agent.fullname" . }}-installer (SA: {{ .Values.rbac.installer.serviceAccountName }}, AGENT_MODE=installer)
+
+    installer SA 에 core ClusterRole binding 없음 — 권한 분리.
+    agent dispatcher 의 mode-aware RPC 거부는 미구현 — 현재는 SA 권한 분리까지만.
+{{- end }}
+
+가시성 / 검증:
+
+  kubectl -n {{ .Values.agent.namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+  kubectl -n {{ .Values.agent.namespace }} logs -l app.kubernetes.io/instance={{ .Release.Name }} -f
+
+backend gRPC endpoint:
+
+  {{ .Values.backend.grpcAddr | default "(install 시 backend 가 자동 주입)" }}
+
+이 endpoint 가 잘못되어 있으면 agent pod 가 backend 에 연결을 못해 CrashLoopBackOff 가능.
+backend 의 application.yaml 의 `agent.grpc.public-endpoint` 설정 확인 권장.
+
+{{- if not (or .Values.bootstrap.registrationToken .Values.bootstrap.existingSecret) }}
+
+⚠️  bootstrap.registrationToken / bootstrap.existingSecret 둘 다 비어있음.
+    Pod 가 secret 을 못 찾아 CreateContainerConfigError 가 됩니다.
+    하나는 반드시 지정 필요:
+
+    A. chart 가 secret 생성:
+       --set bootstrap.registrationToken="<backend 에서 받은 JWT>"
+
+    B. 외부에서 만든 secret 사용:
+       kubectl -n {{ .Values.agent.namespace }} create secret generic aipaas-agent-bootstrap \
+           --from-literal=registration-token='<JWT>'
+       그리고 --set bootstrap.existingSecret=aipaas-agent-bootstrap
+{{- end }}

@@ -1,0 +1,128 @@
+version: 2
+
+# Dependabot — 매주 1회 자동 PR. patch / minor upgrade 만 — major 는 manual review.
+# CVE notice 자동 인지 + supply chain risk 감소.
+
+updates:
+  # ============ Java (Gradle) ============
+  - package-ecosystem: "gradle"
+    directory: "/apps/anycloud"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "java"
+    ignore:
+      # Spring Boot major upgrade — BOM 충돌 가능, manual review
+      - dependency-name: "org.springframework.boot:*"
+        update-types: ["version-update:semver-major"]
+      # Spring AMQP major
+      - dependency-name: "org.springframework.amqp:*"
+        update-types: ["version-update:semver-major"]
+      # MariaDB JDBC major
+      - dependency-name: "org.mariadb.jdbc:*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      spring:
+        patterns: ["org.springframework.*"]
+        update-types: ["minor", "patch"]
+      testcontainers:
+        patterns: ["org.testcontainers:*"]
+      jackson:
+        patterns: ["com.fasterxml.jackson*"]
+
+  - package-ecosystem: "gradle"
+    directory: "/libs/cluster-agent-spring-boot-starter"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "starter"
+
+  - package-ecosystem: "gradle"
+    directory: "/libs/cluster-agent-features-spring-boot-starter"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "starter"
+
+  - package-ecosystem: "gradle"
+    directory: "/libs/cluster-provisioning-spring-boot-starter"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "starter"
+
+  # ============ Go (Pulumi) ============
+  - package-ecosystem: "gomod"
+    directory: "/infra/pulumi"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "pulumi"
+    ignore:
+      # Pulumi SDK / CSP provider major upgrade — breaking change 가능
+      - dependency-name: "github.com/pulumi/pulumi/sdk/v*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "github.com/pulumi/pulumi-*"
+        update-types: ["version-update:semver-major"]
+      # K8s client-go major
+      - dependency-name: "k8s.io/client-go"
+        update-types: ["version-update:semver-major"]
+    groups:
+      pulumi-csp-providers:
+        patterns:
+          - "github.com/pulumi/pulumi-*"
+          - "github.com/muhlba91/pulumi-proxmoxve/*"
+        update-types: ["minor", "patch"]
+
+  # ============ Go (cluster-agent) ============
+  - package-ecosystem: "gomod"
+    directory: "/apps/agent"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "agent"
+    ignore:
+      - dependency-name: "k8s.io/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "google.golang.org/grpc"
+        update-types: ["version-update:semver-major"]
+
+  # ============ GitHub Actions ============
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "ci"
+
+  # ============ Docker (base image) ============
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+    open-pull-requests-limit: 2
+    labels:
+      - "dependencies"
+      - "docker"

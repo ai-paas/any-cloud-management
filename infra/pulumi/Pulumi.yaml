@@ -1,0 +1,3 @@
+name: anycloud-k8s
+runtime: go
+description: Multi-CSP VM-based Kubernetes provisioning with Pulumi

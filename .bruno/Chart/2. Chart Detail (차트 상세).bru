@@ -1,27 +1,28 @@
 meta {
-  name: Chart Detail (차트 상세)
+  name: 2. Chart Detail (차트 상세)
   type: http
   seq: 2
 }
 
 get {
-  url: {{baseUrl}}/charts/{{repo_name}}/{{chart_name}}/detail?version=21.1.21
+  url: {{baseUrl}}/v1/helm-repos/{{repo_name}}/charts/{{chart_name}}?version={{chart_version}}
   body: none
   auth: none
 }
 
 params:query {
-  version: 21.1.21
+  version: {{chart_version}}
 }
 
 headers {
   content-type: application/json
-  User-Agent: bruno/1.11.0
+  User-Agent: bruno/3.3.0
 }
 
 vars:pre-request {
   repo_name: chart-museum-external
-  chart_name: nginx
+  chart_name: ingress-nginx
+  chart_version: 4.15.1
 }
 
 tests {
@@ -31,6 +32,8 @@ tests {
   
   test("Response Data 확인", function() {
     const data = res.getBody();
+    expect(data.success).to.equal(true);
+    expect(data.status).to.equal(200);
     expect(data).to.not.be.undefined;
     expect(data.data).to.not.be.undefined;
   });

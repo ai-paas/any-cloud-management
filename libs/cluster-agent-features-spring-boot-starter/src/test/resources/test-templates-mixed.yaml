@@ -1,0 +1,25 @@
+# Test fixture — tiered + advanced form 혼합.
+templates:
+  - id: team-x
+    oidcGroupSelector:
+      matchExact: ["team-x"]
+    tieredRoleRefs:
+      tiers:
+        prod:
+          - kind: ClusterRole
+            name: view
+            scope: ClusterScope
+        dev:
+          - kind: ClusterRole
+            name: admin
+            scope: ClusterScope
+
+  - id: ops-fleet-admin
+    oidcGroupSelector:
+      matchExact: ["ops-team"]
+    forClusters:
+      matchLabels: {}
+    roleRefs:
+      - kind: ClusterRole
+        name: cluster-admin
+        scope: ClusterScope

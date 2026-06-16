@@ -1,28 +1,42 @@
 meta {
-  name: Helm repo Info (헬름 저장소 상세보기)
+  name: 3. HelmRepo Info (헬름저장소 상세보기)
   type: http
   seq: 3
 }
 
 get {
-  url: {{baseUrl}}/helm-repos/{{helmRepo-name}}
+  url: {{baseUrl}}/v1/helm-repos/{{helmRepo_name}}
   body: none
   auth: none
 }
 
 headers {
   content-type: application/json
-  User-Agent: bruno/1.11.0
+  User-Agent: bruno/3.3.0
+}
+
+vars:pre-request {
+  helmRepo_name: chart-museum-external
 }
 
 tests {
   test("상태 코드 200 확인", function() {
     expect(res.getStatus()).to.equal(200);
   });
-  
-  test("Response Data 확인", function() {
+
+  test("성공 envelope 확인", function() {
     const data = res.getBody();
-    // console.log("   ✓ data length", Object.keys(data).length);
-    expect(data).to.not.be.undefined;
+    expect(data.success).to.equal(true);
+    expect(data.status).to.equal(200);
+    expect(data.data).to.not.be.undefined;
+  });
+
+  // 2026-05-27 (H-46): autoAllowlist 필드는 Phase G / V27 migration 에서 제거됨.
+
+  test("H-47.1 — source / tags 필드 노출", function() {
+    const repo = res.getBody().data;
+    expect(repo).to.have.property("source");
+    expect(["INTERNAL", "EXTERNAL"]).to.include(repo.source);
+    // tags 는 null 가능 (사용자 미입력)
   });
 }

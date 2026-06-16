@@ -1,0 +1,201 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# 동일 브랜치/PR 의 진행 중 워크플로우는 새 push 가 들어오면 취소.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  java:
+    name: Java build + tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Spotless 의 ratchetFrom='origin/main' 이 git diff 를 보려면 main 기록이 필요.
+          fetch-depth: 0
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle (with cache)
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          cache-disabled: false
+          gradle-home-cache-cleanup: true
+
+      - name: Gradle build (anycloud:build)
+        run: ./gradlew :anycloud:build --no-daemon --console=plain
+
+      - name: Run tests (JUnit 5)
+        # build 가 test 를 포함하지만 명시 step 으로 두어 실패 시 즉시 잡히도록 한다.
+        # 통합 테스트(AbstractIntegrationTest) 는 Docker 가 없는 환경에서 자동 skip.
+        run: ./gradlew :anycloud:test --no-daemon --console=plain
+
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-reports
+          path: |
+            apps/anycloud/build/reports/tests/**
+            apps/anycloud/build/test-results/**
+          retention-days: 7
+
+      - name: Spotless check (Palantir Java Format)
+        run: ./gradlew :anycloud:spotlessCheck --no-daemon --console=plain
+        # 새 PR 의 변경 파일에 대해서만 검사. 위반 시 spotlessApply 안내 메시지로 fail.
+
+      - name: Verify 4 starter publishToMavenLocal (W-1 CI)
+        # 외부 Java 프로젝트가 mavenLocal() 로 starter jar 를 fetch 해 사용하는 path 회귀 방지.
+        # POM block / dependencies metadata / artifact id 누락 등이 publish 시점에야 드러나므로
+        # CI 에서 4 starter 모두 publishToMavenLocal 이 성공하는지 확인.
+        run: ./gradlew \
+          :cluster-agent-spring-boot-starter:publishToMavenLocal \
+          :cluster-agent-observability-spring-boot-starter:publishToMavenLocal \
+          :cluster-agent-backup-spring-boot-starter:publishToMavenLocal \
+          :cluster-provisioning-spring-boot-starter:publishToMavenLocal \
+          --no-daemon --console=plain
+
+      - name: Upload checkstyle / spotless reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: java-reports
+          path: |
+            apps/anycloud/build/reports/**
+          retention-days: 7
+
+  proto:
+    name: Proto lint + breaking check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # P-1 (2026-06-08) — proto evolution 안전망. main branch 대비 wire-format breaking change
+    # 차단. 동시에 buf lint 로 스타일 회귀 방지. 35 CommandType 의 빠른 진화 (35 entries / 8 phase)
+    # 가 silent regression 없이 지속되도록.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # buf breaking 은 main branch 의 .proto 와 diff 필요 → fetch-depth=0.
+          fetch-depth: 0
+
+      - name: Setup buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          # 정확한 version pin — major upgrade 시 lint rule / breaking rule 변경 가능성.
+          version: 1.45.0
+
+      - name: buf lint
+        run: buf lint
+
+      - name: buf breaking (against origin/main)
+        # PR 시 main branch 의 proto 와 wire-format 호환성 검사. agent ↔ backend 가 다른 시점에 배포되면
+        # field number / enum value reuse / package rename 등의 breaking change 가 wire mismatch 유발.
+        # main 푸시 자체에는 against 대상이 없으므로 skip.
+        if: github.event_name == 'pull_request'
+        run: buf breaking --against '.git#branch=origin/main'
+
+  go:
+    name: Pulumi Go build + vet
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: infra/pulumi
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          # infra/pulumi/go.mod 의 toolchain. 1.25.x.
+          go-version: '1.25'
+          cache-dependency-path: infra/pulumi/go.sum
+
+      - name: go mod download
+        run: go mod download
+
+      - name: go build ./...
+        run: go build ./...
+
+      - name: go vet ./...
+        run: go vet ./...
+
+  rustfs-smoke:
+    name: RustFS + OpenBao smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    # 셀프호스팅 Pulumi state backend (RustFS) + secrets provider (OpenBao) 가
+    # docker-compose.dev.yml 정의대로 부팅하고, Pulumi CLI 가 login 까지 성공하는지
+    # 회귀 검증. 라이선스(MinIO AGPLv3 회피, Vault BSL 회피) 결정의 핵심 의존성 보호.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compose pull
+        run: docker compose -f docker-compose.dev.yml pull rustfs openbao
+        # bootstrap 컨테이너(amazon/aws-cli)는 작아서 pull 생략해도 ok.
+
+      - name: Start rustfs + openbao + bucket bootstrap
+        # backend 빌드는 건너뛰고 self-hosted 의존성 3개만 띄움.
+        # bootstrap 은 bucket 생성 후 exit 0 (service_completed_successfully) → 검증 신호로 활용.
+        run: |
+          docker compose -f docker-compose.dev.yml up -d \
+            --wait --wait-timeout 120 \
+            rustfs openbao pulumi-backend-bootstrap
+
+      - name: Verify rustfs bucket via aws-cli
+        env:
+          AWS_ACCESS_KEY_ID: anycloud
+          AWS_SECRET_ACCESS_KEY: anycloud-secret
+          AWS_REGION: us-east-1
+        run: |
+          docker run --rm --network host \
+            -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_REGION \
+            amazon/aws-cli:2.17.0 \
+            --endpoint-url http://127.0.0.1:9000 s3api list-buckets \
+            --query 'Buckets[].Name' --output text | tee /tmp/buckets.txt
+          grep -q pulumi-state /tmp/buckets.txt || { echo "::error::bucket pulumi-state missing"; exit 1; }
+
+      - name: Verify openbao /sys/health
+        run: |
+          # initialized=true, sealed=false (dev mode 기본) 이어야 함.
+          curl -fsS http://127.0.0.1:8200/v1/sys/health \
+            | tee /tmp/bao-health.json
+          jq -e '.initialized==true and .sealed==false' /tmp/bao-health.json
+
+      - name: Install Pulumi CLI
+        uses: pulumi/actions@v5
+        with:
+          # 버전은 infra/pulumi/go.mod 의 SDK toolchain 과 정합.
+          pulumi-version: 3.150.0
+
+      - name: pulumi login against RustFS backend
+        env:
+          AWS_ACCESS_KEY_ID: anycloud
+          AWS_SECRET_ACCESS_KEY: anycloud-secret
+          AWS_REGION: us-east-1
+          PULUMI_BACKEND_URL: s3://pulumi-state?endpoint=http://127.0.0.1:9000&s3ForcePathStyle=true&disableSSL=true
+          PULUMI_CONFIG_PASSPHRASE: ci-smoke
+        run: |
+          pulumi login "${PULUMI_BACKEND_URL}"
+          pulumi whoami
+          # 빈 백엔드여도 'pulumi stack ls' 자체는 성공해야 함.
+          pulumi stack ls --json | jq .
+
+      - name: Compose logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.dev.yml logs rustfs openbao pulumi-backend-bootstrap
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker-compose.dev.yml down -v --remove-orphans

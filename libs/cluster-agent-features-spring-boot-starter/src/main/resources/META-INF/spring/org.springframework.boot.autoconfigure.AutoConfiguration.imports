@@ -1,0 +1,3 @@
+io.aipaas.cluster.agent.rbac.autoconfigure.ClusterAgentRbacAutoConfiguration
+io.aipaas.cluster.agent.backup.autoconfigure.BackupAutoConfiguration
+io.aipaas.cluster.agent.observability.autoconfigure.ObservabilityAutoConfiguration

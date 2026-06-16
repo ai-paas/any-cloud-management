@@ -1,0 +1,17 @@
+# Sample — namespace-scoped binding. 특정 namespace 안에서만 권한 부여.
+# alice@example.com 사용자가 "team-a" namespace 에서만 edit 권한 보유.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: oidc-alice-team-a-edit
+  namespace: team-a
+  labels:
+    app.kubernetes.io/managed-by: manual
+subjects:
+  - kind: User
+    name: alice@example.com
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: edit
+  apiGroup: rbac.authorization.k8s.io

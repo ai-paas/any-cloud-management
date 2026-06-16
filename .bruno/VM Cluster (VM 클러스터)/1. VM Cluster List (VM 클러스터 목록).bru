@@ -1,0 +1,35 @@
+meta {
+  name: 1. VM Cluster List (VM 클러스터 목록)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters?source=vm
+  body: none
+  auth: none
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Paged response with UnifiedClusterDto items", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("success");
+    expect(body.data).to.have.property("items");
+    if (Array.isArray(body.data.items) && body.data.items.length > 0) {
+      const first = body.data.items[0];
+      expect(first).to.have.property("clusterName");
+      expect(first).to.have.property("source");
+      expect(first.source).to.equal("vm");
+      expect(first).to.have.property("status");
+    }
+  });
+
+  test("meta 에 pagination 포함 여부 (옵션)", function() {
+    const body = res.getBody();
+    expect(body.meta).to.have.property("requestId");
+  });
+}

@@ -1,0 +1,18 @@
+// 공통 message — bootstrap.proto, runtime.proto, events.proto 가 import 해서 사용.
+
+syntax = "proto3";
+
+package com.aipaas.anycloud.agent.v1;
+
+option java_multiple_files = true;
+option java_package = "io.aipaas.cluster.agent.v1";
+option java_outer_classname = "CommonProto";
+option go_package = "anycloud/proto/agent/v1;agentv1";
+
+// 네트워크 정보. CIDR 은 cluster-info / events 에서만 채워지고, bootstrap 에서는 빈 문자열.
+message NetworkInfo {
+  string public_ip = 1;
+  string private_ip = 2;
+  string pod_cidr = 3;
+  string service_cidr = 4;
+}

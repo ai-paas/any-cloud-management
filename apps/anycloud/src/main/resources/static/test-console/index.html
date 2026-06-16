@@ -1,0 +1,2049 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>anycloud · Test Console</title>
+  <!--
+    Flow-centric test console — global context (credential/provider/region/cluster) 를
+    한 곳에서 선택 후 모든 tab 이 같은 context 위에서 동작.
+    Lifecycle 순서: Credentials → Provider → Validation → Clusters → Cluster Detail (Day-2/Resources/Helm/Obs/Agent).
+  -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.classless.min.css">
+  <style>
+    /* ----- App layout ----- */
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body { max-width: none; padding: 0; }
+
+    .app-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      grid-template-rows: auto 1fr;
+      grid-template-areas: "header header" "sidebar content";
+      min-height: 100vh;
+    }
+    .app-header {
+      grid-area: header;
+      padding: .5rem 1.25rem;
+      background: var(--pico-card-background-color, var(--pico-background-color));
+      border-bottom: 1px solid var(--pico-muted-border-color);
+      display: flex; align-items: center; gap: 1rem; flex-wrap: nowrap;
+      position: sticky; top: 0; z-index: 60;
+    }
+    .app-header .brand { flex: 0 0 auto; font-size: 0.95rem; font-weight: 700; margin: 0; line-height: 1; color: var(--pico-color); white-space: nowrap; }
+    .app-header .auth-bar { margin-left: 0; padding: 0; background: transparent; min-width: 0; flex: 0 0 auto; }
+    .app-header .auth-bar > summary { font-size: 0.82rem; padding: .2rem .5rem; cursor: pointer; }
+    .app-header .auth-bar .row { padding-top: .4rem; min-width: 340px; }
+
+    .app-sidebar {
+      grid-area: sidebar;
+      background: var(--pico-card-background-color, var(--pico-background-color));
+      border-right: 1px solid var(--pico-muted-border-color);
+      padding: 1rem 0;
+      overflow-y: auto; position: sticky; top: 0; max-height: 100vh;
+    }
+    .sidebar-group { margin-bottom: 1rem; }
+    .sidebar-group-label { font-size: 0.68rem; color: var(--pico-muted-color); text-transform: uppercase; letter-spacing: .06em; padding: 0 1rem .25rem; }
+    .sidebar-link {
+      display: block; padding: .4rem 1rem; color: var(--pico-secondary); text-decoration: none;
+      cursor: pointer; border-left: 3px solid transparent; font-size: 0.88rem; background: transparent;
+      border-top: 0; border-right: 0; border-bottom: 0; width: 100%; text-align: left;
+    }
+    .sidebar-link:hover { background: var(--pico-code-background-color); }
+    .sidebar-link.active { color: var(--pico-primary); border-left-color: var(--pico-primary); background: var(--pico-code-background-color); font-weight: 600; }
+    .sidebar-link .step { display: inline-block; width: 1.4em; color: var(--pico-primary); font-weight: 700; margin-right: .2rem; }
+
+    .app-content { grid-area: content; padding: 0 1.5rem 1.5rem; max-width: 1180px; overflow-x: hidden; }
+
+    @media (max-width: 800px) {
+      .app-layout { grid-template-columns: 1fr; grid-template-areas: "header" "sidebar" "content"; }
+      .app-sidebar { position: static; max-height: none; border-right: 0; border-bottom: 1px solid var(--pico-muted-border-color); }
+    }
+
+    /* ----- Context bar (header 내부 inline) ----- */
+    .context-bar {
+      flex: 1 1 auto;
+      display: flex; gap: .55rem; align-items: center; flex-wrap: nowrap;
+      font-size: 0.8rem;
+      overflow-x: auto; overflow-y: hidden;
+      padding: 0;
+    }
+    .context-bar > .ctx-group {
+      display: inline-flex; align-items: center; gap: .35rem;
+      flex: 0 0 auto;
+    }
+    .context-bar .ctx-label {
+      font-size: 0.74rem; color: var(--pico-muted-color);
+      display: inline-flex; align-items: center; gap: .3rem;
+      white-space: nowrap;
+    }
+    .context-bar select, .context-bar input {
+      padding: .18rem .4rem; font-size: 0.8rem;
+      min-width: 130px; max-width: 200px;
+      margin: 0; height: auto; border-radius: 4px;
+    }
+    .context-bar input.region-manual { min-width: 90px; max-width: 110px; }
+    .context-bar select:disabled {
+      opacity: .65; cursor: not-allowed;
+      background-color: var(--pico-form-element-disabled-background-color, var(--pico-muted-border-color));
+    }
+    .context-bar .ctx-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: var(--pico-muted-color); flex-shrink: 0; }
+    .context-bar .ctx-dot.set { background: var(--pico-color-green-500, #16a34a); }
+    .context-bar .sep { color: var(--pico-muted-border-color); flex-shrink: 0; }
+    .context-bar button.tiny { padding: .15rem .4rem; font-size: 0.7rem; margin: 0; }
+    @media (max-width: 1100px) {
+      .context-bar select, .context-bar input { min-width: 110px; max-width: 150px; }
+    }
+    @media (max-width: 900px) {
+      .app-header { flex-wrap: wrap; }
+      .context-bar { flex-basis: 100%; order: 3; }
+    }
+
+    /* ----- Tab content ----- */
+    .tab { display: none; }
+    .tab.active { display: block; }
+    .tab > h3:first-child { margin: 0 0 .5rem; font-size: 1.15rem; }
+
+    /* ----- Sub-tabs (Provider / Cluster Detail) ----- */
+    .subtabs {
+      display: flex; gap: .15rem; border-bottom: 1px solid var(--pico-muted-border-color);
+      margin-bottom: 1rem; flex-wrap: wrap;
+    }
+    .subtabs button {
+      background: transparent; border: 0; padding: .4rem .75rem; cursor: pointer;
+      color: var(--pico-secondary); font-size: 0.85rem;
+      border-bottom: 2px solid transparent; margin: 0;
+    }
+    .subtabs button.active { color: var(--pico-primary); border-bottom-color: var(--pico-primary); font-weight: 600; }
+    .subtab-panel { display: none; }
+    .subtab-panel.active { display: block; }
+
+    /* ----- Form / layout helpers ----- */
+    .row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: end; }
+    .row > * { margin: 0; }
+    .row > label { flex: 1; min-width: 12rem; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+    @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+
+    /* ----- Output panel ----- */
+    pre.output, div.output { background: var(--pico-code-background-color); padding: .75rem; border-radius: 4px; max-height: 480px; overflow: auto; font-size: 0.78rem; line-height: 1.4; }
+    pre.output { white-space: pre-wrap; word-break: break-word; }
+    div.output table { margin: 0; border-collapse: collapse; }
+    div.output table th, div.output table td { padding: .25rem .5rem; border-bottom: 1px solid var(--pico-muted-border-color); text-align: left; }
+    div.output table th { font-weight: 600; position: sticky; top: 0; background: var(--pico-code-background-color); }
+    pre.output .json-key { color: #7dd3fc; }
+    pre.output .json-string { color: #86efac; }
+    pre.output .json-number { color: #fbbf24; }
+    pre.output .json-bool { color: #c4b5fd; }
+    pre.output .json-null { color: #f87171; }
+    pre.output.ok { border-left: 3px solid var(--pico-color-green-500); padding-left: .75rem; }
+    pre.output.bad { border-left: 3px solid var(--pico-color-red-500); padding-left: .75rem; }
+
+    /* ----- Token + flow banner ----- */
+    .token-pill { display: inline-block; padding: .1rem .55rem; border-radius: 12px; font-size: 0.7rem; margin-left: .4rem; vertical-align: middle; }
+    .token-pill.set { background: var(--pico-color-green-500); color: #fff; }
+    .token-pill.unset { background: var(--pico-muted-color); color: #fff; }
+    .flow-banner {
+      background: linear-gradient(90deg, var(--pico-code-background-color), transparent);
+      border-left: 3px solid var(--pico-primary);
+      padding: .55rem .85rem; margin-bottom: .9rem; border-radius: 0 4px 4px 0; font-size: 0.82rem;
+    }
+    .flow-banner .intent { margin: 0 0 .2rem 0; }
+    .flow-banner .next { font-size: 0.76rem; color: var(--pico-muted-color); }
+    .flow-banner .next a { color: var(--pico-primary); cursor: pointer; text-decoration: underline; }
+
+    /* ----- Button sizing 전역 ----- */
+    button, input[type="submit"], [type="button"] {
+      padding: .3rem .7rem; font-size: 0.82rem; line-height: 1.3; min-width: 0;
+    }
+    button.small { padding: .2rem .55rem; font-size: 0.76rem; margin: 0 .2rem .2rem 0; }
+    button.tiny { padding: .12rem .45rem; font-size: 0.72rem; line-height: 1.2; }
+    input, select, textarea { padding: .3rem .5rem; font-size: 0.82rem; }
+    label { font-size: 0.82rem; }
+    h3 { margin-top: 0; } h4 { margin-top: 1.2rem; font-size: 0.95rem; }
+    .hint { color: var(--pico-muted-color); font-size: 0.8rem; margin: 0 0 .5rem 0; }
+    .output-actions { display: flex; justify-content: flex-end; gap: .25rem; margin-bottom: -.25rem; }
+
+    /* ----- Resource table ----- */
+    .resource-toolbar { display: flex; gap: .5rem; align-items: center; margin-bottom: .65rem; flex-wrap: wrap; }
+    .resource-toolbar .count { color: var(--pico-muted-color); font-size: 0.8rem; margin-left: auto; }
+    .resource-table { width: 100%; font-size: 0.82rem; border-collapse: collapse; }
+    .resource-table thead { background: var(--pico-code-background-color); }
+    .resource-table th, .resource-table td { padding: .4rem .6rem; border-bottom: 1px solid var(--pico-muted-border-color); text-align: left; vertical-align: middle; }
+    .resource-table th { font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: .03em; color: var(--pico-muted-color); }
+    .resource-table tbody tr { cursor: pointer; }
+    .resource-table tbody tr:hover { background: var(--pico-code-background-color); }
+    .resource-table tbody tr.selected { background: rgba(99, 102, 241, .08); }
+    .resource-table .row-actions { display: flex; gap: .25rem; }
+    .resource-table .row-actions button { padding: .15rem .5rem; font-size: 0.72rem; margin: 0; }
+    .resource-table .empty { text-align: center; color: var(--pico-muted-color); padding: 1.5rem 0; cursor: default; }
+    .resource-table .mono { font-family: var(--pico-font-family-monospace); font-size: 0.76rem; }
+    .badge { display: inline-block; padding: .08rem .45rem; border-radius: 10px; font-size: 0.7rem; background: var(--pico-code-background-color); color: var(--pico-muted-color); }
+    .badge.manual { background: #fde68a; color: #92400e; }
+    .badge.env { background: #bae6fd; color: #075985; }
+    .badge.ok { background: #bbf7d0; color: #14532d; }
+    .badge.err { background: #fecaca; color: #991b1b; }
+    .badge.warn { background: #fde68a; color: #92400e; }
+    .badge.info { background: #bae6fd; color: #075985; }
+
+    /* ----- Modal ----- */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-start; justify-content: center; z-index: 1000; padding: 2rem 1rem; overflow-y: auto; }
+    .modal-overlay.open { display: flex; }
+    .modal-dialog { background: var(--pico-background-color); border-radius: 8px; padding: 1.1rem 1.4rem .9rem; max-width: 760px; width: 100%; box-shadow: 0 12px 32px rgba(0,0,0,0.25); max-height: 100%; display: flex; flex-direction: column; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--pico-muted-border-color); margin-bottom: .9rem; padding-bottom: .4rem; }
+    .modal-header h3 { margin: 0; font-size: 1rem; }
+    .modal-close { background: transparent; border: 0; cursor: pointer; font-size: 1.3rem; color: var(--pico-muted-color); padding: 0 .25rem; line-height: 1; }
+    .modal-body { overflow-y: auto; padding-right: .25rem; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: .5rem; border-top: 1px solid var(--pico-muted-border-color); margin-top: 1rem; padding-top: .7rem; }
+    .inline-help { font-size: 0.76rem; color: var(--pico-muted-color); margin: -.4rem 0 .5rem; line-height: 1.45; }
+    .inline-help code { font-size: 0.76rem; }
+    .example-toggle { font-size: 0.76rem; color: var(--pico-muted-color); margin-bottom: .4rem; }
+    .example-toggle summary { cursor: pointer; }
+    .example-toggle pre { background: var(--pico-code-background-color); padding: .5rem; border-radius: 4px; font-size: 0.76rem; overflow: auto; margin-top: .3rem; }
+    .example-toggle button.fill-sample { margin-top: .3rem; padding: .15rem .55rem; font-size: 0.72rem; }
+
+    /* ----- Registered create modal — method tabs ----- */
+    .reg-method-tabs { display: flex; gap: .25rem; border-bottom: 1px solid var(--pico-muted-border-color); margin: .2rem 0 .8rem; }
+    .reg-method-tabs button {
+      background: transparent; border: 0; border-bottom: 2px solid transparent;
+      padding: .4rem .8rem; font-size: 0.82rem; color: var(--pico-muted-color);
+      cursor: pointer; border-radius: 0; margin: 0;
+    }
+    .reg-method-tabs button.active { color: var(--pico-color); border-bottom-color: var(--pico-primary, var(--pico-color)); }
+    .reg-method-panel { display: none; }
+    .reg-method-panel.active { display: block; }
+    label.inline { display: inline-flex; align-items: center; gap: .4rem; font-size: 0.82rem; }
+    label.inline input[type=checkbox] { margin: 0; }
+    .modal-action-bar { display: flex; justify-content: flex-end; margin-top: .8rem; }
+    .helm-snippet { margin-top: .7rem; }
+    .helm-snippet pre { font-size: 0.78rem; white-space: pre-wrap; word-break: break-all; }
+
+    /* ----- Flow Step Indicator (top of content) ----- */
+    .step-bar {
+      display: flex; gap: 0;
+      margin: 0 0 1rem;
+      font-size: 0.78rem;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--pico-muted-border-color);
+    }
+    .step-bar .step {
+      flex: 1; display: flex; align-items: center; gap: .5rem;
+      padding: .5rem .75rem;
+      background: var(--pico-card-background-color);
+      cursor: pointer;
+      color: var(--pico-muted-color);
+      border-right: 1px solid var(--pico-muted-border-color);
+      transition: background-color .12s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .step-bar .step:last-child { border-right: 0; }
+    .step-bar .step:hover { background: var(--pico-secondary-background, #f8fafc); }
+    .step-bar .step.done { color: var(--pico-color); }
+    .step-bar .step.current { background: #dbeafe; color: #1e3a8a; font-weight: 600; }
+    .step-bar .step.todo { opacity: .55; }
+    .step-bar .step-icon {
+      flex: 0 0 18px;
+      width: 18px; height: 18px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 50%; background: var(--pico-muted-color); color: white;
+      font-size: 0.7rem; font-weight: 600;
+    }
+    .step-bar .step.done .step-icon { background: #16a34a; }
+    .step-bar .step.current .step-icon { background: #2563eb; }
+    .step-bar .step-meta {
+      font-size: 0.72rem; color: var(--pico-muted-color);
+      font-weight: 400;
+      margin-left: .25rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ----- Next Action panel (bottom of content) ----- */
+    .next-action {
+      margin-top: 1.2rem; padding: .7rem 1rem;
+      background: var(--pico-card-background-color);
+      border: 1px solid var(--pico-muted-border-color);
+      border-left: 3px solid #2563eb;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      display: flex; align-items: center; gap: .5rem;
+    }
+    .next-action.warn { border-left-color: #f59e0b; }
+    .next-action.done { border-left-color: #16a34a; }
+    .next-action .arrow { color: var(--pico-muted-color); }
+    .next-action button { margin: 0 0 0 auto; padding: .25rem .65rem; font-size: 0.78rem; }
+    .next-action a { cursor: pointer; }
+
+    /* ----- Empty-state prompt (when context missing) ----- */
+    .empty-prompt {
+      padding: 1.5rem 1.2rem; text-align: center;
+      background: var(--pico-card-background-color);
+      border: 1px dashed var(--pico-muted-border-color);
+      border-radius: 6px;
+      color: var(--pico-muted-color);
+      margin: .5rem 0 1rem;
+    }
+    .empty-prompt h4 { margin: 0 0 .35rem; font-size: 0.95rem; color: var(--pico-color); }
+    .empty-prompt p { margin: 0 0 .7rem; font-size: 0.85rem; line-height: 1.5; }
+
+    /* ----- Provider workspace (2-column) ----- */
+    .provider-workspace {
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) 1fr;
+      gap: 1.2rem;
+    }
+    /* Region 미지원 provider (proxmox 등) — 좌측 Regions 컬럼 숨기고 1-column 으로. */
+    .provider-workspace.no-region { grid-template-columns: 1fr; }
+    .provider-workspace.no-region .col-regions { display: none; }
+    .provider-workspace .col-regions {
+      border-right: 1px solid var(--pico-muted-border-color);
+      padding-right: 1.2rem;
+      max-height: calc(100vh - 180px);
+      overflow-y: auto;
+      position: sticky;
+      top: 3.5rem; /* sticky header 바로 아래 */
+    }
+    .provider-workspace .col-regions h4,
+    .provider-workspace .col-data .pw-section h4 {
+      margin: 0 0 .5rem; font-size: 0.9rem;
+    }
+    .provider-workspace .col-data .pw-section {
+      border: 1px solid var(--pico-muted-border-color);
+      border-radius: 6px;
+      padding: .9rem 1rem;
+      margin-bottom: 1rem;
+    }
+    .provider-workspace .col-data .pw-section-header {
+      display: flex; align-items: center; gap: .5rem;
+      flex-wrap: wrap;
+      margin-bottom: .6rem;
+    }
+    .provider-workspace .col-data .pw-section-header h4 { margin: 0; flex: 0 0 auto; }
+    .provider-workspace .col-data .pw-section-header .filter-row {
+      display: flex; gap: .4rem; align-items: center;
+      margin-left: auto;
+    }
+    .provider-workspace .col-data .pw-section-header .filter-row label { margin: 0; font-size: 0.78rem; }
+    .provider-workspace .col-data .pw-section-header .filter-row input { font-size: 0.78rem; padding: .15rem .35rem; min-width: 80px; }
+    .provider-workspace .col-data .pw-section-header .filter-row button.tiny { padding: .15rem .55rem; font-size: 0.74rem; margin: 0; }
+    .resource-table tr.row-active td { background: #ecfdf5; }
+    .resource-table tr.row-active td:first-child { border-left: 3px solid #16a34a; padding-left: calc(.5rem - 3px); }
+    @media (max-width: 900px) {
+      .provider-workspace { grid-template-columns: 1fr; }
+      .provider-workspace .col-regions { position: static; border-right: 0; padding-right: 0; max-height: none; }
+    }
+
+    /* ----- Cluster detail panel ----- */
+    .detail-panel { border: 1px solid var(--pico-muted-border-color); border-radius: 6px; padding: 1rem; margin-top: 1rem; }
+    .detail-header { display: flex; align-items: center; gap: .6rem; margin-bottom: .8rem; flex-wrap: wrap; }
+    .detail-header h4 { margin: 0; font-size: 1rem; }
+    .detail-header .badge-list { display: flex; gap: .3rem; flex-wrap: wrap; }
+    .detail-header .ctx-back { margin-left: auto; }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+  <header class="app-header">
+    <h1 class="brand">anycloud test console</h1>
+    <div class="context-bar" role="toolbar" aria-label="Global context selectors">
+      <div class="ctx-group">
+        <span class="ctx-label"><span id="ctxCredentialDot" class="ctx-dot"></span>Credential</span>
+        <select id="ctxCredential" onchange="onCtxCredentialChange()"><option value="">(없음)</option></select>
+      </div>
+      <span class="sep">·</span>
+      <div class="ctx-group">
+        <span class="ctx-label"><span id="ctxProviderDot" class="ctx-dot"></span>Provider</span>
+        <select id="ctxProvider" onchange="onCtxProviderChange()">
+          <option value="aws">aws</option><option value="gcp">gcp</option><option value="azure">azure</option>
+          <option value="alibaba">alibaba</option><option value="oci">oci</option><option value="digitalocean">digitalocean</option>
+          <option value="openstack">openstack</option><option value="proxmox">proxmox</option>
+        </select>
+      </div>
+      <span class="sep">·</span>
+      <div class="ctx-group">
+        <span class="ctx-label"><span id="ctxRegionDot" class="ctx-dot"></span>Region</span>
+        <select id="ctxRegion" onchange="onCtxRegionChange()"><option value="">(전체)</option></select>
+        <input id="ctxRegionManual" class="region-manual" placeholder="직접 입력" />
+        <button class="tiny secondary" onclick="loadProviderRegionsToCtx()" title="현재 provider 의 regions 다시 로드">↻</button>
+      </div>
+      <span class="sep">·</span>
+      <div class="ctx-group">
+        <span class="ctx-label"><span id="ctxClusterDot" class="ctx-dot"></span>Cluster</span>
+        <select id="ctxCluster" onchange="onCtxClusterChange()"><option value="">(없음)</option></select>
+      </div>
+    </div>
+    <details class="auth-bar">
+      <summary>Authorization <span id="tokenPill" class="token-pill unset">no token</span></summary>
+      <div class="row">
+        <input id="authToken" type="password" placeholder="Bearer token" style="flex:1" />
+        <button class="secondary small" onclick="saveToken()">저장</button>
+        <button class="contrast small" onclick="clearToken()">삭제</button>
+      </div>
+    </details>
+  </header>
+
+  <aside class="app-sidebar">
+    <div class="sidebar-group">
+      <div class="sidebar-group-label">Setup</div>
+      <button class="sidebar-link active" data-tab="credentials"><span class="step">①</span>Credentials</button>
+      <button class="sidebar-link" data-tab="provider"><span class="step">②</span>Provider</button>
+      <button class="sidebar-link" data-tab="validation"><span class="step">③</span>Validation</button>
+    </div>
+    <div class="sidebar-group">
+      <div class="sidebar-group-label">Provision</div>
+      <button class="sidebar-link" data-tab="clusters"><span class="step">④</span>Clusters</button>
+    </div>
+    <div class="sidebar-group">
+      <div class="sidebar-group-label">Observe (전역)</div>
+      <button class="sidebar-link" data-tab="observability">Aggregate Metrics</button>
+    </div>
+    <div class="sidebar-group">
+      <div class="sidebar-group-label">Trace</div>
+      <button class="sidebar-link" data-tab="operations">Operations</button>
+      <button class="sidebar-link" data-tab="workflow">Workflow</button>
+      <button class="sidebar-link" data-tab="audit">Audit Logs</button>
+    </div>
+  </aside>
+
+  <main class="app-content">
+
+    <!-- ===== ① Credentials ===== -->
+    <section class="tab active" id="tab-credentials">
+      <div id="stepBar-credentials" class="step-bar"></div>
+      <h3>① Credentials</h3>
+      <p class="inline-help">VM 프로비저닝 / CSP API 호출의 baseline. row 의 [선택] 버튼 또는 row 클릭으로 context bar 의 Credential 채워짐 — provider 도 자동 lock.</p>
+      <div class="resource-toolbar">
+        <button onclick="loadCredentials()">새로고침</button>
+        <button class="secondary" onclick="openCredCreateModal()">+ 자격증명 추가</button>
+        <span class="count" id="credentialsCount"></span>
+      </div>
+      <div id="credentialsListOut"></div>
+      <div id="credentialsErrorOut"></div>
+      <div id="nextAction-credentials"></div>
+    </section>
+
+    <!-- ===== ② Provider ===== -->
+    <section class="tab" id="tab-provider">
+      <div id="stepBar-provider" class="step-bar"></div>
+      <h3>② Provider</h3>
+      <p class="inline-help">선택된 Provider 의 region/spec/image/schema 메타 — 좌측 Regions 표에서 region row 클릭 시 우측 데이터가 해당 region 으로 자동 로드됨.</p>
+
+      <div id="providerEmptyPrompt"></div>
+
+      <div class="provider-workspace" id="providerWorkspace" style="display:none">
+        <div class="col-regions">
+          <div class="pw-section-header">
+            <h4>Regions</h4>
+            <div class="filter-row">
+              <button class="tiny" onclick="loadProviderRegionsList()">↻</button>
+              <span class="count" id="provRegionsCount"></span>
+            </div>
+          </div>
+          <div id="provRegionsOut"></div>
+        </div>
+
+        <div class="col-data">
+          <div id="providerRegionMissingPrompt"></div>
+
+          <div class="pw-section">
+            <div class="pw-section-header">
+              <h4>VM Specs</h4>
+              <div class="filter-row">
+                <label>keyword <input id="provSpecsKeyword" placeholder="t3.medium" onkeypress="if(event.key==='Enter'){loadProviderSpecsList(false);}" /></label>
+                <label>limit <input id="provSpecsLimit" type="number" min="1" max="500" value="50" /></label>
+                <button class="tiny" onclick="loadProviderSpecsList(false)">조회</button>
+                <span class="count" id="provSpecsCount"></span>
+              </div>
+            </div>
+            <div id="provSpecsOut"></div>
+          </div>
+
+          <div class="pw-section">
+            <div class="pw-section-header">
+              <h4>VM Specs (GPU)</h4>
+              <div class="filter-row">
+                <button class="tiny" onclick="loadProviderSpecsList(true)">조회</button>
+                <span class="count" id="provSpecsGpuCount"></span>
+              </div>
+            </div>
+            <div id="provSpecsGpuOut"></div>
+          </div>
+
+          <div class="pw-section">
+            <div class="pw-section-header">
+              <h4>Images</h4>
+              <div class="filter-row">
+                <label>keyword <input id="provImagesKeyword" placeholder="ubuntu" onkeypress="if(event.key==='Enter'){loadProviderImagesList();}" /></label>
+                <label>limit <input id="provImagesLimit" type="number" min="1" max="500" value="50" /></label>
+                <button class="tiny" onclick="loadProviderImagesList()">조회</button>
+                <span class="count" id="provImagesCount"></span>
+              </div>
+            </div>
+            <div id="provImagesOut"></div>
+          </div>
+
+          <div class="pw-section">
+            <div class="pw-section-header">
+              <h4>Config Schema</h4>
+              <div class="filter-row">
+                <button class="tiny" onclick="loadProviderSchemaList()">조회</button>
+                <span class="count" id="provSchemaCount"></span>
+              </div>
+            </div>
+            <div id="provSchemaOut"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="nextAction-provider"></div>
+    </section>
+
+    <!-- ===== ③ Validation ===== -->
+    <section class="tab" id="tab-validation">
+      <div id="stepBar-validation" class="step-bar"></div>
+      <h3>③ Validation (Preflight)</h3>
+      <p class="inline-help">cluster 생성 전 ctx (credential + provider + region) + config 의 사전 검증 — 통과해야 ④ Clusters 의 [+ VM 생성] 으로 진행.</p>
+      <div id="validationEmptyPrompt"></div>
+      <div class="grid2">
+        <label>clusterName <input id="valClusterName" placeholder="demo-aws-01" /></label>
+        <label>environment <input id="valEnv" value="dev" /></label>
+      </div>
+      <label>config (JSON)
+        <textarea id="valConfig" rows="5" placeholder='{"workerCount":"3","kubernetesVersion":"1.30.4","instanceType":"t3.medium"}'></textarea>
+      </label>
+      <button onclick="runValidation()">Preflight 실행</button>
+      <div id="validationOut"></div>
+      <div id="nextAction-validation"></div>
+    </section>
+
+    <!-- ===== ④ Clusters (목록 + Detail) ===== -->
+    <section class="tab" id="tab-clusters">
+      <div id="stepBar-clusters" class="step-bar"></div>
+      <h3>④ Clusters</h3>
+      <p class="inline-help">cluster 목록 — row 클릭 시 상세 (Day-2 / Resources / Helm / Observability / Agent / Operations 모두 한 cluster context 안).</p>
+
+      <div id="clustersListView">
+        <div class="resource-toolbar">
+          <button onclick="loadClusters()">새로고침</button>
+          <select id="clustersSourceFilter" onchange="loadClusters()">
+            <option value="">전체</option>
+            <option value="vm">VM</option>
+            <option value="registered">Registered</option>
+          </select>
+          <button class="secondary" onclick="openVmCreateModal()">+ VM 생성</button>
+          <button class="secondary" onclick="openRegCreateModal()">+ Registered 등록</button>
+          <span class="count" id="clustersCount"></span>
+        </div>
+        <div id="clustersListOut"></div>
+      </div>
+
+      <!-- ===== Cluster Detail (선택 시 표시, 목록 hide) ===== -->
+      <div id="clustersDetailView" style="display:none">
+        <div class="detail-header">
+          <button class="secondary small" onclick="closeClusterDetail()">← 클러스터 목록</button>
+          <h4 id="cdName"></h4>
+          <span class="badge-list" id="cdBadges"></span>
+          <button class="contrast small ctx-back" onclick="deleteClusterFromDetail()">cluster 삭제</button>
+        </div>
+
+        <div class="subtabs" id="cdSubtabs">
+          <button class="active" data-subtab="cd-overview" onclick="switchClusterSubTab('cd-overview'); cdRefreshOverview();">Overview</button>
+          <button data-subtab="cd-day2" onclick="switchClusterSubTab('cd-day2');">Day-2</button>
+          <button data-subtab="cd-resources" onclick="switchClusterSubTab('cd-resources'); cdLoadResources();">K8s Resources</button>
+          <button data-subtab="cd-helm" onclick="switchClusterSubTab('cd-helm'); cdLoadHelm();">Helm</button>
+          <button data-subtab="cd-obs" onclick="switchClusterSubTab('cd-obs');">Observability</button>
+          <button data-subtab="cd-agent" onclick="switchClusterSubTab('cd-agent');">Agent</button>
+          <button data-subtab="cd-ops" onclick="switchClusterSubTab('cd-ops'); cdLoadOps();">Operations</button>
+        </div>
+
+        <div class="subtab-panel active" data-subtab="cd-overview">
+          <div class="resource-toolbar"><button onclick="cdRefreshOverview()">새로고침</button></div>
+          <div id="cdOverviewOut"></div>
+        </div>
+
+        <div class="subtab-panel" data-subtab="cd-day2">
+          <p class="hint">READY 상태 cluster 의 worker 조절. 비동기 (202).</p>
+          <h4>Worker Scale</h4>
+          <div class="row">
+            <label>workerCount (1–50) <input id="cdScaleWorkers" type="number" min="1" max="50" value="3" /></label>
+            <button onclick="cdScale()">Scale</button>
+          </div>
+          <h4>Retry Workflow</h4>
+          <p class="hint">FAILED 상태에서 마지막 step 부터 재실행.</p>
+          <button onclick="cdRetry()">Retry</button>
+          <div id="cdDay2Out"></div>
+        </div>
+
+        <div class="subtab-panel" data-subtab="cd-resources">
+          <div class="resource-toolbar">
+            <label style="margin:0">namespace <input id="cdResNamespace" value="default" /></label>
+            <label style="margin:0">kind
+              <select id="cdResKind" onchange="cdLoadResources()">
+                <option>pods</option><option>services</option><option>deployments</option>
+                <option>statefulsets</option><option>daemonsets</option>
+                <option>configmaps</option><option>secrets</option>
+                <option>persistentvolumeclaims</option><option>nodes</option><option>namespaces</option>
+                <option>ingresses</option>
+              </select>
+            </label>
+            <button onclick="cdLoadResources()">새로고침</button>
+            <button class="secondary" onclick="cdConnectivityCheck()">connectivity</button>
+            <span class="count" id="cdResCount"></span>
+          </div>
+          <div id="cdResourcesOut"></div>
+          <div id="cdResourceActionOut"></div>
+        </div>
+
+        <div class="subtab-panel" data-subtab="cd-helm">
+          <div class="resource-toolbar">
+            <label style="margin:0">namespace <input id="cdHelmNamespace" value="default" /></label>
+            <button onclick="cdLoadHelm()">새로고침</button>
+            <button class="secondary" onclick="cdOpenHelmInstallModal()">+ 설치</button>
+            <span class="count" id="cdHelmCount"></span>
+          </div>
+          <div id="cdHelmOut"></div>
+          <div id="cdHelmOpsOut"></div>
+        </div>
+
+        <div class="subtab-panel" data-subtab="cd-obs">
+          <div class="resource-toolbar">
+            <button class="small" onclick="cdObsAlerts()">alerts</button>
+            <button class="small" onclick="cdObsTargets('active')">targets</button>
+            <button class="small" onclick="cdObsDashboard()">dashboard URL</button>
+            <button class="small secondary" onclick="cdObsNodeCpu()">node CPU</button>
+            <button class="small secondary" onclick="cdObsNodeMemory()">node memory</button>
+            <button class="small secondary" onclick="cdObsPodPhases()">pod phases</button>
+          </div>
+          <label style="margin-top:.5rem">PromQL (직접 입력)
+            <input id="cdObsPromql" placeholder='sum(rate(container_cpu_usage_seconds_total[5m]))' />
+          </label>
+          <div class="row">
+            <button class="small" onclick="cdObsQuery()">instant</button>
+            <button class="small secondary" onclick="cdObsStackInstall()">+ kube-prometheus-stack 설치</button>
+          </div>
+          <div id="cdObsOut"></div>
+        </div>
+
+        <div class="subtab-panel" data-subtab="cd-agent">
+          <p class="hint">현 cluster 에 cluster-agent Pod 부착용 단기 JWT (~10분) 발급. agent Pod 의 <code>REGISTRATION_TOKEN</code> env 로 주입.</p>
+          <div class="row">
+            <label>installMode
+              <select id="cdAgentInstallMode">
+                <option value="MANUAL">MANUAL</option>
+                <option value="HELM_BOOTSTRAP">HELM_BOOTSTRAP</option>
+                <option value="API_MANAGED">API_MANAGED</option>
+              </select>
+            </label>
+            <button onclick="cdIssueAgentToken()">토큰 발급</button>
+          </div>
+          <div id="cdAgentOut"></div>
+        </div>
+
+        <div class="subtab-panel" data-subtab="cd-ops">
+          <div class="resource-toolbar"><button onclick="cdLoadOps()">새로고침</button><span class="count" id="cdOpsCount"></span></div>
+          <div id="cdOpsOut"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Observability (multi-cluster, 전역) ===== -->
+    <section class="tab" id="tab-observability">
+      <h3>Aggregate Metrics</h3>
+      <p class="hint">cluster 전체 (ClusterCatalog 의 모든 cluster) fan-out PromQL. 단일 cluster 의 observability 는 Clusters → cluster detail 의 Observability sub-tab.</p>
+      <h4>Standard query preset</h4>
+      <div class="row">
+        <label>preset <select id="obsPreset" onchange="obsPresetApply()"><option value="">(직접 입력)</option></select></label>
+        <button class="small secondary" onclick="obsPresetLoad()">↻ 카탈로그</button>
+      </div>
+      <label>PromQL <input id="obsPromql" placeholder='sum by (cluster) (...)' /></label>
+      <div class="row">
+        <label>window <input id="obsStdWindow" value="5m" /></label>
+        <label>perClusterTimeoutSec <input id="obsAggTimeout" type="number" value="8" /></label>
+        <button onclick="obsAggregate()">aggregate</button>
+      </div>
+      <div class="row">
+        <span class="hint">최근:</span>
+        <span id="obsHistory" style="display:flex;gap:.2rem;flex-wrap:wrap"></span>
+      </div>
+      <div id="obsQueryOut"></div>
+    </section>
+
+    <!-- ===== Operations (전역) ===== -->
+    <section class="tab" id="tab-operations">
+      <h3>Operations (전역)</h3>
+      <p class="hint">단일 cluster 의 operations 는 Clusters → detail → Operations sub-tab 에서 그 cluster 만 조회.</p>
+      <div class="resource-toolbar">
+        <button onclick="searchOperations()">검색</button>
+        <span class="count" id="opCount"></span>
+      </div>
+      <div class="row" style="margin-bottom:.75rem">
+        <label>state <select id="opState"><option value="">(any)</option><option>PENDING</option><option>RUNNING</option><option>SUCCEEDED</option><option>FAILED</option><option>CANCELLED</option></select></label>
+        <label>type <input id="opType" placeholder="CLUSTER_CREATE" /></label>
+        <label>resourceType <input id="opResType" placeholder="cluster" /></label>
+        <label>resourceId <input id="opResId" placeholder="demo-aws-01" /></label>
+        <label>pageSize <input id="opPageSize" type="number" min="1" max="500" value="50" /></label>
+      </div>
+      <div id="opSearchOut"></div>
+    </section>
+
+    <!-- ===== Workflow ===== -->
+    <section class="tab" id="tab-workflow">
+      <h3>Workflow</h3>
+      <p class="hint">RabbitMQ 큐 + DLQ. RabbitMQ 미설정 환경에선 503.</p>
+      <h4>큐 상태</h4>
+      <div class="resource-toolbar"><button onclick="loadQueues()">새로고침</button><span class="count" id="queuesCount"></span></div>
+      <div id="queuesOut"></div>
+      <h4>Dead-letter</h4>
+      <div class="resource-toolbar">
+        <label style="margin:0">cluster <input id="failClusterFilter" /></label>
+        <label style="margin:0">limit <input id="failLimit" type="number" value="20" /></label>
+        <button onclick="loadFailed()">조회</button>
+        <span class="count" id="failedCount"></span>
+      </div>
+      <div id="failedOut"></div>
+      <div id="republishOut"></div>
+    </section>
+
+    <!-- ===== Audit Logs ===== -->
+    <section class="tab" id="tab-audit">
+      <h3>Audit Logs</h3>
+      <div class="resource-toolbar">
+        <button onclick="searchAudit()">검색</button>
+        <span class="count" id="auditCount"></span>
+      </div>
+      <div class="grid2" style="margin-bottom:.75rem">
+        <label>since <input id="auditSince" placeholder="2026-12-01T00:00:00Z" /></label>
+        <label>until <input id="auditUntil" placeholder="2026-12-31T23:59:59Z" /></label>
+        <label>resource-type <input id="auditResType" placeholder="cluster" /></label>
+        <label>resource-id <input id="auditResId" placeholder="demo-aws-01" /></label>
+        <label>action <input id="auditAction" placeholder="create" /></label>
+        <label>principal <input id="auditPrincipal" placeholder="admin" /></label>
+        <label>limit <input id="auditLimit" type="number" value="100" /></label>
+      </div>
+      <div id="auditOut"></div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ===================== MODALS ===================== -->
+
+<!-- Credentials Create Modal -->
+<div class="modal-overlay" id="credCreateModal">
+  <div class="modal-dialog">
+    <div class="modal-header"><h3>자격증명 추가</h3><button class="modal-close" onclick="closeModal('credCreateModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="grid2">
+        <label>name <input id="credName" placeholder="aws-prod-1" /></label>
+        <label>provider
+          <select id="credProvider" onchange="onCredProviderChange()">
+            <option value="AWS">aws</option><option value="GCP">gcp</option><option value="AZURE">azure</option>
+            <option value="ALICLOUD">alibaba</option><option value="OCI">oci</option><option value="DIGITALOCEAN">digitalocean</option>
+            <option value="OPENSTACK">openstack</option><option value="PROXMOX">proxmox</option>
+          </select>
+        </label>
+        <label>sourceType
+          <select id="credSourceType" onchange="onCredSourceTypeChange()"><option value="MANUAL">MANUAL</option><option value="ENV">ENV</option></select>
+        </label>
+        <label>description (optional) <input id="credDesc" /></label>
+      </div>
+      <p class="inline-help"><strong>MANUAL</strong>: 키를 JSON 으로 직접 보냄 → AES-256 암호화 후 DB 저장 (multi-tenant).<br><strong>ENV</strong>: backend Pod 의 env 변수 사용 — credentials JSON 입력 X.</p>
+      <details class="example-toggle">
+        <summary>📋 provider 별 sample payload</summary>
+        <pre id="credExamplePre"></pre>
+        <button class="fill-sample" onclick="fillCredSample()">샘플 채우기</button>
+      </details>
+      <label id="credKeysLabel">credentials (JSON, MANUAL 시만 필수)
+        <textarea id="credKeys" rows="6"></textarea>
+      </label>
+      <div id="credentialsCreateOut"></div>
+    </div>
+    <div class="modal-footer"><button class="secondary" onclick="closeModal('credCreateModal')">취소</button><button onclick="submitCredentialCreate()">생성</button></div>
+  </div>
+</div>
+
+<!-- VM Create Modal -->
+<div class="modal-overlay" id="vmCreateModal">
+  <div class="modal-dialog">
+    <div class="modal-header"><h3>VM Cluster 생성</h3><button class="modal-close" onclick="closeModal('vmCreateModal')">✕</button></div>
+    <div class="modal-body">
+      <p class="inline-help">선택된 context (credential + provider + region) 자동 채움. POST <code>/v1/clusters</code> (source=vm). 202 비동기.</p>
+      <div id="vmCreateCtxBanner"></div>
+      <details class="example-toggle">
+        <summary>📋 sample body</summary>
+        <pre id="vmCreateExamplePre"></pre>
+        <button class="fill-sample" onclick="fillVmCreateSample()">샘플 채우기</button>
+      </details>
+      <div class="grid2">
+        <label>clusterName <input id="vmCreateName" placeholder="demo-aws-01" /></label>
+        <label>provider <input id="vmCreateProvider" readonly /></label>
+        <label>region <input id="vmCreateRegion" /></label>
+        <label>environment <input id="vmCreateEnv" value="dev" /></label>
+        <label>credentialId <input id="vmCreateCredId" /></label>
+        <label>hasGpuNodes <select id="vmCreateGpu"><option value="false">false</option><option value="true">true</option></select></label>
+      </div>
+      <label>config (JSON)<textarea id="vmCreateConfig" rows="5"></textarea></label>
+      <div id="vmCreateOut"></div>
+    </div>
+    <div class="modal-footer"><button class="secondary" onclick="closeModal('vmCreateModal')">취소</button><button id="vmCreateSubmitBtn" onclick="submitVmClusterCreate()">생성</button></div>
+  </div>
+</div>
+
+<!-- Registered Create Modal -->
+<div class="modal-overlay" id="regCreateModal">
+  <div class="modal-dialog">
+    <div class="modal-header"><h3>Registered Cluster 등록</h3><button class="modal-close" onclick="closeModal('regCreateModal')">✕</button></div>
+    <div class="modal-body">
+      <p class="inline-help">기존 K8s cluster 를 anycloud 에 등록 — provisioning X. 등록 방법 2 가지 중 선택.</p>
+
+      <div class="reg-method-tabs">
+        <button class="active" data-reg-tab="kubeconfig" onclick="switchRegTab('kubeconfig')">① kubeconfig 업로드</button>
+        <button data-reg-tab="agent" onclick="switchRegTab('agent')">② Agent (Helm) 설치</button>
+      </div>
+
+      <!-- Tab A: kubeconfig 업로드 -->
+      <div class="reg-method-panel active" data-reg-tab="kubeconfig">
+        <p class="hint">~/.kube/config 또는 EKS/GKE/AKS kubeconfig 파일을 그대로 업로드 → backend 가 파싱·등록.</p>
+        <div class="grid2">
+          <label>clusterName <input id="regKcName" placeholder="imported-aws-01" /></label>
+          <label>provider <input id="regKcProvider" placeholder="AWS" /></label>
+          <label>clusterType (옵션) <input id="regKcType" placeholder="EKS · 미입력 시 Imported" /></label>
+          <label>description (옵션) <input id="regKcDesc" /></label>
+        </div>
+        <label>kubeconfig 파일 <input type="file" id="regKcFile" accept=".yaml,.yml,.kubeconfig,application/yaml,text/yaml,*/*" /></label>
+        <div class="grid2">
+          <label class="inline"><input type="checkbox" id="regKcValidate" checked /> 등록 직후 connectivity 검증</label>
+          <label class="inline"><input type="checkbox" id="regKcStrict" /> 검증 실패 시 rollback (strict)</label>
+        </div>
+        <div id="regKcOut"></div>
+        <div class="modal-action-bar"><button onclick="submitKubeconfigImport()">kubeconfig 로 등록</button></div>
+      </div>
+
+      <!-- Tab B: Agent (Helm) 설치 -->
+      <div class="reg-method-panel" data-reg-tab="agent">
+        <p class="hint">cluster placeholder 만 backend 에 먼저 등록 → bootstrap JWT 발급 → 출력된 <code>helm install</code> 명령을 사용자가 클러스터에서 실행. agent 가 reverse-tunnel 로 backend 에 붙은 뒤 apiServerUrl / CA / version 을 자동 backfill — 그 동안 cluster status 는 <strong>AGENT_PENDING</strong>.</p>
+        <div class="grid2">
+          <label>clusterName <input id="regAgName" placeholder="imported-aws-01" /></label>
+          <label>provider <input id="regAgProvider" placeholder="AWS" /></label>
+          <label>clusterType (옵션) <input id="regAgType" placeholder="EKS · 미입력 시 Imported" /></label>
+          <label>description (옵션) <input id="regAgDesc" /></label>
+        </div>
+        <div id="regAgOut"></div>
+        <div id="regAgHelmSnippet" class="helm-snippet" style="display:none">
+          <div class="output-actions">
+            <span class="hint">아래 명령을 클러스터에 kubectl 가능한 환경에서 실행하세요. JWT 만료까지 약 <span id="regAgTtl"></span> 초.</span>
+            <button class="tiny secondary" onclick="copyRegAgHelm()">copy</button>
+          </div>
+          <pre id="regAgHelmCmd" class="output ok"></pre>
+        </div>
+        <div class="modal-action-bar">
+          <button onclick="submitAgentBootstrap()">등록 + Helm token 발급</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="secondary" onclick="closeModal('regCreateModal')">닫기</button></div>
+  </div>
+</div>
+
+<!-- Helm Install Modal -->
+<div class="modal-overlay" id="cdHelmInstallModal">
+  <div class="modal-dialog">
+    <div class="modal-header"><h3>Helm Release 설치</h3><button class="modal-close" onclick="closeModal('cdHelmInstallModal')">✕</button></div>
+    <div class="modal-body">
+      <p class="inline-help">cluster <strong id="cdHelmInstallClusterLabel"></strong> / ns <strong id="cdHelmInstallNsLabel"></strong></p>
+      <div class="grid2">
+        <label>releaseName <input id="cdHelmReleaseName" placeholder="ingress-nginx" /></label>
+        <label>chart <input id="cdHelmChart" placeholder="ingress-nginx/ingress-nginx" /></label>
+        <label>version <input id="cdHelmVersion" placeholder="4.11.2" /></label>
+      </div>
+      <label>valuesYaml <textarea id="cdHelmValuesYaml" rows="5"></textarea></label>
+      <div id="cdHelmInstallOut"></div>
+    </div>
+    <div class="modal-footer"><button class="secondary" onclick="closeModal('cdHelmInstallModal')">취소</button><button onclick="cdSubmitHelmInstall()">설치</button></div>
+  </div>
+</div>
+
+<script>
+//#region Common utils
+const TOKEN_KEY = 'anycloud_test_console_token';
+function saveToken() { const v = document.getElementById('authToken').value.trim(); if (v) localStorage.setItem(TOKEN_KEY, v); else localStorage.removeItem(TOKEN_KEY); refreshTokenPill(); }
+function clearToken() { localStorage.removeItem(TOKEN_KEY); document.getElementById('authToken').value = ''; refreshTokenPill(); }
+function loadStoredToken() { const v = localStorage.getItem(TOKEN_KEY); if (v) document.getElementById('authToken').value = v; refreshTokenPill(); }
+function refreshTokenPill() { const p = document.getElementById('tokenPill'); if (localStorage.getItem(TOKEN_KEY)) { p.className='token-pill set'; p.textContent='token set'; } else { p.className='token-pill unset'; p.textContent='no token'; } }
+function authHeaders() { const v = localStorage.getItem(TOKEN_KEY); return v ? { 'Authorization': 'Bearer ' + v } : {}; }
+
+async function call(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json', ...authHeaders() } };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const t0 = performance.now();
+  const res = await fetch(path, opts);
+  const dt = (performance.now() - t0).toFixed(0);
+  let parsed;
+  try { parsed = await res.json(); } catch (_) { parsed = await res.text(); }
+  return { ok: res.ok, status: res.status, dt, body: parsed };
+}
+/** multipart/form-data — Content-Type 헤더는 브라우저가 boundary 포함해서 자동 부여. */
+async function callMultipart(method, path, formData) {
+  const opts = { method, headers: { ...authHeaders() }, body: formData };
+  const t0 = performance.now();
+  const res = await fetch(path, opts);
+  const dt = (performance.now() - t0).toFixed(0);
+  let parsed;
+  try { parsed = await res.json(); } catch (_) { parsed = await res.text(); }
+  return { ok: res.ok, status: res.status, dt, body: parsed };
+}
+
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeJs(s) { return String(s).replace(/'/g, "\\'").replace(/"/g, '\\"'); }
+function highlightJson(obj) {
+  const json = JSON.stringify(obj, null, 2);
+  if (typeof obj !== 'object') return escapeHtml(json);
+  return escapeHtml(json)
+    .replace(/(&quot;[^&]+?&quot;)\s*:/g, '<span class="json-key">$1</span>:')
+    .replace(/:\s*(&quot;.*?&quot;)/g, ': <span class="json-string">$1</span>')
+    .replace(/:\s*(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g, ': <span class="json-number">$1</span>')
+    .replace(/:\s*(true|false)/g, ': <span class="json-bool">$1</span>')
+    .replace(/:\s*(null)/g, ': <span class="json-null">$1</span>');
+}
+function renderInto(containerId, result, extraNote) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const label = (result.ok ? '✓' : '✗') + ' ' + result.status + ' (' + result.dt + 'ms)' + (extraNote ? ' · ' + extraNote : '');
+  container.innerHTML = '<div class="output-actions"><button class="tiny secondary" onclick="copyOutput(\'' + containerId + '-pre\')">copy</button></div>'
+    + '<pre id="' + containerId + '-pre" class="output ' + (result.ok ? 'ok' : 'bad') + '">' + escapeHtml(label) + '\n\n' + highlightJson(result.body) + '</pre>';
+}
+function copyOutput(preId) { const pre = document.getElementById(preId); if (pre) navigator.clipboard.writeText(pre.textContent).catch(() => {}); }
+
+function extractItems(result) {
+  if (!result || !result.ok) return null;
+  const data = result.body && result.body.data;
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.items)) return data.items;
+  if (data && Array.isArray(data.releases)) return data.releases;
+  return null;
+}
+
+/**
+ * Generic table renderer.
+ * @param columns [{label, value, mono?, badge?}]
+ * @param actions [{label, onclick(item), danger?, secondary?}]
+ * @param onRowClick (item) => 'jsExpr' (선택적 — 표 row 클릭 시)
+ * @param rowClass (item) => 'cssClass' (선택적 — 행별 강조 등)
+ */
+function renderResourceTable(containerId, items, columns, actions, emptyMsg, onRowClick, rowClass) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  if (!items || items.length === 0) {
+    container.innerHTML = '<table class="resource-table"><tbody><tr><td class="empty">' + escapeHtml(emptyMsg || '(empty)') + '</td></tr></tbody></table>';
+    return;
+  }
+  let html = '<table class="resource-table"><thead><tr>';
+  columns.forEach(c => html += '<th>' + escapeHtml(c.label) + '</th>');
+  if (actions && actions.length) html += '<th>Actions</th>';
+  html += '</tr></thead><tbody>';
+  items.forEach((it, idx) => {
+    const clickAttr = onRowClick ? (' onclick="' + onRowClick(it, idx) + '"') : '';
+    const cls = rowClass ? rowClass(it) : '';
+    html += '<tr' + (cls ? ' class="' + cls + '"' : '') + clickAttr + '>';
+    columns.forEach(c => {
+      let v = c.value ? c.value(it) : '';
+      if (v === undefined || v === null) v = '';
+      if (c.badge) {
+        const b = c.badge(it) || '';
+        html += '<td><span class="badge ' + b + '">' + escapeHtml(String(v)) + '</span></td>';
+      } else {
+        html += '<td' + (c.mono ? ' class="mono"' : '') + '>' + escapeHtml(String(v)) + '</td>';
+      }
+    });
+    if (actions && actions.length) {
+      html += '<td class="row-actions" onclick="event.stopPropagation()">';
+      actions.forEach(a => {
+        const cls = a.danger ? 'contrast' : (a.secondary ? 'secondary' : '');
+        html += '<button class="' + cls + '" onclick="' + a.onclick(it) + '">' + escapeHtml(a.label) + '</button>';
+      });
+      html += '</td>';
+    }
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+// Modals
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open')); });
+document.addEventListener('click', (e) => { if (e.target.classList && e.target.classList.contains('modal-overlay')) e.target.classList.remove('open'); });
+
+// Sidebar tab switching
+document.querySelectorAll('.sidebar-link[data-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sidebar-link').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    const tabId = btn.dataset.tab;
+    document.getElementById('tab-' + tabId).classList.add('active');
+    document.querySelector('.app-content').scrollTop = 0;
+    onTabEnter(tabId);
+  });
+});
+
+/** Tab 진입 시 그 tab 이 필요로 하는 데이터를 자동 fetch + step-bar/next-action 새로고침. */
+function onTabEnter(tabId) {
+  // step-bar / next-action 은 ctx 미변동 상태에서도 tab 마다 그려야 함.
+  renderStepBars();
+  renderNextActions();
+  if (tabId === 'provider') {
+    refreshProviderWorkspace();
+    if (ctx.credentialId) {
+      // region 지원 provider 만 regions 목록 fetch — proxmox 같은 건 의미 없음.
+      if (providerHasRegion(ctx.provider)) {
+        loadProviderRegionsList().catch(() => {});
+        if (ctx.region) autoLoadRegionScopedData();
+      } else {
+        // region 불요 — specs/images/schema 바로 load.
+        autoLoadRegionScopedData();
+      }
+    }
+  } else if (tabId === 'validation') {
+    refreshValidationPrompt();
+  } else if (tabId === 'clusters') {
+    loadClusters().catch(() => {});
+  } else if (tabId === 'observability') {
+    // Aggregate metrics 는 사용자 promql 필요 — preset 카탈로그만 갱신.
+    obsPresetLoad().catch(() => {});
+  } else if (tabId === 'operations') {
+    if (typeof searchOperations === 'function') searchOperations().catch(() => {});
+  } else if (tabId === 'workflow') {
+    if (typeof loadQueues === 'function') loadQueues().catch(() => {});
+  } else if (tabId === 'audit') {
+    if (typeof searchAudit === 'function') searchAudit().catch(() => {});
+  }
+}
+function switchTab(tabId) { const link = document.querySelector('.sidebar-link[data-tab="' + tabId + '"]'); if (link) link.click(); }
+function switchSubTab(scope, subtabId) {
+  document.querySelectorAll('#tab-' + scope + ' .subtabs button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#tab-' + scope + ' .subtab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('#tab-' + scope + ' .subtabs button[data-subtab="' + subtabId + '"]').classList.add('active');
+  document.querySelector('#tab-' + scope + ' .subtab-panel[data-subtab="' + subtabId + '"]').classList.add('active');
+}
+//#endregion
+
+//#region Global Context
+const ctx = { credentialId: '', provider: 'aws', region: '', cluster: '' };
+const credIdToProvider = {};
+
+/**
+ * Provider 별 region 개념 보유 여부.
+ * - false : single-datacenter / regionless (proxmox)
+ * - true  : 다중 region 지원 — region 선택 필수
+ */
+const PROVIDER_HAS_REGION = {
+  aws: true, gcp: true, azure: true, alibaba: true, oci: true,
+  digitalocean: true, openstack: true,
+  proxmox: false
+};
+function providerHasRegion(p) {
+  return PROVIDER_HAS_REGION[String(p || '').toLowerCase()] !== false;
+}
+
+/** Region 미지원 provider 면 context-bar 의 Region 그룹·separator hide + ctx.region 클리어. */
+function applyRegionVisibility() {
+  const hasRegion = providerHasRegion(ctx.provider);
+  const regionDot = document.getElementById('ctxRegionDot');
+  const group = regionDot ? regionDot.closest('.ctx-group') : null;
+  if (group) {
+    group.style.display = hasRegion ? '' : 'none';
+    const sep = group.previousElementSibling;
+    if (sep && sep.classList.contains('sep')) sep.style.display = hasRegion ? '' : 'none';
+  }
+  if (!hasRegion && ctx.region) {
+    ctx.region = '';
+    const sel = document.getElementById('ctxRegion');
+    const txt = document.getElementById('ctxRegionManual');
+    if (sel) sel.value = '';
+    if (txt) txt.value = '';
+  }
+}
+
+function updateCtxDots() {
+  // provider 가 region 미지원이면 ctx.region 강제 클리어 + UI hide.
+  applyRegionVisibility();
+  document.getElementById('ctxCredentialDot').classList.toggle('set', !!ctx.credentialId);
+  document.getElementById('ctxProviderDot').classList.toggle('set', !!ctx.provider);
+  // region 이 필요 없는 provider 면 dot 도 set 상태로 — step bar 통과시킴.
+  const regionOk = !providerHasRegion(ctx.provider) || !!ctx.region;
+  document.getElementById('ctxRegionDot').classList.toggle('set', regionOk);
+  document.getElementById('ctxClusterDot').classList.toggle('set', !!ctx.cluster);
+  // step bar + next action 도 ctx 변경마다 동기화 — 동작 흐름 한눈에 보임.
+  renderStepBars();
+  renderNextActions();
+  refreshProviderWorkspace();
+  refreshValidationPrompt();
+}
+
+/** 4 단계 step 의 진행 상태 + 클릭으로 tab 전환. 각 tab 의 stepBar-<id> div 에 inject. */
+function renderStepBars() {
+  const steps = computeSteps();
+  ['credentials','provider','validation','clusters'].forEach(tabId => {
+    const el = document.getElementById('stepBar-' + tabId);
+    if (!el) return;
+    el.innerHTML = steps.map(s => {
+      const cls = s.tab === tabId ? 'current' : (s.done ? 'done' : 'todo');
+      const icon = s.done ? '✓' : s.num;
+      const meta = s.meta ? '<span class="step-meta">' + escapeHtml(s.meta) + '</span>' : '';
+      return '<div class="step ' + cls + '" onclick="switchTab(\'' + s.tab + '\')">'
+        + '<span class="step-icon">' + icon + '</span>'
+        + '<span>' + s.label + '</span>' + meta + '</div>';
+    }).join('');
+  });
+}
+
+function computeSteps() {
+  const credName = (() => {
+    const sel = document.getElementById('ctxCredential');
+    if (!sel || !ctx.credentialId) return '';
+    const opt = sel.options[sel.selectedIndex];
+    return opt ? (opt.text.split(' · ')[0] || ctx.credentialId) : ctx.credentialId;
+  })();
+  const needsRegion = providerHasRegion(ctx.provider);
+  return [
+    { num: 1, tab: 'credentials', label: 'Credential', done: !!ctx.credentialId, meta: credName },
+    { num: 2, tab: 'provider', label: 'Provider', done: !!ctx.credentialId && !!ctx.provider, meta: ctx.provider || '' },
+    {
+      num: 3, tab: 'validation',
+      label: needsRegion ? 'Region / Validation' : 'Validation',
+      done: needsRegion ? !!ctx.region : !!ctx.credentialId,
+      meta: needsRegion ? (ctx.region || '') : 'region 불요'
+    },
+    { num: 4, tab: 'clusters', label: 'Cluster', done: !!ctx.cluster, meta: ctx.cluster || '' }
+  ];
+}
+
+/** Tab 별 하단 "다음 행동" 패널 — context 상태 따라 다른 CTA. */
+function renderNextActions() {
+  const needsRegion = providerHasRegion(ctx.provider);
+  // Credentials
+  setNextAction('credentials', (() => {
+    if (!ctx.credentialId) {
+      return { tone: 'warn', text: 'Credential 선택이 필요합니다. row 클릭 또는 위 [+ 자격증명 추가].' };
+    }
+    return { tone: 'done', text: 'Credential 선택됨. 다음 단계 →', cta: { label: '② Provider 보기', tab: 'provider' } };
+  })());
+  // Provider
+  setNextAction('provider', (() => {
+    if (!ctx.credentialId) return { tone: 'warn', text: '먼저 Credential 을 선택하세요.', cta: { label: '① Credentials', tab: 'credentials' } };
+    if (needsRegion && !ctx.region) return { tone: 'warn', text: '좌측 Regions 표에서 region row 를 클릭하면 다음 단계로 진행됩니다.' };
+    const readyText = needsRegion ? 'Provider + Region 준비 완료. 다음은 →'
+                                  : 'Provider 준비 완료 (region 개념 없음). 다음은 →';
+    return { tone: 'done', text: readyText,
+             cta: { label: '③ Validation 또는 ④ Clusters', tab: 'validation' } };
+  })());
+  // Validation
+  setNextAction('validation', (() => {
+    if (!ctx.credentialId) return { tone: 'warn', text: '먼저 Credential + Provider 를 채워주세요.', cta: { label: '① Credentials', tab: 'credentials' } };
+    if (needsRegion && !ctx.region) return { tone: 'warn', text: 'Region 미선택. ② Provider 의 Regions 표에서 region 을 골라주세요.', cta: { label: '② Provider', tab: 'provider' } };
+    return { tone: 'info', text: 'Preflight 결과가 성공하면 → ④ Clusters 의 [+ VM 생성] 으로 진행.',
+             cta: { label: '④ Clusters', tab: 'clusters' } };
+  })());
+}
+
+function setNextAction(tabId, payload) {
+  const el = document.getElementById('nextAction-' + tabId);
+  if (!el) return;
+  if (!payload) { el.innerHTML = ''; return; }
+  const tone = payload.tone || 'info';
+  const cta = payload.cta
+    ? '<button class="secondary" onclick="switchTab(\'' + payload.cta.tab + '\')">' + escapeHtml(payload.cta.label) + ' →</button>'
+    : '';
+  el.innerHTML = '<div class="next-action ' + tone + '">'
+    + '<span class="arrow">▸</span>'
+    + '<span>' + escapeHtml(payload.text) + '</span>'
+    + cta + '</div>';
+}
+
+/** Provider tab — context 따라 empty prompt 또는 workspace 표시. region 변경 시 데이터 reload. */
+function refreshProviderWorkspace() {
+  const emptyEl = document.getElementById('providerEmptyPrompt');
+  const workspaceEl = document.getElementById('providerWorkspace');
+  const regionPromptEl = document.getElementById('providerRegionMissingPrompt');
+  if (!emptyEl || !workspaceEl) return;
+  if (!ctx.credentialId) {
+    emptyEl.innerHTML = '<div class="empty-prompt"><h4>Credential 선택이 필요합니다</h4>'
+      + '<p>Credential 을 골라야 그 credential 의 provider 메타데이터를 조회할 수 있습니다.</p>'
+      + '<button class="secondary" onclick="switchTab(\'credentials\')">① Credentials 로 이동</button></div>';
+    workspaceEl.style.display = 'none';
+    return;
+  }
+  emptyEl.innerHTML = '';
+  workspaceEl.style.display = '';
+  // Region 미지원 provider 면 좌측 regions column hide + 1-column 레이아웃.
+  const needsRegion = providerHasRegion(ctx.provider);
+  workspaceEl.classList.toggle('no-region', !needsRegion);
+  if (!needsRegion) {
+    if (regionPromptEl) regionPromptEl.innerHTML = '';
+    return;
+  }
+  if (!ctx.region) {
+    if (regionPromptEl) regionPromptEl.innerHTML = '<div class="empty-prompt"><h4>Region 미선택</h4>'
+      + '<p>좌측 Regions 표에서 region row 를 클릭하면 Specs / Images / Schema 가 해당 region 으로 자동 조회됩니다.</p></div>';
+  } else if (regionPromptEl) {
+    regionPromptEl.innerHTML = '';
+  }
+}
+
+function refreshValidationPrompt() {
+  const el = document.getElementById('validationEmptyPrompt');
+  if (!el) return;
+  const needsRegion = providerHasRegion(ctx.provider);
+  const missingCred = !ctx.credentialId;
+  const missingRegion = needsRegion && !ctx.region;
+  if (missingCred || missingRegion) {
+    const needed = ['Credential']; if (needsRegion) needed.push('Region');
+    el.innerHTML = '<div class="empty-prompt"><h4>Context 미완성</h4>'
+      + '<p>' + escapeHtml(needed.join(' + ')) + ' 필요합니다. header 의 dot 이 모두 켜진 뒤 실행해주세요.</p></div>';
+  } else {
+    el.innerHTML = '';
+  }
+}
+/** Credential 선택 → provider 자동 매칭 + lock. 해제 시 unlock. */
+function applyCredentialProviderLock() {
+  const provSel = document.getElementById('ctxProvider');
+  if (ctx.credentialId && credIdToProvider[ctx.credentialId]) {
+    const p = String(credIdToProvider[ctx.credentialId]).toLowerCase();
+    if ([...provSel.options].some(o => o.value === p)) {
+      if (provSel.value !== p) {
+        provSel.value = p;
+        ctx.provider = p;
+        // provider 가 바뀌면 region 리셋
+        ctx.region = '';
+        document.getElementById('ctxRegion').innerHTML = '<option value="">(전체)</option>';
+        document.getElementById('ctxRegionManual').value = '';
+      }
+    }
+    provSel.disabled = true;
+    provSel.title = 'Credential 선택 시 provider 는 해당 credential 값으로 고정됩니다. 변경하려면 Credential 을 (없음) 으로.';
+  } else {
+    provSel.disabled = false;
+    provSel.title = '';
+  }
+}
+function onCtxCredentialChange() {
+  ctx.credentialId = document.getElementById('ctxCredential').value;
+  applyCredentialProviderLock();
+  updateCtxDots();
+}
+function onCtxProviderChange() { ctx.provider = document.getElementById('ctxProvider').value; ctx.region = ''; document.getElementById('ctxRegion').innerHTML = '<option value="">(전체)</option>'; updateCtxDots(); }
+function onCtxRegionChange() { ctx.region = document.getElementById('ctxRegion').value || document.getElementById('ctxRegionManual').value.trim(); updateCtxDots(); }
+function onCtxClusterChange() { ctx.cluster = document.getElementById('ctxCluster').value; updateCtxDots(); }
+
+async function refreshCtxCredentialOptions() {
+  const result = await call('GET', '/v1/credentials');
+  const items = extractItems(result) || [];
+  // provider lookup cache 재구성
+  for (const k of Object.keys(credIdToProvider)) delete credIdToProvider[k];
+  items.forEach(c => { if (c.id) credIdToProvider[c.id] = c.provider || ''; });
+  const sel = document.getElementById('ctxCredential');
+  sel.innerHTML = '<option value="">(없음)</option>' + items.map(c =>
+    '<option value="' + escapeHtml(c.id || '') + '">' + escapeHtml(c.name || c.id) + ' · ' + escapeHtml(c.provider || '') + '</option>'
+  ).join('');
+  // 현재 선택값이 사라졌다면 unlock, 남아있다면 lock 재적용
+  if (ctx.credentialId && !credIdToProvider[ctx.credentialId]) {
+    ctx.credentialId = '';
+    sel.value = '';
+  }
+  applyCredentialProviderLock();
+}
+async function refreshCtxClusterOptions() {
+  const result = await call('GET', '/v1/clusters');
+  const items = extractItems(result) || [];
+  const sel = document.getElementById('ctxCluster');
+  sel.innerHTML = '<option value="">(없음)</option>' + items.map(c => {
+    const name = c.clusterName || c.name || '';
+    return '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>';
+  }).join('');
+}
+async function loadProviderRegionsToCtx() {
+  if (!ctx.provider) return;
+  const qs = withCredentialId(new URLSearchParams({ limit: '200' }));
+  const result = await call('GET', '/v1/providers/' + encodeURIComponent(ctx.provider) + '/regions?' + qs);
+  const items = extractItems(result) || [];
+  const sel = document.getElementById('ctxRegion');
+  sel.innerHTML = '<option value="">(전체)</option>' + items.map(r => {
+    const id = r.id || r.name || r.region || '';
+    const label = (r.displayName || r.name || id) + (r.id && r.id !== r.name ? ' (' + r.id + ')' : '');
+    return '<option value="' + escapeHtml(id) + '">' + escapeHtml(label) + '</option>';
+  }).join('');
+}
+//#endregion
+
+//#region Credentials
+const CREDENTIAL_EXAMPLES = {
+  AWS: { AWS_ACCESS_KEY_ID: "AKIAIOSFODNN7EXAMPLE", AWS_SECRET_ACCESS_KEY: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" },
+  GCP: { GOOGLE_CREDENTIALS: '{"type":"service_account","project_id":"my-project","private_key_id":"...","private_key":"-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n","client_email":"sa@my-project.iam.gserviceaccount.com","client_id":"..."}' },
+  AZURE: { ARM_CLIENT_ID: "00000000-0000-0000-0000-000000000000", ARM_CLIENT_SECRET: "your-client-secret", ARM_SUBSCRIPTION_ID: "00000000-0000-0000-0000-000000000000", ARM_TENANT_ID: "00000000-0000-0000-0000-000000000000" },
+  ALICLOUD: { ALICLOUD_ACCESS_KEY: "LTAI...", ALICLOUD_SECRET_KEY: "..." },
+  OCI: { TF_VAR_tenancy_ocid: "ocid1.tenancy.oc1..aaaa", TF_VAR_user_ocid: "ocid1.user.oc1..aaaa", TF_VAR_fingerprint: "aa:bb:...", TF_VAR_region: "ap-seoul-1", TF_VAR_private_key: "-----BEGIN RSA PRIVATE KEY-----\\n...\\n-----END" },
+  DIGITALOCEAN: { DIGITALOCEAN_TOKEN: "dop_v1_..." },
+  OPENSTACK: { OS_AUTH_URL: "https://keystone:5000/v3", OS_USERNAME: "admin", OS_PASSWORD: "...", OS_PROJECT_NAME: "admin", OS_USER_DOMAIN_NAME: "Default", OS_PROJECT_DOMAIN_NAME: "Default" },
+  PROXMOX: { PROXMOX_VE_ENDPOINT: "https://proxmox.example.com:8006/api2/json", PROXMOX_VE_USERNAME: "root@pam!anycloud", PROXMOX_VE_PASSWORD: "f807c057-5e9d-4055-..." }
+};
+function onCredProviderChange() { const p = document.getElementById('credProvider').value; document.getElementById('credExamplePre').textContent = JSON.stringify(CREDENTIAL_EXAMPLES[p] || {}, null, 2); }
+function fillCredSample() { const p = document.getElementById('credProvider').value; document.getElementById('credKeys').value = JSON.stringify(CREDENTIAL_EXAMPLES[p] || {}, null, 2); }
+function onCredSourceTypeChange() { document.getElementById('credKeysLabel').style.display = document.getElementById('credSourceType').value === 'ENV' ? 'none' : ''; }
+function openCredCreateModal() { document.getElementById('credName').value = ''; document.getElementById('credDesc').value = ''; document.getElementById('credKeys').value = ''; document.getElementById('credentialsCreateOut').innerHTML = ''; onCredProviderChange(); onCredSourceTypeChange(); openModal('credCreateModal'); }
+async function loadCredentials() {
+  const result = await call('GET', '/v1/credentials');
+  const items = extractItems(result);
+  if (!items) { renderInto('credentialsListOut', result, 'table 렌더 실패'); document.getElementById('credentialsCount').textContent = ''; return; }
+  renderResourceTable('credentialsListOut', items, [
+    {label: 'ID', value: c => c.id || '', mono: true},
+    {label: 'Name', value: c => c.name},
+    {label: 'Provider', value: c => c.provider},
+    {label: 'Source', value: c => c.sourceType, badge: c => c.sourceType === 'MANUAL' ? 'manual' : 'env'},
+    {label: 'Description', value: c => c.description}
+  ], [
+    {label: '삭제', danger: true, onclick: c => "deleteCredentialById('" + escapeJs(c.id) + "')"}
+  ], '등록된 자격증명 없음 — 우상단 [+ 자격증명 추가]', c => "selectCredential('" + escapeJs(c.id) + "')");
+  document.getElementById('credentialsCount').textContent = items.length + '개';
+  refreshCtxCredentialOptions();
+}
+function selectCredential(id) { document.getElementById('ctxCredential').value = id; ctx.credentialId = id; applyCredentialProviderLock(); updateCtxDots(); }
+async function submitCredentialCreate() {
+  const name = document.getElementById('credName').value.trim();
+  const provider = document.getElementById('credProvider').value;
+  const sourceType = document.getElementById('credSourceType').value;
+  const description = document.getElementById('credDesc').value.trim();
+  if (!name) { alert('name 필요'); return; }
+  const body = { name, provider, sourceType };
+  if (description) body.description = description;
+  if (sourceType === 'MANUAL') {
+    const raw = document.getElementById('credKeys').value.trim();
+    if (!raw) { alert('MANUAL 은 credentials JSON 필요'); return; }
+    try { body.credentials = JSON.parse(raw); } catch (e) { alert('JSON 파싱 실패: ' + e.message); return; }
+  }
+  const result = await call('POST', '/v1/credentials', body);
+  renderInto('credentialsCreateOut', result);
+  if (result.ok) setTimeout(() => { closeModal('credCreateModal'); loadCredentials(); }, 700);
+}
+async function deleteCredentialById(id) {
+  if (!id || !confirm('자격증명 삭제? ID = ' + id)) return;
+  const result = await call('DELETE', '/v1/credentials/' + encodeURIComponent(id));
+  if (result.ok) loadCredentials(); else renderInto('credentialsErrorOut', result, '삭제 실패');
+}
+//#endregion
+
+//#region Provider
+/** ctx.credentialId 가 있으면 query string 으로 붙임 — backend 가 그 credential 의 decrypted
+ * keys 로 인증함 (proxmox 등). 없으면 backend 는 env 변수 fallback. */
+function withCredentialId(qs) {
+  if (ctx.credentialId) qs.set('credentialId', ctx.credentialId);
+  return qs;
+}
+
+async function loadProviderRegionsList() {
+  if (!ctx.provider) return;
+  const qs = withCredentialId(new URLSearchParams({ limit: '500' }));
+  const result = await call('GET', '/v1/providers/' + encodeURIComponent(ctx.provider) + '/regions?' + qs);
+  const items = extractItems(result);
+  if (!items) { renderInto('provRegionsOut', result); document.getElementById('provRegionsCount').textContent = ''; return; }
+  renderResourceTable('provRegionsOut', items, [
+    {label: 'ID', value: r => r.id || r.name || '', mono: true},
+    {label: 'Name', value: r => r.displayName || r.name || ''}
+  ], [
+    {label: '사용', secondary: true, onclick: r => "selectRegion('" + escapeJs(r.id || r.name) + "')"}
+  ], '결과 없음',
+    r => "selectRegion('" + escapeJs(r.id || r.name) + "')",
+    r => ((r.id || r.name) === ctx.region) ? 'row-active' : '');
+  document.getElementById('provRegionsCount').textContent = items.length + '개';
+}
+function selectRegion(id) {
+  document.getElementById('ctxRegion').value = id;
+  ctx.region = id;
+  document.getElementById('ctxRegionManual').value = '';
+  updateCtxDots();
+  // Provider workspace 가 활성이면 region-scoped 데이터 (specs/images/schema) 자동 reload —
+  // 사용자가 매 section 마다 [조회] 누르지 않아도 됨.
+  if (document.getElementById('tab-provider').classList.contains('active')) {
+    autoLoadRegionScopedData();
+  }
+}
+
+/** region 이 새로 정해지면 region-dependent 데이터를 한 번에 fetch. 조용히 실패해도 무방
+ * (각 section 의 [조회] 버튼으로 retry). */
+async function autoLoadRegionScopedData() {
+  await Promise.allSettled([
+    loadProviderSpecsList(false),
+    loadProviderSpecsList(true),
+    loadProviderImagesList(),
+    loadProviderSchemaList()
+  ]);
+}
+async function loadProviderSpecsList(gpuOnly) {
+  if (!ctx.provider) return;
+  const keyword = document.getElementById('provSpecsKeyword').value.trim();
+  const limit = document.getElementById('provSpecsLimit').value || 50;
+  const qs = withCredentialId(new URLSearchParams({ limit, gpuOnly: gpuOnly ? 'true' : 'false' }));
+  if (ctx.region) qs.set('region', ctx.region);
+  if (keyword) qs.set('keyword', keyword);
+  const outId = gpuOnly ? 'provSpecsGpuOut' : 'provSpecsOut';
+  const countId = gpuOnly ? 'provSpecsGpuCount' : 'provSpecsCount';
+  const result = await call('GET', '/v1/providers/' + encodeURIComponent(ctx.provider) + '/specs?' + qs);
+  const items = extractItems(result);
+  if (!items) { renderInto(outId, result); document.getElementById(countId).textContent = ''; return; }
+  renderResourceTable(outId, items, [
+    {label: 'ID', value: s => s.id || s.name || '', mono: true},
+    {label: 'Name', value: s => s.displayName || s.name || ''},
+    {label: 'vCPU', value: s => s.vcpu || s.cpu || ''},
+    {label: 'Memory(GiB)', value: s => s.memoryGiB || s.memory || ''},
+    {label: 'GPU', value: s => s.gpu || s.gpuCount || ''},
+    {label: 'Price', value: s => s.priceHourly || ''}
+  ], [], '결과 없음');
+  document.getElementById(countId).textContent = items.length + '개';
+}
+async function loadProviderImagesList() {
+  if (!ctx.provider) return;
+  const keyword = document.getElementById('provImagesKeyword').value.trim();
+  const limit = document.getElementById('provImagesLimit').value || 50;
+  const qs = withCredentialId(new URLSearchParams({ limit }));
+  if (ctx.region) qs.set('region', ctx.region);
+  if (keyword) qs.set('keyword', keyword);
+  const result = await call('GET', '/v1/providers/' + encodeURIComponent(ctx.provider) + '/images?' + qs);
+  const items = extractItems(result);
+  if (!items) { renderInto('provImagesOut', result); document.getElementById('provImagesCount').textContent = ''; return; }
+  renderResourceTable('provImagesOut', items, [
+    {label: 'ID', value: i => i.id || '', mono: true},
+    {label: 'Name', value: i => i.name || i.displayName || ''},
+    {label: 'OS', value: i => i.osName || i.os || ''},
+    {label: 'Arch', value: i => i.architecture || ''},
+    {label: 'Owner', value: i => i.owner || ''}
+  ], [], '결과 없음');
+  document.getElementById('provImagesCount').textContent = items.length + '개';
+}
+async function loadProviderSchemaList() {
+  if (!ctx.provider) return;
+  const result = await call('GET', '/v1/providers/' + encodeURIComponent(ctx.provider) + '/config-schema');
+  const items = extractItems(result);
+  if (!items) { renderInto('provSchemaOut', result); document.getElementById('provSchemaCount').textContent = ''; return; }
+  renderResourceTable('provSchemaOut', items, [
+    {label: 'Key', value: s => s.key || '', mono: true},
+    {label: 'Type', value: s => s.type || ''},
+    {label: 'Required', value: s => s.required ? '✓' : '', badge: s => s.required ? 'err' : ''},
+    {label: 'Default', value: s => s.default != null ? String(s.default) : ''},
+    {label: 'Description', value: s => s.description || ''},
+    {label: 'Allowed', value: s => Array.isArray(s.allowedValues) ? s.allowedValues.slice(0, 5).join(', ') + (s.allowedValues.length > 5 ? '…' : '') : ''}
+  ], [], '결과 없음');
+  document.getElementById('provSchemaCount').textContent = items.length + '개';
+}
+//#endregion
+
+//#region Validation
+async function runValidation() {
+  let cfg = {};
+  const cfgStr = document.getElementById('valConfig').value.trim();
+  if (cfgStr) { try { cfg = JSON.parse(cfgStr); } catch (e) { alert('config JSON 파싱 실패: ' + e.message); return; } }
+  const body = {
+    clusterName: document.getElementById('valClusterName').value.trim(),
+    provider: ctx.provider,
+    region: ctx.region,
+    environment: document.getElementById('valEnv').value.trim(),
+    credentialId: ctx.credentialId,
+    config: cfg
+  };
+  renderInto('validationOut', await call('POST', '/v1/cluster-validations', body));
+}
+//#endregion
+
+//#region Clusters list + Detail
+const VM_CONFIG_EXAMPLES = {
+  aws: { workerCount: "3", kubernetesVersion: "1.30.4", instanceType: "t3.medium" },
+  gcp: { workerCount: "3", kubernetesVersion: "1.30.4", machineType: "e2-medium" },
+  azure: { workerCount: "3", kubernetesVersion: "1.30.4", vmSize: "Standard_D2s_v3" },
+  alibaba: { workerCount: "3", kubernetesVersion: "1.30.4", instanceType: "ecs.g6.large" },
+  oci: { workerCount: "3", kubernetesVersion: "1.30.4", shape: "VM.Standard.E4.Flex" },
+  digitalocean: { workerCount: "3", kubernetesVersion: "1.30.4", size: "s-2vcpu-4gb" },
+  openstack: { workerCount: "3", kubernetesVersion: "1.30.4", flavor: "m1.medium" },
+  proxmox: { workerCount: "3", kubernetesVersion: "1.30.4", cores: "2", memoryMB: "4096" }
+};
+
+function vmCreateBody() {
+  let cfg = {};
+  const cfgStr = document.getElementById('vmCreateConfig').value.trim();
+  if (cfgStr) { try { cfg = JSON.parse(cfgStr); } catch (e) { alert('config JSON 파싱 실패: ' + e.message); return null; } }
+  return {
+    source: "vm",
+    clusterName: document.getElementById('vmCreateName').value.trim(),
+    spec: {
+      provider: document.getElementById('vmCreateProvider').value,
+      region: document.getElementById('vmCreateRegion').value.trim(),
+      environment: document.getElementById('vmCreateEnv').value.trim(),
+      credentialId: document.getElementById('vmCreateCredId').value.trim(),
+      hasGpuNodes: document.getElementById('vmCreateGpu').value === 'true',
+      config: cfg
+    }
+  };
+}
+function refreshVmCreateExample() {
+  const p = document.getElementById('vmCreateProvider').value || ctx.provider;
+  const cfg = VM_CONFIG_EXAMPLES[p] || {};
+  document.getElementById('vmCreateExamplePre').textContent = JSON.stringify({
+    source: "vm",
+    clusterName: "demo-" + p + "-01",
+    spec: { provider: p, region: ctx.region || 'region-...', environment: "dev", credentialId: ctx.credentialId || "cred-" + p + "-001", config: cfg }
+  }, null, 2);
+}
+function fillVmCreateSample() {
+  const p = document.getElementById('vmCreateProvider').value || ctx.provider;
+  const cfg = VM_CONFIG_EXAMPLES[p] || {};
+  document.getElementById('vmCreateName').value = "demo-" + p + "-01";
+  document.getElementById('vmCreateConfig').value = JSON.stringify(cfg, null, 2);
+}
+function openVmCreateModal() {
+  document.getElementById('vmCreateOut').innerHTML = '';
+  document.getElementById('vmCreateProvider').value = ctx.provider;
+  document.getElementById('vmCreateRegion').value = ctx.region || '';
+  document.getElementById('vmCreateCredId').value = ctx.credentialId || '';
+  document.getElementById('vmCreateGpu').value = 'false';
+  document.getElementById('vmCreateConfig').value = JSON.stringify(VM_CONFIG_EXAMPLES[ctx.provider] || {}, null, 2);
+  // ctx 부족 시 banner + [생성] 버튼 disable — 의도치 않은 요청 막음.
+  // proxmox 처럼 region 개념 없는 provider 는 region 미체크.
+  const missing = [];
+  if (!ctx.credentialId) missing.push('credential');
+  if (providerHasRegion(ctx.provider) && !ctx.region) missing.push('region');
+  const banner = document.getElementById('vmCreateCtxBanner');
+  const submitBtn = document.getElementById('vmCreateSubmitBtn');
+  if (missing.length) {
+    banner.innerHTML = '<div class="empty-prompt" style="margin:.4rem 0 .8rem;padding:.7rem 1rem;text-align:left">'
+      + '<strong style="color:#92400e">⚠ Context 미완성</strong> — ' + escapeHtml(missing.join(' + ')) + ' 미선택. '
+      + '<a onclick="closeModal(\'vmCreateModal\'); switchTab(\'credentials\')">① Credentials 로 이동</a> '
+      + '또는 <a onclick="closeModal(\'vmCreateModal\'); switchTab(\'provider\')">② Provider 에서 region 선택</a>'
+      + '</div>';
+    submitBtn.disabled = true;
+    submitBtn.title = missing.join(', ') + ' 필요';
+  } else {
+    banner.innerHTML = '';
+    submitBtn.disabled = false;
+    submitBtn.title = '';
+  }
+  refreshVmCreateExample();
+  openModal('vmCreateModal');
+}
+async function submitVmClusterCreate() {
+  const body = vmCreateBody(); if (!body) return;
+  if (!body.clusterName) { alert('clusterName 필요'); return; }
+  const result = await call('POST', '/v1/clusters', body);
+  renderInto('vmCreateOut', result);
+  if (result.ok) setTimeout(() => { closeModal('vmCreateModal'); loadClusters(); }, 700);
+}
+/** Registered Create Modal — 2 method tabs (kubeconfig 업로드 / Agent Helm 설치). */
+function switchRegTab(tab) {
+  document.querySelectorAll('.reg-method-tabs button').forEach(b => b.classList.toggle('active', b.dataset.regTab === tab));
+  document.querySelectorAll('.reg-method-panel').forEach(p => p.classList.toggle('active', p.dataset.regTab === tab));
+}
+function openRegCreateModal() {
+  // 공통 reset
+  ['regKcName','regKcProvider','regKcType','regKcDesc','regAgName','regAgProvider','regAgType','regAgDesc']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  document.getElementById('regKcFile').value = '';
+  document.getElementById('regKcValidate').checked = true;
+  document.getElementById('regKcStrict').checked = false;
+  document.getElementById('regKcOut').innerHTML = '';
+  document.getElementById('regAgOut').innerHTML = '';
+  document.getElementById('regAgHelmSnippet').style.display = 'none';
+  document.getElementById('regAgHelmCmd').textContent = '';
+  // provider 는 context bar 의 ctx.provider 를 uppercase 로 자동 채움 (backend 가 uppercase enum 매칭)
+  const p = (ctx.provider || 'AWS').toUpperCase();
+  document.getElementById('regKcProvider').value = p;
+  document.getElementById('regAgProvider').value = p;
+  switchRegTab('kubeconfig');
+  openModal('regCreateModal');
+}
+
+/** Tab A: kubeconfig 업로드 → POST /v1/clusters:importKubeconfig (multipart). */
+async function submitKubeconfigImport() {
+  const name = document.getElementById('regKcName').value.trim();
+  const provider = document.getElementById('regKcProvider').value.trim();
+  const type = document.getElementById('regKcType').value.trim();
+  const desc = document.getElementById('regKcDesc').value.trim();
+  const fileEl = document.getElementById('regKcFile');
+  const validate = document.getElementById('regKcValidate').checked;
+  const strict = document.getElementById('regKcStrict').checked;
+  if (!name || !provider) { alert('clusterName + provider 필수'); return; }
+  if (!fileEl.files || fileEl.files.length === 0) { alert('kubeconfig 파일 필수'); return; }
+  const fd = new FormData();
+  fd.append('clusterName', name);
+  fd.append('provider', provider);
+  if (type) fd.append('clusterType', type);
+  if (desc) fd.append('description', desc);
+  fd.append('validate', String(validate));
+  fd.append('strict', String(strict));
+  fd.append('kubeconfigFile', fileEl.files[0]);
+  const result = await callMultipart('POST', '/v1/clusters:importKubeconfig', fd);
+  renderInto('regKcOut', result);
+  if (result.ok) setTimeout(() => { closeModal('regCreateModal'); loadClusters(); }, 1000);
+}
+
+/** Tab B: ① POST /v1/clusters (source=registered, agent-first — URL/CA/token 모두 생략 → AGENT_PENDING) → ② issue HELM_BOOTSTRAP token → show helm snippet. */
+async function submitAgentBootstrap() {
+  const name = document.getElementById('regAgName').value.trim();
+  const provider = document.getElementById('regAgProvider').value.trim();
+  const type = document.getElementById('regAgType').value.trim();
+  const desc = document.getElementById('regAgDesc').value.trim();
+  if (!name || !provider) { alert('clusterName + provider 필수'); return; }
+  // apiServerUrl / serverCA / clientToken 은 의도적으로 생략 — agent 가 클러스터 안에서
+  // backend 로 reverse-tunnel 연결 후 backfill. backend 가 둘 다 빈 값이면 status=AGENT_PENDING 으로 저장.
+  const body = {
+    source: 'registered',
+    clusterName: name,
+    description: desc || undefined,
+    spec: {
+      provider,
+      clusterType: type || undefined
+    }
+  };
+  const reg = await call('POST', '/v1/clusters', body);
+  renderInto('regAgOut', reg, 'step 1 — placeholder 등록 (status=AGENT_PENDING)');
+  if (!reg.ok) return;
+  // step 2 — helm bootstrap token 발급
+  const tok = await call('POST', '/v1/clusters/' + encodeURIComponent(name) + '/agent-registration?installMode=HELM_BOOTSTRAP');
+  renderInto('regAgOut', tok, 'step 2 — bootstrap token 발급');
+  if (!tok.ok) return;
+  const payload = (tok.body && tok.body.data) || tok.body || {};
+  const regToken = payload.registrationToken || '<TOKEN_NOT_FOUND>';
+  const endpoint = payload.controlPlaneEndpoint || '<ENDPOINT>';
+  const ttl = payload.ttlSeconds || 600;
+  const helmCmd =
+    '# 1) cluster-agent helm repo (한 번만)\n' +
+    'helm repo add anycloud https://charts.aipaas.io/anycloud\n' +
+    'helm repo update\n\n' +
+    '# 2) cluster-agent 설치 — 만료 전 (~' + ttl + 's) 에 실행\n' +
+    'helm upgrade --install cluster-agent anycloud/cluster-agent \\\n' +
+    '  -n anycloud-system --create-namespace \\\n' +
+    '  --set controlPlane.endpoint="' + endpoint + '" \\\n' +
+    '  --set bootstrap.registrationToken="' + regToken + '" \\\n' +
+    '  --set cluster.id="' + name + '"\n';
+  document.getElementById('regAgHelmCmd').textContent = helmCmd;
+  document.getElementById('regAgTtl').textContent = String(ttl);
+  document.getElementById('regAgHelmSnippet').style.display = '';
+  loadClusters();
+}
+
+function copyRegAgHelm() {
+  const el = document.getElementById('regAgHelmCmd');
+  if (el) navigator.clipboard.writeText(el.textContent).catch(() => {});
+}
+
+async function loadClusters() {
+  const source = document.getElementById('clustersSourceFilter').value;
+  const path = source ? '/v1/clusters?source=' + source : '/v1/clusters';
+  const result = await call('GET', path);
+  const items = extractItems(result);
+  if (!items) { renderInto('clustersListOut', result); document.getElementById('clustersCount').textContent = ''; return; }
+  renderResourceTable('clustersListOut', items, [
+    {label: 'Name', value: c => c.clusterName || c.name || ''},
+    {label: 'Source', value: c => c.source, badge: c => c.source === 'vm' ? 'manual' : 'env'},
+    {label: 'Provider', value: c => c.provider || (c.spec && c.spec.provider) || ''},
+    {label: 'Region', value: c => c.region || (c.spec && c.spec.region) || ''},
+    {label: 'Status', value: c => c.provisioningStatus || c.status || '', badge: c => {
+      const s = (c.provisioningStatus || c.status || '').toUpperCase();
+      if (s === 'READY' || s === 'ACTIVE') return 'ok';
+      if (s === 'FAILED' || s === 'BLOCKED') return 'err';
+      if (s.includes('ING')) return 'warn';
+      return 'info';
+    }}
+  ], [
+    {label: '상세', secondary: true, onclick: c => "openClusterDetail('" + escapeJs(c.clusterName || c.name) + "')"},
+    {label: '삭제', danger: true, onclick: c => "deleteClusterByName('" + escapeJs(c.clusterName || c.name) + "')"}
+  ], '등록된 cluster 없음 — 위 [+ VM 생성] 또는 [+ Registered 등록]',
+    c => "openClusterDetail('" + escapeJs(c.clusterName || c.name) + "')",
+    c => ((c.clusterName || c.name) === ctx.cluster) ? 'row-active' : '');
+  document.getElementById('clustersCount').textContent = items.length + '개';
+  refreshCtxClusterOptions();
+  refreshClustersTabActions(items.length);
+}
+
+/** Cluster create 버튼 활성/비활성 + next-action 패널을 ctx 와 cluster count 에 맞춰 동기화. */
+function refreshClustersTabActions(clusterCount) {
+  const ctxReady = !!ctx.credentialId;
+  // 버튼 disable + tooltip
+  const vmBtn = document.querySelector('#tab-clusters button[onclick="openVmCreateModal()"]');
+  const regBtn = document.querySelector('#tab-clusters button[onclick="openRegCreateModal()"]');
+  if (vmBtn) {
+    vmBtn.disabled = !ctxReady;
+    vmBtn.title = ctxReady ? '' : 'Credential 선택 후 가능';
+  }
+  if (regBtn) {
+    // registered 등록은 credential 없이도 진행 가능 (kubeconfig 업로드는 ctx 무관) — 항상 enable.
+    regBtn.disabled = false;
+    regBtn.title = '';
+  }
+  // next-action
+  setNextAction('clusters', (() => {
+    if (clusterCount === 0) {
+      if (!ctxReady) return { tone: 'warn', text: 'cluster 가 없습니다. 먼저 ① Credentials 에서 credential 을 선택하세요.', cta: { label: '① Credentials', tab: 'credentials' } };
+      return { tone: 'info', text: '아직 cluster 가 없습니다. 위 [+ VM 생성] 또는 [+ Registered 등록] 으로 첫 cluster 추가.' };
+    }
+    if (ctx.cluster) {
+      return { tone: 'done', text: 'Cluster "' + ctx.cluster + '" 선택됨. row 의 [상세] 버튼 또는 row 클릭으로 detail view 진입.' };
+    }
+    return { tone: 'info', text: 'cluster row 클릭 시 Detail view (Day-2 / Resources / Helm / Observability / Agent / Operations) 진입.' };
+  })());
+}
+
+async function deleteClusterByName(name) {
+  if (!confirm('정말 삭제? ' + name)) return;
+  await call('DELETE', '/v1/clusters/' + encodeURIComponent(name));
+  loadClusters();
+}
+
+// ===== Cluster Detail View =====
+let _cdName = null;
+
+function openClusterDetail(name) {
+  _cdName = name;
+  ctx.cluster = name; document.getElementById('ctxCluster').value = name; updateCtxDots();
+  document.getElementById('cdName').textContent = name;
+  document.getElementById('clustersListView').style.display = 'none';
+  document.getElementById('clustersDetailView').style.display = '';
+  switchClusterSubTab('cd-overview');
+  cdRefreshOverview();
+}
+function closeClusterDetail() {
+  _cdName = null;
+  ctx.cluster = ''; document.getElementById('ctxCluster').value = '';
+  document.getElementById('clustersListView').style.display = '';
+  document.getElementById('clustersDetailView').style.display = 'none';
+  updateCtxDots();
+  loadClusters().catch(() => {});
+}
+function switchClusterSubTab(id) {
+  document.querySelectorAll('#cdSubtabs button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#clustersDetailView .subtab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('#cdSubtabs button[data-subtab="' + id + '"]').classList.add('active');
+  document.querySelector('#clustersDetailView .subtab-panel[data-subtab="' + id + '"]').classList.add('active');
+}
+async function deleteClusterFromDetail() {
+  if (!_cdName) return;
+  if (!confirm('정말 삭제? ' + _cdName)) return;
+  await call('DELETE', '/v1/clusters/' + encodeURIComponent(_cdName));
+  closeClusterDetail(); loadClusters();
+}
+
+// Overview
+async function cdRefreshOverview() {
+  if (!_cdName) return;
+  const result = await call('GET', '/v1/clusters/' + encodeURIComponent(_cdName));
+  renderInto('cdOverviewOut', result, _cdName);
+  // 헤더 badge 갱신
+  const data = result.body && result.body.data;
+  if (data) {
+    const badges = [];
+    if (data.source) badges.push('<span class="badge ' + (data.source === 'vm' ? 'manual' : 'env') + '">' + escapeHtml(data.source) + '</span>');
+    if (data.provider || (data.spec && data.spec.provider)) badges.push('<span class="badge">' + escapeHtml(data.provider || data.spec.provider) + '</span>');
+    if (data.region || (data.spec && data.spec.region)) badges.push('<span class="badge">' + escapeHtml(data.region || data.spec.region) + '</span>');
+    const status = data.provisioningStatus || data.status || '';
+    if (status) {
+      const s = status.toUpperCase();
+      const cls = s === 'READY' || s === 'ACTIVE' ? 'ok' : (s === 'FAILED' || s === 'BLOCKED' ? 'err' : 'warn');
+      badges.push('<span class="badge ' + cls + '">' + escapeHtml(status) + '</span>');
+    }
+    document.getElementById('cdBadges').innerHTML = badges.join(' ');
+  }
+}
+
+// Day-2
+async function cdScale() {
+  if (!_cdName) return;
+  const w = parseInt(document.getElementById('cdScaleWorkers').value, 10);
+  const result = await call('PATCH', '/v1/clusters/' + encodeURIComponent(_cdName), { spec: { workerCount: w } });
+  renderInto('cdDay2Out', result, 'scale: ' + _cdName);
+  if (result.ok) cdRefreshOverview();
+}
+async function cdRetry() {
+  if (!_cdName) return;
+  const result = await call('POST', '/v1/clusters/' + encodeURIComponent(_cdName) + '/operations', { type: 'retryWorkflow' });
+  renderInto('cdDay2Out', result, 'retry');
+  if (result.ok) cdRefreshOverview();
+}
+
+// K8s Resources
+async function cdLoadResources() {
+  if (!_cdName) return;
+  const ns = document.getElementById('cdResNamespace').value.trim() || '_all';
+  const kind = document.getElementById('cdResKind').value;
+  const result = await call('GET', '/v1/clusters/' + encodeURIComponent(_cdName) + '/namespaces/' + encodeURIComponent(ns) + '/' + encodeURIComponent(kind) + '?pageSize=100');
+  const data = result.body && result.body.data;
+  const items = Array.isArray(data) ? data : (data && Array.isArray(data.items) ? data.items : null);
+  if (!items) { renderInto('cdResourcesOut', result); document.getElementById('cdResCount').textContent = ''; return; }
+  renderResourceTable('cdResourcesOut', items, [
+    {label: 'Name', value: r => (r.metadata && r.metadata.name) || r.name || ''},
+    {label: 'Namespace', value: r => (r.metadata && r.metadata.namespace) || ''},
+    {label: 'Created', value: r => (r.metadata && r.metadata.creationTimestamp) || ''},
+    {label: 'Status', value: r => (r.status && (r.status.phase || r.status.availableReplicas || r.status.replicas)) || ''}
+  ], [
+    {label: '삭제', danger: true, onclick: r => "cdDeleteResource('" + escapeJs((r.metadata && r.metadata.namespace) || ns) + "','" + escapeJs(kind) + "','" + escapeJs((r.metadata && r.metadata.name) || r.name) + "')"}
+  ], 'resource 없음');
+  document.getElementById('cdResCount').textContent = items.length + '개';
+}
+async function cdDeleteResource(ns, kind, name) {
+  if (!_cdName || !confirm(kind + ' ' + name + ' 삭제?')) return;
+  const result = await call('DELETE', '/v1/clusters/' + encodeURIComponent(_cdName) + '/namespaces/' + encodeURIComponent(ns) + '/' + encodeURIComponent(kind) + '/' + encodeURIComponent(name));
+  renderInto('cdResourceActionOut', result, '삭제: ' + name);
+  if (result.ok) cdLoadResources();
+}
+async function cdConnectivityCheck() {
+  if (!_cdName) return;
+  renderInto('cdResourceActionOut', await call('POST', '/v1/clusters/' + encodeURIComponent(_cdName) + '/connectivity-checks'), 'connectivity');
+}
+
+// Helm
+async function cdLoadHelm() {
+  if (!_cdName) return;
+  const ns = document.getElementById('cdHelmNamespace').value.trim() || 'default';
+  const result = await call('GET', '/v1/clusters/' + encodeURIComponent(_cdName) + '/helm-releases?namespace=' + encodeURIComponent(ns));
+  const data = result.body && result.body.data;
+  const items = Array.isArray(data) ? data : (data && Array.isArray(data.releases) ? data.releases : null);
+  if (!items) { renderInto('cdHelmOut', result); document.getElementById('cdHelmCount').textContent = ''; return; }
+  renderResourceTable('cdHelmOut', items, [
+    {label: 'Name', value: r => r.name || r.releaseName || ''},
+    {label: 'Chart', value: r => (r.chart || '') + (r.version ? ':' + r.version : '')},
+    {label: 'Status', value: r => r.status || ''},
+    {label: 'Rev', value: r => r.revision || ''}
+  ], [
+    {label: 'status', secondary: true, onclick: r => "cdHelmStatusByName('" + escapeJs(r.name || r.releaseName) + "')"},
+    {label: 'rev', secondary: true, onclick: r => "cdHelmRevByName('" + escapeJs(r.name || r.releaseName) + "')"},
+    {label: 'uninstall', danger: true, onclick: r => "cdHelmUninstall('" + escapeJs(r.name || r.releaseName) + "')"}
+  ], '설치된 release 없음');
+  document.getElementById('cdHelmCount').textContent = items.length + '개';
+}
+function cdOpenHelmInstallModal() {
+  if (!_cdName) return;
+  const ns = document.getElementById('cdHelmNamespace').value.trim() || 'default';
+  document.getElementById('cdHelmInstallClusterLabel').textContent = _cdName;
+  document.getElementById('cdHelmInstallNsLabel').textContent = ns;
+  document.getElementById('cdHelmInstallOut').innerHTML = '';
+  document.getElementById('cdHelmReleaseName').value = '';
+  document.getElementById('cdHelmChart').value = '';
+  document.getElementById('cdHelmVersion').value = '';
+  document.getElementById('cdHelmValuesYaml').value = '';
+  openModal('cdHelmInstallModal');
+}
+async function cdSubmitHelmInstall() {
+  const ns = document.getElementById('cdHelmNamespace').value.trim() || 'default';
+  const body = {
+    releaseName: document.getElementById('cdHelmReleaseName').value.trim(),
+    chart: document.getElementById('cdHelmChart').value.trim(),
+    version: document.getElementById('cdHelmVersion').value.trim() || undefined,
+    namespace: ns,
+    valuesYaml: document.getElementById('cdHelmValuesYaml').value || undefined
+  };
+  if (!body.releaseName || !body.chart) { alert('releaseName + chart 필수'); return; }
+  const result = await call('POST', '/v1/clusters/' + encodeURIComponent(_cdName) + '/helm-releases', body);
+  renderInto('cdHelmInstallOut', result);
+  if (result.ok) setTimeout(() => { closeModal('cdHelmInstallModal'); cdLoadHelm(); }, 700);
+}
+async function cdHelmStatusByName(rel) {
+  const ns = document.getElementById('cdHelmNamespace').value.trim() || 'default';
+  renderInto('cdHelmOpsOut', await call('GET', '/v1/clusters/' + encodeURIComponent(_cdName) + '/helm-releases/' + encodeURIComponent(rel) + '?namespace=' + encodeURIComponent(ns)), 'status: ' + rel);
+}
+async function cdHelmRevByName(rel) {
+  const ns = document.getElementById('cdHelmNamespace').value.trim() || 'default';
+  renderInto('cdHelmOpsOut', await call('GET', '/v1/clusters/' + encodeURIComponent(_cdName) + '/helm-releases/' + encodeURIComponent(rel) + '/revisions?namespace=' + encodeURIComponent(ns) + '&max=10'), 'rev: ' + rel);
+}
+async function cdHelmUninstall(rel) {
+  const ns = document.getElementById('cdHelmNamespace').value.trim() || 'default';
+  if (!confirm('uninstall ' + rel + ' ?')) return;
+  const result = await call('DELETE', '/v1/clusters/' + encodeURIComponent(_cdName) + '/helm-releases/' + encodeURIComponent(rel) + '?namespace=' + encodeURIComponent(ns));
+  renderInto('cdHelmOpsOut', result, 'uninstall: ' + rel);
+  if (result.ok) cdLoadHelm();
+}
+
+// Observability (cluster scope)
+async function cdObsAlerts() { renderInto('cdObsOut', await call('GET', '/v1/clusters/' + encodeURIComponent(_cdName) + '/observability/alerts'), 'alerts'); }
+async function cdObsTargets(state) { renderInto('cdObsOut', await call('GET', '/v1/clusters/' + encodeURIComponent(_cdName) + '/observability/targets?state=' + state), 'targets'); }
+async function cdObsDashboard() { renderInto('cdObsOut', await call('GET', '/v1/clusters/' + encodeURIComponent(_cdName) + '/observability/dashboard'), 'dashboard'); }
+async function cdObsNodeCpu() { renderInto('cdObsOut', await call('GET', '/v1/clusters/' + encodeURIComponent(_cdName) + '/metrics/standard/node-cpu?window=5m'), 'node CPU'); }
+async function cdObsNodeMemory() { renderInto('cdObsOut', await call('GET', '/v1/clusters/' + encodeURIComponent(_cdName) + '/metrics/standard/node-memory'), 'node memory'); }
+async function cdObsPodPhases() { renderInto('cdObsOut', await call('GET', '/v1/clusters/' + encodeURIComponent(_cdName) + '/metrics/standard/pod-phases'), 'pod phases'); }
+async function cdObsQuery() {
+  const promql = document.getElementById('cdObsPromql').value.trim();
+  if (!promql) { alert('promql 필요'); return; }
+  renderInto('cdObsOut', await call('GET', '/v1/clusters/' + encodeURIComponent(_cdName) + '/metrics/query?promql=' + encodeURIComponent(promql)), 'instant');
+}
+async function cdObsStackInstall() {
+  if (!confirm('kube-prometheus-stack 설치? ' + _cdName)) return;
+  renderInto('cdObsOut', await call('POST', '/v1/clusters/' + encodeURIComponent(_cdName) + '/observability/install', {}), 'install');
+}
+
+// Agent
+async function cdIssueAgentToken() {
+  if (!_cdName) return;
+  const mode = document.getElementById('cdAgentInstallMode').value;
+  renderInto('cdAgentOut', await call('POST', '/v1/clusters/' + encodeURIComponent(_cdName) + '/agent-registration?installMode=' + mode), 'token issued');
+}
+
+// Operations (cluster-scoped)
+async function cdLoadOps() {
+  if (!_cdName) return;
+  const qs = new URLSearchParams({ pageSize: 50, resourceType: 'cluster', resourceId: _cdName });
+  const result = await call('GET', '/v1/operations?' + qs);
+  const items = extractItems(result);
+  if (!items) { renderInto('cdOpsOut', result); document.getElementById('cdOpsCount').textContent = ''; return; }
+  renderResourceTable('cdOpsOut', items, [
+    {label: 'ID', value: o => o.id || '', mono: true},
+    {label: 'Type', value: o => o.type},
+    {label: 'State', value: o => o.state, badge: o => o.state === 'SUCCEEDED' ? 'ok' : (o.state === 'FAILED' || o.state === 'CANCELLED' ? 'err' : 'warn')},
+    {label: 'Step', value: o => o.currentStep || ''},
+    {label: '%', value: o => o.percent != null ? o.percent + '%' : ''},
+    {label: 'Created', value: o => o.createdAt || ''}
+  ], [], 'operation 없음');
+  document.getElementById('cdOpsCount').textContent = items.length + '개';
+}
+//#endregion
+
+//#region Observability (global aggregate)
+let _obsCatalog = [];
+async function obsPresetLoad() {
+  const result = await call('GET', '/v1/observability/standard-queries');
+  if (!result.ok) return;
+  _obsCatalog = (result.body && result.body.data) || [];
+  const sel = document.getElementById('obsPreset');
+  sel.innerHTML = '<option value="">(직접 입력)</option>' + _obsCatalog.map(q =>
+    '<option value="' + escapeHtml(q.id) + '">' + escapeHtml(q.label) + (q.hasWindow ? ' (window)' : '') + '</option>'
+  ).join('');
+}
+function obsPresetApply() {
+  const id = document.getElementById('obsPreset').value;
+  if (!id) return;
+  const q = _obsCatalog.find(c => c.id === id);
+  if (!q) return;
+  const window = document.getElementById('obsStdWindow').value.trim() || '5m';
+  document.getElementById('obsPromql').value = q.hasWindow ? q.promql.replace(/\{\{window\}\}/g, window) : q.promql;
+}
+const PROMQL_HISTORY_KEY = 'anycloud_test_console_promql_history';
+function obsHistoryLoad() { try { return JSON.parse(localStorage.getItem(PROMQL_HISTORY_KEY) || '[]'); } catch (_) { return []; } }
+function obsHistoryPush(p) { if (!p || !p.trim()) return; let l = obsHistoryLoad().filter(x => x !== p); l.unshift(p); l = l.slice(0, 5); localStorage.setItem(PROMQL_HISTORY_KEY, JSON.stringify(l)); obsHistoryRender(); }
+function obsHistoryRender() {
+  const c = document.getElementById('obsHistory');
+  if (!c) return;
+  const list = obsHistoryLoad();
+  c.innerHTML = list.length === 0 ? '<span class="hint">(없음)</span>' :
+    list.map((p, i) => '<button class="tiny" title="' + escapeHtml(p) + '" onclick="document.getElementById(\'obsPromql\').value = ' + JSON.stringify(p) + ';">' + (i+1) + '. ' + escapeHtml(p.slice(0, 30) + (p.length > 30 ? '…' : '')) + '</button>').join('');
+}
+async function obsAggregate() {
+  const promql = document.getElementById('obsPromql').value.trim();
+  if (!promql) { alert('promql 필요'); return; }
+  const timeout = parseInt(document.getElementById('obsAggTimeout').value, 10) || 8;
+  obsHistoryPush(promql);
+  renderInto('obsQueryOut', await call('GET', '/v1/observability/aggregate?' + new URLSearchParams({ promql, perClusterTimeoutSeconds: timeout })));
+}
+//#endregion
+
+//#region Operations (global)
+async function searchOperations() {
+  const qs = new URLSearchParams({ pageSize: document.getElementById('opPageSize').value });
+  const s = document.getElementById('opState').value;
+  const t = document.getElementById('opType').value.trim();
+  const rt = document.getElementById('opResType').value.trim();
+  const rid = document.getElementById('opResId').value.trim();
+  if (s) qs.set('state', s);
+  if (t) qs.set('type', t);
+  if (rt) qs.set('resourceType', rt);
+  if (rid) qs.set('resourceId', rid);
+  const result = await call('GET', '/v1/operations?' + qs);
+  const items = extractItems(result);
+  if (!items) { renderInto('opSearchOut', result); document.getElementById('opCount').textContent = ''; return; }
+  renderResourceTable('opSearchOut', items, [
+    {label: 'ID', value: o => o.id || '', mono: true},
+    {label: 'Type', value: o => o.type},
+    {label: 'State', value: o => o.state, badge: o => o.state === 'SUCCEEDED' ? 'ok' : (o.state === 'FAILED' || o.state === 'CANCELLED' ? 'err' : 'warn')},
+    {label: 'Resource', value: o => (o.resourceType || '') + (o.resourceId ? ':' + o.resourceId : '')},
+    {label: 'Step', value: o => o.currentStep || ''},
+    {label: '%', value: o => o.percent != null ? o.percent + '%' : ''},
+    {label: 'Created', value: o => o.createdAt || ''}
+  ], [], 'operation 없음');
+  document.getElementById('opCount').textContent = items.length + '개';
+}
+//#endregion
+
+//#region Workflow
+async function loadQueues() {
+  const result = await call('GET', '/v1/workflow/queues');
+  const items = extractItems(result);
+  if (!items) { renderInto('queuesOut', result); document.getElementById('queuesCount').textContent = ''; return; }
+  renderResourceTable('queuesOut', items, [
+    {label: 'Queue', value: q => q.name || q.queueName || ''},
+    {label: 'Messages', value: q => q.messageCount != null ? q.messageCount : ''},
+    {label: 'Consumers', value: q => q.consumerCount != null ? q.consumerCount : ''},
+    {label: 'State', value: q => q.state || ''}
+  ], [], '큐 없음');
+  document.getElementById('queuesCount').textContent = items.length + '개';
+}
+async function loadFailed() {
+  const cluster = document.getElementById('failClusterFilter').value.trim();
+  const limit = document.getElementById('failLimit').value;
+  const qs = new URLSearchParams({ limit });
+  if (cluster) qs.set('clusterName', cluster);
+  const result = await call('GET', '/v1/workflow/dead-letter-messages?' + qs);
+  const items = extractItems(result);
+  if (!items) { renderInto('failedOut', result); document.getElementById('failedCount').textContent = ''; return; }
+  renderResourceTable('failedOut', items, [
+    {label: 'Log ID', value: m => m.id || m.logId || '', mono: true},
+    {label: 'Cluster', value: m => m.clusterName || ''},
+    {label: 'Step', value: m => m.step || ''},
+    {label: 'Result', value: m => m.result || '', badge: m => 'err'},
+    {label: 'Time', value: m => m.processedAt || m.createdAt || ''},
+    {label: 'Error', value: m => (m.errorMessage || '').slice(0, 80)}
+  ], [
+    {label: 'replay', onclick: m => "replayDlq('" + escapeJs(m.id || m.logId) + "')"}
+  ], 'DLQ 메시지 없음');
+  document.getElementById('failedCount').textContent = items.length + '개';
+}
+async function replayDlq(logId) {
+  if (!confirm('replay? log-id = ' + logId)) return;
+  const result = await call('POST', '/v1/workflow/dead-letter-messages/' + encodeURIComponent(logId) + '/operations', { type: 'replay' });
+  renderInto('republishOut', result, 'replay: ' + logId);
+  if (result.ok) loadFailed();
+}
+//#endregion
+
+//#region Audit
+async function searchAudit() {
+  const qs = new URLSearchParams({ limit: document.getElementById('auditLimit').value });
+  const sin = document.getElementById('auditSince').value.trim(); if (sin) qs.set('since', sin);
+  const unt = document.getElementById('auditUntil').value.trim(); if (unt) qs.set('until', unt);
+  const rt = document.getElementById('auditResType').value.trim(); if (rt) qs.set('resource-type', rt);
+  const rid = document.getElementById('auditResId').value.trim(); if (rid) qs.set('resource-id', rid);
+  const act = document.getElementById('auditAction').value.trim(); if (act) qs.set('action', act);
+  const pri = document.getElementById('auditPrincipal').value.trim(); if (pri) qs.set('principal', pri);
+  const result = await call('GET', '/v1/audit-logs?' + qs);
+  const items = extractItems(result);
+  if (!items) { renderInto('auditOut', result); document.getElementById('auditCount').textContent = ''; return; }
+  renderResourceTable('auditOut', items, [
+    {label: 'Time', value: l => l.timestamp || l.createdAt || ''},
+    {label: 'Principal', value: l => l.principal || ''},
+    {label: 'Action', value: l => l.action || ''},
+    {label: 'Resource', value: l => (l.resourceType || '') + (l.resourceId ? ':' + l.resourceId : '')},
+    {label: 'Result', value: l => l.result || l.outcome || ''},
+    {label: 'Details', value: l => l.details ? (typeof l.details === 'string' ? l.details : JSON.stringify(l.details)).slice(0, 80) : ''}
+  ], [], '검색 결과 없음');
+  document.getElementById('auditCount').textContent = items.length + '개';
+}
+//#endregion
+
+//#region Boot
+loadStoredToken();
+obsHistoryRender();
+onCredProviderChange();
+updateCtxDots();
+loadCredentials().catch(() => {});
+refreshCtxClusterOptions().catch(() => {});
+obsPresetLoad().catch(() => {});
+//#endregion
+</script>
+</body>
+</html>

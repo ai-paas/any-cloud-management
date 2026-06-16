@@ -1,0 +1,28 @@
+# anycloud-default Velero Schedule.
+# 매시 정각 workload 만 백업 (kube-system / velero / monitoring 제외), 7일 보존.
+# K8s 시스템 자원은 daily-full-cluster 가 cover — 본 정책은 빈번한 user workload 보호.
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: anycloud-hourly-workloads
+  namespace: ${NAMESPACE}
+  labels:
+    source: anycloud-default
+    policy: hourly-workloads
+spec:
+  schedule: "0 * * * *"
+  template:
+    snapshotVolumes: true
+    storageLocation: default
+    ttl: 168h0m0s
+    excludedNamespaces:
+      - kube-system
+      - kube-public
+      - kube-node-lease
+      - velero
+      - monitoring
+      - aipaas-system
+    # excluded resources — event 는 매분 생기는 noise, log 는 너무 큼.
+    excludedResources:
+      - events
+      - events.events.k8s.io

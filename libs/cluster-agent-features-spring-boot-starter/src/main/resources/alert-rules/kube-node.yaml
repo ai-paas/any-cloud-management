@@ -1,0 +1,34 @@
+# Kubernetes node condition health — kube-state-metrics.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: anycloud-kube-node
+  namespace: ${NAMESPACE}
+  labels:
+    release: ${RELEASE}
+    source: anycloud-default
+    rule-set: kube-node
+spec:
+  groups:
+    - name: anycloud.kube-node
+      rules:
+        - alert: KubeNodeNotReady
+          expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+          for: 10m
+          labels:
+            severity: critical
+            source: anycloud-default
+          annotations:
+            summary: "Node not Ready — {{ $labels.node }}"
+            description: "Node {{ $labels.node }} has been in NotReady state for 10 min."
+
+        - alert: KubeNodeUnderPressure
+          expr: |
+            kube_node_status_condition{condition=~"MemoryPressure|DiskPressure|PIDPressure",status="true"} == 1
+          for: 10m
+          labels:
+            severity: warning
+            source: anycloud-default
+          annotations:
+            summary: "Node pressure — {{ $labels.node }} / {{ $labels.condition }}"
+            description: "Node {{ $labels.node }} reports {{ $labels.condition }}=true for 10 min."

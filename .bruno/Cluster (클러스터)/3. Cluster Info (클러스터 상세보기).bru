@@ -1,28 +1,28 @@
 meta {
-  name: Cluster Info (클러스터 상세보기)
+  name: 3. Cluster Info (클러스터 상세보기)
   type: http
-  seq: 3
+  seq: 5
 }
 
 get {
-  url: {{baseUrl}}/system/cluster/{{cluster_name}}
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}
   body: none
   auth: none
 }
 
 headers {
   content-type: application/json
-  User-Agent: bruno/1.11.0
+  User-Agent: bruno/3.3.0
 }
 
 tests {
   test("상태 코드 200 확인", function() {
     expect(res.getStatus()).to.equal(200);
   });
-  
+
   test("Response Data 확인", function() {
     const data = res.getBody();
-    // console.log("   ✓ data length", Object.keys(data).length);
-    expect(data).to.not.be.undefined;
+    expect(data).to.have.property("success");
+    expect(data).to.have.property("data");
   });
 }

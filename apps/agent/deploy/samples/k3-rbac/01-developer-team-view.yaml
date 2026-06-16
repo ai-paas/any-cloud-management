@@ -1,0 +1,25 @@
+# Sample binding — dev-team OIDC group → view ClusterRole.
+# 운영자가 impersonation pass-through 활성화 시 본 YAML 을 base 로 customize.
+#
+# 활성화 절차:
+#   1) gateway 가 X-Forwarded-Groups: dev-team 헤더 전송 보장
+#   2) kubectl --context=<cluster> apply -f 01-developer-team-view.yaml
+#   3) backend 의 security.auth.enabled=true
+#
+# anycloud-view-extras 가 helm chart 에 포함되어 있으면 ArgoCD / Velero 등 third-party CRD 도
+# 자동 read 가능.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: oidc-dev-team-view
+  labels:
+    app.kubernetes.io/managed-by: manual
+    aipaas.io/oidc-group-binding: dev-team
+subjects:
+  - kind: Group
+    name: dev-team
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: view
+  apiGroup: rbac.authorization.k8s.io

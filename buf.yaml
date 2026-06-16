@@ -1,0 +1,23 @@
+# buf workspace — proto lint + breaking change detection + code generation.
+#
+# Canonical proto source = libs/cluster-agent-spring-boot-starter/src/main/proto.
+# 그래야 starter 가 self-contained 상태로 외부 Java/Spring Boot 프로젝트에 publish 가능 —
+# starter jar 하나만 받으면 generated Java 클래스 + (resource 로 bundle 된) .proto 원본을 모두 가져감.
+# 본 파일은 workspace pointer — 저장소 root 에 두는 이유는 buf v2 가 module path 를 workspace
+# 내부로 한정하기 때문 (proto/ 하위 디렉토리로는 starter 위치를 가리킬 수 없음).
+#
+# 사용 (repo root 에서):
+#   buf lint           — proto 스타일 검증
+#   buf breaking --against '.git#branch=main'   — main 대비 breaking change 검사
+#   buf generate       — buf.gen.yaml 기반 Go 코드 생성 (Java 는 Gradle protobuf plugin 이 담당)
+version: v2
+modules:
+  - path: libs/cluster-agent-spring-boot-starter/src/main/proto
+lint:
+  use:
+    - STANDARD
+  except:
+    - PACKAGE_VERSION_SUFFIX     # 우리는 agent/v1 디렉토리로 versioning.
+breaking:
+  use:
+    - WIRE_JSON

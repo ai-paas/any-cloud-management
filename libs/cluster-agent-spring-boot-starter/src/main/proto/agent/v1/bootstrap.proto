@@ -1,0 +1,122 @@
+// ClusterAgent bootstrap RPC — agent 가 처음 backend 에 등록할 때 1회용.
+//
+// 흐름:
+//   1. User → Backend: POST /v1/clusters/{id}/agent-registration → registration_token (단기 JWT, TTL ~10min)
+//   2. User → Cluster: kubectl apply (MANUAL) 로 agent.yaml 적용. agent 가 registration_token 갖고 기동.
+//   3. Agent → Backend: Register RPC 호출 (Authorization: Bearer <registration_token>)
+//   4. Backend: JWT 검증 + DB transaction + agent_identity_token 발급 → 응답으로 token 반환
+//      (현재 synchronous. 비동기 saga 도입 시 RabbitMQ publish → consumer DB upsert + token 발급)
+//   5. Agent: K8s Secret 에 identity_token 저장 → bootstrap channel 종료 → runtime stream 시작
+//
+// registration_token 검증 실패 시 PERMISSION_DENIED 반환. 토큰 jti 는 IdempotencyStore SPI 로
+// 1회 사용 강제 (Anycloud 는 MariaDB INSERT IGNORE).
+
+syntax = "proto3";
+
+package com.aipaas.anycloud.agent.v1;
+
+option java_multiple_files = true;
+option java_package = "io.aipaas.cluster.agent.v1";
+option java_outer_classname = "BootstrapProto";
+option go_package = "anycloud/proto/agent/v1;agentv1";
+
+import "agent/v1/common.proto";
+
+// Agent → Backend 부트스트랩 서비스. 인증은 unauthenticated TLS + registration_token (Bearer header) 로.
+service AgentBootstrap {
+  // Register: agent 가 클러스터 식별 정보 + 자기 instance 정보를 보내고 identity_token 받는다.
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+
+  // Identity token rotation.
+  // 인증: 현재 살아있는 identity_token (Authorization: Bearer). Backend 가 기존 token 검증 후
+  // 새 token 발급 + DB 의 token hash + expires_at 교체. 응답으로 새 token + 만료 시각.
+  // Agent 는 새 token 으로 K8s Secret 갱신 + 기존 stream 종료 후 새 stream 재연결.
+  //
+  // Identity token rotation. Agent 가 만료 임박 시 호출해 새 60일 token 받음.
+  // mTLS 제거로 본 RPC 가 다시 1st-class. bearer 단일 인증.
+  rpc RotateIdentityToken(RotateRequest) returns (RotateResponse);
+}
+
+// Rotation request.
+message RotateRequest {
+  // 진단용 — agent 의 instance_id. HA 시 backend 가 그 instance row 만 업데이트 권장.
+  string agent_instance_id = 1;
+}
+
+message RotateResponse {
+  // 신규 발급된 identity token (opaque UUID hex).
+  string new_identity_token = 1;
+  // 새 만료 시각 (RFC3339).
+  string expires_at = 2;
+}
+
+// Kubernetes cluster 식별/메타. agent 가 in-cluster 에서 수집해 보낸다.
+message ClusterIdentity {
+  // K8s 의 kube-system namespace UID — 클러스터 실체 unique 식별. backend 가 같은 클러스터 재등록 감지에 사용.
+  string k8s_cluster_uid = 1;
+
+  // K8s server version (예: "1.34.3").
+  string version = 2;
+
+  // 배포 distribution (kubeadm / k3s / microk8s / eks / gke / ...).
+  string distribution = 3;
+
+  // API server endpoint (예: "https://10.0.0.1:6443"). 내부 endpoint — public 아닐 수 있음.
+  string endpoint = 4;
+
+  // Pod / Service CIDR (optional, 못 가져오면 빈 문자열).
+  string pod_cidr = 5;
+  string service_cidr = 6;
+
+  // Server CA cert (PEM). agent-first 등록 (status=AGENT_PENDING) 으로 들어온 cluster 의
+  // ClusterEntity.server_ca 를 backfill 하는 데 사용. in-cluster 환경에서는 service account 의
+  // /var/run/secrets/kubernetes.io/serviceaccount/ca.crt 또는 restConfig.TLSClientConfig.CAData.
+  // 비어있어도 호환 (optional) — backend 는 CA 없으면 connectivity check 시 skip-tls-verify 권장.
+  string server_ca = 7;
+}
+
+// Agent runtime 식별. instance_id 는 Pod 재시작마다 새로 생성 — HA replica 구분용.
+message AgentIdentity {
+  // UUID v4 — Pod 시작 시 1회 생성.
+  string agent_instance_id = 1;
+
+  // Agent 빌드 버전 (예: "1.0.0").
+  string version = 2;
+
+  // Agent Pod 이름 (debugging 용).
+  string pod_name = 3;
+}
+
+message RegisterRequest {
+  ClusterIdentity cluster = 1;
+  AgentIdentity agent = 2;
+  NetworkInfo network = 3;
+  // csr_pem 폐기. mTLS 제거. bearer 단일 인증.
+}
+
+message RegisterResponse {
+  // Backend 가 발급한 cluster 의 internal ID (registration_token 안의 cluster_id 와 일치 확인용).
+  string cluster_id = 1;
+
+  // 장기 (60일) opaque identity token. Agent 는 K8s Secret 에 저장 후 runtime channel 의
+  // Authorization Bearer header 에 사용. 만료 임박 시 RotateIdentityToken 으로 갱신.
+  string agent_identity_token = 2;
+
+  // identity_token 만료 시각 (RFC3339). 갱신 cycle (D-20 자동 갱신) 의 기준.
+  string expires_at = 3;
+
+  // 클러스터 상태 — synchronous register flow 는 곧장 ACTIVE 반환.
+  // 비동기 saga 도입 시 PENDING 으로 응답 후 후속 처리 완료 시 ACTIVE 전환.
+  // Agent 는 PENDING 이어도 runtime stream 열고 ACTIVE 전환을 기다린다.
+  ClusterStatus cluster_status = 4;
+
+  // issued_cert 폐기. mTLS 제거.
+}
+
+enum ClusterStatus {
+  CLUSTER_STATUS_UNSPECIFIED = 0;
+  CLUSTER_STATUS_PENDING = 1;     // 비동기 saga 후속 처리 대기 (PARTIAL_SUCCESS) — 예약.
+  CLUSTER_STATUS_ACTIVE = 2;      // 정상 상태 — 명령 송신/수신 가능.
+  CLUSTER_STATUS_DEGRADED = 3;    // API_MANAGED 실패 등 비정상/제한 동작.
+  CLUSTER_STATUS_FAILED = 4;      // 등록 실패 — 롤백/정리 필요.
+}

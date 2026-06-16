@@ -1,0 +1,94 @@
+# anycloud — root config (entry point).
+#
+# 본 파일은 도메인별 sub-config 를 import 만 한다. 실제 설정은 config/*.yaml 에 위치 —
+# 도메인별로 한 눈에 보기 위해서. 환경별 차이 (DB URL / ddl-auto 등) 는 profile-specific
+# yaml (application-{profile}.yaml) 이 담당.
+#
+#   config/
+#     ├─ workflow.yaml       async + vm-cluster-workflow + pulumi
+#     ├─ observability.yaml  prometheus queries + cluster-observability + management
+#     ├─ agent.yaml          cluster-agent + agent + grpc
+#     ├─ runtime.yaml        spring (rabbitmq/flyway) + csp-credential + cluster.cert
+#     │                      + resilience4j + security
+#     └─ api.yaml            vm-options + anycloud (idempotency/helm/operation cleanup) + webhook
+#
+# Spring profile 별 추가 override:
+#   application-dev.yaml    : local 개발 (gradle bootRun, start-dev.sh) — DB localhost + ddl-auto=update
+#   application-docker.yaml : 컨테이너 (Dockerfile / Dockerfile.pulumi 의 SPRING_PROFILES_ACTIVE=docker)
+#                             — DB env-driven + ddl-auto=validate
+#   application-test.yaml   : 통합 테스트 (src/test/resources)
+#
+# 우선순위 (높은 → 낮은):
+#   1. application-{profile}.yaml  (env-specific)
+#   2. application.yaml            (본 파일)
+#   3. config/*.yaml               (import 된 도메인 설정)
+
+spring:
+  application:
+    name: anycloud
+  # Java 21 virtual threads — Tomcat embedded + Spring Scheduler + @Async (TaskExecutor 명시 안 한
+  # 경우) 가 plain thread 대신 virtual thread 사용. gRPC concurrent RPC + Pulumi subprocess 같은
+  # blocking I/O 의 main beneficiary. 명시 ThreadPoolTaskExecutor (AsyncConfig 의 helm/kubernetes/
+  # provisioning/bootstrap 4 executor) 는 platform thread 유지 — peak memory + max-concurrent 명시
+  # 제어가 더 가치.
+  threads:
+    virtual:
+      enabled: true
+  config:
+    import:
+      - classpath:config/runtime.yaml
+      - classpath:config/api.yaml
+      - classpath:config/workflow.yaml
+      - classpath:config/agent.yaml
+      - classpath:config/observability.yaml
+      - classpath:config/addons.yaml
+
+# ---------------------------------------------------------------------------
+# 모든 환경 공통 — server / encoding / swagger.
+# 환경별 차이 (DB / JPA) 는 application-{profile}.yaml 에서 override.
+# ---------------------------------------------------------------------------
+server:
+  port: ${SERVER_PORT:8888}
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+
+spring.messages:
+  encoding: UTF-8
+
+springdoc:
+  api-docs:
+    path: /docs/json
+    groups:
+      enabled: true
+  swagger-ui:
+    path: /docs
+    tags-sorter: alpha
+    operations-sorter: alpha
+  cache:
+    disabled: true
+
+# Thanos (외부 monitoring URL) — 기본은 dev placeholder. 운영에선 ENV override.
+com:
+  aipaas:
+    anycloud:
+      monitoringUrl: ${THANOS_URL:https://localhost:9000}
+
+# 외부 public helm chart repo 자동 등록.
+# - enabled=false 로 두면 air-gapped 환경에서 internal ChartMuseum 만 운영.
+# - 사용자가 같은 이름 수동 등록한 경우 skip (사용자 입력 우선).
+# - 변경 시 backend 재기동 후 ApplicationReady 단계에서 반영.
+helm-repo:
+  auto-seed:
+    enabled: ${ANYCLOUD_HELM_REPO_AUTO_SEED:true}
+    repos:
+      - name: prometheus-community
+        url: https://prometheus-community.github.io/helm-charts
+        tags: monitoring,seeded
+      - name: grafana
+        url: https://grafana.github.io/helm-charts
+        tags: monitoring,seeded
+      - name: bitnami
+        url: https://charts.bitnami.com/bitnami
+        tags: general,seeded

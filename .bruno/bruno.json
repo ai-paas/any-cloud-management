@@ -21,6 +21,366 @@
         {
           "name": "baseUrl",
           "value": "http://localhost:8888"
+        },
+        {
+          "name": "cluster_name",
+          "value": "aws-kubernetes-001"
+        },
+        {
+          "name": "provision_cluster_name",
+          "value": "demo-aws-01"
+        },
+        {
+          "name": "provision_provider",
+          "value": "AWS"
+        },
+        {
+          "name": "provision_environment",
+          "value": "dev"
+        },
+        {
+          "name": "provision_region",
+          "value": "ap-northeast-2"
+        },
+        {
+          "name": "vm_options_provider",
+          "value": "AWS"
+        },
+        {
+          "name": "vm_options_region",
+          "value": "ap-northeast-2"
+        },
+        {
+          "name": "vm_options_keyword",
+          "value": "ubuntu"
+        }
+      ]
+    },
+    {
+      "name": "local-aws-provisioning",
+      "variables": [
+        {
+          "name": "baseUrl",
+          "value": "http://localhost:8888"
+        },
+        {
+          "name": "cluster_name",
+          "value": "aws-kubernetes-001"
+        },
+        {
+          "name": "provision_cluster_name",
+          "value": "demo-aws-01"
+        },
+        {
+          "name": "provision_provider",
+          "value": "AWS"
+        },
+        {
+          "name": "provision_environment",
+          "value": "dev"
+        },
+        {
+          "name": "provision_region",
+          "value": "ap-northeast-2"
+        },
+        {
+          "name": "vm_options_provider",
+          "value": "AWS"
+        },
+        {
+          "name": "vm_options_region",
+          "value": "ap-northeast-2"
+        },
+        {
+          "name": "vm_options_keyword",
+          "value": "ubuntu"
+        }
+      ]
+    },
+    {
+      "name": "local-gcp-provisioning",
+      "variables": [
+        {
+          "name": "baseUrl",
+          "value": "http://localhost:8888"
+        },
+        {
+          "name": "cluster_name",
+          "value": "gcp-kubernetes-001"
+        },
+        {
+          "name": "provision_cluster_name",
+          "value": "demo-gcp-01"
+        },
+        {
+          "name": "provision_provider",
+          "value": "GCP"
+        },
+        {
+          "name": "provision_environment",
+          "value": "dev"
+        },
+        {
+          "name": "provision_region",
+          "value": "asia-northeast3"
+        },
+        {
+          "name": "vm_options_provider",
+          "value": "GCP"
+        },
+        {
+          "name": "vm_options_region",
+          "value": "asia-northeast3"
+        },
+        {
+          "name": "vm_options_keyword",
+          "value": "ubuntu"
+        }
+      ]
+    },
+    {
+      "name": "local-azure-provisioning",
+      "variables": [
+        {
+          "name": "baseUrl",
+          "value": "http://localhost:8888"
+        },
+        {
+          "name": "cluster_name",
+          "value": "azure-kubernetes-001"
+        },
+        {
+          "name": "provision_cluster_name",
+          "value": "demo-azure-01"
+        },
+        {
+          "name": "provision_provider",
+          "value": "Azure"
+        },
+        {
+          "name": "provision_environment",
+          "value": "dev"
+        },
+        {
+          "name": "provision_region",
+          "value": "koreacentral"
+        },
+        {
+          "name": "vm_options_provider",
+          "value": "Azure"
+        },
+        {
+          "name": "vm_options_region",
+          "value": "koreacentral"
+        },
+        {
+          "name": "vm_options_keyword",
+          "value": "ubuntu"
+        }
+      ]
+    },
+    {
+      "name": "local-proxmox-provisioning",
+      "variables": [
+        {
+          "name": "baseUrl",
+          "value": "http://localhost:8888"
+        },
+        {
+          "name": "cluster_name",
+          "value": "proxmox-kubernetes-001"
+        },
+        {
+          "name": "provision_cluster_name",
+          "value": "demo-proxmox-01"
+        },
+        {
+          "name": "provision_provider",
+          "value": "Proxmox"
+        },
+        {
+          "name": "provision_environment",
+          "value": "dev"
+        },
+        {
+          "name": "provision_region",
+          "value": "pve-cluster"
+        },
+        {
+          "name": "vm_options_provider",
+          "value": "Proxmox"
+        },
+        {
+          "name": "vm_options_region",
+          "value": "pve-cluster"
+        },
+        {
+          "name": "vm_options_keyword",
+          "value": "ubuntu"
+        }
+      ]
+    },
+    {
+      "name": "local-oci-provisioning",
+      "variables": [
+        {
+          "name": "baseUrl",
+          "value": "http://localhost:8888"
+        },
+        {
+          "name": "cluster_name",
+          "value": "oci-kubernetes-001"
+        },
+        {
+          "name": "provision_cluster_name",
+          "value": "demo-oci-01"
+        },
+        {
+          "name": "provision_provider",
+          "value": "OCI"
+        },
+        {
+          "name": "provision_environment",
+          "value": "dev"
+        },
+        {
+          "name": "provision_region",
+          "value": "ap-seoul-1"
+        },
+        {
+          "name": "vm_options_provider",
+          "value": "OCI"
+        },
+        {
+          "name": "vm_options_region",
+          "value": "ap-seoul-1"
+        },
+        {
+          "name": "vm_options_keyword",
+          "value": "ubuntu"
+        }
+      ]
+    },
+    {
+      "name": "local-digitalocean-provisioning",
+      "variables": [
+        {
+          "name": "baseUrl",
+          "value": "http://localhost:8888"
+        },
+        {
+          "name": "cluster_name",
+          "value": "digitalocean-kubernetes-001"
+        },
+        {
+          "name": "provision_cluster_name",
+          "value": "demo-digitalocean-01"
+        },
+        {
+          "name": "provision_provider",
+          "value": "DigitalOcean"
+        },
+        {
+          "name": "provision_environment",
+          "value": "dev"
+        },
+        {
+          "name": "provision_region",
+          "value": "sgp1"
+        },
+        {
+          "name": "vm_options_provider",
+          "value": "DigitalOcean"
+        },
+        {
+          "name": "vm_options_region",
+          "value": "sgp1"
+        },
+        {
+          "name": "vm_options_keyword",
+          "value": "ubuntu"
+        }
+      ]
+    },
+    {
+      "name": "local-alibaba-provisioning",
+      "variables": [
+        {
+          "name": "baseUrl",
+          "value": "http://localhost:8888"
+        },
+        {
+          "name": "cluster_name",
+          "value": "alibaba-kubernetes-001"
+        },
+        {
+          "name": "provision_cluster_name",
+          "value": "demo-alibaba-01"
+        },
+        {
+          "name": "provision_provider",
+          "value": "Alibaba"
+        },
+        {
+          "name": "provision_environment",
+          "value": "dev"
+        },
+        {
+          "name": "provision_region",
+          "value": "ap-northeast-2"
+        },
+        {
+          "name": "vm_options_provider",
+          "value": "Alibaba"
+        },
+        {
+          "name": "vm_options_region",
+          "value": "ap-northeast-2"
+        },
+        {
+          "name": "vm_options_keyword",
+          "value": "ubuntu"
+        }
+      ]
+    },
+    {
+      "name": "local-openstack-provisioning",
+      "variables": [
+        {
+          "name": "baseUrl",
+          "value": "http://localhost:8888"
+        },
+        {
+          "name": "cluster_name",
+          "value": "openstack-kubernetes-001"
+        },
+        {
+          "name": "provision_cluster_name",
+          "value": "demo-openstack-01"
+        },
+        {
+          "name": "provision_provider",
+          "value": "OpenStack"
+        },
+        {
+          "name": "provision_environment",
+          "value": "dev"
+        },
+        {
+          "name": "provision_region",
+          "value": "regionOne"
+        },
+        {
+          "name": "vm_options_provider",
+          "value": "OpenStack"
+        },
+        {
+          "name": "vm_options_region",
+          "value": "regionOne"
+        },
+        {
+          "name": "vm_options_keyword",
+          "value": "ubuntu"
         }
       ]
     }

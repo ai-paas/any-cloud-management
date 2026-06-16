@@ -1,0 +1,98 @@
+name: API Contract Test (Bruno)
+
+# .bruno/ collection 을 dev stack 띄운 상태에서 실행 — API 회귀 자동 감지.
+#
+# 비용 (full stack ~3-5min + collection ~1-3min) 고려해 trigger 제한:
+#   - workflow_dispatch       : 수동 실행 (PR 마다 자동 X)
+#   - PR label 'run-api-tests': 명시적 opt-in
+#   - push to main            : 매 merge 후 자동
+#
+# 모든 PR 자동은 부담 큼 — 신중한 PR (controller / API path 변경) 에만 label 부착 권장.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bruno-run:
+    name: Run Bruno collection
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # PR label trigger 만 실 실행 — 다른 label add 는 skip.
+    if: github.event_name != 'pull_request' || github.event.label.name == 'run-api-tests'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js (for Bruno CLI)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Bruno CLI
+        run: npm install -g @usebruno/cli
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: docker-buildx-${{ github.sha }}
+          restore-keys: docker-buildx-
+
+      - name: Bring up dev stack
+        env:
+          ANYCLOUD_AGENT_JWT_SECRET: dev-only-jwt-secret-replace-in-real-use-must-be-32-bytes
+          CSP_CREDENTIAL_ENCRYPTION_KEY: dev-only-enc-key-replace-in-real-use-must-be-32-bytes
+          PULUMI_PASSPHRASE: dev-only-pulumi-passphrase-replace-in-real-use
+        run: |
+          make dev-up
+
+      - name: Wait for backend healthy
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://localhost:8888/actuator/health > /dev/null 2>&1; then
+              echo "Backend healthy after ${i} attempts"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Backend not healthy in 150s"
+          docker compose -f docker-compose.dev.yml logs anycloud-backend | tail -50
+          exit 1
+
+      - name: Run Bruno collection (local env)
+        working-directory: .bruno
+        run: |
+          bru run --env local --reporter-junit results.xml || true
+          # exit code 무시 + JUnit reporter — 다음 step 이 결과 분석
+
+      - name: Upload Bruno results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bruno-results
+          path: .bruno/results.xml
+          retention-days: 14
+
+      - name: Tear down dev stack
+        if: always()
+        run: make dev-down
+
+      - name: Fail on collection errors
+        run: |
+          if grep -q 'failures="[^0]' .bruno/results.xml 2>/dev/null; then
+            echo "::error::Bruno collection had failures"
+            exit 1
+          fi

@@ -1,0 +1,72 @@
+meta {
+  name: 2e. Alibaba Cluster Create (Alibaba 클러스터 생성)
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+}
+
+body:json {
+  {
+    "source": "vm",
+    "clusterName": "{{provision_cluster_name}}",
+    "spec": {
+      "provider": "ALIBABA",
+      "description": "Alibaba Cloud ECS 기반 Kubernetes 클러스터",
+      "environment": "{{provision_environment}}",
+      "region": "{{provision_region}}",
+      "credentialId": "{{credential_id}}",
+      "config": {
+        "anycloud-k8s:masterInstanceType": "{{master_vm_spec}}",
+        "anycloud-k8s:workerInstanceType": "{{worker_vm_spec}}",
+        "anycloud-k8s:workerCount": "{{worker_count}}",
+        "anycloud-k8s:kubernetesVersion": "{{kubernetes_version}}",
+        "anycloud-k8s:vpcCidr": "{{vpc_cidr}}",
+        "anycloud-k8s:podCidr": "{{pod_cidr}}",
+        "anycloud-k8s:serviceCidr": "{{service_cidr}}",
+        "anycloud-k8s:enableIngress": "{{enable_ingress}}",
+        "anycloud-k8s:enableGpuOperator": "{{enable_gpu_operator}}"
+      }
+    }
+  }
+}
+
+script:post-response {
+  if (res.body && res.body.data && res.body.data.id) {
+    bru.setEnvVar('last_operation_id', res.body.data.id);
+  }
+}
+
+tests {
+  test("상태 코드 202", function() {
+    expect(res.getStatus()).to.equal(202);
+  });
+}
+
+docs {
+  ## Alibaba Cloud ECS 기반 cluster 생성
+
+  ### Required env vars (local-alibaba-provisioning.bru)
+  - `provision_provider: ALIBABA`
+  - `provision_region`: e.g. `cn-hangzhou`, `ap-southeast-1`
+  - `credential_id`: Alibaba credential UUID
+  - `master_vm_spec` / `worker_vm_spec`: e.g. `ecs.g7.large`, `ecs.c7.xlarge`
+
+  ### Alibaba 만의 config — **없음** (기본 K8s 공통 config 만).
+  Region 만 정확히 — VSwitch / Security Group 자동 생성.
+
+  ### 실행
+  ```bash
+  bru run "VM Cluster (VM 클러스터)/2e. Alibaba Cluster Create (Alibaba 클러스터 생성).bru" \
+      --env local-alibaba-provisioning
+  ```
+}

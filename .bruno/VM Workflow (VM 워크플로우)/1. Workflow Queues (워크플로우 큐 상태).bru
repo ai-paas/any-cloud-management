@@ -1,0 +1,28 @@
+meta {
+  name: 1. Workflow Queues (워크플로우 큐 상태)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/workflow/queues
+  body: none
+  auth: none
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("workflow queue response contains queue metrics", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("success");
+    expect(body).to.have.property("data");
+    if (Array.isArray(body.data) && body.data.length > 0) {
+      expect(body.data[0]).to.have.property("queueName");
+      expect(body.data[0]).to.have.property("messageCount");
+      expect(body.data[0]).to.have.property("consumerCount");
+    }
+  });
+}

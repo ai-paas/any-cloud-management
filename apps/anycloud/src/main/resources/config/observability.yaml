@@ -1,0 +1,277 @@
+# anycloud — observability 계열 설정.
+#   prometheus            : PromQL query templates (NODE_FILTER / NAMESPACE_FILTER 자리표시자)
+#   cluster-observability : Cluster Observability Starter — in-cluster Prometheus/Grafana 통신 timeout
+#   management            : Spring Boot Actuator endpoint exposure
+#
+# prometheus.metrics 의 PromQL 은 응용 코드가 아닌 data — 운영자가 자주 수정.
+# query 정의만 보고 싶을 때 본 파일만 열면 됨.
+
+prometheus:
+  metrics:
+    node:
+      status: "kube_node_status_condition==1"
+    cpu:
+      total: "sum(kube_node_status_capacity{resource=\"cpu\", ${NODE_FILTER} })"
+      usage: |
+        sum by (node) (
+          label_replace(
+            rate(node_cpu_seconds_total{mode!="idle"}[5m]),
+            "internal_ip",
+            "$1",
+            "instance",
+            "(.*):[0-9]+"
+          )
+          * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+        )
+      usage_namespace: |
+        sum by (namespace) (
+          rate(container_cpu_usage_seconds_total{
+            container!~"POD|",
+            container!="",
+            ${NODE_FILTER}, ${NAMESPACE_FILTER}}[5m])
+        )
+      request: "sum by(node) (kube_pod_container_resource_requests{resource=\"cpu\", unit=\"core\",${NODE_FILTER},${NAMESPACE_FILTER} })"
+      limit: "sum by(node) (kube_pod_container_resource_limits{resource=\"cpu\", unit=\"core\",${NODE_FILTER},${NAMESPACE_FILTER} })"
+      load5:  |
+        sum by (node) (
+          sum by (internal_ip) (
+            label_replace(
+              node_load5,
+              "internal_ip",
+              "$1",
+              "instance",
+              "(.*):[0-9]+"
+            )
+          )
+          * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+        )
+    memory:
+      total: "sum(kube_node_status_capacity{resource=\"memory\", ${NODE_FILTER} })"
+      usage: "sum by (node) (container_memory_usage_bytes{${NODE_FILTER}, ${NAMESPACE_FILTER}}) "
+      usage_namespace: |
+        sum by (namespace) (
+          container_memory_usage_bytes{
+            container!~"POD|",
+            container!="", ${NODE_FILTER}, ${NAMESPACE_FILTER}
+          }
+        )
+      request: "sum by(node) (kube_pod_container_resource_requests{resource=\"memory\", unit=\"byte\",${NODE_FILTER},${NAMESPACE_FILTER} })"
+      limit: "sum by(node) (kube_pod_container_resource_limits{resource=\"memory\", unit=\"byte\",${NODE_FILTER},${NAMESPACE_FILTER} })"
+    filesystem:
+      total: |
+        sum (
+             sum by (internal_ip) (
+               label_replace(
+                 node_filesystem_size_bytes{fstype=~"ext4|xfs|btrfs", mountpoint="/"},
+                 "internal_ip",
+                 "$1",
+                 "instance",
+                 "(.*):[0-9]+"
+               )
+             )
+             * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+           )
+      usage: |
+        sum by(node) (
+                  sum by (internal_ip) (
+                    label_replace(
+                      sum by (instance, device) (node_filesystem_size_bytes{fstype=~"ext4|xfs|btrfs", mountpoint="/"}-node_filesystem_free_bytes{fstype=~"ext4|xfs|btrfs", mountpoint="/"}),
+                      "internal_ip",
+                      "$1",
+                      "instance",
+                      "(.*):[0-9]+"
+                    )
+                  )
+                  * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+                )
+      usage_namespace: "sum by(namespace) (kubelet_volume_stats_used_bytes {}) "
+    disk:
+      read_bytes: |
+        sum by (node) (
+          sum by (internal_ip) (
+            label_replace(
+              rate(node_disk_read_bytes_total{}[5m]),
+              "internal_ip",
+              "$1",
+              "instance",
+              "(.*):[0-9]+"
+            )
+          )
+          * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+        )
+      write_bytes: |
+        sum by (node) (
+          sum by (internal_ip) (
+            label_replace(
+              rate(node_disk_written_bytes_total{}[5m]),
+              "internal_ip",
+              "$1",
+              "instance",
+              "(.*):[0-9]+"
+            )
+          )
+          * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+        )
+    network:
+      receive_bytes: |
+        sum by (node) (
+          sum by (internal_ip) (
+            label_replace(
+              rate(node_network_receive_bytes_total{device!="lo"}[5m]),
+              "internal_ip",
+              "$1",
+              "instance",
+              "(.*):[0-9]+"
+            )
+          )
+          * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+        )
+      transmit_bytes : |
+        sum by (node) (
+          sum by (internal_ip) (
+            label_replace(
+              rate(node_network_transmit_bytes_total{device!="lo"}[5m]),
+              "internal_ip",
+              "$1",
+              "instance",
+              "(.*):[0-9]+"
+            )
+          )
+          * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+        )
+      receive_drop : |
+          sum by (node) (
+          sum by (internal_ip) (
+            label_replace(
+              rate(node_network_receive_drop_total{}[5m]),
+              "internal_ip",
+              "$1",
+              "instance",
+              "(.*):[0-9]+"
+            )
+          )
+          * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+          )
+      transmit_drop: |
+        sum by (node) (
+          sum by (internal_ip) (
+            label_replace(
+              rate(node_network_transmit_drop_total{}[5m]),
+              "internal_ip",
+              "$1",
+              "instance",
+              "(.*):[0-9]+"
+            )
+          )
+          * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+        )
+      receive_err: |
+        sum by (node) (
+          sum by (internal_ip) (
+            label_replace(
+              rate(node_network_receive_errs_total{}[5m]),
+              "internal_ip",
+              "$1",
+              "instance",
+              "(.*):[0-9]+"
+            )
+          )
+          * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+        )
+      transmit_err: |
+        sum by (node) (
+          sum by (internal_ip) (
+            label_replace(
+              rate(node_network_transmit_errs_total{}[5m]),
+              "internal_ip",
+              "$1",
+              "instance",
+              "(.*):[0-9]+"
+            )
+          )
+          * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+        )
+    gpu:
+      total: "gpu_operator_gpu_nodes_total"
+      usage_namespace: |
+        kube_pod_container_resource_requests{resource="nvidia_com_gpu"}
+        * on(namespace, pod)
+          group_left()
+          (kube_pod_status_phase{phase!="Pending", job="kube-state-metrics"} == 1)
+      request: "sum by(node) (kube_pod_container_resource_requests{resource=\"nvidia_com_gpu\",${NODE_FILTER},${NAMESPACE_FILTER} })"
+      limit: "sum by(node) (kube_pod_container_resource_limits{resource=\"nvidia_com_gpu\",${NODE_FILTER},${NAMESPACE_FILTER} })"
+      util: "DCGM_FI_DEV_GPU_UTIL"
+      memory_copy_util: "DCGM_FI_DEV_MEM_COPY_UTIL"
+      memory_used: "DCGM_FI_DEV_FB_USED"
+      xid_errors: "DCGM_FI_DEV_XID_ERRORS"
+    pod:
+      total: "sum(kube_node_status_capacity{resource=\"pods\", ${NODE_FILTER} })"
+      used_node: "kubelet_running_pods{${NODE_FILTER}}"
+      usage_namespace: "count(kube_pod_info{${NODE_FILTER}}) by (namespace)"
+    top5:
+      cpu: "topk(5, sum by (node) (rate(container_cpu_usage_seconds_total{${NODE_FILTER},${NAMESPACE_FILTER}}[5m]))) by (node)"
+      memory: "topk(5, sum by (node) (container_memory_usage_bytes{${NODE_FILTER},${NAMESPACE_FILTER}})) by (node) "
+      disk: "topk(5, sum by (node) (kubelet_volume_stats_used_bytes{${NODE_FILTER},${NAMESPACE_FILTER}})) by (node) "
+      filesystem: |
+        topk(5, sum by(node) (
+                    sum by (internal_ip) (
+                      label_replace(
+                        sum by (instance, device) (node_filesystem_size_bytes{fstype=~"ext4|xfs|btrfs", mountpoint="/"}-node_filesystem_free_bytes{fstype=~"ext4|xfs|btrfs", mountpoint="/"}),
+                        "internal_ip",
+                        "$1",
+                        "instance",
+                        "(.*):[0-9]+"
+                      )
+                    )
+                    * on(internal_ip) group_left(node) kube_node_info{${NODE_FILTER}}
+                  )
+      pod: "topk(5, count(kube_pod_info{${NODE_FILTER},${NAMESPACE_FILTER}}) by (node)) by (node)"
+      gpu: "topk(5, sum by (node) (kube_pod_container_resource_requests{resource='nvidia_com_gpu',${NODE_FILTER},${NAMESPACE_FILTER}})) by (node)"
+    tpu:
+      total: "gke_tpu_node_total"
+      chip_total: "gke_tpu_chip_total"
+      allocated_total: "gke_cluster_tpu_allocated"
+      available_total: "gke_cluster_tpu_available"
+      cpu_usage: "gke_tpu_node_usage{resource_type=\"cpu\", ${NODE_FILTER}}"
+      memory_usage: "gke_tpu_node_usage{resource_type=\"memory\", ${NODE_FILTER}}"
+      tpu_usage: "gke_tpu_node_usage{resource_type=\"tpu\", ${NODE_FILTER}}"
+      ephemeral_storage_usage: "gke_tpu_node_usage{resource_type=\"ephemeral_storage\"}, ${NODE_FILTER}}"
+      capacity_total: "gke_tpu_node_capacity{${NODE_FILTER}}"
+
+# Cluster Observability Starter.
+# 각 cluster 의 in-cluster Prometheus/Grafana 와 통신하는 timeout 설정.
+# AllowList 의 EXEC_POD 처럼 INSTALL_OBSERVABILITY_STACK 등 신규 CommandType 들은 cluster 측
+# aipaas-agent-allowlist ConfigMap 에 추가 등록 필요 (README 참조).
+cluster-observability:
+  query:
+    default-timeout: ${ANYCLOUD_OBS_QUERY_TIMEOUT:5s}
+    fan-out-timeout: ${ANYCLOUD_OBS_FANOUT_TIMEOUT:8s}
+  install:
+    timeout: ${ANYCLOUD_OBS_INSTALL_TIMEOUT:10m}
+  dashboard:
+    timeout: ${ANYCLOUD_OBS_DASHBOARD_TIMEOUT:3s}
+  # MonitoringAutoInstaller 는 제거됨. install path 는
+  # cluster_addon table + RabbitMQ workflow 가 유일 source-of-truth.
+  # 운영자 migration: 기존 ACTIVE cluster 에서 monitoring stack 자동 install 받으려면
+  # POST /v1/clusters/{c}/addons {"type":"MONITORING","catalogId":"kube-prometheus-stack"} 호출.
+
+# Actuator endpoint exposure (L10). production 에선 별도 management.server.port 로 분리해서
+# 외부 노출 자체를 차단하는 것이 가장 안전. 여기선 명시 화이트리스트로 위험한 endpoint
+# (/env, /heapdump, /threaddump, /loggers PATCH) 를 차단한다.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+        # 절대 expose 하지 말 것: env, configprops, heapdump, threaddump, beans, mappings.
+        # info / health 도 details=never 권장 (아래).
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true   # /actuator/health/liveness, /readiness 노출
+    info:
+      enabled: true
+  info:
+    git:
+      mode: simple

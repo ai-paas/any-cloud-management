@@ -1,0 +1,20 @@
+# anycloud-default Velero Schedule.
+# 일요일 03:00 UTC, 90일 보존. PV snapshot 강조 — 일반 backup 보다 storage 비용 큼.
+# DR 용 — workload 손실 발생 시 가장 최근 weekly 로 복구 → daily 로 delta 보완.
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: anycloud-weekly-pv-snapshots
+  namespace: ${NAMESPACE}
+  labels:
+    source: anycloud-default
+    policy: weekly-pv-snapshots
+spec:
+  schedule: "0 3 * * 0"
+  template:
+    snapshotVolumes: true
+    storageLocation: default
+    ttl: 2160h0m0s    # 90 days
+    # CSI 환경이면 useOwnerReferencesInBackup 으로 PV 메타 보존.
+    # Velero default 가 false — DR 시 PV 충돌 회피 명시 권장.
+    # 호스트가 cluster CSI 활성화 여부에 따라 override.
