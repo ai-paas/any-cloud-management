@@ -25,15 +25,14 @@ docs {
 
   | seq | 파일 | 용도 |
   |-----|------|------|
-  | 1   | VM Cluster List              | `GET /v1/clusters?source=vm` |
-  | 2   | VM Cluster Create (generic)  | 모든 CSP config key 를 한 body 에 (legacy/reference) |
+  | 1   | VM Cluster List              | `GET /v1/vms` |
+  | 2   | VM Cluster Create (generic)  | `POST /v1/vms` — 모든 CSP config key 를 한 body 에 (legacy/reference) |
   | 2a  | VM Cluster Preflight         | 생성 사전 검토 (credential / quota / cost) |
   | 2b  | **AWS** Cluster Create       | AWS EC2 전용 — 기본 K8s config 만 |
   | 2c  | **GCP** Cluster Create       | GCP Compute — `gcp_project` 추가 필수 |
   | 2d  | **Azure** Cluster Create     | Azure VM — `azure_resource_group` 추가 필수 |
   | 2e  | **Alibaba** Cluster Create   | Alibaba ECS — 기본 K8s config 만 |
   | 2f  | **OpenStack** Cluster Create | OpenStack Nova — image/flavor/external network/floating pool 추가 필수 |
-  | 2g  | **Proxmox** Cluster Create   | Proxmox VE — node/template/datastore/bridge 추가 필수 |
   | 2h  | **OCI** Cluster Create       | Oracle Cloud — `oci_compartment_id` 추가 필수 |
   | 2i  | **DigitalOcean** Cluster Create | DO Droplet — 기본 K8s config 만 |
   | 3   | VM Cluster Status            | 생성 진행 상태 |
@@ -53,7 +52,6 @@ docs {
   | **Azure** | `azure_resource_group` | `osImage` (`Publisher:Offer:Sku:Version`) |
   | **Alibaba** | (없음) | `osImage` (ImageId) |
   | **OpenStack** | `openstack_image_name`, `openstack_flavor_name`, `openstack_external_network_id`, `openstack_floating_ip_pool` | — |
-  | **Proxmox** | `proxmox_node_name`, `proxmox_template_vm_id`, `proxmox_datastore_id`, `proxmox_network_bridge` | — |
   | **OCI** | `oci_compartment_id` | `osImage` (image OCID) |
   | **DigitalOcean** | (없음) | `osImage` (DO slug) |
 
@@ -66,7 +64,6 @@ docs {
   | `local-azure-provisioning.bru`       | Azure quick-start |
   | `local-alibaba-provisioning.bru`     | Alibaba quick-start |
   | `local-openstack-provisioning.bru`   | OpenStack quick-start |
-  | `local-proxmox-provisioning.bru`     | Proxmox quick-start |
   | `local-oci-provisioning.bru`         | OCI quick-start |
   | `local-digitalocean-provisioning.bru` | DO quick-start |
   | `local-provisioning-template.bru`    | 새 CSP 추가 시 복사 베이스 |

@@ -2,26 +2,25 @@ package com.aipaas.anycloud.domain.provisioning.preflight.internal;
 
 import com.aipaas.anycloud.common.error.enums.ErrorCode;
 import com.aipaas.anycloud.common.error.exception.CustomException;
-import com.aipaas.anycloud.domain.provisioning.preflight.validation.ProvisioningConfigRules;
-import com.aipaas.anycloud.domain.provisioning.preflight.validation.ProvisioningCredentialRules;
-import com.aipaas.anycloud.domain.provisioning.preflight.validation.ProvisioningProviderValidator;
-import com.aipaas.anycloud.domain.vmoptions.validation.VmOptionsSelectionValidator;
 import com.aipaas.anycloud.domain.cluster.ClusterRepository;
 import com.aipaas.anycloud.domain.credential.CspCredentialService;
 import com.aipaas.anycloud.domain.credential.ResolvedCspCredential;
-import com.aipaas.anycloud.domain.credential.model.CspCredentialSourceType;
-import com.aipaas.anycloud.domain.provisioning.pricing.CostEstimate;
-import com.aipaas.anycloud.domain.provisioning.pricing.CostEstimator;
 import com.aipaas.anycloud.domain.provisioning.VmClusterRepository;
 import com.aipaas.anycloud.domain.provisioning.api.request.ProvisionClusterRequest;
 import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterPreflightResponse;
 import com.aipaas.anycloud.domain.provisioning.model.SupportedProvisioningProvider;
 import com.aipaas.anycloud.domain.provisioning.model.VmClusterPreflightIssue;
 import com.aipaas.anycloud.domain.provisioning.preflight.VmClusterPreflightService;
+import com.aipaas.anycloud.domain.provisioning.preflight.validation.ProvisioningConfigRules;
+import com.aipaas.anycloud.domain.provisioning.preflight.validation.ProvisioningCredentialRules;
+import com.aipaas.anycloud.domain.provisioning.preflight.validation.ProvisioningProviderValidator;
+import com.aipaas.anycloud.domain.provisioning.pricing.CostEstimate;
+import com.aipaas.anycloud.domain.provisioning.pricing.CostEstimator;
 import com.aipaas.anycloud.domain.provisioning.properties.PulumiProperties;
 import com.aipaas.anycloud.domain.vmoptions.VmOptionsQueryService;
-import io.aipaas.cluster.provisioning.core.ProvisioningRequest;
-import io.aipaas.cluster.provisioning.service.PulumiProvisioningService;
+import com.aipaas.anycloud.domain.vmoptions.validation.VmOptionsSelectionValidator;
+import io.aipaas.cluster.provisioning.api.ProvisioningRequest;
+import io.aipaas.cluster.provisioning.api.ProvisioningService;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -58,7 +57,7 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
     private final ClusterRepository clusterRepository;
     private final VmClusterRepository vmClusterRepository;
     private final CspCredentialService cspCredentialService;
-    private final PulumiProvisioningService pulumiProvisioningService;
+    private final ProvisioningService provisioningService;
     private final VmOptionsQueryService vmOptionsQueryService;
     private final VmOptionsSelectionValidator vmOptionsSelectionValidator;
     private final PulumiProperties pulumiProperties;
@@ -77,7 +76,7 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
                 cspCredentialService.resolveForProvision(cluster.getClusterProvider(), cluster.getCredentialId());
         ProvisioningRequest request = provisioningProviderValidator.validateStaticAndBuildRequest(cluster, credential);
         return com.aipaas.anycloud.domain.provisioning.api.response.VmClusterPreviewResponse.from(
-                pulumiProvisioningService.preview(request));
+                provisioningService.preview(request));
     }
 
     @Override
@@ -211,13 +210,6 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
                                         ? "Application Environment"
                                         : null)
                                 : resolvedCredential.getCredentialName())
-                .credentialSourceType(
-                        resolvedCredential == null
-                                ? (cluster.getCredentialId() == null
-                                                || cluster.getCredentialId().isBlank()
-                                        ? CspCredentialSourceType.ENV
-                                        : null)
-                                : resolvedCredential.getSourceType())
                 .credentialResolved(credentialResolved)
                 .requiredCredentialKeys(requiredCredentialKeys)
                 .missingCredentialKeys(missingCredentialKeys)
@@ -355,7 +347,7 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
     /**
      * Step 7 helper. Pulumi 가 사용할 stackName 미리 계산. credential 이 미해결인 경우
      * dummy ResolvedCspCredential (ENV / Application Environment) 로 채워 stackName builder 가
-     * 어쨌든 동작하도록 한다.
+     * 어쨌든 동작하.
      */
     private StackNamePreview buildStackNamePreview(
             SupportedProvisioningProvider provider,
@@ -372,11 +364,6 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
                                                     || cluster.getCredentialId().isBlank()
                                             ? "Application Environment"
                                             : null)
-                            .sourceType(
-                                    cluster.getCredentialId() == null
-                                                    || cluster.getCredentialId().isBlank()
-                                            ? CspCredentialSourceType.ENV
-                                            : null)
                             .environment(Map.of())
                             .build();
             ProvisioningRequest request = ProvisioningRequest.builder()
@@ -389,7 +376,7 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
                     .config(normalizedConfig)
                     .credentialEnvironment(previewCredential.environmentOrEmpty())
                     .build();
-            return new StackNamePreview(pulumiProvisioningService.buildStackName(request), null);
+            return new StackNamePreview(provisioningService.buildStackName(request), null);
         } catch (Exception e) {
             return new StackNamePreview(null, e.getMessage());
         }
@@ -502,13 +489,6 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
                         "OpenStack preflight validates live VM options, but image/flavor names and floating IP capacity must be confirmed in the target tenant");
                 checklistItems.add("Confirm configured OpenStack image and flavor names exist");
                 checklistItems.add("Verify external network and floating IP pool capacity");
-            }
-            case PROXMOX -> {
-                messages.add(
-                        "Proxmox preflight validates live options against the target environment, but template/snippet storage and network bridge readiness remain manual checks");
-                checklistItems.add(
-                        "Confirm template VM, snippet-capable datastore, and network bridge exist on the selected Proxmox node");
-                checklistItems.add("Verify selected subnet has gateway and IP space for master and worker nodes");
             }
             case OCI -> {
                 messages.add(

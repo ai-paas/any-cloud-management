@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  * 백엔드 자체 정적 토큰 인증 설정.
  * <p>
  * 운영 환경에서는 외부 gateway가 인증을 담당하므로 기본값은 OFF다.
- * gateway 우회 호출을 차단하거나 staging/디버깅 시에 ON으로 켤 수 있도록 toggle 형태로 제공한다.
+ * gateway 우회 호출을 차단하거나 staging/디버깅 시에 ON으로 켤 수 있도록 toggle 형태로 제공.
  *
  * <pre>
  * security:

@@ -24,7 +24,7 @@ public interface AddonMapper {
     AddonStatusResponse toResponse(ClusterAddonEntity entity);
 
     /**
-     * cluster status 를 받아 PENDING 정체 사유({@code pendingReason})를 계산해 주입한다.
+     * cluster status 를 받아 PENDING 정체 사유({@code pendingReason})를 계산해 주입.
      * enqueue 됐거나(state != PENDING) 이미 operation 이 붙은 addon 은 null.
      */
     default AddonStatusResponse toResponse(ClusterAddonEntity entity, ClusterStatus clusterStatus) {

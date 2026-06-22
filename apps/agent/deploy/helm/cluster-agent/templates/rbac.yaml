@@ -38,6 +38,12 @@ rules:
 - apiGroups: [""]
   resources: ["pods/log", "pods/status"]
   verbs: ["get"]
+# pods/exec — kubectl exec 등가. WebSocket terminal 진입 시 K8s API server 가 SubjectAccessReview
+# 로 SA 의 create on pods/exec 권한 확인. 미부여 시 forbidden 으로 EXEC_FAILED 반환.
+# allowed_exec_namespaces (agent 측 allowlist) 와 별개 — K8s RBAC 통과 + agent allowlist 통과 둘 다 필수.
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["create"]
 # metrics.k8s.io — verbs 가 list 만 — wildcard 와 동일하므로 사실상 redundant 이나 가시성 위해 유지.
 - apiGroups: ["metrics.k8s.io"]
   resources: ["nodes", "pods"]
@@ -119,10 +125,12 @@ metadata:
   labels:
     {{- include "cluster-agent.labels" . | nindent 4 }}
 rules:
+# delete: agent self-heal — backend 가 Unauthenticated 를 N회 연속 반환하면 Secret 무효화 후 pod
+# 재시작으로 fresh re-bootstrap. cluster 재생성 후 stale token 자동 복구.
 - apiGroups: [""]
   resources: ["secrets"]
   resourceNames: ["cluster-agent-identity"]
-  verbs: ["get", "update", "patch"]
+  verbs: ["get", "update", "patch", "delete"]
 # create 는 resourceNames 와 함께 쓸 수 없음 (K8s RBAC 제약 — create 시점엔 name 검증 못 함).
 # 별도 rule 로 list 전체 namespace 안에서 secrets create 허용. 실제 어떤 이름으로든 create 가
 # 가능하지만, 운영자 의도 (cluster-agent-identity) 외 사용은 코드에서 막힘.

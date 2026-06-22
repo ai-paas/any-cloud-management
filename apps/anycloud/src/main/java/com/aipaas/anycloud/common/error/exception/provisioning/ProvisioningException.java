@@ -12,7 +12,7 @@ import com.aipaas.anycloud.common.error.exception.CustomException;
  * 외부 시스템 (Pulumi / CSP API / SSH) 호출 실패는 transient, 입력/상태 충돌은 permanent.
  *
  * <p>{@link #isTransient()} 가 true 면 retry interceptor 가 재시도를 시도해야 함을
- * 호출자가 판단할 수 있다.
+ * 호출자가 판단가능.
  */
 public abstract class ProvisioningException extends CustomException {
 

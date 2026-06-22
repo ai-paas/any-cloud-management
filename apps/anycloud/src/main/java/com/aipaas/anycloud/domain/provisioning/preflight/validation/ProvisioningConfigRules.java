@@ -57,10 +57,6 @@ public final class ProvisioningConfigRules {
                 config.putIfAbsent(MASTER_VM_SPEC, "s-2vcpu-4gb");
                 config.putIfAbsent(WORKER_VM_SPEC, "s-2vcpu-4gb");
             }
-            case PROXMOX -> {
-                config.putIfAbsent(MASTER_VM_SPEC, "proxmox-standard-2x4");
-                config.putIfAbsent(WORKER_VM_SPEC, "proxmox-standard-2x4");
-            }
             default -> {
                 config.putIfAbsent(MASTER_VM_SPEC, "t3.large");
                 config.putIfAbsent(WORKER_VM_SPEC, "t3.large");
@@ -100,13 +96,6 @@ public final class ProvisioningConfigRules {
                         missingKeys,
                         List.of("anycloud-k8s:openstackExternalNetworkId", "anycloud-k8s:openstackFloatingIpPool"));
             }
-            case PROXMOX -> requireConfigKeys(
-                    config,
-                    missingKeys,
-                    "anycloud-k8s:proxmoxNodeName",
-                    "anycloud-k8s:proxmoxTemplateVmId",
-                    "anycloud-k8s:proxmoxDatastoreId",
-                    "anycloud-k8s:proxmoxNetworkBridge");
             case OCI -> requireConfigKeys(config, missingKeys, "anycloud-k8s:ociCompartmentId");
             default -> {}
         }

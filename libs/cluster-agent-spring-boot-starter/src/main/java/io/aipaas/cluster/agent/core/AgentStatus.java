@@ -14,7 +14,7 @@ package io.aipaas.cluster.agent.core;
  * </pre>
  *
  * <p>본 enum 은 starter 가 노출하는 표준 상태값. 호스트 애플리케이션이 DB 컬럼/JSON 표현 등에 어떤 형태로
- * 저장하든, {@link AgentIdentityStore} adapter 에서 본 enum 으로 매핑해서 반환하면 된다.
+ * 저장하든, {@link AgentIdentityStore} adapter 에서 본 enum 으로 매핑해서 반환하OK.
  */
 public enum AgentStatus {
 

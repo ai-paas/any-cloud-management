@@ -7,7 +7,7 @@ import java.util.Map;
  * VM cluster 노드 정보 + SSH 접속 자료 노출.
  *
  * <p>Pulumi 가 cluster 마다 SSH keypair 를 생성해 state 에 secret 으로 보관하는데, 운영자가
- * 그 키를 얻을 방법이 없어 노드에 직접 접속할 수 없었다. 표준 {@code ProvisioningOutput}
+ * 그 키를 얻을 방법이 없어 노드에 직접 접속할 수 없었다. 표준 {@code ProvisioningResult}
  * 스키마 (nodes + sshPrivateKeyPem) 기반이라 8개 CSP 모두 동일하게 동작.
  */
 public interface VmClusterSshAccessService {

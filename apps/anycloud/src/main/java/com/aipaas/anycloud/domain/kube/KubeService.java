@@ -84,6 +84,46 @@ public interface KubeService {
             String clusterName, String namespace, String kind, int limit, String continueToken, String labelSelector);
 
     /**
+     * fieldSelector 를 지원하는 listResourcesPaginated 변형. Event 같이 involvedObject.* 로 필터링이 필요한
+     * 자원 조회에 사용. labelSelector 와 AND 조합.
+     */
+    PagedKubeResourceResponse listResourcesPaginated(
+            String clusterName,
+            String namespace,
+            String kind,
+            int limit,
+            String continueToken,
+            String labelSelector,
+            String fieldSelector);
+
+    /**
+     * 특정 리소스에 연관된 K8s Event 목록 — fieldSelector {@code involvedObject.kind=<Kind>,involvedObject.name=<name>}
+     * 로 events kind 를 paginated list.
+     *
+     * @param involvedKind 리소스 path 의 plural (예: "pods", "deployments"). K8s Kind 로 정규화하여 사용.
+     * @param involvedName 리소스 이름.
+     */
+    PagedKubeResourceResponse listEventsFor(
+            String clusterName, String namespace, String involvedKind, String involvedName);
+
+    /**
+     * 리소스 재시작.
+     * <ul>
+     *   <li>pods → delete (컨트롤러가 재생성) — Pod 가 standalone 이면 delete 만 되고 재생성되지 않음.</li>
+     *   <li>deployments, statefulsets, daemonsets → spec.template.metadata.annotations 에
+     *       {@code kubectl.kubernetes.io/restartedAt = <now>} 추가 후 apply (rollout restart).</li>
+     *   <li>그 외 → {@link IllegalArgumentException}.</li>
+     * </ul>
+     */
+    JsonNode restartResource(String clusterName, String namespace, String kind, String name);
+
+    /**
+     * replicas 변경. 지원 kind: deployments, replicasets, statefulsets. 그 외 {@link IllegalArgumentException}.
+     * 동시 수정 race 는 인지하되 본 라운드는 get + modify + apply 패턴을 사용.
+     */
+    JsonNode scaleResource(String clusterName, String namespace, String kind, String name, int replicas);
+
+    /**
      * Pod 의 container log snapshot (kubectl logs 등가).
      *
      * @param clusterName 대상 cluster

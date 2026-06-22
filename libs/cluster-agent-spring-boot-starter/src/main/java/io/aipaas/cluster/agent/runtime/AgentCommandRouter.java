@@ -101,12 +101,19 @@ public class AgentCommandRouter {
 	/** LIST_RESOURCES — paginated K8s 자원 list. namespace 가 빈 문자열이면 all-namespaces. */
 	public CompletableFuture<CommandResponse> listResources(String clusterName, String namespace, String kind,
 			int limit, String continueToken, String labelSelector) {
+		return listResources(clusterName, namespace, kind, limit, continueToken, labelSelector, "");
+	}
+
+	/** LIST_RESOURCES with fieldSelector — kubectl get … --field-selector=… 등가. Event 조회 등에 사용. */
+	public CompletableFuture<CommandResponse> listResources(String clusterName, String namespace, String kind,
+			int limit, String continueToken, String labelSelector, String fieldSelector) {
 		Struct params = struct(Map.of(
 				"namespace", namespace == null ? "" : namespace,
 				"kind", kind == null ? "" : kind,
 				"limit", String.valueOf(limit),
 				"continueToken", continueToken == null ? "" : continueToken,
-				"labelSelector", labelSelector == null ? "" : labelSelector));
+				"labelSelector", labelSelector == null ? "" : labelSelector,
+				"fieldSelector", fieldSelector == null ? "" : fieldSelector));
 		return send(clusterName, CommandType.LIST_RESOURCES, params, DEFAULT_TIMEOUT_SECONDS);
 	}
 

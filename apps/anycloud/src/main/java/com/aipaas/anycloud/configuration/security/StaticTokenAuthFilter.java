@@ -19,7 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * 사전 공유 정적 토큰 비교 필터.
  * <p>
  * 요청 헤더 {@code security.auth.header}(기본 {@code Authorization})에서 토큰을 추출하여
- * 설정값과 {@link MessageDigest#isEqual(byte[], byte[]) 상수 시간 비교}로 일치를 검사한다.
+ * 설정값과 {@link MessageDigest#isEqual(byte[], byte[]) 상수 시간 비교}로 일치를 검사.
  * 공개 경로({@code security.auth.public-paths})는 검사하지 않는다.
  */
 @Slf4j

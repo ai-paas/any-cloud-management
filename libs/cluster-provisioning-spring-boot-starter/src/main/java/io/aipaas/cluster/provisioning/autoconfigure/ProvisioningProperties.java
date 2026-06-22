@@ -7,11 +7,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * cluster-provisioning starter 의 외부 설정.
  *
  * <p>application.yml prefix: {@code cluster-provisioning}.
- *
- * <p>state backup 설정(enabled/directory/retention 등)은 본 record 가 아니라
- * {@link io.aipaas.cluster.provisioning.core.PulumiBackupPropertiesProvider} SPI 로 host 가 공급한다.
- * backup scheduler/validator 의 cron schedule 만 별도로
- * {@code cluster-provisioning.state-backup[.restore-dry-run].cron} property 로 읽는다 (@Scheduled).
  */
 @ConfigurationProperties(prefix = "cluster-provisioning")
 public record ProvisioningProperties(Pulumi pulumi) {

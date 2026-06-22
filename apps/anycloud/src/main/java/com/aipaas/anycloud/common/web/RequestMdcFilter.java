@@ -14,7 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * 모든 HTTP 요청에 대해 짧은 requestId 와 clientIp 를 MDC 에 채워, controller / service /
- * 호출하는 외부 시스템까지의 모든 로그 줄에 동일한 컨텍스트가 표시되도록 한다.
+ * 호출하는 외부 시스템까지의 모든 로그 줄에 동일한 컨텍스트가 표시되.
  * <p>
  * X-Request-Id 헤더가 들어오면 그 값을 우선 사용(분산 추적과 연동). 없으면 UUID 앞 8자.
  * 응답에도 X-Request-Id 헤더를 넣어 클라이언트가 동일 id 로 다시 추적 가능.

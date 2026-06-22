@@ -8,8 +8,8 @@ import org.slf4j.MDC;
  * MDC 컨텍스트 키 정의 + try-with-resources 헬퍼.
  * <p>
  * 비동기 / 메시지 컨슈머 경계에서 {@link MDC} 의 값을 채워두면 logback 패턴이
- * 자동으로 모든 로그 줄에 cluster/messageId/step 등을 표시한다. 호출자는
- * {@link #scope} 로 try-with-resources 블록을 열어 자동 클리어를 보장한다.
+ * 자동으로 모든 로그 줄에 cluster/messageId/step 등을 표시. 호출자는
+ * {@link #scope} 로 try-with-resources 블록을 열어 자동 클리어를 보장.
  *
  * <pre>{@code
  * try (var ignored = LoggingMdc.scope(Map.of(
@@ -36,8 +36,8 @@ public final class LoggingMdc {
     private LoggingMdc() {}
 
     /**
-     * 주어진 key→value 들을 MDC 에 put 하고, close 시 원복(또는 비어있던 키는 제거)한다.
-     * null/blank value 는 건너뛰며, value 가 null 이 아닌 경우 String.valueOf 로 변환한다.
+     * 주어진 key→value 들을 MDC 에 put, close 시 원복 (비어있던 키는 제거).
+     * null/blank value 는 skip, 그 외는 String.valueOf 로 변환.
      */
     public static MdcCloseable scope(Map<String, ?> values) {
         Map<String, String> previous = new LinkedHashMap<>(values.size());

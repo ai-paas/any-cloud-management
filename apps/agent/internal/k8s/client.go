@@ -127,8 +127,8 @@ type Client interface {
 	// 호출자는 *exec.CodeExitError 로 type assertion 해서 shell exit code 추출 가능.
 	ExecInPod(ctx context.Context, opts PodExecOptions, streams ExecStreams) error
 
-	// Clientset — 내부 kubernetes.Interface 노출. mTLS Phase mtls.2 의 K8sSecretCertStore 등이
-	// Secret CRUD 를 위해 사용. Test 의 mock 도 동일 interface 반환 가능.
+	// Clientset — 내부 kubernetes.Interface 노출. Secret CRUD 등 client-go 직접 API 가 필요한
+	// caller (IdentityStore 구현체 등) 용. Test 의 mock 도 동일 interface 반환 가능.
 	Clientset() kubernetes.Interface
 
 	// ListAPIResources — server discovery 결과를 UI 친화 shape 로 list. CRD 도 자연스럽게 포함.
@@ -215,6 +215,7 @@ type ListResourcesOptions struct {
 	Limit         int64      // 0 = server default (cluster 별로 다름).
 	ContinueToken string     // 이전 응답의 continueToken — 첫 호출은 빈 문자열.
 	LabelSelector string     // K8s label selector 식. 빈 문자열이면 미적용.
+	FieldSelector string     // K8s field selector 식 빈 문자열이면 미적용.
 }
 
 // ListResourcesResult — server-side paginated list 결과.
@@ -601,8 +602,8 @@ func nodeHasGpu(node *corev1.Node) bool {
 	return false
 }
 
-// ErrUnsupportedKind — kind 문자열이 RESTMapper 로 해석되지 않을 때 반환. caller (dispatcher)
-// 가 Status_INVALID_PARAMS + UNSUPPORTED_KIND 로 매핑한다.
+// ErrUnsupportedKind — kind 문자열이 RESTMapper 로 해석되지 않을 때 반환.
+// caller (dispatcher) 가 Status_INVALID_PARAMS + UNSUPPORTED_KIND 로 매핑.
 var ErrUnsupportedKind = errors.New("unsupported kind")
 
 // shortNames — kubectl 익숙 short name 을 plural resource 로 빠르게 정규화. RESTMapper 가
@@ -620,24 +621,16 @@ var shortNames = map[string]string{
 
 // resolveKindToGVR — 입력 kind 문자열을 RESTMapper 기반으로 GVR + scope 으로 정규화.
 //
-// 입력 형식 (모두 case-insensitive):
+// 입력 형식 (case-insensitive):
 //   - lowercase singular: "pod", "storageclass"
 //   - lowercase plural:   "pods", "storageclasses"
 //   - short name:         "po", "pvc", "deploy", "sts", "ds", "rs", "crd", "sc" 등
 //
-// 동작:
-//  1. lowercase 정규화 후 shortNames 테이블 lookup (있으면 plural 로 치환).
-//  2. mapper.ResourceFor(GVR{Resource: <name>}) 로 group/version 포함 GVR 해석.
-//     → singular ("pod"), plural ("pods") 모두 인식.
-//  3. mapper.RESTMapping(GK, V) 로 scope (namespaced/cluster) 추출.
+// 실패 시 ErrUnsupportedKind wrap — dispatcher 가 sentinel 로 분류 가능.
 //
-// 실패 시 ErrUnsupportedKind wrap. dispatcher 가 sentinel 로 분류 가능.
-//
-// 주의: shortNames 와 ConfigMap ResourcePolicy 가 충돌하는 경우 (예: 운영자가 "sc" 를
-// 정책에 적기) 의 결정 — shortNames 가 항상 plural 로 정규화하므로 ResourcePolicy 도 plural
-// ("storageclasses") 로 작성해야 한다. allowlist 측에서 ResourceRule.Kind 를 lowercase 정규화
-// 만 하고 plural 변환은 안 하므로, 운영자가 ConfigMap 에 "sc" 를 적는다면 매칭되지 않는다 —
-// 의도적으로 명시 plural 강제 (정책의 의미 명확화).
+// 주의: shortNames 는 plural 로 정규화하지만 allowlist 의 ResourceRule.Kind 는 lowercase
+// 정규화만 하고 plural 변환 안 함. 운영자가 ConfigMap 에 "sc" 를 적으면 매칭되지 않음 —
+// 의도적 명시 plural 강제 (정책 의미 명확화).
 func (c *realClient) resolveKindToGVR(input string) (gvr schema.GroupVersionResource, namespaced bool, err error) {
 	raw := strings.TrimSpace(strings.ToLower(input))
 	if raw == "" {
@@ -780,6 +773,7 @@ func (c *realClient) ListResources(ctx context.Context, opts ListResourcesOption
 		Limit:         opts.Limit,
 		Continue:      opts.ContinueToken,
 		LabelSelector: opts.LabelSelector,
+		FieldSelector: opts.FieldSelector,
 	}
 	dyn, err := c.dynamicForCtx(ctx)
 	if err != nil {

@@ -24,10 +24,6 @@ body:json {
   }
 }
 
-vars:pre-request {
-  cluster_name: orb-kubernetes-001
-}
-
 script:post-response {
   if (res.body && res.body.data && res.body.data.id) {
     bru.setEnvVar("addon_id", res.body.data.id);

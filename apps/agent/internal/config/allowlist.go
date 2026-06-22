@@ -441,16 +441,58 @@ func parseConfigMap(cm *corev1.ConfigMap) (*AllowList, error) {
 	return policy, nil
 }
 
-// parseYAMLList — ConfigMap data value 가 YAML list 문자열. sigs.k8s.io/yaml 사용.
+// parseYAMLList — ConfigMap data value 를 list 로 파싱.
+// 정식 YAML list 가 우선이고, 실패 시 line/comma 분할 fallback (사용자 hand-edit 관용).
 func parseYAMLList(value string) ([]string, error) {
-	if value == "" {
+	if strings.TrimSpace(value) == "" {
 		return nil, nil
 	}
-	var result []string
-	if err := yaml.Unmarshal([]byte(value), &result); err != nil {
-		return nil, err
+	// 1) Standard YAML list.
+	var yamlResult []string
+	yamlErr := yaml.Unmarshal([]byte(value), &yamlResult)
+	if yamlErr == nil {
+		return yamlResult, nil
 	}
-	return result, nil
+	// 2) Fallback — line / comma 토큰 분할.
+	tokens := splitListTokens(value)
+	if len(tokens) > 0 {
+		return tokens, yamlErr // yamlErr 는 nil — fallback 성공.
+	}
+	// Fallback 도 빈 결과면 원본 YAML 에러 그대로 노출.
+	return nil, yamlErr
+}
+
+// splitListTokens — 라인 / 콤마로 분할하고 leading `-`, 공백, 인용부호, 주석 라인 제거.
+// 토큰 자체가 비어있으면 skip. 결과 list 가 비어있으면 빈 슬라이스 반환 (caller 가 빈/오류 구분).
+func splitListTokens(value string) []string {
+	out := make([]string, 0, 8)
+	for _, rawLine := range strings.Split(value, "\n") {
+		line := strings.TrimSpace(rawLine)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		// 라인 leading `-` (YAML list bullet) 제거.
+		if strings.HasPrefix(line, "- ") {
+			line = strings.TrimSpace(line[2:])
+		} else if line == "-" {
+			continue
+		}
+		// 라인 내 콤마 분할 — 콤마 + 줄바꿈 혼용 입력 cover.
+		for _, raw := range strings.Split(line, ",") {
+			tok := strings.TrimSpace(raw)
+			// 인용부호 stripping — `"foo"` / `'foo'` → `foo`.
+			if len(tok) >= 2 {
+				first, last := tok[0], tok[len(tok)-1]
+				if (first == '"' && last == '"') || (first == '\'' && last == '\'') {
+					tok = tok[1 : len(tok)-1]
+				}
+			}
+			if tok != "" {
+				out = append(out, tok)
+			}
+		}
+	}
+	return out
 }
 
 // parseChartRule — "repo/chart:min-max" or "repo/chart:single-version".

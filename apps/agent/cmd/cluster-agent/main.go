@@ -1,10 +1,7 @@
 // ClusterAgent 진입점.
 //
-// 흐름:
-//   1. env 로딩 (BACKEND_GRPC_ADDR / REGISTRATION_TOKEN / 클러스터 식별 정보)
-//   2. core.Run() 호출 → Register RPC → identity_token 수령
-//   3. identity_token 메모리 보관 (K8s Secret 영구 저장)
-//   4. SIGTERM 까지 대기 — runtime stream 실행
+// REGISTRATION_TOKEN env 는 첫 install 한 번만 필요 — bootstrap 후 K8s Secret 의 identity_token 으로
+// 영구 재인증. Pod restart 시 Secret 재로딩, fresh install 시 self-heal 로 Secret 삭제 → 재발급.
 package main
 
 import (
@@ -210,6 +207,10 @@ func main() {
 		exp, _ := time.Parse(time.RFC3339, result.ExpiresAt)
 		tokenStore := core.NewTokenStore(result.AgentIdentityToken, exp)
 		runtimeCfg.TokenStore = tokenStore
+		// Self-heal: backend 가 Unauthenticated 를 3회 연속 반환하면 K8s Secret 무효화 → 다음 pod
+		// restart (또는 본 process 의 main loop 종료 → restart policy) 에서 fresh REGISTRATION_TOKEN
+		// 으로 re-bootstrap. cluster 재생성 등으로 DB row 가 사라진 상황의 자동 복구 경로.
+		runtimeCfg.IdentityStore = identityStore
 
 		rotationCfg := core.DefaultRotationConfig()
 		rotationCfg.BackendAddr = backendAddr
@@ -234,8 +235,10 @@ func main() {
 
 		if err := core.RunStream(leaderCtx, runtimeCfg, dispatcher, execRunner, logRunner, kubeClient); err != nil && !errors.Is(err, context.Canceled) {
 			slog.Error("runtime stream terminated", slog.String("error", err.Error()))
-			// leader 모드: stream 종료해도 leader 잃기 전엔 retry. non-leader 모드 (legacy) 면 exit.
-			if envOr("AGENT_LEADER_ELECTION", "false") != "true" {
+			// self-heal sentinel: identity Secret 이 무효화됨 → 같은 token 으로 retry 해도 무한 fail.
+			// leader 모드여도 exit → Pod restart → empty Secret + REGISTRATION_TOKEN env 로 fresh bootstrap.
+			// 그 외 에러는 non-leader 모드에서만 exit (legacy 단일 replica 안정성), leader 모드는 retry.
+			if errors.Is(err, core.ErrIdentityInvalidated) || envOr("AGENT_LEADER_ELECTION", "false") != "true" {
 				os.Exit(5)
 			}
 		}

@@ -23,7 +23,6 @@ public class VmClusterInternalRequestSnapshot {
     private String region;
     private String credentialId;
     private String credentialName;
-    private String credentialSourceType;
     private String masterVmSpec;
     private String workerVmSpec;
     private Integer workerCount;

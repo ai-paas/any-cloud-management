@@ -7,7 +7,7 @@ import com.aipaas.anycloud.domain.chart.api.response.ChartValuesResponse;
 
 /**
  * Helm chart 메타데이터 조회 — chart museum / OCI repo 의 {@code index.yaml} 과 {@code .tgz} 안의
- * {@code values.yaml} / {@code README.md} 를 in-process 로 파싱한다.
+ * {@code values.yaml} / {@code README.md} 를 in-process 로 파싱.
  *
  * <p>Cluster 와 무관 (agent gRPC routing 없음). 책임 분리:
  * <ul>

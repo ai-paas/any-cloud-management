@@ -180,45 +180,6 @@
       ]
     },
     {
-      "name": "local-proxmox-provisioning",
-      "variables": [
-        {
-          "name": "baseUrl",
-          "value": "http://localhost:8888"
-        },
-        {
-          "name": "cluster_name",
-          "value": "proxmox-kubernetes-001"
-        },
-        {
-          "name": "provision_cluster_name",
-          "value": "demo-proxmox-01"
-        },
-        {
-          "name": "provision_provider",
-          "value": "Proxmox"
-        },
-        {
-          "name": "provision_environment",
-          "value": "dev"
-        },
-        {
-          "name": "provision_region",
-          "value": "pve-cluster"
-        },
-        {
-          "name": "vm_options_provider",
-          "value": "Proxmox"
-        },
-        {
-          "name": "vm_options_region",
-          "value": "pve-cluster"
-        },
-        {
-          "name": "vm_options_keyword",
-          "value": "ubuntu"
-        }
-      ]
     },
     {
       "name": "local-oci-provisioning",

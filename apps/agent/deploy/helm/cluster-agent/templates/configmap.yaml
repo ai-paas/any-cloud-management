@@ -31,4 +31,9 @@ data:
     {{- range .Values.allowlist.commands }}
     - {{ . | quote }}
     {{- end }}
+  # PodExec 대상 namespace allowlist. 미지정 시 빈 list → 모든 exec deny. wildcard "*" = 전부 허용.
+  allowed_exec_namespaces: |
+    {{- range .Values.allowlist.execNamespaces }}
+    - {{ . | quote }}
+    {{- end }}
 {{- end }}

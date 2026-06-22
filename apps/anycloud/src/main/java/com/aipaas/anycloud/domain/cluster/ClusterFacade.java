@@ -26,7 +26,7 @@ public interface ClusterFacade {
 
     /**
      * Paged variant. cursor 는 opaque 한 문자열로 controller 가 round-trip — 형식 ({@code vm:offset} /
-     * {@code registered:offset}) 은 service 내부 구현 세부사항이며 client 가 파싱하면 안 된다. source 명시 시
+     * {@code registered:offset}) 은 service 내부 구현 세부사항이며 client 가 파싱하면 금지. source 명시 시
      * 그 source 단일 page; 미명시 시 vm 먼저 exhaust 후 registered.
      *
      * @param pageSize 1..500.

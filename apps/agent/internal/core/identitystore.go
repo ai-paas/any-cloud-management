@@ -2,7 +2,6 @@
 //
 // Agent 의 60일 opaque identity_token 을 K8s Secret 으로 영구 보관해 pod restart (e.g.
 // `kubectl rollout restart`) 후에도 동일 token 으로 AgentRuntime.Stream 인증 가능.
-// Phase mtls.2 의 K8sSecretCertStore 와 동일 패턴 — 같은 namespace 안에 별도 Secret.
 //
 // Storage layout — Opaque Secret:
 //
@@ -64,14 +63,9 @@ func (m *IdentityMaterial) IsZero() bool {
 	return m == nil || m.IdentityToken == ""
 }
 
-// IsValid — 현재 시각 기준 token 사용 가능 여부. graceMin 이내로 만료 임박이면 false 반환 —
-// caller 가 미리 새 token 발급받도록 유도.
-//
-// 동작:
-//   - material nil/empty token       → false
-//   - ExpiresAt 파싱 실패              → false (보수적, re-register 유도)
-//   - now + graceMin >= ExpiresAt    → false (만료 임박)
-//   - 그 외                            → true
+// IsValid — 현재 시각 기준 token 사용 가능 여부. graceMin 이내로 만료 임박이면 false —
+// caller 가 미리 새 token 발급받도록 유도. ExpiresAt 파싱 실패 시에도 false (보수적 — 알 수 없는
+// 상태는 re-register 로 유도).
 func (m *IdentityMaterial) IsValid(now time.Time, graceMin time.Duration) bool {
 	if m.IsZero() {
 		return false
@@ -86,7 +80,7 @@ func (m *IdentityMaterial) IsValid(now time.Time, graceMin time.Duration) bool {
 	return now.Add(graceMin).Before(exp)
 }
 
-// IdentityStore — load / save abstraction. tests 는 InMemoryIdentityStore 사용,
+// IdentityStore — load / save / delete abstraction. tests 는 InMemoryIdentityStore 사용,
 // production 은 K8sSecretIdentityStore.
 type IdentityStore interface {
 	// Load — 기존 저장된 identity material 반환. Secret 미존재 → (nil, nil) — caller 가 첫
@@ -95,6 +89,11 @@ type IdentityStore interface {
 
 	// Save — bootstrap / rotation 직후 호출. namespace 의 Secret 을 create 또는 update.
 	Save(ctx context.Context, m *IdentityMaterial) error
+
+	// Delete — backend 가 token 을 invalidate 한 상태로 판단될 때 (runtime stream Unauthenticated
+	// 반복) self-heal 호출. Secret 삭제 후 pod 가 재시작되면 REGISTRATION_TOKEN env 로 fresh register.
+	// Secret 미존재여도 에러 X (idempotent).
+	Delete(ctx context.Context) error
 }
 
 // ============================================================================
@@ -216,6 +215,17 @@ func (s *K8sSecretIdentityStore) Save(ctx context.Context, m *IdentityMaterial) 
 	return nil
 }
 
+// Delete — Secret 제거. NotFound 는 success 로 swallow (idempotent).
+func (s *K8sSecretIdentityStore) Delete(ctx context.Context) error {
+	err := s.cs.CoreV1().Secrets(s.namespace).Delete(ctx, s.secretName, metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("delete identity secret: %w", err)
+	}
+	slog.Warn("identity token deleted — pod restart will re-bootstrap",
+		slog.String("secret", s.namespace+"/"+s.secretName))
+	return nil
+}
+
 // ============================================================================
 // In-memory 구현 — tests / dev (k8s 미접속) 용.
 // ============================================================================
@@ -243,6 +253,13 @@ func (s *InMemoryIdentityStore) Save(ctx context.Context, m *IdentityMaterial) e
 	cp := *m
 	s.mu.Lock()
 	s.material = &cp
+	s.mu.Unlock()
+	return nil
+}
+
+func (s *InMemoryIdentityStore) Delete(ctx context.Context) error {
+	s.mu.Lock()
+	s.material = nil
 	s.mu.Unlock()
 	return nil
 }

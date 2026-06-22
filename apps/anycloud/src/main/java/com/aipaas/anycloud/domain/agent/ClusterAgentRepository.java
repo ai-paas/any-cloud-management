@@ -6,11 +6,14 @@ import com.aipaas.anycloud.domain.agent.model.ClusterAgentUpgradeWave;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface ClusterAgentRepository extends JpaRepository<ClusterAgentEntity, String> {
+public interface ClusterAgentRepository
+        extends JpaRepository<ClusterAgentEntity, String>,
+                JpaSpecificationExecutor<ClusterAgentEntity> {
 
     /** Runtime stream 인증 시 token hash 로 lookup. revoked_at 별도 체크. */
     Optional<ClusterAgentEntity> findByIdentityTokenHash(String identityTokenHash);

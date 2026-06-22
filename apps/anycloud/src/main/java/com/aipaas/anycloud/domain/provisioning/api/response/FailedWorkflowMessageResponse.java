@@ -10,7 +10,7 @@ import lombok.Getter;
  * workflow_message_log 의 FAILED row 를 운영자에게 노출하는 DTO.
  * <p>
  * DLQ 직접 조회 대신 본 백엔드 DB 의 처리 이력을 보여줘 운영자가
- * step / 사유 / 소요시간을 확인 후 재발행 결정을 내릴 수 있게 한다.
+ * step / 사유 / 소요시간을 확인 후 재발행 결정을 내릴 수 가능.
  */
 @Getter
 @Builder

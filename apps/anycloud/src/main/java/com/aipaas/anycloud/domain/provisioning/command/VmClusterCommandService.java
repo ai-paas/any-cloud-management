@@ -14,7 +14,7 @@ public interface VmClusterCommandService {
      * workflowRetryCount 를 0 으로 초기화하고 적절한 step 메시지를 새 messageId 로 publish.
      * <p>
      * 지원: BOOTSTRAP / VERIFY step. PROVISION 실패는 인프라가 부분 생성된 상태일 가능성이 커
-     * DELETE 후 재생성을 권장한다.
+     * DELETE 후 재생성을 권장.
      */
     HttpStatus retryVmClusterWorkflow(String clusterName);
 

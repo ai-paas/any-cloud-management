@@ -8,8 +8,8 @@ package com.aipaas.anycloud.domain.kube;
  * KubeServiceImpl 6+ 회) 을 한 곳으로 모음.
  *
  * <p>의미: namespace 입력이 null / 공백 / 빈 문자열 → K8s default namespace ("default"). 그 외엔
- * 입력값 그대로. 단순 single-line idiom 이지만 호출 site 가 분산되어 있어 typo 위험 / 변경
- * (예: 향후 system default namespace 변경) 시 N 곳 동시 수정 필요했음.
+ * 입력값 그대로. 단순 single-line idiom 이지만 호출 site 가 분산 — typo 위험 / 변경
+ * (예: 향후 system default namespace 변경) 시 N 곳 동시 수정 필요 회피.
  */
 public final class Namespaces {
 

@@ -2,11 +2,11 @@ package com.aipaas.anycloud.domain.provisioning.preflight.validation;
 
 import com.aipaas.anycloud.common.error.enums.ErrorCode;
 import com.aipaas.anycloud.common.error.exception.CustomException;
-import com.aipaas.anycloud.domain.vmoptions.validation.VmOptionsSelectionValidator;
 import com.aipaas.anycloud.domain.credential.ResolvedCspCredential;
 import com.aipaas.anycloud.domain.provisioning.api.request.ProvisionClusterRequest;
 import com.aipaas.anycloud.domain.provisioning.model.SupportedProvisioningProvider;
-import io.aipaas.cluster.provisioning.core.ProvisioningRequest;
+import com.aipaas.anycloud.domain.vmoptions.validation.VmOptionsSelectionValidator;
+import io.aipaas.cluster.provisioning.api.ProvisioningRequest;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.util.LinkedHashMap;
@@ -76,6 +76,11 @@ public class ProvisioningProviderValidator {
      * {@code ProvisionClusterRequest} 가 살아있지 않을 수 있음).
      */
     public void validateLive(ProvisioningRequest request) {
+        if (request == null) {
+            // retry path 에서 request_config 복원 실패 시 워커가 null 로 진입. NPE 대신 4xx 도메인 에러.
+            throw new CustomException(
+                    "ProvisioningRequest 가 null — request_config 복원 실패.", ErrorCode.PROVISIONING_REQUEST_MISSING);
+        }
         SupportedProvisioningProvider provider = normalizeProvider(request.getProvider());
         // Timer 로 provider 별 latency 측정 — p50/p95 SLO 모니터링. outcome tag 로 success/failure
         // 분리 — failure spike 시 alerting (CSP API 장애 + cred 잘못 둘 다 잡힘).

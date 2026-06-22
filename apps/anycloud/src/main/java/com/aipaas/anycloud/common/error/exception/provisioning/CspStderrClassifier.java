@@ -8,7 +8,7 @@ import java.util.List;
  * 으로 wrap.
  *
  * <p>분류 매트릭스는 {@code docs/operations/credential-failure-policy.md} § 2 가 단일 진실. 본 클래스의
- * 패턴 추가는 반드시 정책 문서를 먼저 갱신한 후 반영한다.
+ * 패턴 추가는 반드시 정책 문서를 먼저 갱신한 후 반영.
  *
  * <p>매칭 순서: permanent 우선. 어떤 패턴도 매칭 안 되면 default transient (외부 시스템의 일시 hiccup
  * 으로 가정 — false positive 가 false negative 보다 운영자에게 덜 위험).
@@ -42,10 +42,7 @@ public final class CspStderrClassifier {
             "Unable to authenticate you",
             // OpenStack
             "401 Unauthorized",
-            "403 Forbidden",
-            // Proxmox
-            "authentication failure",
-            "permission denied");
+            "403 Forbidden");
 
     private static final List<String> TRANSIENT_TOKENS = List.of(
             "ServiceUnavailable",

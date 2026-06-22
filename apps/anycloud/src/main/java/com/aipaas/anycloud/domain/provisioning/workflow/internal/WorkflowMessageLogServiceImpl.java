@@ -89,7 +89,7 @@ public class WorkflowMessageLogServiceImpl implements WorkflowMessageLogService 
         try {
             repository.save(entity);
         } catch (RuntimeException e) {
-            // 로그 저장 실패가 본 작업을 막아서는 안 된다.
+            // 로그 저장 실패가 본 작업을 막아서는 금지.
             log.warn("Failed to persist workflow message log ({}): {}", entity.getResult(), e.toString());
         }
         // Prometheus metric — DB 저장 성공/실패와 무관하게 in-memory counter / timer 갱신.

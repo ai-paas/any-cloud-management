@@ -26,10 +26,6 @@ headers {
   User-Agent: bruno/3.3.0
 }
 
-vars:pre-request {
-  cluster_name: orb-kubernetes-001
-}
-
 script:pre-request {
   // 최근 1 시간 구간 — Unix epoch seconds.
   const now = Math.floor(Date.now() / 1000);
@@ -41,7 +37,7 @@ tests {
   test("상태 코드 200 확인", function() {
     expect(res.getStatus()).to.equal(200);
   });
-
+  
   test("Prometheus matrix envelope", function() {
     const data = res.getBody();
     expect(data).to.have.property("status");
@@ -54,14 +50,14 @@ tests {
 
 docs {
   Prometheus HTTP API `/api/v1/query_range` 의 raw passthrough.
-
+  
   필수: query (PromQL), start, end, step
     start/end: RFC3339 또는 Unix timestamp
     step     : duration (예 "30s", "5m") 또는 초
-
+  
   optional: timeout, limit, lookback_delta, stats — instant 와 동일.
-
+  
   응답: Prometheus envelope 그대로 — `resultType: "matrix"`, 각 series 는 [[ts, value], ...] 시계열.
-
+  
   pre-request script 가 start/end 를 지난 1 시간으로 자동 세팅. 다른 구간 필요시 vars 에서 직접 지정.
 }

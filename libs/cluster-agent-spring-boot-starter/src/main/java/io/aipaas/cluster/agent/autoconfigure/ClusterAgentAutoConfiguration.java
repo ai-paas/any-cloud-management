@@ -242,7 +242,7 @@ public class ClusterAgentAutoConfiguration {
 	 * ServletServerContainerFactoryBean 의 afterPropertiesSet 가 IllegalStateException. Servlet
 	 * web 일 때만 활성. PodExecWebSocketHandler 등 비-bean dependency 는 worker 에서 사용 안 함.
 	 *
-	 * <p>{@code cluster-agent.exec.enabled=false} 로 PodExec WebSocket 기능 자체를 끌 수 있다. PodExec
+	 * <p>{@code cluster-agent.exec.enabled=false} 로 PodExec WebSocket 기능 자체를 끌 가능. PodExec
 	 * 안 쓰는 외부 consumer (gRPC API 만 사용) 가 ServletServerContainerFactoryBean 의 강제 생성을 피할 수
 	 * 있도록. default true — 기존 동작 보존.
 	 */

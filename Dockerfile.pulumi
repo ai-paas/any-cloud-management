@@ -1,4 +1,6 @@
 # syntax=docker/dockerfile:1.7
+#
+# anycloud backend with Pulumi Java Automation API.
 
 # Gradle (Java) build stage.
 FROM eclipse-temurin:21-jdk AS gradle-builder
@@ -10,9 +12,7 @@ COPY gradle/ gradle/
 COPY build.gradle settings.gradle ./
 COPY apps/anycloud/ apps/anycloud/
 COPY libs/cluster-agent-spring-boot-starter/ libs/cluster-agent-spring-boot-starter/
-COPY libs/cluster-agent-observability-spring-boot-starter/ libs/cluster-agent-observability-spring-boot-starter/
-COPY libs/cluster-agent-backup-spring-boot-starter/ libs/cluster-agent-backup-spring-boot-starter/
-COPY libs/cluster-agent-rbac-spring-boot-starter/ libs/cluster-agent-rbac-spring-boot-starter/
+COPY libs/cluster-agent-features-spring-boot-starter/ libs/cluster-agent-features-spring-boot-starter/
 COPY libs/cluster-provisioning-spring-boot-starter/ libs/cluster-provisioning-spring-boot-starter/
 # apps/anycloud/build.gradle 의 copyAgentChartResources task 가 helm chart 를 classpath 로
 # 번들. 누락 시 AgentChartRenderer 가 런타임 classpath:agent-chart/ 못 찾고 init fail.
@@ -28,51 +28,6 @@ RUN --mount=type=cache,target=/root/.gradle \
         { echo "gradle wrapper bootstrap failed (attempt $i/3), retry in 10s..."; sleep 10; }; \
     done && \
     ./gradlew bootJar --no-daemon
-
-
-# Pulumi Go program pre-compile stage.
-#
-# BUILDPLATFORM: 호스트 arch 그대로 (M-series 에서 amd64 빌드 시 rosetta emulation 회피).
-# TARGETOS / TARGETARCH: GOOS / GOARCH 로 전달해 cross-compile.
-#
-# 9 cloud SDK (AWS/Azure/GCP/OCI/OpenStack/DO/Alicloud/Proxmox/TLS) + transitive ~187 module —
-# go.mod / go.sum 만 먼저 COPY 해서 mod download 를 별도 layer 로 분리. *.go 만 바뀌면 module
-# download 단계 layer cache hit.
-#
-# Pulumi runtime 의 go build 우회를 위해 binary 옵션 사용 — Pulumi CLI 가 binary 를 직접 exec
-# (preview/up/destroy/refresh 모두 동일 path).
-FROM --platform=$BUILDPLATFORM golang:1.26.1-bookworm AS pulumi-builder
-
-ARG TARGETOS
-ARG TARGETARCH
-
-# PULUMI_BUILD_TAGS — providers/factory_<csp>.go 의 build tag selector.
-# "all" 은 모든 CSP 포함 (운영 default). dev 에서 특정 CSP 만 빌드하려면 콤마 구분 list 전달:
-#   docker build --build-arg PULUMI_BUILD_TAGS=aws,gcp ...
-# 미등록 CSP 가 runtime 에서 호출되면 binary 가 "rebuild with -tags=..." 안내 error 반환.
-ARG PULUMI_BUILD_TAGS=all
-
-WORKDIR /src
-
-COPY infra/pulumi/go.mod infra/pulumi/go.sum ./
-RUN --mount=type=cache,target=/root/.cache/go-build,id=anycloud-pulumi-build,sharing=locked \
-    --mount=type=cache,target=/go/pkg/mod,id=anycloud-pulumi-mod,sharing=locked \
-    go mod download
-
-COPY infra/pulumi/ ./
-
-# -p=4: Pulumi cloud SDK 컴파일이 1.5GB+ 메모리 폭증 → CI runner 의 RAM 한계 고려. host RAM
-# 충분하면 -p=8 까지 안전. -ldflags="-s -w" 로 symbol table + DWARF 제거 (binary 30~40% 작음).
-# -buildvcs=false 로 git lookup skip (Docker context 의 .git 부재 환경 fail-soft).
-RUN --mount=type=cache,target=/root/.cache/go-build,id=anycloud-pulumi-build,sharing=locked \
-    --mount=type=cache,target=/go/pkg/mod,id=anycloud-pulumi-mod,sharing=locked \
-    CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOFLAGS=-p=4 \
-        go build \
-            -tags=${PULUMI_BUILD_TAGS} \
-            -trimpath \
-            -ldflags="-s -w" \
-            -buildvcs=false \
-            -o /out/anycloud-pulumi .
 
 
 # Runtime stage.
@@ -110,18 +65,26 @@ RUN curl -fsSL "https://get.helm.sh/helm-v${HELM_VERSION}-linux-${TARGETARCH}.ta
     && chmod +x /usr/local/bin/helm \
     && rm -rf /tmp/helm.tar.gz "/tmp/linux-${TARGETARCH}"
 
+# Pulumi provider plugins pre-install — image build 시 1회 다운로드 캐싱.
+ENV PULUMI_PLUGIN_CACHE_DIR=/opt/pulumi-plugins
+RUN mkdir -p /opt/pulumi-plugins \
+    && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource aws v6.78.0 \
+    && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource gcp v8.41.1 \
+    && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource azure-native v3.16.0 \
+    && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource oci v3.16.0 \
+    && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource alicloud v3.97.0 \
+    && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource digitalocean v4.63.0 \
+    && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource openstack v5.4.1 \
+    && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource tls v5.2.0 \
+    && cp -r /opt/pulumi-plugins-home/plugins/. /opt/pulumi-plugins/ \
+    && rm -rf /opt/pulumi-plugins-home
+
 RUN groupadd -r anycloud && useradd -m -r -g anycloud anycloud
 
 WORKDIR /app
 
 COPY --from=gradle-builder /app/apps/anycloud/build/libs/*-SNAPSHOT.jar /app/app.jar
-COPY infra/pulumi/ /app/infra/pulumi/
-COPY --from=pulumi-builder /out/anycloud-pulumi /app/infra/pulumi/anycloud-pulumi
 COPY infra/docker/entrypoints/anycloud-entrypoint.sh /app/entrypoint.sh
-
-# Pulumi.yaml 의 runtime 을 binary 모드로 patch. 원본 yaml 은 host 직접 실행 호환 위해 commit 유지,
-# image layer 에서만 변경 — preview/up/destroy 모두 pre-built binary 사용.
-RUN sed -i 's|^runtime: go$|runtime:\n  name: go\n  options:\n    binary: anycloud-pulumi|' /app/infra/pulumi/Pulumi.yaml
 
 RUN mkdir -p /app/.cache /app/.config /app/.local/share /app/.pulumi /app/runtime \
     && chmod +x /app/entrypoint.sh \
@@ -134,8 +97,6 @@ ENV XDG_CONFIG_HOME=/app/.config
 ENV XDG_DATA_HOME=/app/.local/share
 ENV PULUMI_HOME=/app/.pulumi
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseStringDeduplication"
-ENV PULUMI_PROJECT_DIR=/app/infra/pulumi
-ENV PULUMI_RUNTIME_DIR=/app/runtime/pulumi
 
 USER anycloud
 

@@ -42,20 +42,18 @@ bru run "Cluster (클러스터)/2. Cluster Create (클러스터 생성).bru" --e
 
 | seq | 요청 | endpoint | 비고 |
 |---|---|---|---|
-| 1 | List | `GET /v1/clusters?source=registered` | 첫 결과 → `cluster_name` env |
-| 2 | Create | `POST /v1/clusters` (source=registered) | 동기 201 (Operation envelope) |
-| 2a | Import Kubeconfig (multipart) | `POST /v1/clusters` | kubeconfig 파일 업로드 |
-| 2b | Import Kubeconfig (strict) | `POST /v1/clusters` | TLS / context 검증 강화 |
+| 1 | List | `GET /v1/clusters` | 첫 결과 → `cluster_name` env |
+| 2 | Create | `POST /v1/clusters` (registered) | 동기 201 + BootstrapInfo (helm/kubectl install 명령) |
 | 3 | Info | `GET /v1/clusters/{name}` | 단건 조회 |
 | 4 | Delete | `DELETE /v1/clusters/{name}` | source 자동 분기 (vm vs registered) |
-| 5 | Test Connection | `POST /v1/clusters/{name}/connectivity-checks` | kubeconfig 로 GET /version |
+| 5 | Test Connection | `POST /v1/clusters/{name}/connectivity-checks` | agent 통한 GET /version |
+
+VM 인프라 자원 라이프사이클은 별도 `/v1/vms` namespace — `VM Cluster (VM 클러스터)` 폴더.
 
 **플로우 — 신규 등록 → 검증 → 정리:**
 ```
 2 Create (CA/key/token 채워서) → 5 Test Connection → 3 Info → 4 Delete
 ```
-
-**기본 vars (`vars:pre-request`):** `cluster_name: orb-kubernetes-001`
 
 ### B. Helm Repository CRUD
 
@@ -96,7 +94,7 @@ bru run "Cluster (클러스터)/2. Cluster Create (클러스터 생성).bru" --e
 ```
 
 **기본 vars:** `repo_name: chart-museum-external`, `chart_name: ingress-nginx`,
-`release_name: nginx-test-release`, `cluster_name: orb-kubernetes-001`,
+`release_name: nginx-test-release`,
 `namespace: default`, `version: 4.15.1`
 
 ### D. Kubernetes 리소스 조회/삭제
@@ -115,7 +113,7 @@ bru run "Cluster (클러스터)/2. Cluster Create (클러스터 생성).bru" --e
 `kind` 는 plural (pods, services, deployments, configmaps …). `pageSize` + `continueToken`
 으로 페이지네이션 — 응답 `data.continueToken` 이 null 아니면 다음 페이지 존재.
 
-**기본 vars:** `cluster_name: orb-kubernetes-001`, `namespace: default`,
+**기본 vars:** `namespace: default`,
 `resource_kind: pods`, `resource_name: podinfo-778b865b7b-7vj9j`
 
 ### E. Monitoring
@@ -246,7 +244,7 @@ Idempotency-Key: {{$randomUUID}}
 ## Recommended environments
 
 - `local` — 기본 로컬 (`baseUrl=http://localhost:8080`)
-- `local-{aws,gcp,azure,proxmox,oci,digitalocean,alibaba,openstack}-provisioning` — 8 CSP 별 VM 프로비저닝 quick-switch
+- `local-{aws,gcp,azure,oci,digitalocean,alibaba,openstack}-provisioning` — 7 CSP 별 VM 프로비저닝 quick-switch
 
 ### VM Cluster 트랙 — CSP 별 quick-start
 
@@ -276,7 +274,6 @@ bru run "VM Cluster (VM 클러스터)/2b. AWS Cluster Create.bru" \
 | Azure | `2d. Azure Cluster Create` | `azure_resource_group` |
 | Alibaba | `2e. Alibaba Cluster Create` | (없음) |
 | OpenStack | `2f. OpenStack Cluster Create` | `openstack_image_name`, `openstack_flavor_name`, `openstack_external_network_id`, `openstack_floating_ip_pool` |
-| Proxmox | `2g. Proxmox Cluster Create` | `proxmox_node_name`, `proxmox_template_vm_id`, `proxmox_datastore_id`, `proxmox_network_bridge` |
 | OCI | `2h. OCI Cluster Create` | `oci_compartment_id` |
 | DigitalOcean | `2i. DigitalOcean Cluster Create` | (없음) |
 

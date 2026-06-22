@@ -1,15 +1,12 @@
 // Package cleanup — TTL annotation 기반 ephemeral resource sweeper.
 //
-// debug pod 같이 short-lived 자원이 잊혀지지 않도록 agent 가 자기 cluster
-// 안에서 주기적으로 만료된 pod 을 자동 삭제. 운영자 개입 0회.
+// debug pod 같이 short-lived 자원이 잊혀지지 않도록 자기 cluster 안에서 주기적으로 만료된 pod 자동
+// 삭제 — 운영자 개입 0회. annotation parse 실패는 skip + log (보수적: 신뢰할 수 없으면 안 지움).
 //
-// 동작:
-//   - 5 분마다 (configurable) K8s API 로 label 매칭 pod 조회
-//   - 각 pod 의 annotation `aipaas.io/expires-at` (RFC3339) 파싱 후 now 보다 과거면 delete
-//   - annotation 누락 / parse 실패 시 skip + debug log (보수적 — 신뢰할 수 없으면 안 지움)
-//
-// 권한: agent SA 가 이미 보유한 pod list/delete 권한 (RBAC 변경 X).
-// 보호: aipaas-cluster-agent 가 만든 자원만 (label selector) — 다른 워크로드 영향 X.
+// 보호:
+//   - 권한은 agent SA 가 이미 보유한 pod list/delete 만 사용 (RBAC 추가 X).
+//   - label selector `app.kubernetes.io/managed-by=aipaas-cluster-agent` 로 본 agent 가 만든
+//     자원만 — 다른 워크로드 영향 X.
 
 package cleanup
 

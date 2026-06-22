@@ -5,7 +5,7 @@ package io.aipaas.cluster.agent.identity;
  *
  * <p>기본 구현 ({@link PropertySigningKeyResolver}) 은 {@code cluster-agent.jwt.secret} config 에서
  * 키를 읽음. 호스트 application 이 영구 저장 (DB / Vault / K8s Secret) 으로 대체하려면 본 인터페이스를
- * {@code @Component} 로 구현해 starter 의 default bean 을 덮어쓴다.
+ * {@code @Component} 로 구현해 starter 의 default bean 을 덮어사용.
  *
  * <p><b>중요</b>: 본 메서드는 startup 시 1회만 호출됨 ({@link JwtRegistrationTokenService#initSigningKey}).
  * 따라서 결과는 deterministic 해야 하며, 호출 간 동일한 키를 반환해야 함 — JVM 재시작 후에도 같은 키를

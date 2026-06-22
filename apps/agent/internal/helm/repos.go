@@ -1,18 +1,11 @@
 // Hybrid helm-repo sync.
 //
 // Backend 가 APPLY_AGENT_CONFIG 의 helm_repositories param 으로 보낸 list 를 agent 의 helm SDK
-// RepositoryFile (~/.config/helm/repositories.yaml or settings.RepositoryConfig path) 에 sync.
+// RepositoryFile (~/.config/helm/repositories.yaml) 에 sync. 같은 name 은 backend 가 overwrite
+// 하되 그 외 entry 는 보존 — 사용자가 helm CLI 로 직접 추가한 repo 가 안 지워지게.
 //
-// 동작:
-//   1) 입력 list (RepoEntry) 를 받아 helm SDK 의 repo.Entry 로 변환.
-//   2) 기존 RepositoryFile load. 없으면 new file.
-//   3) 새 list 와 기존 file 의 다른 entry 모두 보존 (사용자가 helm CLI 로 직접 추가한 repo 보호).
-//      → 그러나 같은 name 의 entry 는 backend list 가 win (overwrite).
-//   4) WriteFile.
-//
-// 본 sync 는 best-effort — IO 실패는 caller (apply_config) 가 swallow. ConfigMap 자체는 항상
-// 최신 (single source of truth), agent restart 시 boot loader 가 ConfigMap 의 helm_repositories
-// key 보고 다시 sync.
+// Best-effort: IO 실패는 caller (apply_config) 가 swallow. ConfigMap 이 single source of truth
+// 이고 restart 시 boot loader 가 다시 sync 하므로 일시 실패는 self-heal.
 
 package helm
 
@@ -56,14 +49,9 @@ func ParseRepoList(raw string) ([]RepoEntry, error) {
 	return out, nil
 }
 
-// SyncRepositories — backend list 를 helm SDK 의 RepositoryFile 에 merge.
-//
-// 동작:
-//   - 입력 list 의 name 과 같은 기존 entry 는 새 값으로 update (overwrite).
-//   - 입력 list 에 없는 기존 entry 는 보존 (사용자가 직접 helm repo add 한 것).
-//   - settings 의 RepositoryConfig path 가 없으면 새로 만들어 write.
-//
-// orphan removal 은 {@link SyncRepositoriesWithCleanup} 사용.
+// SyncRepositories — backend list 를 helm SDK 의 RepositoryFile 에 merge. 같은 name 은 overwrite,
+// 그 외 기존 entry 는 보존 (사용자가 helm CLI 로 직접 추가한 repo 보호). orphan removal 까지 필요하면
+// {@link SyncRepositoriesWithCleanup} 사용.
 func SyncRepositories(settings *cli.EnvSettings, repos []RepoEntry) (int, error) {
 	if settings == nil {
 		return 0, fmt.Errorf("helm settings is nil")

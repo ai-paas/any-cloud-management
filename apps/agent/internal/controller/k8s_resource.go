@@ -236,6 +236,7 @@ func (d *Dispatcher) listResources(ctx context.Context, cmd *agentv1.CommandRequ
 		Limit:         limit,
 		ContinueToken: getStringParam(cmd, "continueToken"),
 		LabelSelector: getStringParam(cmd, "labelSelector"),
+		FieldSelector: getStringParam(cmd, "fieldSelector"),
 	})
 	if err != nil {
 		if errors.Is(err, k8s.ErrUnsupportedKind) {
@@ -290,14 +291,8 @@ func (d *Dispatcher) getResource(ctx context.Context, cmd *agentv1.CommandReques
 }
 
 // checkResourceAccess — LIST/GET/DELETE 명령의 공통 access 검사. resolveResource (RESTMapper)
-// + namespace allowlist + ResourcePolicy 를 한 곳에서 평가.
-//
-// 흐름:
-//  1. k8s.Client.ResolveResource(kind) — kind 문자열을 plural+scope 으로 정규화 (CRD 포함).
-//     실패 → INVALID_PARAMS / UNSUPPORTED_KIND.
-//  2. Namespaced 자원이면 namespace allowlist 검사. cluster-scoped 자원은 namespace 검사 skip.
-//  3. ResourcePolicy.IsResourceKindAllowed(plural, ns) — kind-level 정책 검사
-//     (nil 이면 legacy allow-all).
+// + namespace allowlist + ResourcePolicy 를 한 곳에서 평가. cluster-scoped 자원은 namespace
+// 검사 skip. ResourcePolicy 가 nil 이면 legacy allow-all (kind-level 정책 미설정).
 //
 // nil 반환 = 허용. non-nil 반환 = denial response (caller 가 그대로 return).
 func (d *Dispatcher) checkResourceAccess(kind, namespace string) *agentv1.CommandResponse {

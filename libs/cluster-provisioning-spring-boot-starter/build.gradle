@@ -1,39 +1,26 @@
 // Cluster Provisioning Spring Boot Starter
 //
-// VM Kubernetes cluster 의 multi-cloud provisioning 을 Pulumi 로 위임하는 starter. anycloud backend
-// 의 `service/provisioning/` (PulumiProvisioningService / PulumiCommandService / ProvisioningOutputMapper /
-// PulumiStateBackupScheduler 등) 을 host-agnostic SPI 로 추출해 다른 backend (AI/ML 클러스터 SaaS
-// 등) 가 재사용 가능하게 한다.
+// VM Kubernetes cluster 의 multi-cloud provisioning 을 Pulumi Automation Java SDK 로 위임하는 starter.
+// in-JVM Pulumi engine — Pulumi binary 는 필요하지만 Go runtime 의존 0.
 //
 // 책임:
-//   - Pulumi CLI 실행 (pulumi up / preview / destroy / refresh / stack ls) — process spawn 추상화
-//   - --json event stream 파싱
-//   - Real-time event SSE — observer pattern
-//   - Multi-cloud provider abstraction — AWS/GCP/Azure/OCI/OpenStack/DigitalOcean/Alibaba/Proxmox
-//   - State backup (RustFS push) + validator
+//   - Pulumi stack lifecycle (up/preview/destroy/refresh) — LocalWorkspace + WorkspaceStack
+//   - Engine event stream — EngineEvent → ProvisionEvent (Reactor multicast)
+//   - Multi-cloud provider abstraction — AWS/GCP/Azure/OCI/OpenStack/DigitalOcean/Alibaba (7개)
+//   - 표준 output schema + jakarta validation
 //
-// 호스트가 구현할 SPI:
-//   - ClusterProvisioningSink — 결과 (stack output / events) 를 host backend 의 DB / message bus 로 push
-//   - PulumiCredentialProvider — CSP 자격증명 lookup (anycloud 는 credentials table)
+// 호스트가 구현할 SPI: ExecutionConfig (pulumi binary path / state backend URL / passphrase).
 //
 // 호스트가 책임지는 영역 (starter 밖):
 //   - ClusterEntity / OperationEntity 영속화
 //   - REST controller / SSE endpoint (starter 는 service bean 만)
-//   - CSP credential 평문 저장 정책 (memory 의 사용자 결정)
-//   - Pulumi binary install / project dir resolution
-//
-// 상세 설계: docs/architecture/starters/cluster-provisioning-starter.md
-//
-// Pulumi CLI 오케스트레이션 starter. PulumiCommandService 기본 impl 제공.
-// OS 프로세스 생성(ProcessExecutor) + 실행 config(PulumiExecutionConfig)는 SPI 포트로 host 에 위임.
+//   - CSP credential 저장 정책
 
 plugins {
     id 'java-library'
     id 'maven-publish'
     id 'com.diffplug.spotless'
 }
-
-// PulumiCommandService / PulumiProvisioningService / 백업 scheduler · validator 포함.
 group = 'io.aipaas.cluster'
 // publish-starters.yml workflow 가 tag push 시 -PstarterVersion 주입. local dev fallback 'SNAPSHOT'.
 version = findProperty('starterVersion') ?: '0.1.0-SNAPSHOT'
@@ -58,30 +45,32 @@ dependencies {
     api 'org.springframework.boot:spring-boot-starter:3.2.5'
     api 'org.springframework.boot:spring-boot-starter-validation:3.2.5'
 
-    // Jackson — Pulumi --json event parsing
+    // Jackson — Pulumi engine event raw payload parsing.
     api "com.fasterxml.jackson.core:jackson-databind:${rootProject.ext.jacksonVersion}"
+
+    // Pulumi Java SDK — in-JVM IaC engine. Automation API + 7개 CSP provider.
+    api "com.pulumi:pulumi:${rootProject.ext.pulumiSdkVersion}"
+    api "com.pulumi:aws:${rootProject.ext.pulumiAwsVersion}"
+    api "com.pulumi:gcp:${rootProject.ext.pulumiGcpVersion}"
+    api "com.pulumi:azure-native:${rootProject.ext.pulumiAzureNativeVersion}"
+    api "com.pulumi:oci:${rootProject.ext.pulumiOciVersion}"
+    api "com.pulumi:alicloud:${rootProject.ext.pulumiAlicloudVersion}"
+    api "com.pulumi:digitalocean:${rootProject.ext.pulumiDigitaloceanVersion}"
+    api "com.pulumi:openstack:${rootProject.ext.pulumiOpenstackVersion}"
+    api "com.pulumi:tls:${rootProject.ext.pulumiTlsVersion}"
 
     // Reactor for ProvisionEventBus (multicast Sinks.Many).
     api "io.projectreactor:reactor-core:${rootProject.ext.reactorVersion}"
 
-    // Micrometer (Counter / Timer) for backup scheduler observability.
+    // Micrometer (Counter / Timer) for engine event observability.
     api "io.micrometer:micrometer-core:${rootProject.ext.micrometerVersion}"
 
-    // resilience4j @Bulkhead annotation (PulumiCommandServiceImpl 의 동시 CLI
-    // 프로세스 제한). compileOnly: annotation 만 컴파일에 필요하고, AOP aspect 는 host(anycloud 의
-    // resilience4j-spring-boot3)가 런타임에 제공. host 에 resilience4j 가 없으면 annotation 은 무시됨.
+    // resilience4j @Bulkhead — compileOnly: AOP aspect 는 host (resilience4j-spring-boot3) 가 런타임 제공.
     compileOnly "io.github.resilience4j:resilience4j-annotations:${rootProject.ext.resilience4jVersion}"
 
-    // @Transactional(NOT_SUPPORTED) on PulumiProvisioningServiceImpl: 장시간
-    // Pulumi CLI 호출 동안 caller 의 DB connection 점유를 막기 위해 caller TX 와 분리. compileOnly:
-    // annotation 만 컴파일에 필요하고, TransactionInterceptor 는 host(anycloud)의 tx manager 가 런타임
-    // 제공. host 에 transaction infra 가 없으면 annotation 은 무시됨. (spring-framework 6.1.6 = boot 3.2.5)
+    // @Transactional(NOT_SUPPORTED) on AutomationProvisioningService — 장시간 Pulumi 호출 동안 caller
+    // DB connection 점유 회피. compileOnly: TransactionInterceptor 는 host 의 tx manager 가 런타임 제공.
     compileOnly 'org.springframework:spring-tx:6.1.6'
-
-    // @SchedulerLock on PulumiStateBackupScheduler/Validator: HA leader dedup.
-    // compileOnly: annotation 만 컴파일에 필요. ShedLock aspect + LockProvider 는 host(anycloud)가 런타임
-    // 제공. host 에 ShedLock 이 없으면 @SchedulerLock 은 무시되고 @Scheduled 만 동작.
-    compileOnly 'net.javacrumbs.shedlock:shedlock-spring:5.16.0'
 
     // configuration metadata processor — IDE 가 application.yaml 자동완성.
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:3.2.5'
@@ -101,8 +90,6 @@ test {
 }
 
 // ============= Publishing =============
-// scaffold 단계라 jar 가 SPI + autoConfig 뿐. publishToMavenLocal 로 외부 consumer 가 dependency
-// 추가 가능. 실 service 이동 후 publish 가치 커짐.
 
 publishing {
     publications {
@@ -113,9 +100,8 @@ publishing {
             pom {
                 name = 'Cluster Provisioning Spring Boot Starter'
                 description = 'Spring Boot starter for multi-cloud VM Kubernetes provisioning via ' +
-                    'Pulumi CLI. Provides PulumiCommandService + PulumiProvisioningService + state ' +
-                    'backup scheduler/validator. SPI ports: ProcessExecutor, PulumiExecutionConfig, ' +
-                    'ClusterDescriptorRepository, PulumiBackupPropertiesProvider.'
+                    'Pulumi Automation Java SDK (in-JVM, no Go runtime). 7 CSP providers + ' +
+                    'standard output schema. SPI port: ExecutionConfig.'
                 url = 'https://github.com/aipaas/any-cloud-management'
 
                 licenses {

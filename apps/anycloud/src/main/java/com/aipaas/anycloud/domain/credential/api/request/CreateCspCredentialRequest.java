@@ -1,6 +1,5 @@
 package com.aipaas.anycloud.domain.credential.api.request;
 
-import com.aipaas.anycloud.domain.credential.model.CspCredentialSourceType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import java.io.Serial;
@@ -30,11 +29,8 @@ public class CreateCspCredentialRequest implements Serializable {
     @Schema(description = "자격증명 설명", example = "AWS development account")
     private String description;
 
-    @Schema(description = "자격증명 저장 방식", example = "MANUAL")
-    private CspCredentialSourceType sourceType;
-
     @Schema(
-            description = "MANUAL 방식일 때 저장할 credential key/value",
+            description = "저장할 credential key/value (CSP 별 required key 는 ProvisioningCredentialRules 참조)",
             example = "{\"AWS_ACCESS_KEY_ID\":\"AKIA...\",\"AWS_SECRET_ACCESS_KEY\":\"***\"}")
     private Map<String, String> credentials;
 }

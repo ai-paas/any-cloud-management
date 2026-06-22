@@ -27,8 +27,8 @@ import org.springframework.stereotype.Component;
  * 등록된 클러스터의 인증서 만료까지 남은 일수를 주기적으로 측정해 Prometheus 로 노출.
  * <p>
  * Day-2 §5. kubeadm 기본 client cert 는 1년 유효라 주기 갱신이 필요한데, 알람 없이는
- * 만료 후에야 발견된다. anycloud 가 등록한 ClusterEntity 의 server_ca / client_ca 를
- * X.509 파싱해 NotAfter 까지의 잔여 일수를 metric 으로 송출한다.
+ * 만료 후에야 발견. anycloud 가 등록한 ClusterEntity 의 server_ca / client_ca 를
+ * X.509 파싱해 NotAfter 까지의 잔여 일수를 metric 으로 송출.
  * <p>
  * Metric:
  * <pre>anycloud_cluster_cert_expiry_days{cluster="...", cert="serverCa|clientCa"}</pre>

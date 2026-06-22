@@ -1,8 +1,8 @@
 package com.aipaas.anycloud.domain.provisioning.preflight.validation;
 
-import com.aipaas.anycloud.domain.vmoptions.validation.VmOptionsSelectionValidator;
 import com.aipaas.anycloud.domain.provisioning.api.request.ProvisionClusterRequest;
 import com.aipaas.anycloud.domain.provisioning.model.SupportedProvisioningProvider;
+import com.aipaas.anycloud.domain.vmoptions.validation.VmOptionsSelectionValidator;
 import java.util.Map;
 
 public final class ProvisioningSelectionRules {
@@ -20,7 +20,7 @@ public final class ProvisioningSelectionRules {
 
     /**
      * Worker step 에서 호출되는 overload — {@link ProvisionClusterRequest} 의존성 없이
-     * 영속화된 {@link io.aipaas.cluster.provisioning.core.ProvisioningRequest}
+     * 영속화된 {@link io.aipaas.cluster.provisioning.api.ProvisioningRequest}
      * 의 field 만으로 동작.
      */
     public static void validateSelections(

@@ -1,19 +1,10 @@
 // Package leader — cluster-side leader election (K8s Lease).
 //
-// 같은 cluster 에 agent Deployment.replicas=N 으로 떠 있어도 backend 와 stream 을 유지하는 건 leader 1개.
-// Non-leader 들은 idle 로 대기 — backend 부하 ↓, 명령 처리 1 곳 보장.
+// Agent Deployment.replicas=N HA 구성에서 backend stream 은 leader 1 개만 유지. Non-leader 는
+// idle — 명령 중복 처리 방지 + backend 부하 ↓. lease holder identity = POD_NAME (또는 hostname).
 //
-// 메커니즘: k8s.io/client-go/tools/leaderelection 표준 라이브러리. coordination.k8s.io/Lease 리소스를
-// 사용. lease holder identity = pod name (POD_NAME env 또는 hostname).
-//
-// 라이프사이클:
-//   1. main → Run(ctx, opts) 호출. leaderelection.RunOrDie 가 ctx.Done() 까지 leader 유지/포기 관리.
-//   2. Leader 획득 → OnStartedLeading 콜백 — caller 가 backend 연결 등 시작
-//   3. Leader 잃음 → OnStoppedLeading 콜백 — caller 가 backend 연결 해제 등 정리
-//   4. 다른 leader 변경 → OnNewLeader 콜백 (정보용)
-//
-// renewal 전략: lease duration 15s / renew 10s / retry 2s — 표준 권장값. control-plane 장애 1
-// renew cycle 안에 새 leader 등극.
+// Renewal: lease 15s / renew 10s / retry 2s — k8s 표준 권장값. control-plane 장애 시 1 renew
+// cycle 안에 새 leader 등극.
 
 package leader
 

@@ -64,9 +64,6 @@ public class VmClusterListItemResponse {
     @Schema(description = "연결된 자격증명 이름")
     private String credentialName;
 
-    @Schema(description = "자격증명 공급 방식")
-    private String credentialSourceType;
-
     @Schema(description = "등록 완료 여부")
     private Boolean clusterRegistered;
 

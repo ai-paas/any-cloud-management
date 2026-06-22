@@ -121,7 +121,7 @@ public class BackupPolicyInstallerImpl implements BackupPolicyInstaller {
 					"timeout applying policy (cluster=" + clusterName + ")", e);
 		} catch (ExecutionException e) {
 			// CompletableFuture.get() 의 ExecutionException unwrap. async path 에서
-			// NoActiveSessionException 이 wrap 된 채 도착 → 직접 catch 안 됨. cause 검사로
+			// NoActiveSessionException 이 wrap 된 채 도착 → 직접 catch 금지. cause 검사로
 			// NO_ACTIVE_AGENT 정확 매핑.
 			Throwable cause = e.getCause();
 			if (cause instanceof AgentSessionRegistry.NoActiveSessionException) {

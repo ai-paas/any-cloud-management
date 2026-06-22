@@ -1,6 +1,6 @@
 package com.aipaas.anycloud.domain.provisioning.api.response;
 
-import io.aipaas.cluster.provisioning.core.PulumiPreviewResult;
+import io.aipaas.cluster.provisioning.api.ProvisioningPreview;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +24,7 @@ public record VmClusterPreviewResponse(
             @Schema(example = "aws:ec2/instance:Instance") String type,
             @Schema(example = "demo-aws-01-master-0") String name) {}
 
-    public static VmClusterPreviewResponse from(PulumiPreviewResult result) {
+    public static VmClusterPreviewResponse from(ProvisioningPreview result) {
         return new VmClusterPreviewResponse(
                 result.stackName(),
                 result.stackExistedBefore(),

@@ -3,8 +3,8 @@
 `cluster-agent-spring-boot-starter` 위에 도메인 특화 functionality 모듈 (Layer 3) 을 추가하는 방법입니다.
 
 > **대상 독자**: 새 starter 모듈을 만드는 개발자입니다 (내부 또는 외부 기여자).
-> **선행 학습**: [`apps/agent/docs/external-deployment.md`](../../apps/agent/docs/external-deployment.md),
-> [`libs/cluster-agent-spring-boot-starter/QUICKSTART.md`](../../libs/cluster-agent-spring-boot-starter/QUICKSTART.md) 를 참고합니다.
+> **선행 학습**: [`apps/agent/docs/external-deployment.md`](../../../apps/agent/docs/external-deployment.md),
+> [`libs/cluster-agent-spring-boot-starter/QUICKSTART.md`](../../../libs/cluster-agent-spring-boot-starter/QUICKSTART.md) 를 참고합니다.
 
 ---
 

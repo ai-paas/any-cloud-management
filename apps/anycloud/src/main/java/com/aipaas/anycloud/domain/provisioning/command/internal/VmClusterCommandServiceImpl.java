@@ -4,7 +4,6 @@ import com.aipaas.anycloud.common.error.enums.ErrorCode;
 import com.aipaas.anycloud.common.error.exception.ClusterNotFoundException;
 import com.aipaas.anycloud.common.error.exception.CustomException;
 import com.aipaas.anycloud.common.error.exception.provisioning.StateConflictException;
-import com.aipaas.anycloud.domain.provisioning.preflight.validation.ProvisioningProviderValidator;
 import com.aipaas.anycloud.domain.cluster.ClusterEntity;
 import com.aipaas.anycloud.domain.cluster.ClusterRepository;
 import com.aipaas.anycloud.domain.credential.CspCredentialService;
@@ -15,14 +14,14 @@ import com.aipaas.anycloud.domain.provisioning.api.request.ProvisionClusterReque
 import com.aipaas.anycloud.domain.provisioning.command.VmClusterCommandService;
 import com.aipaas.anycloud.domain.provisioning.model.VmClusterStatus;
 import com.aipaas.anycloud.domain.provisioning.payload.VmClusterPayloadService;
+import com.aipaas.anycloud.domain.provisioning.preflight.validation.ProvisioningProviderValidator;
 import com.aipaas.anycloud.domain.provisioning.registration.VmClusterRegistrationService;
-import com.aipaas.anycloud.domain.provisioning.remote.VmClusterKubeconfigService;
 import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterAsyncService;
 import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowMessage;
 import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowPublisher;
 import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowStep;
-import io.aipaas.cluster.provisioning.core.ProvisioningRequest;
-import io.aipaas.cluster.provisioning.service.PulumiProvisioningService;
+import io.aipaas.cluster.provisioning.api.ProvisioningRequest;
+import io.aipaas.cluster.provisioning.api.ProvisioningService;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
@@ -42,9 +41,8 @@ public class VmClusterCommandServiceImpl implements VmClusterCommandService {
     private final VmClusterRepository vmClusterRepository;
     private final VmClusterAsyncService vmClusterAsyncService;
     private final VmClusterPayloadService vmClusterPayloadService;
-    private final PulumiProvisioningService pulumiProvisioningService;
+    private final ProvisioningService provisioningService;
     private final ProvisioningProviderValidator provisioningProviderValidator;
-    private final VmClusterKubeconfigService vmClusterKubeconfigService;
     private final VmClusterRegistrationService vmClusterRegistrationService;
     private final CspCredentialService cspCredentialService;
     private final VmClusterWorkflowPublisher workflowPublisher;
@@ -78,7 +76,7 @@ public class VmClusterCommandServiceImpl implements VmClusterCommandService {
         // Live selection 검증 (CSP API call — instance type/image 존재 여부) 은 provision step
         // 의 첫 단계로 이동했다 (worker async). 잘못된 selection 이면 PROVISION step 이 즉시 FAIL.
         ProvisioningRequest request = provisioningProviderValidator.validateStaticAndBuildRequest(cluster, credential);
-        String stackName = pulumiProvisioningService.buildStackName(request);
+        String stackName = provisioningService.buildStackName(request);
 
         VmClusterEntity vmCluster = VmClusterEntity.builder()
                 .clusterName(cluster.getClusterName())
@@ -91,7 +89,6 @@ public class VmClusterCommandServiceImpl implements VmClusterCommandService {
                 .activeRequestKey(cluster.getClusterName())
                 .credentialId(credential.getCredentialId())
                 .credentialName(credential.getCredentialName())
-                .credentialSourceType(credential.getSourceType())
                 .requestConfig(vmClusterPayloadService.serializeRequestSnapshot(cluster, request, credential))
                 .requestedAt(LocalDateTime.now())
                 .clusterRegistered(false)
@@ -111,13 +108,12 @@ public class VmClusterCommandServiceImpl implements VmClusterCommandService {
     @Override
     public HttpStatus retryVmClusterRegistration(String clusterName) {
         VmClusterEntity vmCluster = getVmCluster(clusterName);
-        Map<String, String> credentialEnvironment = cspCredentialService.resolveEnvironment(
-                vmCluster.getClusterProvider(), vmCluster.getCredentialId(), vmCluster.getCredentialSourceType());
+        Map<String, String> credentialEnvironment =
+                cspCredentialService.resolveEnvironment(vmCluster.getClusterProvider(), vmCluster.getCredentialId());
         Map<String, Object> outputs =
-                pulumiProvisioningService.stackOutputs(vmCluster.getStackName(), true, credentialEnvironment);
+                provisioningService.stackOutputs(vmCluster.getStackName(), true, credentialEnvironment);
 
-        String kubeconfigContent = vmClusterKubeconfigService.fetchKubeconfig(vmCluster, outputs);
-        vmClusterRegistrationService.registerFromKubeconfig(vmCluster, kubeconfigContent);
+        vmClusterRegistrationService.createClusterEntity(vmCluster);
 
         vmCluster.setCurrentWorkflowStep(com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowStep.VERIFY);
         vmCluster.setLastSuccessfulStep(com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowStep.VERIFY);
@@ -166,9 +162,23 @@ public class VmClusterCommandServiceImpl implements VmClusterCommandService {
         vmCluster.setLastError(null);
         vmCluster.setFailedAt(null);
         vmCluster.setLastFailedStep(null);
-        // markProcessed 흔적도 초기화하여 새 messageId 의 가드가 정상 통과하도록 한다.
+        // markProcessed 흔적도 초기화하여 새 messageId 의 가드가 정상 통과하.
         vmCluster.setLastProcessedWorkflowMessageId(null);
         vmClusterRepository.save(vmCluster);
+
+        // PROVISION step 만 ProvisioningRequest 가 필요 (provisionStepService.execute 의 3번째 인자).
+        // BOOTSTRAP/VERIFY 는 vm_cluster.rawOutputs 만 사용 → restore 불필요.
+        ProvisioningRequest restoredRequest = null;
+        if (retryStep == VmClusterWorkflowStep.PROVISION) {
+            ResolvedCspCredential credential = cspCredentialService.resolveForProvision(
+                    vmCluster.getClusterProvider(), vmCluster.getCredentialId());
+            restoredRequest = vmClusterPayloadService.restoreProvisioningRequest(vmCluster, credential);
+            if (restoredRequest == null) {
+                throw new CustomException(
+                        "PROVISION 재시도 불가 — request_config 누락 또는 손상. 클러스터를 삭제 후 새로 생성해주세요.",
+                        ErrorCode.PROVISIONING_REQUEST_MISSING);
+            }
+        }
 
         VmClusterWorkflowMessage message = VmClusterWorkflowMessage.builder()
                 .messageId(UUID.randomUUID().toString())
@@ -176,6 +186,7 @@ public class VmClusterCommandServiceImpl implements VmClusterCommandService {
                 .clusterName(clusterName)
                 .stackName(vmCluster.getStackName())
                 .step(retryStep)
+                .provisioningRequest(restoredRequest)
                 .build();
 
         switch (retryStep) {
@@ -211,9 +222,18 @@ public class VmClusterCommandServiceImpl implements VmClusterCommandService {
 
         //  DELETE 멱등성. 이미 DELETED 인 history row 에 재삭제 요청이 오면 strict state
         // machine 이 DELETED → DELETING 전환을 거부해 400 이 났었다 — REST DELETE 는 멱등이어야
-        // 하므로 no-op 성공으로 처리. history row 는 보존, 잔존 cluster row 만 정리.
+        // 하므로 no-op 성공으로 처리. history row 는 보존, 잔존 cluster row 만 정리. sensitive 페이로드가
+        // 남아 있으면 이번 호출에 sanitize (이전 빌드의 DELETED row 마이그레이션 대비).
         if (vmCluster.getProvisioningStatus() == VmClusterStatus.DELETED) {
             cluster.ifPresent(clusterRepository::delete);
+            if (vmCluster.getRequestConfig() != null
+                    || vmCluster.getRawOutputs() != null
+                    || vmCluster.getBootstrapLog() != null) {
+                vmCluster.setRequestConfig(null);
+                vmCluster.setRawOutputs(null);
+                vmCluster.setBootstrapLog(null);
+                vmClusterRepository.save(vmCluster);
+            }
             return HttpStatus.OK;
         }
 

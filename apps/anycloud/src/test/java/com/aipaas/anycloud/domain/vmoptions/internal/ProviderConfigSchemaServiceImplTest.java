@@ -100,19 +100,6 @@ class ProviderConfigSchemaServiceImplTest extends AbstractUnitTest {
     }
 
     @Test
-    void proxmoxSchema_listsAll4RequiredKeys() {
-        List<ProviderConfigKey> schema = service.getSchema("proxmox");
-
-        for (String key : List.of(
-                "anycloud-k8s:proxmoxNodeName",
-                "anycloud-k8s:proxmoxTemplateVmId",
-                "anycloud-k8s:proxmoxDatastoreId",
-                "anycloud-k8s:proxmoxNetworkBridge")) {
-            assertThat(findKey(schema, key).required()).as(key).isTrue();
-        }
-    }
-
-    @Test
     void ociSchema_listsCompartmentIdAsRequired() {
         ProviderConfigKey entry = findKey(service.getSchema("oci"), "anycloud-k8s:ociCompartmentId");
         assertThat(entry.required()).isTrue();
@@ -130,7 +117,7 @@ class ProviderConfigSchemaServiceImplTest extends AbstractUnitTest {
         // 모든 provider 에 cross-cutting 키 11개 (master/worker spec, master/worker count,
         // k8s version, pod/service cidr, joinToken, 3 boolean flags) 있음을 보장.
         for (String provider :
-                List.of("AWS", "GCP", "Azure", "Alibaba", "OpenStack", "Proxmox", "OCI", "DigitalOcean")) {
+                List.of("AWS", "GCP", "Azure", "Alibaba", "OpenStack", "OCI", "DigitalOcean")) {
             assertThat(service.getSchema(provider)).as(provider).hasSizeGreaterThanOrEqualTo(11);
         }
     }

@@ -49,8 +49,6 @@ import org.springframework.stereotype.Component;
  *   <li>{@link #invalidate(String)} — cluster delete/update 시</li>
  * </ul>
  * day-2 가 fabric8 client 를 직접 받아가던 {@code getClient()} 와 진단용 {@code asMap()} 은 제거됐다.
- *
- * @since Phase 3 — KubernetesClientCache 에서 이름 + 책임 narrow.
  */
 @Slf4j
 @Component
@@ -97,7 +95,7 @@ public class AgentBootstrapKubeClient {
      * Bootstrap fabric8 호출 — 401/403 발생 시 캐시를 invalidate 하고 1회 재시도.
      *
      * <p>Day-2 호출에는 사용하지 말 것. {@code io.aipaas.cluster.agent.runtime.KubeResourceService}
-     * 가 agent stream 으로 routing 한다.
+     * 가 agent stream 으로 routing.
      */
     public <T> T execute(ClusterEntity cluster, Function<KubernetesClient, T> action) {
         KubernetesClient client = clientFor(cluster);

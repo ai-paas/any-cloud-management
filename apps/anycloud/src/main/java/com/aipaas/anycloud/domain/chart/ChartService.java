@@ -44,7 +44,7 @@ public interface ChartService {
     /**
      * Helm 차트를 비동기로 배포합니다 (raw YAML 문자열 변형).
      * JSON-friendly — values.yaml 내용을 문자열로 받아 임시 파일로 변환 후 동일 흐름.
-     * RESTful /v1 endpoint (JSON body) 가 사용한다.
+     * RESTful /v1 endpoint (JSON body) 가 사용.
      */
     ChartDeployResponse deployChartFromYaml(
             String repositoryName,

@@ -12,7 +12,7 @@ get {
 
 params:query {
   query: up
-  ~time:
+  ~time: 
   ~timeout: 30s
   ~limit: 100
   ~lookback_delta: 5m
@@ -24,15 +24,11 @@ headers {
   User-Agent: bruno/3.3.0
 }
 
-vars:pre-request {
-  cluster_name: orb-kubernetes-001
-}
-
 tests {
   test("상태 코드 200 확인", function() {
     expect(res.getStatus()).to.equal(200);
   });
-
+  
   test("Prometheus raw envelope", function() {
     const data = res.getBody();
     expect(data).to.have.property("status");
@@ -43,13 +39,13 @@ tests {
 
 docs {
   Prometheus HTTP API `/api/v1/query` 의 raw passthrough.
-
+  
   필수: query (PromQL)
   optional: time, timeout, limit, lookback_delta, stats (모두 Prometheus 와 동일 의미)
-
+  
   응답: Prometheus envelope 그대로 — `{"status":"success","data":{"resultType":"vector","result":[...]}}`.
   backend wrapping 없음 — frontend 가 직접 파싱.
-
+  
   PromQL 예시:
     - up
     - rate(node_cpu_seconds_total[5m])

@@ -16,7 +16,7 @@ import com.aipaas.anycloud.domain.provisioning.workflow.support.VmClusterWorkflo
 import com.aipaas.anycloud.domain.webhook.WebhookEvent;
 import com.aipaas.anycloud.domain.webhook.WebhookEventPublisher;
 import com.aipaas.anycloud.domain.webhook.WebhookEventTypes;
-import io.aipaas.cluster.provisioning.service.PulumiProvisioningService;
+import io.aipaas.cluster.provisioning.api.ProvisioningService;
 import java.time.LocalDateTime;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -35,11 +35,11 @@ import org.springframework.stereotype.Service;
  *       전용 — 향후 별도 {@code WorkflowDiagnosticsCollector} 로 추출 가능.</li>
  *   <li>External publish — {@code operationService} (operation row 갱신), {@code workflowPublisher}
  *       (DESTROY 자동 cleanup), {@code webhookEventPublisher} (외부 system 통보). 향후
- *       {@code WorkflowEventPublisher} facade 로 묶을 수 있다.</li>
+ *       {@code WorkflowEventPublisher} facade 로 묶을 가능.</li>
  * </ol>
  *
  * <p>현재는 책임 묶음을 // ─── ... ─── 섹션 주석으로 표시. 진정한 클래스 분해는 별도 PR — caller
- * 가 본 service 의 public 메서드만 호출하므로 internal 재구성은 호환성 유지된다.
+ * 가 본 service 의 public 메서드만 호출하므로 internal 재구성은 호환성 유지.
  */
 @Slf4j
 @Service
@@ -48,7 +48,7 @@ public class VmClusterWorkflowSupportServiceImpl implements VmClusterWorkflowSup
 
     private final VmClusterRepository vmClusterRepository;
     private final CspCredentialService cspCredentialService;
-    private final PulumiProvisioningService pulumiProvisioningService;
+    private final ProvisioningService provisioningService;
     private final VmClusterPayloadService vmClusterPayloadService;
     private final VmClusterBootstrapLogService vmClusterBootstrapLogService;
     private final VmClusterWorkflowProperties workflowProperties;
@@ -132,6 +132,11 @@ public class VmClusterWorkflowSupportServiceImpl implements VmClusterWorkflowSup
         vmCluster.setClusterRegistered(false);
         vmCluster.setLastError(null);
         vmCluster.setDeletedAt(LocalDateTime.now());
+        // DELETED 후에도 row 는 audit history 로 보존되므로 sensitive 페이로드 (CSP credential / SSH private
+        // key / passphrase / kubeconfig 등) 는 정리. metadata (status/timestamps/cluster_name 등) 만 보존.
+        vmCluster.setRequestConfig(null);
+        vmCluster.setRawOutputs(null);
+        vmCluster.setBootstrapLog(null);
         vmClusterRepository.save(vmCluster);
         completeActiveOperation(vmCluster.getClusterName(), "DELETED");
         publishWebhook(WebhookEventTypes.VM_CLUSTER_DELETED, vmCluster, null);
@@ -141,7 +146,7 @@ public class VmClusterWorkflowSupportServiceImpl implements VmClusterWorkflowSup
     public void fail(VmClusterEntity vmCluster, String clusterName, Exception e) {
         log.error("VM cluster workflow failed for cluster {}: {}", clusterName, e.getMessage(), e);
         // 재시도 임계 초과 시 자동 진행 정지 (manual intervention 대기).
-        // retry count 가 maxAttempts 이상이면 BLOCKED, 아니면 통상 FAILED 로 분류한다.
+        // retry count 가 maxAttempts 이상이면 BLOCKED, 아니면 통상 FAILED 로 분류.
         int retryCount = safeRetryCount(vmCluster);
         int maxAttempts = workflowProperties.getMaxAttempts();
         if (retryCount >= maxAttempts) {
@@ -176,9 +181,9 @@ public class VmClusterWorkflowSupportServiceImpl implements VmClusterWorkflowSup
                 : WebhookEventTypes.VM_CLUSTER_FAILED;
         publishWebhook(eventType, vmCluster, e.getMessage());
 
-        // 부분 PROVISION cleanup. BOOTSTRAP/VERIFY 단계의 실패는 보통 cluster 가 살아있는 상태라
-        // 자동 destroy 가 위험 — PROVISION 만 대상으로 한다. retryCount 가 임계 도달한 시점에만
-        // (즉 BLOCKED 로 전환된 경우) 트리거하여 매 시도마다 destroy 가 폭주하지 않도록.
+        // 부분 PROVISION cleanup. BOOTSTRAP/VERIFY 단계 실패는 cluster 가 살아있는 상태라
+        // 자동 destroy 위험 — PROVISION 만 대상. retryCount 임계 도달 (BLOCKED 전환) 시점에만
+        // trigger — 매 시도마다 destroy 폭주 방지.
         if (workflowProperties.isAutoCleanupOnProvisionFailure()
                 && failedStep == VmClusterWorkflowStep.PROVISION
                 && vmCluster.getProvisioningStatus() == VmClusterStatus.BLOCKED
@@ -216,9 +221,9 @@ public class VmClusterWorkflowSupportServiceImpl implements VmClusterWorkflowSup
     public void failWithDiagnostics(VmClusterEntity vmCluster, String clusterName, Exception e) {
         try {
             Map<String, String> credentialEnvironment = cspCredentialService.resolveEnvironment(
-                    vmCluster.getClusterProvider(), vmCluster.getCredentialId(), vmCluster.getCredentialSourceType());
+                    vmCluster.getClusterProvider(), vmCluster.getCredentialId());
             Map<String, Object> outputs =
-                    pulumiProvisioningService.stackOutputs(vmCluster.getStackName(), true, credentialEnvironment);
+                    provisioningService.stackOutputs(vmCluster.getStackName(), true, credentialEnvironment);
             // Append 모드 — 이전 attempt 의 log 를 유지한 채 진단을 끝에 추가.
             vmClusterBootstrapLogService.appendDiagnostics(vmCluster, outputs);
             vmCluster.setRawOutputs(vmClusterPayloadService.serializeSanitizedOutputs(outputs));
@@ -314,7 +319,7 @@ public class VmClusterWorkflowSupportServiceImpl implements VmClusterWorkflowSup
 
     /**
      * Webhook event publish. async + failure-isolated — workflow 의 핵심 상태 전이 후 호출되며,
-     * 외부 system 의 응답성과 무관하게 트랜잭션이 진행되도록 한다.
+     * 외부 system 의 응답성과 무관하게 트랜잭션이 진행되.
      */
     private void publishWebhook(String eventType, VmClusterEntity vmCluster, String errorMessage) {
         try {

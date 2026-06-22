@@ -1,12 +1,8 @@
 // Package logstream — Pod log streaming runner.
 //
-// 흐름:
-//  1. core/runtime.go 가 ControlMessage.OpenLogStream 수신 → goroutine 으로 Run() 호출.
-//  2. 본 패키지가 AgentRuntime/StreamPodLogs bidi gRPC stream 을 backend 로 open.
-//  3. 첫 LogPacket{Request, session_id} 송신 → backend 가 SSE bridge 와 매칭.
-//  4. k8s.StreamPodLogs(ctx, opts) 로 io.ReadCloser 획득.
-//  5. K8s stream → LogChunk packet 으로 backend 에 push (chunk size, flush 주기 제어).
-//  6. K8s EOF / ctx cancel / backend 가 server-side complete 시 stream 종료.
+// 메인 runtime stream 과 독립된 bidi gRPC 채널 (AgentRuntime/StreamPodLogs) 사용 — pod I/O 가
+// heartbeat loop 를 block 하지 않게 분리. session_id 는 backend 의 SSE bridge 와 매칭하기 위한
+// echo. chunk size / flush 주기는 RPC overhead vs backend memory 의 trade-off.
 package logstream
 
 import (

@@ -122,7 +122,7 @@ public class AdminStateMachineController {
         boolean next = req.strict();
         stateMachineProperties.setStrict(next);
 
-        // audit log — 운영자가 mode 전환했음을 기록 (누가 했는지는 Spring Security context 가 활성 시
+        // audit log — 운영자 mode 전환 기록 (Spring Security context 활성 시
         // SecurityContextHolder 통해 추가 가능 — 현재는 caller IP 만 servlet container 가 access log 에 남김).
         log.warn("VmCluster state-machine STRICT MODE TOGGLE: {} → {} (in-memory, instance-local)", previous, next);
 

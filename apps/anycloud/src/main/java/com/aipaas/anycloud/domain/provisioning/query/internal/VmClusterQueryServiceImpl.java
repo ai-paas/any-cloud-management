@@ -40,10 +40,13 @@ public class VmClusterQueryServiceImpl implements VmClusterQueryService {
     @Override
     public List<VmClusterListItemResponse> listVmClusters(String provider, String environment, String status) {
         VmClusterStatus normalizedStatus = normalizeStatus(status);
-        Specification<VmClusterEntity> specification = Specification.where(
-                        equalsIgnoreCase("clusterProvider", provider))
-                .and(equalsIgnoreCase("environment", environment))
-                .and(equalsEnum("provisioningStatus", normalizedStatus));
+        // status 미지정 시 DELETED 자동 제외 — delete 가 audit/history 위해 row 를 보존하므로 list 에서
+        // 누적되는 noise 차단. status=DELETED 명시 요청 시는 그대로 표시.
+        Specification<VmClusterEntity> baseSpec = Specification.where(equalsIgnoreCase("clusterProvider", provider))
+                .and(equalsIgnoreCase("environment", environment));
+        Specification<VmClusterEntity> specification = normalizedStatus == null
+                ? baseSpec.and(notEqualsEnum("provisioningStatus", VmClusterStatus.DELETED))
+                : baseSpec.and(equalsEnum("provisioningStatus", normalizedStatus));
 
         return vmClusterRepository.findAll(specification, Sort.by(Sort.Direction.DESC, "createdAt")).stream()
                 .map(vmClusterPayloadService::buildListItemResponse)
@@ -98,5 +101,12 @@ public class VmClusterQueryServiceImpl implements VmClusterQueryService {
             return null;
         }
         return (root, query, builder) -> builder.equal(root.get(fieldName), value);
+    }
+
+    private Specification<VmClusterEntity> notEqualsEnum(String fieldName, Enum<?> value) {
+        if (value == null) {
+            return null;
+        }
+        return (root, query, builder) -> builder.notEqual(root.get(fieldName), value);
     }
 }

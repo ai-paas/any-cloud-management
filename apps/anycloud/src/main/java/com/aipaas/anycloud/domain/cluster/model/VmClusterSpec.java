@@ -19,8 +19,7 @@ public record VmClusterSpec(
                             "alibaba",
                             "oci",
                             "digitalocean",
-                            "openstack",
-                            "proxmox"
+                            "openstack"
                         })
                 @NotBlank
                 String provider,
@@ -52,7 +51,7 @@ public record VmClusterSpec(
          *   <li>Azure: Spot priority VM (eviction policy=Deallocate)</li>
          *   <li>GCP: preemptible VM (spot instance)</li>
          *   <li>Alibaba: PostPaid 의 SpotStrategy=SpotAsPriceGo</li>
-         *   <li>그 외 (OCI / Proxmox / OpenStack / DigitalOcean) — no-op (지원 X 또는 의미 없음)</li>
+         *   <li>그 외 (OCI / OpenStack / DigitalOcean) — no-op (지원 X 또는 의미 없음)</li>
          * </ul>
          *
          * <p>VmClusterSpecMapper 가 본 필드를 config map 의 {@code useSpot} 키로 추가 — Pulumi
@@ -77,7 +76,6 @@ public record VmClusterSpec(
          *   <li>OCI: Image OCID</li>
          *   <li>OpenStack: Image name 또는 UUID</li>
          *   <li>DigitalOcean: Image slug 또는 ID</li>
-         *   <li>Proxmox: storage:vmdk path</li>
          * </ul>
          *
          * <p>VmClusterSpecMapper 가 본 필드를 config map 의 {@code osImage} 키로 추가.

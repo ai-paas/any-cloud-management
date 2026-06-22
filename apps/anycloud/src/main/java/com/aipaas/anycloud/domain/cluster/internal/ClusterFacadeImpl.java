@@ -143,6 +143,8 @@ public class ClusterFacadeImpl implements ClusterFacade {
                 .map(item -> UnifiedClusterResponse.builder()
                         .source("vm")
                         .clusterName(item.getClusterName())
+                        // VM provision cluster 자체가 linked vm — UI cross-link 일관성.
+                        .linkedVmName(item.getClusterName())
                         .provider(item.getClusterProvider())
                         .region(item.getRegion())
                         .environment(item.getEnvironment())
@@ -215,6 +217,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
             return UnifiedClusterResponse.builder()
                     .source("vm")
                     .clusterName(v.getClusterName())
+                    .linkedVmName(v.getClusterName())
                     .provider(v.getClusterProvider())
                     .region(v.getRegion())
                     .environment(v.getEnvironment())
@@ -356,14 +359,22 @@ public class ClusterFacadeImpl implements ClusterFacade {
 
     private UnifiedClusterResponse toRegisteredDto(com.aipaas.anycloud.domain.cluster.model.Cluster c) {
         ClusterHealth health = agentHealthService.getHealth(c.id());
+        // 1:1 link — VmClusterEntity 가 같은 이름으로 존재하면 VM provision 으로 만들어진 cluster.
+        // UI 가 cluster 상세에서 VM 메뉴로 cross-link 시 사용.
+        String linkedVm = vmClusterRepository
+                        .findFirstByClusterNameOrderByCreatedAtDesc(c.id())
+                        .isPresent()
+                ? c.id()
+                : null;
         return UnifiedClusterResponse.builder()
                 .source("registered")
                 .clusterName(c.id())
+                .linkedVmName(linkedVm)
                 .provider(c.clusterProvider())
                 .environment(null)
                 .status(c.status())
-                // Chronological merge 가 동작하려면 두 source 모두 createdAt 이 채워져야 한다. ZonedDateTime
-                // → LocalDateTime 으로 zone 정보를 떨어뜨려도 UI 정렬 / 표시에는 동일 의미.
+                // Chronological merge 동작 조건 — 두 source 모두 createdAt 필요. ZonedDateTime
+                // → LocalDateTime 변환 시 zone 정보 손실해도 UI 정렬 / 표시 의미는 동일.
                 .createdAt(c.createdAt() == null ? null : c.createdAt().toLocalDateTime())
                 .hasGpuNodes(c.hasGpuNodes())
                 .agentConnectivity(deriveConnectivity(health))

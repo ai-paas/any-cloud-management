@@ -10,7 +10,7 @@ import java.security.SecureRandom;
  *
  * <p>과거엔 사용자 입력 또는 하드코딩 default ({@code abcdef.0123456789abcdef}) 를 사용 — 모든
  * cluster 가 같은 token 을 공유해 node 탈취 시 타 cluster join 이 가능했다. Backend 가 cluster
- * 생성 시점에 항상 새로 생성하고 사용자 입력은 무시한다.
+ * 생성 시점에 항상 새로 생성하고 사용자 입력은 무시.
  */
 public final class KubeadmJoinTokens {
 

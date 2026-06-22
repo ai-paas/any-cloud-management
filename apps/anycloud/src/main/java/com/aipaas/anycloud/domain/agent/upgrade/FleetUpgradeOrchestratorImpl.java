@@ -216,7 +216,7 @@ public class FleetUpgradeOrchestratorImpl implements FleetUpgradeOrchestrator {
      *   <li>이미 set + valid → 반환.</li>
      *   <li>이미 set + invalid (DB corruption) → ABORTED + save + return null.</li>
      *   <li>empty + 첫 wave 가능 → 첫 wave set + save.</li>
-     *   <li>empty + waves 도 비었음 → COMPLETED + save + return null (no-op run).</li>
+     *   <li>empty + waves 도 empty → COMPLETED + save + return null (no-op run).</li>
      * </ul>
      *
      * @return 현재 wave, 또는 null (run 이 이미 terminal 상태).

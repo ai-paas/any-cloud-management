@@ -17,7 +17,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 /**
  * Mutation HTTP 요청에 대해 자동으로 audit 로그 한 줄 기록. 회수 가능한 정보(method, path,
  * principal, requestId, status, duration) 만 capture. body payload 는 controller layer 가 직접
- * AuditLogger 를 호출하여 풍부한 요약 (action/resourceId) 을 보강할 수 있다.
+ * AuditLogger 를 호출하여 풍부한 요약 (action/resourceId) 을 보강가능.
  */
 // anycloud.audit.enabled=false 이면 bean 자체 등록 안 됨 (slice 테스트 / 운영 측 개별 비활성).
 @Slf4j

@@ -7,7 +7,7 @@ import com.aipaas.anycloud.domain.provisioning.properties.PulumiProperties;
 import com.aipaas.anycloud.domain.provisioning.remote.VmClusterSshAccessService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.aipaas.cluster.provisioning.service.PulumiProvisioningService;
+import io.aipaas.cluster.provisioning.api.ProvisioningService;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -24,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class VmClusterSshAccessServiceImpl implements VmClusterSshAccessService {
 
     private final VmClusterRepository vmClusterRepository;
-    private final PulumiProvisioningService pulumiProvisioningService;
+    private final ProvisioningService provisioningService;
     private final PulumiProperties pulumiProperties;
     private final ObjectMapper objectMapper;
 
@@ -54,7 +54,7 @@ public class VmClusterSshAccessServiceImpl implements VmClusterSshAccessService 
         }
         Map<String, Object> outputs;
         try {
-            outputs = pulumiProvisioningService.stackOutputs(vmCluster.getStackName(), true, Map.of());
+            outputs = provisioningService.stackOutputs(vmCluster.getStackName(), true, Map.of());
         } catch (IllegalStateException e) {
             throw new VmClusterSshAccessException(
                     "STACK_READ_FAILED", "Failed to read Pulumi stack outputs: " + e.getMessage());

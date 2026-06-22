@@ -29,10 +29,6 @@ body:json {
   }
 }
 
-vars:pre-request {
-  cluster_name: orb-kubernetes-001
-}
-
 tests {
   test("상태 코드 202", function() {
     expect(res.getStatus()).to.equal(202);

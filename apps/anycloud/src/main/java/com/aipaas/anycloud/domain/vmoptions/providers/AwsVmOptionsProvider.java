@@ -25,11 +25,17 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.Ec2ClientBuilder;
 import software.amazon.awssdk.services.ec2.model.DescribeImagesRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeImagesResponse;
+import software.amazon.awssdk.services.ec2.model.DescribeInstanceTypeOfferingsRequest;
+import software.amazon.awssdk.services.ec2.model.DescribeInstanceTypeOfferingsResponse;
 import software.amazon.awssdk.services.ec2.model.DescribeInstanceTypesRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeInstanceTypesResponse;
 import software.amazon.awssdk.services.ec2.model.Filter;
 import software.amazon.awssdk.services.ec2.model.Image;
 import software.amazon.awssdk.services.ec2.model.InstanceTypeInfo;
+import software.amazon.awssdk.services.ec2.model.InstanceTypeOffering;
+import software.amazon.awssdk.services.ec2.model.LocationType;
+import java.util.HashSet;
+import java.util.Set;
 
 @Component
 public class AwsVmOptionsProvider extends AbstractVmOptionsProvider {
@@ -89,6 +95,14 @@ public class AwsVmOptionsProvider extends AbstractVmOptionsProvider {
     private List<VmOptionSpec> doListSpecs(
             Ec2Client clientArg, String region, String keyword, boolean gpuOnly, int limit) {
         try (Ec2Client client = clientArg) {
+            // DescribeInstanceTypes 만으로는 region availability 부정확 — AZ-level offering 까지 봐야
+            // launch 가능한 type 셋이 확정. DescribeInstanceTypeOfferings 가 source-of-truth.
+            // 두 API 모두 region endpoint 의존이지만 Offerings 만 "이 region 의 어느 AZ 에서든 launch 가능" 보장.
+            Set<String> availableInRegion = fetchAvailableInstanceTypeNames(client, region);
+            if (availableInRegion.isEmpty()) {
+                return List.of();
+            }
+
             List<VmOptionSpec> results = new ArrayList<>();
             String nextToken = null;
 
@@ -99,6 +113,11 @@ public class AwsVmOptionsProvider extends AbstractVmOptionsProvider {
                         .build();
                 DescribeInstanceTypesResponse response = client.describeInstanceTypes(request);
                 for (InstanceTypeInfo instanceType : response.instanceTypes()) {
+                    String name = instanceType.instanceTypeAsString();
+                    if (!availableInRegion.contains(name)) {
+                        // region 에서 launch 불가 — UI 노출 / validation 모두에서 제외.
+                        continue;
+                    }
                     VmOptionSpec dto = toSpecDto(region, instanceType);
                     if (!matchesKeyword(dto.getName(), keyword)) {
                         continue;
@@ -119,6 +138,29 @@ public class AwsVmOptionsProvider extends AbstractVmOptionsProvider {
             throw new CustomException(
                     ErrorCode.RUNTIME_EXCEPTION, "region", region, "Failed to query AWS VM specs: " + e.getMessage());
         }
+    }
+
+    /**
+     * DescribeInstanceTypeOfferings (LocationType=region) 으로 region 전체에서 launch 가능한 instance
+     * type names 의 합집합을 수집. Offerings 는 가벼운 API (per-page 1000) — 정상 region 은 1~2 page.
+     */
+    private Set<String> fetchAvailableInstanceTypeNames(Ec2Client client, String region) {
+        Set<String> names = new HashSet<>();
+        String nextToken = null;
+        do {
+            DescribeInstanceTypeOfferingsRequest request = DescribeInstanceTypeOfferingsRequest.builder()
+                    .locationType(LocationType.REGION)
+                    .filters(Filter.builder().name("location").values(region).build())
+                    .maxResults(1000)
+                    .nextToken(nextToken)
+                    .build();
+            DescribeInstanceTypeOfferingsResponse response = client.describeInstanceTypeOfferings(request);
+            for (InstanceTypeOffering offering : response.instanceTypeOfferings()) {
+                names.add(offering.instanceTypeAsString());
+            }
+            nextToken = response.nextToken();
+        } while (StringUtils.hasText(nextToken));
+        return names;
     }
 
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listImagesFallback")

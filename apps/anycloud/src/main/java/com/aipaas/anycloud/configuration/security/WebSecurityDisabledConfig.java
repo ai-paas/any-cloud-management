@@ -19,7 +19,7 @@ import org.springframework.security.web.SecurityFilterChain;
  *
  * <p> (follow-up): {@code @ConditionalOnWebApplication(SERVLET)} 추가
  * worker mode ({@code APP_ROLE=worker}, {@code spring.main.web-application-type=none}) 에서는
- * HttpSecurity bean 자체가 없어 본 config 가 fail 했었음. servlet web 일 때만 활성.
+ * HttpSecurity bean 부재로 본 config fail — servlet web 환경에서만 활성.
  */
 @Slf4j
 @Configuration

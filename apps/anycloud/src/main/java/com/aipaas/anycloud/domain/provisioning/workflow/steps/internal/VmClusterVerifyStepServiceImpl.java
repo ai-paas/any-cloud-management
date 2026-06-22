@@ -20,7 +20,7 @@ public class VmClusterVerifyStepServiceImpl implements VmClusterVerifyStepServic
     private final VmClusterRepository vmClusterRepository;
     private final ClusterService clusterService;
     private final VmClusterWorkflowSupportService workflowSupportService;
-    private final io.aipaas.cluster.provisioning.service.PulumiProvisioningService pulumiProvisioningService;
+    private final io.aipaas.cluster.provisioning.api.ProvisioningService provisioningService;
     private final com.aipaas.anycloud.domain.provisioning.remote.VmClusterRemoteAccessService remoteAccessService;
 
     @Override
@@ -46,7 +46,7 @@ public class VmClusterVerifyStepServiceImpl implements VmClusterVerifyStepServic
             // 신규 cluster 에서 항상 실패 — agent dial-in 은 READY 이후 단계.
             String readyz = remoteAccessService.runOnMaster(
                     vmCluster,
-                    pulumiProvisioningService.stackOutputs(vmCluster.getStackName(), true, java.util.Map.of()),
+                    provisioningService.stackOutputs(vmCluster.getStackName(), true, java.util.Map.of()),
                     "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl get --raw=/readyz",
                     java.time.Duration.ofMinutes(2));
             if (readyz == null || !readyz.trim().endsWith("ok")) {
@@ -54,7 +54,7 @@ public class VmClusterVerifyStepServiceImpl implements VmClusterVerifyStepServic
                 // 일시 상태로 retry interceptor 가 maxAttempts 까지 재시도하면 일반적으로 통과.
                 throw new TransientProvisioningFailure("Cluster readyz verification failed: " + readyz);
             }
-            // Agent 상태 동기화는 best-effort — agent 미설치가 VERIFY 실패 사유가 되면 안 됨.
+            // Agent 상태 동기화는 best-effort — agent 미설치가 VERIFY 실패 사유가 되면 금지.
             try {
                 clusterService.refreshClusterStatus(clusterName);
             } catch (Exception e) {

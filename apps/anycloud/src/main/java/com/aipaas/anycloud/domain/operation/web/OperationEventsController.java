@@ -5,7 +5,7 @@ import com.aipaas.anycloud.domain.operation.OperationEntity;
 import com.aipaas.anycloud.domain.operation.OperationResponse;
 import com.aipaas.anycloud.domain.operation.OperationService;
 import com.aipaas.anycloud.domain.operation.model.OperationState;
-import io.aipaas.cluster.provisioning.service.ProvisionEventBus;
+import io.aipaas.cluster.provisioning.internal.ProvisionEventBus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Pattern;

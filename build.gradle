@@ -4,8 +4,6 @@ plugins {
     id 'idea'
     id 'java'
     id 'com.diffplug.spotless' version '6.25.0' apply false
-    // ClusterAgent gRPC: ../proto/agent/v1 의 .proto 파일을 Java 로 generate.
-    // anycloud 모듈에서 apply 한다 (build.gradle 안에서 추가 설정).
     id 'com.google.protobuf' version '0.9.4' apply false
 }
 
@@ -16,28 +14,26 @@ wrapper {
 bootJar { enabled = false }
 jar { enabled = true }
 
-// 중앙화 dep version. starter / app 모두 본 ext 변수 참조.
-// 단일 변경 지점 = drift 방지. Spring Boot 의 BOM 으로 관리되지 않는 외부 lib 의 version pinning.
 ext {
-    // Jackson — Spring Boot 3.2.5 의 BOM default = 2.15.4. provisioning starter 만 2.17.0 으로 drift 했던
-    // 이력. 향후 본 ext 변수만 변경.
     jacksonVersion = '2.17.2'
-    // Lombok — annotationProcessor + compileOnly 양쪽 동일 버전 필요.
     lombokVersion = '1.18.36'
-    // MapStruct — 신규 mapper 권장. 기존 ModelMapper / static mapper 와 공존.
-    // lombok-mapstruct-binding 이 annotation processor 순서 (Lombok → MapStruct) 보장 — 둘 다 사용 시 필수.
     mapstructVersion = '1.5.5.Final'
     lombokMapstructBindingVersion = '0.2.0'
-    // BouncyCastle — jdk15on (EOL jdk8-15) → jdk18on 통합.
     bouncyCastleVersion = '1.78.1'
-    // Caffeine — backend / starter 공통 cache lib.
     caffeineVersion = '3.1.8'
-    // Reactor — provisioning starter 의 ProvisionEventBus.
     reactorVersion = '3.6.5'
-    // Resilience4j — Circuit / Bulkhead / Retry. anycloud + starter 공통.
     resilience4jVersion = '2.2.0'
-    // Micrometer — observability metric.
     micrometerVersion = '1.13.4'
+    // Pulumi Java SDK — IaC engine. Automation API + provider 별 별도 artifact (com.pulumi:aws 등).
+    pulumiSdkVersion = '1.30.0'
+    pulumiAwsVersion = '6.78.0'
+    pulumiGcpVersion = '8.41.1'
+    pulumiAzureNativeVersion = '3.16.0'
+    pulumiOciVersion = '3.16.0'
+    pulumiAlicloudVersion = '3.97.0'
+    pulumiDigitaloceanVersion = '4.63.0'
+    pulumiOpenstackVersion = '5.4.1'
+    pulumiTlsVersion = '5.2.0'
 }
 
 // AllProjects 설정
@@ -102,7 +98,7 @@ bootRun {
 configure(subprojects.findAll {
     it.name == 'anycloud'
             || it.name == 'cluster-agent-spring-boot-starter'
-            || it.name == 'cluster-agent-observability-spring-boot-starter'
+            || it.name == 'cluster-agent-features-spring-boot-starter'
 }) {
     apply plugin: 'jacoco'
 
@@ -137,9 +133,6 @@ configure(subprojects.findAll {
             }))
         }
 
-        // 운영 게이트 — INSTRUCTION 기준 baseline. 현재 anycloud 19.9% / starter 32.5% / obs 56.8%.
-        // anycloud 가 가장 낮으므로 conservative 20% 부터 시작 — 매 sprint 5%p 씩 상향 (목표 70%).
-        // 자세한 우선순위: docs/operations/test-coverage.md 참조.
         tasks.named('jacocoTestCoverageVerification') {
             dependsOn 'jacocoTestReport'
             violationRules {

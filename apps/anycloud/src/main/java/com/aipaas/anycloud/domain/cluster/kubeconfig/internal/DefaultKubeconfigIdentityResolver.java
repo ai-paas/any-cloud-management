@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>{@code agent.kubeconfig.admin-default-enabled=false} 로 2번 전략을 끄면 (impersonation/per-user
  * RBAC 도입 시 권장) admin SA 는 break-glass 로 강등되고, 모든 호출이 명시 SA(또는 추후 per-user 전략)를
- * 요구한다.
+ * 요구.
  */
 @Component
 @RequiredArgsConstructor

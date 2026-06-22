@@ -29,7 +29,7 @@ public class VmClusterBootstrapProgressReporterImpl implements VmClusterBootstra
                 operationService.updateProgress(op.getId(), subStep.label(), 2, subStep.percent());
             });
         } catch (Exception ex) {
-            // Best-effort — bootstrap 흐름은 멈추면 안 됨.
+            // Best-effort — bootstrap 흐름은 멈추면 금지.
             log.warn(
                     "Bootstrap progress report skipped (cluster {}, step {}): {}", clusterName, subStep, ex.toString());
         }

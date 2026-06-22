@@ -1,13 +1,8 @@
-// Package core 는 agent 의 핵심 흐름 — bootstrap (Register RPC) + runtime stream + event publish 담당.
+// Package core — agent 의 핵심 흐름 (bootstrap / runtime stream / event publish).
 //
-// Bootstrap 흐름:
-//   1. registration_token 로딩 (env REGISTRATION_TOKEN)
-//   2. backend gRPC dial (BACKEND_GRPC_ADDR — transport TLS optional)
-//   3. cluster identity 수집 (kube-system UID, K8s version 등)
-//   4. AgentBootstrap.Register 호출 (Authorization: Bearer <token>)
-//   5. agent_identity_token 수령 → K8s Secret 영구 저장 (pod restart 안정성)
-//
-// Rancher 와 동일한 bearer-over-TLS 모델 (mTLS 미사용).
+// Bootstrap 은 short-lived registration_token (env) 으로 Register RPC 호출 → 60일 opaque
+// identity_token 수령 → K8s Secret 영구 저장. Rancher 와 동일한 bearer-over-TLS (mTLS 미사용)
+// — Secret 보관으로 pod restart 안정성 확보.
 
 package core
 
@@ -64,18 +59,12 @@ type BootstrapResult struct {
 
 // BootstrapIdentity — agent startup 의 single entry point.
 //
-// 흐름:
-//  1. identityStore.Load() — Secret 에서 IdentityMaterial 로딩 시도.
-//  2. valid (만료까지 graceMin 여유) → Register 건너뛰고 BootstrapResult 형태로 반환.
-//     REGISTRATION_TOKEN env 가 비어 있어도 OK (이미 영구 token 보유).
-//  3. invalid / 미존재 → Run() 진행 → 성공 시 store.Save() → BootstrapResult 반환.
-//     이 단계는 REGISTRATION_TOKEN 필수 — Run() 안에서 검증 + 명시 에러.
+// Secret 에 valid identity 가 있으면 Register 건너뛰고 즉시 반환 (REGISTRATION_TOKEN env
+// 불필요). 없거나 만료 임박 (graceMin 이내) 이면 Run() 으로 새로 Register 후 Save.
 //
-// 동시성: 본 함수는 startup 의 단일 goroutine 에서만 호출. rotation goroutine 은 별도 경로
-// (RunRotation → onRotated → store.Save) 로 같은 store 에 write — race 는 K8s API 의
-// optimistic concurrency 가 해결.
-//
-// mTLS 미사용으로 cert store 분기 없음 — 단일 함수.
+// 동시성: startup 의 단일 goroutine 에서만 호출. rotation goroutine 은 (RunRotation →
+// onRotated → store.Save) 별도 경로로 같은 store 에 write — race 는 K8s API 의 optimistic
+// concurrency 가 해결.
 func BootstrapIdentity(ctx context.Context, cfg BootstrapConfig, store IdentityStore,
 	graceMin time.Duration) (*BootstrapResult, error) {
 	if store != nil {

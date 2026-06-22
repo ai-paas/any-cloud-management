@@ -28,9 +28,8 @@ RUN for i in 1 2 3; do \
 # Copy source code (apps/anycloud + starter libs — gradle multi-module dependency).
 COPY apps/anycloud/ apps/anycloud/
 COPY libs/cluster-agent-spring-boot-starter/ libs/cluster-agent-spring-boot-starter/
-COPY libs/cluster-agent-observability-spring-boot-starter/ libs/cluster-agent-observability-spring-boot-starter/
-# lifecycle starter 모듈.
-COPY libs/cluster-agent-backup-spring-boot-starter/ libs/cluster-agent-backup-spring-boot-starter/
+# RBAC / Backup / Observability 3 feature 통합 (cluster-agent-features-spring-boot-starter).
+COPY libs/cluster-agent-features-spring-boot-starter/ libs/cluster-agent-features-spring-boot-starter/
 # provisioning starter — ProvisioningOutput / PulumiCommandResult / ProvisionEventBus /
 # PulumiCommandService / ProvisioningOutputMapper / ProvisioningOutputValidationException 등
 # anycloud 의존 의 source.

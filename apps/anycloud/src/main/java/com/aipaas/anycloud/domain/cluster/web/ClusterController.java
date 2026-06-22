@@ -133,43 +133,24 @@ public class ClusterController {
 
     @PostMapping
     @Operation(
-            summary = "cluster 생성 (VM provision 또는 외부 등록)",
-            description = "body 의 source=\"vm\"|\"registered\" 로 분기. VM 은 비동기 → 202 + Operation, "
-                    + "외부 등록은 즉시 → 201 + Operation(SUCCEEDED). Idempotency-Key 헤더 지원 (24h).")
+            summary = "cluster 등록 (외부 K8s cluster 등록 전용)",
+            description = "외부 K8s cluster 를 자체 DB 에 등록한다 (즉시 → 201 + Operation(SUCCEEDED)). "
+                    + "VM provision 은 별도 namespace 인 POST /v1/vms 사용 — source=vm 요청은 400. "
+                    + "Idempotency-Key 헤더 지원 (24h).")
     @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "registered 등록 즉시 완료"),
-        @ApiResponse(responseCode = "202", description = "vm provision 비동기 수락 — Location: /v1/operations/{id}"),
-        @ApiResponse(responseCode = "400", description = "spec 필드 누락 / clusterName 형식 위반"),
+        @ApiResponse(responseCode = "201", description = "등록 완료"),
+        @ApiResponse(responseCode = "400", description = "source=vm 거부 / spec 필드 누락 / clusterName 형식 위반"),
         @ApiResponse(responseCode = "409", description = "Idempotency-Key 충돌 (같은 key + 다른 body)")
     })
     public ResponseEntity<ApiSuccessResponse<ClusterRegistrationResponse>> create(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                            description = "source=vm 이면 Pulumi VM provision (async 202), "
-                                    + "source=registered 이면 외부 K8s cluster 등록 (sync 201).",
+                            description = "외부 K8s cluster 등록 — sync 201. VM provision 은 POST /v1/vms 사용.",
                             required = true,
                             content =
                                     @Content(
                                             mediaType = "application/json",
                                             schema = @Schema(implementation = CreateClusterRequest.class),
                                             examples = {
-                                                @ExampleObject(
-                                                        name = "VM provision (AWS)",
-                                                        value =
-                                                                """
-											{
-											  "source": "vm",
-											  "clusterName": "demo-aws-01",
-											  "spec": {
-											    "provider": "aws",
-											    "region": "ap-northeast-2",
-											    "environment": "dev",
-											    "credentialId": "cred-aws-001",
-											    "config": {
-											      "workerCount": "3",
-											      "instanceType": "t3.medium"
-											    }
-											  }
-											}"""),
                                                 @ExampleObject(
                                                         name = "Registered (kubeconfig)",
                                                         value =
@@ -190,33 +171,25 @@ public class ClusterController {
                     @Valid
                     @RequestBody
                     CreateClusterRequest request) {
-        var op = clusterFacade.createDomain(request);
-        boolean async = request.getSource() == CreateClusterRequest.Source.vm;
-        HttpStatus code = async ? HttpStatus.ACCEPTED : HttpStatus.CREATED;
-        String location = "/v1/operations/" + op.id();
-        // registered source 면 bootstrap token + install 명령 즉시 발급.
-        // vm source 는 비동기 — provisioning 완료 후 별도 endpoint (POST /agent/reinstall) 로 발급.
-        BootstrapInfo bootstrap = null;
-        if (!async) {
-            bootstrap = agentApiManagedInstaller.prepareBootstrap(request.getClusterName());
+        // VM 인프라 자원 생성은 별도 namespace (/v1/vms). cluster 등록 API 는 외부 등록만 수용.
+        if (request.getSource() == CreateClusterRequest.Source.vm) {
+            throw new IllegalArgumentException(
+                    "VM provisioning is no longer accepted at POST /v1/clusters — use POST /v1/vms instead.");
         }
-        Map<String, String> links = async
-                ? Map.of(
-                        "self", "/v1/operations/" + op.id(),
-                        "resource", "/v1/clusters/" + request.getClusterName(),
-                        "events", "/v1/operations/" + op.id() + "/events")
-                : Map.of(
-                        "self", "/v1/operations/" + op.id(),
-                        "resource", "/v1/clusters/" + request.getClusterName(),
-                        "events", "/v1/operations/" + op.id() + "/events",
-                        "manifest", "/v1/clusters/" + request.getClusterName() + "/agent-manifest.yaml");
+        var op = clusterFacade.createDomain(request);
+        HttpStatus code = HttpStatus.CREATED;
+        String location = "/v1/operations/" + op.id();
+        BootstrapInfo bootstrap = agentApiManagedInstaller.prepareBootstrap(request.getClusterName());
+        Map<String, String> links = Map.of(
+                "self", "/v1/operations/" + op.id(),
+                "resource", "/v1/clusters/" + request.getClusterName(),
+                "events", "/v1/operations/" + op.id() + "/events",
+                "manifest", "/v1/clusters/" + request.getClusterName() + "/agent-manifest.yaml");
         return ResponseEntity.status(code)
                 .location(URI.create(location))
                 .body(ApiSuccessResponse.of(
                                 code.value(),
-                                async
-                                        ? "Cluster creation accepted"
-                                        : "Cluster registered — run helmInstallCommand from your kubectl context",
+                                "Cluster registered — run helmInstallCommand from your kubectl context",
                                 new ClusterRegistrationResponse(OperationResponse.from(op), bootstrap))
                         .withLinks(links));
     }
@@ -462,6 +435,25 @@ public class ClusterController {
         return ResponseEntity.ok()
                 .header("Content-Disposition", "inline; filename=\"agent-manifest.yaml\"")
                 .body(manifest);
+    }
+
+    @GetMapping("/{clusterName}/agent-bootstrap")
+    @Operation(
+            summary = "Cluster-agent bootstrap 정보 (JSON, helm/kubectl 명령 + token)",
+            description = "등록 직후 modal 또는 detail 페이지의 '재발급' 시 사용. 매 호출 새 token 발급 — "
+                    + "helmInstallCommand / kubectlApplyCommand 즉시 복사 가능. yaml 만 필요하면 "
+                    + "/agent-manifest.yaml 사용.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "BootstrapInfo (token / 명령 / 만료시각)"),
+        @ApiResponse(responseCode = "404", description = "cluster not found")
+    })
+    public ResponseEntity<ApiSuccessResponse<BootstrapInfo>> agentBootstrap(
+            @PathVariable
+                    @Pattern(regexp = ApiValidationConstants.K8S_NAME_PATTERN)
+                    @Size(max = ApiValidationConstants.K8S_NAME_MAX)
+                    String clusterName) {
+        BootstrapInfo bootstrap = agentApiManagedInstaller.prepareBootstrap(clusterName);
+        return ResponseEntity.ok(ApiSuccessResponse.of(HttpStatus.OK.value(), "Bootstrap info issued", bootstrap));
     }
 
     private static Map<String, String> clusterLinks(String name) {

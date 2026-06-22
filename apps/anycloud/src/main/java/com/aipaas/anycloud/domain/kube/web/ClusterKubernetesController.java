@@ -47,7 +47,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  *   <li>{@code _all} — 모든 namespace 조회 (all-namespaces sentinel).</li>
  *   <li>{@code -} — cluster-scoped kind (nodes, namespaces, persistentvolumes, storageclasses,
  *       customresourcedefinitions) 일 때 권장하는 K8s 컨벤션. cluster-scoped kind 의 경우 어떤
- *       값이 와도 서버에서 ns 를 무시한다.</li>
+ *       값이 와도 서버에서 ns 를 무시.</li>
  * </ul>
  */
 @Slf4j
@@ -339,6 +339,87 @@ public class ClusterKubernetesController {
         return emitter;
     }
 
+    @GetMapping("/{kind}/{resourceName}/events")
+    @Operation(
+            summary = "리소스 단건의 K8s Event 목록",
+            description =
+                    "involvedObject.kind/name(/namespace) 로 fieldSelector 필터링. core/v1 Event 만 — events.k8s.io/v1 은 미지원.")
+    public ResponseEntity<ApiSuccessResponse<PagedKubeResourceResponse>> listEvents(
+            @PathVariable
+                    @NotBlank
+                    @Pattern(regexp = ApiValidationConstants.K8S_NAME_PATTERN)
+                    @Size(max = ApiValidationConstants.K8S_NAME_MAX)
+                    String clusterName,
+            @PathVariable
+                    @Pattern(regexp = ApiValidationConstants.NAMESPACE_PATTERN)
+                    @Size(max = ApiValidationConstants.NAMESPACE_MAX)
+                    String namespace,
+            @PathVariable @Pattern(regexp = ApiValidationConstants.K8S_KIND_PATTERN) String kind,
+            @PathVariable
+                    @NotBlank
+                    @Pattern(regexp = ApiValidationConstants.K8S_NAME_PATTERN)
+                    @Size(max = ApiValidationConstants.K8S_NAME_MAX)
+                    String resourceName) {
+        String ns = effectiveNamespace(clusterName, namespace, kind);
+        PagedKubeResourceResponse page = kubeService.listEventsFor(clusterName, ns, kind, resourceName);
+        return ResponseEntity.ok(ApiSuccessResponse.of(HttpStatus.OK.value(), "Events loaded", page));
+    }
+
+    @PostMapping("/{kind}/{resourceName}/restart")
+    @Operation(
+            summary = "리소스 재시작",
+            description = "pods: 단순 delete (컨트롤러가 재생성). "
+                    + "deployments/statefulsets/daemonsets: spec.template.metadata.annotations 에 "
+                    + "kubectl.kubernetes.io/restartedAt 추가 후 server-side apply (rollout restart). "
+                    + "그 외 kind 는 400 BAD_REQUEST.")
+    public ResponseEntity<ApiSuccessResponse<JsonNode>> restart(
+            @PathVariable
+                    @NotBlank
+                    @Pattern(regexp = ApiValidationConstants.K8S_NAME_PATTERN)
+                    @Size(max = ApiValidationConstants.K8S_NAME_MAX)
+                    String clusterName,
+            @PathVariable
+                    @Pattern(regexp = ApiValidationConstants.NAMESPACE_PATTERN)
+                    @Size(max = ApiValidationConstants.NAMESPACE_MAX)
+                    String namespace,
+            @PathVariable @Pattern(regexp = ApiValidationConstants.K8S_KIND_PATTERN) String kind,
+            @PathVariable
+                    @NotBlank
+                    @Pattern(regexp = ApiValidationConstants.K8S_NAME_PATTERN)
+                    @Size(max = ApiValidationConstants.K8S_NAME_MAX)
+                    String resourceName) {
+        String ns = effectiveNamespace(clusterName, namespace, kind);
+        JsonNode result = kubeService.restartResource(clusterName, ns, kind, resourceName);
+        return ResponseEntity.ok(ApiSuccessResponse.of(HttpStatus.OK.value(), "Restart requested", result));
+    }
+
+    @PostMapping("/{kind}/{resourceName}/scale")
+    @Operation(
+            summary = "replicas 변경",
+            description = "deployments / replicasets / statefulsets 지원. get → spec.replicas 변경 → server-side apply.")
+    public ResponseEntity<ApiSuccessResponse<JsonNode>> scale(
+            @PathVariable
+                    @NotBlank
+                    @Pattern(regexp = ApiValidationConstants.K8S_NAME_PATTERN)
+                    @Size(max = ApiValidationConstants.K8S_NAME_MAX)
+                    String clusterName,
+            @PathVariable
+                    @Pattern(regexp = ApiValidationConstants.NAMESPACE_PATTERN)
+                    @Size(max = ApiValidationConstants.NAMESPACE_MAX)
+                    String namespace,
+            @PathVariable @Pattern(regexp = ApiValidationConstants.K8S_KIND_PATTERN) String kind,
+            @PathVariable
+                    @NotBlank
+                    @Pattern(regexp = ApiValidationConstants.K8S_NAME_PATTERN)
+                    @Size(max = ApiValidationConstants.K8S_NAME_MAX)
+                    String resourceName,
+            @Parameter(description = "원하는 replicas 수 (0..1000)") @RequestParam(name = "replicas") @Min(0) @Max(1000)
+                    int replicas) {
+        String ns = effectiveNamespace(clusterName, namespace, kind);
+        JsonNode result = kubeService.scaleResource(clusterName, ns, kind, resourceName, replicas);
+        return ResponseEntity.ok(ApiSuccessResponse.of(HttpStatus.OK.value(), "Scaled", result));
+    }
+
     @DeleteMapping("/{kind}/{resourceName}")
     @Operation(summary = "리소스 삭제")
     public ResponseEntity<ApiSuccessResponse<java.util.Map<String, Object>>> delete(
@@ -366,7 +447,7 @@ public class ClusterKubernetesController {
     }
 
     /**
-     * Path 의 {@code namespace} 값을 서비스 호출용 ns 로 정규화한다.
+     * Path 의 {@code namespace} 값을 서비스 호출용 ns 로 정규화.
      *
      * <p>기존 {@code KubeServiceImpl.isClusterScoped(kind)} 의 hardcoded
      * set 을 {@link KindResolver} 로 교체. RESOLVE_RESOURCE 결과 (agent 가 K8s discovery 로 동적 산출)

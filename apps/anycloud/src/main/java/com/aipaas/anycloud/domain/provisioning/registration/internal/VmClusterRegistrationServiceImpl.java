@@ -6,11 +6,9 @@ import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
 import com.aipaas.anycloud.domain.provisioning.registration.VmClusterRegistrationService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.yaml.snakeyaml.Yaml;
 
 @Slf4j
 @Service
@@ -18,31 +16,23 @@ import org.yaml.snakeyaml.Yaml;
 public class VmClusterRegistrationServiceImpl implements VmClusterRegistrationService {
 
     private final ClusterRepository clusterRepository;
-    private final Yaml yaml;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    public ClusterEntity registerFromKubeconfig(VmClusterEntity vmCluster, String kubeconfigContent) {
-        try {
-            Map<String, Object> parsed = parseYaml(kubeconfigContent);
-            ClusterEntity clusterEntity = toClusterEntity(vmCluster, parsed);
-
-            clusterRepository.save(clusterEntity);
-            // Backend 는 cluster K8s API 를 직접 호출하지 않으므로 도달성 확인 없이 AGENT_PENDING
-            // 로 둔다. cluster-agent dial-in 시점에 ACTIVE 로 전환됨.
-            log.info(
-                    "Provisioned cluster {} registered successfully (AGENT_PENDING — agent dial-in 대기)",
-                    vmCluster.getClusterName());
-            return clusterEntity;
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to register provisioned cluster", e);
-        }
+    public ClusterEntity createClusterEntity(VmClusterEntity vmCluster) {
+        ClusterEntity clusterEntity = toClusterEntity(vmCluster);
+        clusterRepository.save(clusterEntity);
+        // FK link 명시 — vm_cluster.cluster_id 가 cluster.id 를 가리키도록.
+        vmCluster.setClusterId(clusterEntity.getId());
+        // Backend 는 cluster K8s API 를 직접 호출하지 않으므로 도달성 확인 없이 AGENT_PENDING.
+        // cluster-agent 가 helm install 후 boot → gRPC dial-in 시점에 ACTIVE 로 전환됨.
+        log.info("Provisioned cluster {} registered (AGENT_PENDING — agent dial-in 대기)", vmCluster.getClusterName());
+        return clusterEntity;
     }
 
-    private ClusterEntity toClusterEntity(VmClusterEntity vmCluster, Map<String, Object> kubeconfig) {
-        // kubeconfig 의 server/CA/client cert/key/token 파싱 + 저장 흐름 제거.
-        // VM provisioned cluster 도 cluster-agent 가 자동 install 되어 dial-in 으로 ACTIVE 전환.
-        // kubeconfig 자체는 vm_cluster.raw_outputs 에 보관 (사용자가 디버깅 또는 manual kubectl 시 사용).
+    private ClusterEntity toClusterEntity(VmClusterEntity vmCluster) {
+        // VM provisioned cluster — agent 가 helm install 후 gRPC dial-in 으로 ACTIVE 전환.
+        // kubeconfig material 은 vm_cluster.raw_outputs 에만 머물고 cluster row 에는 미저장.
         return ClusterEntity.builder()
                 .id(vmCluster.getClusterName())
                 .description(vmCluster.getDescription())
@@ -75,14 +65,5 @@ public class VmClusterRegistrationServiceImpl implements VmClusterRegistrationSe
             log.debug("extractHasGpuNodes: parse failed, defaulting to false: {}", e.toString());
             return false;
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> parseYaml(String content) {
-        return yaml.load(content);
-    }
-
-    private String stringValue(Object value) {
-        return value == null ? null : String.valueOf(value);
     }
 }

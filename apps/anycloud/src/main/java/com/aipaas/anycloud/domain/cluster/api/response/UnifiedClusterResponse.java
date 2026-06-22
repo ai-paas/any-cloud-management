@@ -7,9 +7,14 @@ import lombok.Builder;
 
 /**
  * 통합 cluster 응답. source 가 vm 인지 registered 인지를 동일한 schema 로 표현.
+ *
+ * <p><b>Deprecated</b> — VM 인프라 자원과 K8s cluster 자원이 별도 API namespace 로 분리됐다 ({@code /v1/vms},
+ * {@code /v1/clusters}). 신규 caller 는 {@code VmClusterListItemResponse} / {@code VmClusterStatusResponse}
+ * (VM 측) 또는 cluster 전용 응답 (registered side) 을 사용. 본 통합 응답은 backward-compat 유지 동안만 존속.
  */
+@Deprecated
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@Schema(description = "통합 cluster 응답 (vm + registered 공통 schema)")
+@Schema(description = "통합 cluster 응답 (vm + registered 공통 schema) — deprecated, /v1/vms 와 /v1/clusters 분리")
 @Builder
 public record UnifiedClusterResponse(
         @Schema(
@@ -18,6 +23,11 @@ public record UnifiedClusterResponse(
                         example = "vm")
                 String source,
         @Schema(description = "클러스터 이름", example = "demo-aws-01") String clusterName,
+        @Schema(
+                        description = "연결된 VM 자원의 이름 (1:1). null 이면 manual 등록 cluster. VM provisioning 으로 "
+                                + "만들어진 cluster 는 동일 이름이 vm_cluster 테이블에도 존재 — UI 가 VM 메뉴로 cross-link 시 사용.",
+                        example = "demo-aws-01")
+                String linkedVmName,
         @Schema(description = "provider", example = "AWS") String provider,
         @Schema(description = "region", example = "ap-northeast-2") String region,
         @Schema(description = "environment", example = "dev") String environment,
@@ -91,8 +101,8 @@ public record UnifiedClusterResponse(
             @Schema(description = "현재 sub-step 시작 시각 — 'N분째 이 단계' 진단용.", example = "2026-06-11T15:45:10")
                     LocalDateTime subStepStartedAt,
             @Schema(
-                            description = "마지막 실패 분류 코드 — ErrorResponse.code 와 동일 체계. "
-                                    + "UI 가 lastError 메시지 대신 코드로 분기 가능.",
+                            description =
+                                    "마지막 실패 분류 코드 — ErrorResponse.code 와 동일 체계. " + "UI 가 lastError 메시지 대신 코드로 분기 가능.",
                             example = "UPSTREAM_FAILED")
                     String lastErrorCode) {}
 }

@@ -16,7 +16,6 @@ headers {
 }
 
 vars:pre-request {
-  cluster_name: orb-kubernetes-001
   addon_id: addon-xxxxx
 }
 
@@ -29,6 +28,6 @@ tests {
 docs {
   FAILED state 에서만 가능. ENQUEUED 로 전환 + install queue.
   PENDING / SUCCEEDED / INSTALLING 등 다른 state 는 400.
-
+  
   응답의 operation id 로 SSE GET /v1/operations/{id}/events 구독해 progress 추적.
 }

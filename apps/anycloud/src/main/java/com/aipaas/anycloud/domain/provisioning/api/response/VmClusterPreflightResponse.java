@@ -1,8 +1,7 @@
 package com.aipaas.anycloud.domain.provisioning.api.response;
 
-import com.aipaas.anycloud.domain.credential.model.CspCredentialSourceType;
-import com.aipaas.anycloud.domain.provisioning.pricing.CostEstimate;
 import com.aipaas.anycloud.domain.provisioning.model.VmClusterPreflightIssue;
+import com.aipaas.anycloud.domain.provisioning.pricing.CostEstimate;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import java.util.Map;
@@ -46,9 +45,6 @@ public class VmClusterPreflightResponse {
 
     @Schema(description = "사용할 자격증명 이름", example = "aws-dev-credential")
     private String credentialName;
-
-    @Schema(description = "자격증명 공급 방식", example = "MANUAL")
-    private CspCredentialSourceType credentialSourceType;
 
     @Schema(description = "자격증명 해석 성공 여부", example = "true")
     private boolean credentialResolved;

@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * 모든 응답 공통 메타. 클라이언트가 별도 헤더를 보지 않아도 body 만으로 디버깅에 필요한 정보를
- * 모두 얻을 수 있도록 제공한다.
+ * 모두 얻을 수 있도록 제공.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(description = "응답 메타 — 요청 추적/시간/페이지네이션 정보")

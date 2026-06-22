@@ -99,7 +99,7 @@ public class VmClusterWorkflowOrchestratorImpl implements VmClusterWorkflowOrche
      * <p>
      * Step service 가 자체 try-catch 에서 entity 상태(failedAt/lastError 등)를 이미 저장했고,
      * markProcessed 가 finally 에서 호출되어 동일 messageId 의 재전달을 차단하므로
-     * RabbitMQ 로 nack 할 필요가 없다. 즉 워크플로우 실패는 entity 와 log 양쪽에 영속되지만
+     * RabbitMQ 로 nack 할 불필요. 즉 워크플로우 실패는 entity 와 log 양쪽에 영속되지만
      * 메시지 처리는 정상 종료되어 다음 메시지가 흘러간다.
      */
     private void recordFailureAndSwallow(VmClusterWorkflowMessage message, LocalDateTime startedAt, Throwable e) {

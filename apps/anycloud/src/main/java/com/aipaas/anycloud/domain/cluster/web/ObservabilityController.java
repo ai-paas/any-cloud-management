@@ -22,13 +22,17 @@ import io.aipaas.cluster.agent.observability.metrics.StandardQuery;
 import io.aipaas.cluster.agent.observability.query.ObservabilityQueryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -49,7 +53,7 @@ import org.springframework.web.bind.annotation.RestController;
  * starter 의 reverse-tunnel 을 통해 routing — frontend 는 cluster API server 에 직접 접근하지 않음.
  *
  * <p>모든 응답은 {@link ApiSuccessResponse} 로 wrap. 실패는 {@link ObservabilityException} 의
- * errorCode 가 HTTP status 로 매핑된다.
+ * errorCode 가 HTTP status 로 매핑.
  */
 @RestController
 @RequestMapping("/v1")
@@ -103,6 +107,59 @@ public class ObservabilityController {
         PromQLResult result = queryService.queryInstant(clusterName, q, time, t, extras);
         return ResponseEntity.ok(parseRaw(result.raw()));
     }
+
+    @PostMapping("/clusters/{clusterName}/metrics/multi-query")
+    @Operation(
+            summary = "Prometheus multi-query (instant + range 혼합 병렬 fan-out)",
+            description = "한 cluster 내에서 N 개의 PromQL 을 병렬 실행. 응답은 name → Prometheus envelope map. "
+                    + "frontend 의 모니터링 페이지가 27 요청 대신 1 요청으로 받기 위한 batch endpoint.")
+    public ResponseEntity<ApiSuccessResponse<Map<String, JsonNode>>> multiQuery(
+            @PathVariable @NotBlank @Pattern(regexp = CLUSTER_REGEXP) @Size(max = CLUSTER_MAX) String clusterName,
+            @Valid @RequestBody MultiQueryRequest body) {
+        Map<String, CompletableFuture<JsonNode>> futures = new LinkedHashMap<>();
+        for (MultiQuerySpec spec : body.queries()) {
+            futures.put(spec.name(), CompletableFuture.supplyAsync(() -> {
+                if ("range".equalsIgnoreCase(spec.type())) {
+                    PromQLResult r = queryService.queryRange(
+                            clusterName, spec.query(), spec.start(), spec.end(), spec.step(), null, Map.of());
+                    return parseRaw(r.raw());
+                }
+                PromQLResult r = queryService.queryInstant(clusterName, spec.query(), spec.time(), null, Map.of());
+                return parseRaw(r.raw());
+            }));
+        }
+        Map<String, JsonNode> results = new LinkedHashMap<>();
+        for (Map.Entry<String, CompletableFuture<JsonNode>> e : futures.entrySet()) {
+            try {
+                results.put(e.getKey(), e.getValue().get(30, TimeUnit.SECONDS));
+            } catch (Exception ex) {
+                results.put(e.getKey(), errorJson(ex.getMessage()));
+            }
+        }
+        return ok("multi query", results);
+    }
+
+    /** 개별 query 실패를 응답 자체로 전달 — 전체 batch 가 throw 하면 정상 query 도 lose. */
+    private JsonNode errorJson(String message) {
+        try {
+            return objectMapper.readTree(
+                    "{\"status\":\"error\",\"error\":" + objectMapper.writeValueAsString(message) + "}");
+        } catch (Exception e) {
+            return objectMapper.createObjectNode();
+        }
+    }
+
+    /** multi-query 요청 body. */
+    public record MultiQueryRequest(@NotEmpty List<@Valid MultiQuerySpec> queries) {}
+
+    public record MultiQuerySpec(
+            @NotBlank String name,
+            @NotBlank String type,
+            @NotBlank String query,
+            String time,
+            String start,
+            String end,
+            String step) {}
 
     /** Prometheus `/api/v1/query_range` raw passthrough. start/end/step 필수. */
     @GetMapping("/clusters/{clusterName}/metrics/query_range")

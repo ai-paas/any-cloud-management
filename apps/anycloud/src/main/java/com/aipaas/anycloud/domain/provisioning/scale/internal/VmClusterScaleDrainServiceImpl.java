@@ -34,7 +34,7 @@ public class VmClusterScaleDrainServiceImpl implements VmClusterScaleDrainServic
 
         // 1) Pulumi index → K8s node 라벨을 먼저 reconcile (idempotent).
         //    이후 outputs.nodes[].role 의 worker-N 인덱스로 정확히 어느 K8s 노드가
-        //    Pulumi 가 지울 워커인지 결정할 수 있다.
+        //    Pulumi 가 지울 워커인지 결정가능.
         Map<String, String> labelByNode = nodeLabelService.reconcilePulumiIndexLabels(vmCluster, outputs);
 
         List<String> targets = selectTargetsByPulumiIndex(labelByNode, removeCount);
@@ -87,7 +87,7 @@ public class VmClusterScaleDrainServiceImpl implements VmClusterScaleDrainServic
 
     /**
      * 라벨 {@code anycloud.aipaas/pulumi-index=worker-N} 기준으로 상위 N 인덱스를 골라
-     * drain 대상으로 반환한다. Pulumi 는 workerCount 감소 시 배열 끝부터 잘라내므로
+     * drain 대상으로 반환. Pulumi 는 workerCount 감소 시 배열 끝부터 잘라내므로
      * 인덱스가 큰 순서대로 사라진다 → 동일한 순서로 K8s 측에서 미리 비운다.
      *
      * @return 대상 노드 이름 리스트 (인덱스 큰 순서대로). 라벨이 충분치 않으면 빈 리스트.

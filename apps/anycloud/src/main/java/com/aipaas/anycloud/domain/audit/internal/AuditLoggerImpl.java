@@ -49,7 +49,7 @@ public class AuditLoggerImpl implements AuditLogger {
                     .build();
             repository.save(entity);
         } catch (Exception ex) {
-            // audit 실패가 비즈니스 흐름을 방해하면 안 됨. 로그만 남기고 swallow.
+            // audit 실패가 비즈니스 흐름을 방해하면 금지. 로그만 남기고 swallow.
             log.warn(
                     "Audit save failed (non-fatal): action={}, resource={}/{}, cause={}",
                     e.action(),

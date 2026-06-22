@@ -2,9 +2,9 @@ package com.aipaas.anycloud.common.validation;
 
 /**
  * 공통 Bean Validation 정규식/길이 상수. controller path/query parameter 및 DTO 필드에 일관되게
- * 적용하여 잘못된 입력이 서비스 레이어로 흘러가는 것을 차단한다.
+ * 적용하여 잘못된 입력이 서비스 레이어로 흘러가는 것을 차단.
  * <p>
- * 정규식은 보수적으로 잡고, 운영하면서 false-positive 발생 시 필요한 케이스만 확장한다.
+ * 정규식은 보수적으로 잡고, 운영하면서 false-positive 발생 시 필요한 케이스만 확장.
  */
 public final class ApiValidationConstants {
 
@@ -24,7 +24,7 @@ public final class ApiValidationConstants {
 
     public static final int NAMESPACE_MAX = K8S_NAME_MAX;
 
-    /** clusterProvider 토큰 (예: aws, gcp, azure, alibaba, oci, digitalocean, openstack, proxmox). */
+    /** clusterProvider 토큰 (예: aws, gcp, azure, alibaba, oci, digitalocean, openstack). */
     public static final String PROVIDER_PATTERN = "^[A-Za-z][A-Za-z0-9_-]{0,31}$";
 
     /** environment (dev, stage, prod, qa-1 등). 영숫자 + hyphen/underscore. */

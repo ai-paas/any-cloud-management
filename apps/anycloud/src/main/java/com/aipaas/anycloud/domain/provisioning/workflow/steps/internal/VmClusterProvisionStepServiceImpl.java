@@ -1,18 +1,18 @@
 package com.aipaas.anycloud.domain.provisioning.workflow.steps.internal;
 
-import com.aipaas.anycloud.domain.provisioning.preflight.validation.ProvisioningProviderValidator;
 import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
 import com.aipaas.anycloud.domain.provisioning.VmClusterRepository;
 import com.aipaas.anycloud.domain.provisioning.model.VmClusterStatus;
 import com.aipaas.anycloud.domain.provisioning.payload.VmClusterPayloadService;
+import com.aipaas.anycloud.domain.provisioning.preflight.validation.ProvisioningProviderValidator;
 import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterStepExecutionException;
 import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowMessage;
 import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowPublisher;
 import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowStep;
 import com.aipaas.anycloud.domain.provisioning.workflow.steps.VmClusterProvisionStepService;
 import com.aipaas.anycloud.domain.provisioning.workflow.support.VmClusterWorkflowSupportService;
-import io.aipaas.cluster.provisioning.core.ProvisioningRequest;
-import io.aipaas.cluster.provisioning.service.PulumiProvisioningService;
+import io.aipaas.cluster.provisioning.api.ProvisioningRequest;
+import io.aipaas.cluster.provisioning.api.ProvisioningService;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,7 @@ import org.springframework.stereotype.Service;
 public class VmClusterProvisionStepServiceImpl implements VmClusterProvisionStepService {
 
     private final VmClusterRepository vmClusterRepository;
-    private final PulumiProvisioningService pulumiProvisioningService;
+    private final ProvisioningService provisioningService;
     private final VmClusterPayloadService vmClusterPayloadService;
     private final VmClusterWorkflowPublisher vmClusterWorkflowPublisher;
     private final VmClusterWorkflowSupportService workflowSupportService;
@@ -50,7 +50,7 @@ public class VmClusterProvisionStepServiceImpl implements VmClusterProvisionStep
             // 잘못된 selection 이면 즉시 fail — Pulumi up 시도하지 않음.
             provisioningProviderValidator.validateLive(request);
 
-            Map<String, Object> outputs = pulumiProvisioningService.provision(request);
+            Map<String, Object> outputs = provisioningService.provision(request);
             vmCluster.setRawOutputs(vmClusterPayloadService.serializeSanitizedOutputs(outputs));
             vmClusterRepository.save(vmCluster);
             workflowSupportService.markStepSucceeded(vmCluster, VmClusterWorkflowStep.PROVISION);

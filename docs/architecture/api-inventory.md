@@ -12,12 +12,12 @@ flow 는 [`feature-flows.md`](./feature-flows.md) 를 참고합니다.
 |---|---|
 | **Default (production)** | backend 는 인증 X. gateway 가 외부 IDP 위임 — `X-User-*` header 가 신뢰됨. |
 | **Optional static token** | `security.auth.enabled=true` 시 Bearer token 검증 (`security.auth.token`). 로컬/스테이지용. |
-| **Break-glass (운영 fallback)** | Keycloak outage 시 gateway 우회. 위 static token 모드와 동일 mechanism. runbook: [`docs/runbooks/keycloak-outage.md`](../runbooks/keycloak-outage.md). 운영팀 vault 보관 + 월 1회 rotation 필수. |
+| **Break-glass (운영 fallback)** | Keycloak outage 시 gateway 우회. 위 static token 모드와 동일 mechanism. runbook: [`docs/runbooks/keycloak-outage.md`](../runbooks/identity/keycloak-outage.md). 운영팀 vault 보관 + 월 1회 rotation 필수. |
 | **Public path** | 인증 무관 — `/actuator/health`, `/docs/**`, `/swagger-ui/**`, `/v3/api-docs/**`, `/v1/agent-bootstrap/**` |
 | **Anonymous (의도)** | `/v1/agent-bootstrap/ca-bundle*` — agent helm install 전 CA 받는 용도. MITM 방어는 OOB fingerprint 비교 (startup banner). |
 
 > **Gateway 의 JWKS cache 권장 설정**: TTL ≥ 12시간. Keycloak 잠시 down (재시작/upgrade) 해도
-> 기존 JWT 검증 정상 동작. 자세한 fallback 전략: [`docs/runbooks/keycloak-outage.md`](../runbooks/keycloak-outage.md).
+> 기존 JWT 검증 정상 동작. 자세한 fallback 전략: [`docs/runbooks/keycloak-outage.md`](../runbooks/identity/keycloak-outage.md).
 
 gRPC 인증:
 - `AgentBootstrap.Register` — Bearer `registration_token` (10분 TTL JWT).
@@ -28,11 +28,13 @@ gRPC 인증:
 
 ### 2.1 Cluster Management (`/v1/clusters`)
 
+K8s cluster 자원 — registered (수동) + agent self-registered (VM provisioning 후 자동) 모두.
+
 | Method | Path | 설명 | Controller |
 |---|---|---|---|
 | GET | `/v1/clusters` | cluster 목록 (source/provider/env/status filter) | `ClusterController` |
 | GET | `/v1/clusters/{name}` | 단일 cluster (source 자동 판별) | `ClusterController` |
-| POST | `/v1/clusters` | cluster 생성 (VM 비동기 202, registered 동기 201). `Idempotency-Key` 지원 | `ClusterController` |
+| POST | `/v1/clusters` | **외부 등록 전용** (source=vm 거부 — `POST /v1/vms` 사용) | `ClusterController` |
 | PATCH | `/v1/clusters/{name}` | cluster 수정 (scale / upgrade) | `ClusterController` |
 | PATCH | `/v1/clusters/{name}/capabilities` | capability flag 수동 셋 | `ClusterController` |
 | DELETE | `/v1/clusters/{name}` | cluster 삭제 (`cluster_agent` cascade) | `ClusterController` |
@@ -40,6 +42,27 @@ gRPC 인증:
 | GET | `/v1/clusters/{name}/operations` | op 이력 (최신순) | `ClusterController` |
 | GET | `/v1/clusters/{name}/state-history` | 상태 전이 audit | `ClusterController` |
 | POST | `/v1/clusters/{name}/connectivity-checks` | K8s API connectivity 테스트 | `ClusterController` |
+
+### 2.1.1 VM 인프라 자원 (`/v1/vms`)
+
+Pulumi 로 만들어진 CSP VM 인프라. K8s cluster registration 과 lifecycle 분리.
+
+| Method | Path | 설명 | Controller |
+|---|---|---|---|
+| GET | `/v1/vms` | VM 목록 (provider/environment/status filter) | `VmController` |
+| GET | `/v1/vms/{name}` | 단일 VM (workflow / stack outputs) | `VmController` |
+| POST | `/v1/vms` | VM 그룹 생성 — body 의 `vmGroupName` 으로 master + worker 인스턴스 집합 한 번에 프로비저닝 (Pulumi — 202 + Operation) | `VmController` |
+| PATCH | `/v1/vms/{name}` | VM scale (workerCount 변경) | `VmController` |
+| DELETE | `/v1/vms/{name}` | VM 삭제 (Pulumi destroy — 202) | `VmController` |
+| POST | `/v1/vms/{name}/operations` | retryWorkflow / retryRegistration / refreshStatus | `VmController` |
+| GET | `/v1/vms/{name}/operations` | VM operation 이력 | `VmController` |
+| GET | `/v1/vms/{name}/state-history` | workflow state transition 이력 | `VmController` |
+| GET | `/v1/vms/{name}/nodes` | VM 노드 목록 (role/publicIp/privateIp) | `VmController` |
+| POST | `/v1/vms/{name}/ssh-key?format=json\|pem` | VM SSH private key 발급 | `VmController` |
+| GET | `/v1/vms/{name}/kubeconfig` | kubeconfig YAML (단기 SA token) | `VmController` |
+
+`vm_cluster.cluster_id` (FK → `cluster.id`, `ON DELETE SET NULL`) 로 1:1 link.
+agent register 또는 VERIFY step 에서 backfill.
 
 ### 2.2 Cluster Health (`/v1/clusters/.../health`)
 
@@ -54,7 +77,6 @@ gRPC 인증:
 |---|---|---|---|
 | POST | `/v1/clusters/{name}/nodes/{nodeName}/debug-pod` | 임시 privileged debug pod | `ClusterAccessController` |
 | GET | `/v1/clusters/{name}/kubeconfig?serviceAccount=&namespace=&ttlSeconds=` | kubeconfig 다운로드 (YAML attachment, agent SA token). SA 미지정 시 VM(PULUMI) cluster 는 자동 admin SA, registered 는 명시 필요 (III-61 단일 엔드포인트) | `ClusterAccessController` |
-| POST | `/v1/clusters/importKubeconfig` | kubeconfig 업로드로 cluster 등록 | `ClusterKubeconfigImportController` |
 
 ⚠️ tech-debt: `KubernetesClientFactory.createKubeconfigContent` 가 `insecure-skip-tls-verify: true` 하드코딩.
 serverCa 보유 시에도 `certificate-authority-data` 미발급.
@@ -81,7 +103,7 @@ serverCa 보유 시에도 `certificate-authority-data` 미발급.
 
 Controller: `ClusterResourceCatalogController`.
 
-### 2.6 Agent Bootstrap & Registration (`/v1/agent-bootstrap`, `/v1/clusters/.../agent-*`)
+### 2.6 Agent Bootstrap & Registration (`/v1/agent-bootstrap`, `/v1/cluster-agent`, `/v1/clusters/.../agent-*`)
 
 | Method | Path | 설명 | Auth |
 |---|---|---|---|
@@ -92,6 +114,9 @@ Controller: `ClusterResourceCatalogController`.
 | GET | `/v1/clusters/{id}/agent/logs` | [TEST] agent 통한 pod log | Required |
 | GET | `/v1/admin/agent/heartbeat-staleness` | heartbeat staleness 임계값 조회 | Required |
 | POST | `/v1/admin/agent/heartbeat-staleness` | 임계값 수정 (in-memory) | Required |
+
+VM 프로비저닝 후의 cluster 등록은 BOOTSTRAP step 안에서 자동 (VmClusterRegistrationServiceImpl.createClusterEntity).
+수동 cluster 등록은 `POST /v1/clusters` 호출 후 응답의 helm/kubectl 명령 실행 — agent 가 gRPC dial-in 으로 ACTIVE.
 
 Controllers: `AgentBootstrapPublicController`, `AgentRegistrationController`, `AgentCommandTestController`, `AdminAgentController`.
 

@@ -1,6 +1,7 @@
 package com.aipaas.anycloud.domain.cluster.mapper;
 
 import com.aipaas.anycloud.domain.cluster.api.request.CreateClusterRequest;
+import com.aipaas.anycloud.domain.cluster.model.GpuInstanceClassifier;
 import com.aipaas.anycloud.domain.cluster.model.RegisteredClusterSpec;
 import com.aipaas.anycloud.domain.cluster.model.VmClusterSpec;
 import java.util.HashMap;
@@ -22,13 +23,30 @@ public final class ClusterSpecMapper {
         String environment = requireString(spec, "environment");
         String credentialId = optionalString(spec, "credentialId");
         Map<String, String> config = optionalStringMap(spec, "config");
-        Boolean hasGpuNodes = optionalBoolean(spec, "hasGpuNodes");
+        Boolean clientHasGpu = optionalBoolean(spec, "hasGpuNodes");
+        Boolean hasGpuNodes = deriveHasGpu(provider, config, clientHasGpu);
         // Spot + custom OS image typed 필드.
         Boolean useSpot = optionalBoolean(spec, "useSpot");
         String osImage = optionalString(spec, "osImage");
         Integer rootDiskSizeGb = optionalInteger(spec, "rootDiskSizeGb");
         return new VmClusterSpec(
                 provider, region, environment, credentialId, config, hasGpuNodes, useSpot, osImage, rootDiskSizeGb);
+    }
+
+    /**
+     * config 의 master/worker instance type 으로 GPU 여부 derive 후 client 가 보낸 값과 OR — UI 우회 /
+     * 누락 방어. client 가 명시 true 보냈으면 그대로 유지, instance type 이 GPU 인데 false 보냈으면 true
+     * 로 override.
+     */
+    private static Boolean deriveHasGpu(
+            String provider, Map<String, String> config, Boolean clientValue) {
+        if (config == null) return clientValue;
+        String master = config.get("anycloud-k8s:masterInstanceType");
+        String worker = config.get("anycloud-k8s:workerInstanceType");
+        boolean instanceBased =
+                GpuInstanceClassifier.isGpu(provider, master) || GpuInstanceClassifier.isGpu(provider, worker);
+        if (instanceBased) return Boolean.TRUE;
+        return clientValue;
     }
 
     /**

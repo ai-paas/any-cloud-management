@@ -55,7 +55,7 @@ public enum VmClusterStatus {
     FAILED,
     /**
      * 재시도 임계({@code vm-cluster-workflow.max-attempts})를 초과해 자동 진행을 멈춘 상태.
-     * 운영자의 명시적 결정(재시도 / 강제 destroy / 진단 후 데이터 보존)이 있을 때까지 워크플로우는 정지된다.
+     * 운영자의 명시적 결정(재시도 / 강제 destroy / 진단 후 데이터 보존)이 있을 때까지 워크플로우는 정지.
      */
     BLOCKED,
     DELETING,

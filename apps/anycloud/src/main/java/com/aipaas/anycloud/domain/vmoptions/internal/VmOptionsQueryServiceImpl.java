@@ -2,7 +2,6 @@ package com.aipaas.anycloud.domain.vmoptions.internal;
 
 import com.aipaas.anycloud.common.error.enums.ErrorCode;
 import com.aipaas.anycloud.common.error.exception.CustomException;
-import com.aipaas.anycloud.domain.credential.CspCredentialEntity;
 import com.aipaas.anycloud.domain.credential.CspCredentialRepository;
 import com.aipaas.anycloud.domain.credential.CspCredentialService;
 import com.aipaas.anycloud.domain.provisioning.model.SupportedProvisioningProvider;
@@ -51,11 +50,11 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
         if (credentialId == null || credentialId.isBlank()) {
             return Map.of();
         }
-        CspCredentialEntity entity = cspCredentialRepository
+        cspCredentialRepository
                 .findById(credentialId)
                 .orElseThrow(() -> new CustomException(
                         ErrorCode.NOT_FOUND, "credentialId", credentialId, "Credential not found: " + credentialId));
-        return cspCredentialService.resolveEnvironment(provider, credentialId, entity.getSourceType());
+        return cspCredentialService.resolveEnvironment(provider, credentialId);
     }
 
     @Override
@@ -167,7 +166,6 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
                     case AZURE -> equalsIgnoreCase(spec.getName(), "Standard_D4s_v5");
                     case OPENSTACK -> equalsIgnoreCase(spec.getName(), "m1.large");
                     case ALIBABA -> equalsIgnoreCase(spec.getName(), "ecs.g6.large");
-                    case PROXMOX -> equalsIgnoreCase(spec.getName(), "proxmox-standard-2x4");
                     case OCI -> equalsIgnoreCase(spec.getName(), "VM.Standard.E4.Flex");
                     case DIGITALOCEAN -> equalsIgnoreCase(spec.getName(), "s-2vcpu-4gb");
                 };
@@ -198,7 +196,7 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
                             && containsIgnoreCase(image.getName(), "2404");
                     case AZURE -> containsIgnoreCase(image.getName(), "ubuntu")
                             && containsIgnoreCase(image.getName(), "24.04");
-                    case ALIBABA, PROXMOX, OCI, DIGITALOCEAN -> containsIgnoreCase(image.getName(), "ubuntu");
+                    case ALIBABA, OCI, DIGITALOCEAN -> containsIgnoreCase(image.getName(), "ubuntu");
                 };
 
         return VmOptionImage.builder()

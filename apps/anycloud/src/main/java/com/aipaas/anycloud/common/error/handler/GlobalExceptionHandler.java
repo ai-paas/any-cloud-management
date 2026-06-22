@@ -14,7 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.aipaas.cluster.agent.backup.core.BackupException;
 import io.aipaas.cluster.agent.observability.core.ObservabilityException;
 import io.aipaas.cluster.agent.runtime.UnsupportedKindException;
-import io.aipaas.cluster.provisioning.core.ProvisioningExecutionException;
+import io.aipaas.cluster.provisioning.api.exception.ProvisioningExecutionException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -138,7 +138,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * javax.validation.Valid or @Validated 으로 binding error 발생시 발생한다.
+     * javax.validation.Valid or @Validated 으로 binding error 발생시 발생.
      * HttpMessageConverter 에서 등록한 HttpMessageConverter binding 못할경우 발생
      * 주로 @RequestBody, @RequestPart 어노테이션에서 발생
      */

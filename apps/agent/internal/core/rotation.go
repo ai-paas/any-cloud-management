@@ -1,16 +1,11 @@
 // Identity token rotation.
 //
-// 동작:
-//   - bootstrap 응답의 expires_at 을 받아서 보관 (또는 startup 시 secret 의 expiration meta 로드)
-//   - Background timer: 매 N 시간마다 expires_at < now + RotateThreshold 면 rotate 시도
-//   - Rotate 성공 시:
-//       1. 새 token 으로 메모리 + RuntimeConfig 갱신
-//       2. 현재 stream 의 context cancel → outer RunStream loop 가 reconnect 시 새 token 사용
-//   - Rotate 실패 시:
-//       1. PermissionDenied 면 critical (token 이 이미 revoked) — log error, retry interval 길게
-//       2. 그 외 (네트워크 등) 는 짧은 interval 로 retry
+// expires_at < now + RotateThreshold 인지 N 시간마다 체크 → RotateIdentityToken RPC. 성공하면
+// stream context cancel → RunStream loop 가 새 token 으로 reconnect.
 //
-// Persist 위치 (PoC): 메모리만 — Pod 재시작 시 마지막 valid token 잃음. 운영 단계는 K8s Secret patch.
+// 실패 시 backoff 차등:
+//   - PermissionDenied → token 이미 revoked (critical) — log + 긴 interval (재발급 자체가 망가짐)
+//   - 그 외 (network 등) — 짧은 interval 로 retry
 package core
 
 import (

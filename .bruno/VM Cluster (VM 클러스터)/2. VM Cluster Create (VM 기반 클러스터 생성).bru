@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/v1/clusters
+  url: {{baseUrl}}/v1/vms
   body: json
   auth: none
 }
@@ -18,37 +18,30 @@ headers {
 
 body:json {
   {
-    "source": "vm",
-    "clusterName": "{{provision_cluster_name}}",
-    "spec": {
-      "provider": "{{provision_provider}}",
-      "description": "CSP VM 기반 Kubernetes 클러스터 생성 테스트",
-      "environment": "{{provision_environment}}",
-      "region": "{{provision_region}}",
-      "credentialId": "{{credential_id}}",
-      "config": {
-        "anycloud-k8s:masterInstanceType": "{{master_vm_spec}}",
-        "anycloud-k8s:workerInstanceType": "{{worker_vm_spec}}",
-        "anycloud-k8s:workerCount": "{{worker_count}}",
-        "anycloud-k8s:kubernetesVersion": "{{kubernetes_version}}",
-        "anycloud-k8s:vpcCidr": "{{vpc_cidr}}",
-        "anycloud-k8s:podCidr": "{{pod_cidr}}",
-        "anycloud-k8s:serviceCidr": "{{service_cidr}}",
-        "anycloud-k8s:enableIngress": "{{enable_ingress}}",
-        "anycloud-k8s:enableGpuOperator": "{{enable_gpu_operator}}",
-        "anycloud-k8s:dbEnabled": "false",
-        "anycloud-k8s:gcpProject": "{{gcp_project}}",
-        "anycloud-k8s:azureResourceGroup": "{{azure_resource_group}}",
-        "anycloud-k8s:openstackImageName": "{{openstack_image_name}}",
-        "anycloud-k8s:openstackFlavorName": "{{openstack_flavor_name}}",
-        "anycloud-k8s:openstackExternalNetworkId": "{{openstack_external_network_id}}",
-        "anycloud-k8s:openstackFloatingIpPool": "{{openstack_floating_ip_pool}}",
-        "anycloud-k8s:ociCompartmentId": "{{oci_compartment_id}}",
-        "anycloud-k8s:proxmoxNodeName": "{{proxmox_node_name}}",
-        "anycloud-k8s:proxmoxTemplateVmId": "{{proxmox_template_vm_id}}",
-        "anycloud-k8s:proxmoxDatastoreId": "{{proxmox_datastore_id}}",
-        "anycloud-k8s:proxmoxNetworkBridge": "{{proxmox_network_bridge}}"
-      }
+    "vmGroupName": "{{provision_cluster_name}}",
+    "provider": "{{provision_provider}}",
+    "description": "CSP VM 기반 Kubernetes 클러스터 생성 테스트",
+    "environment": "{{provision_environment}}",
+    "region": "{{provision_region}}",
+    "credentialId": "{{credential_id}}",
+    "config": {
+      "anycloud-k8s:masterInstanceType": "{{master_vm_spec}}",
+      "anycloud-k8s:workerInstanceType": "{{worker_vm_spec}}",
+      "anycloud-k8s:workerCount": "{{worker_count}}",
+      "anycloud-k8s:kubernetesVersion": "{{kubernetes_version}}",
+      "anycloud-k8s:vpcCidr": "{{vpc_cidr}}",
+      "anycloud-k8s:podCidr": "{{pod_cidr}}",
+      "anycloud-k8s:serviceCidr": "{{service_cidr}}",
+      "anycloud-k8s:enableIngress": "{{enable_ingress}}",
+      "anycloud-k8s:enableGpuOperator": "{{enable_gpu_operator}}",
+      "anycloud-k8s:dbEnabled": "false",
+      "anycloud-k8s:gcpProject": "{{gcp_project}}",
+      "anycloud-k8s:azureResourceGroup": "{{azure_resource_group}}",
+      "anycloud-k8s:openstackImageName": "{{openstack_image_name}}",
+      "anycloud-k8s:openstackFlavorName": "{{openstack_flavor_name}}",
+      "anycloud-k8s:openstackExternalNetworkId": "{{openstack_external_network_id}}",
+      "anycloud-k8s:openstackFloatingIpPool": "{{openstack_floating_ip_pool}}",
+      "anycloud-k8s:ociCompartmentId": "{{oci_compartment_id}}"
     }
   }
 }

@@ -38,7 +38,7 @@ agent gRPC 의 `APPLY_MANIFEST` 사용.
 - **외부 host 재배포 가능** — backend RDB 없이 starter 만 import 해도 동작
 - **host application 부담 감소** — RBAC entity / table 책임 외
 
-자세한 배경: [`../oidc-binding-multi-idp.md`](../oidc-binding-multi-idp.md),
+자세한 배경: [`../identity/oidc-binding-multi-idp.md`](../identity/oidc-binding-multi-idp.md),
 [`../persistence-layer.md`](../persistence-layer.md) §"DB 가 갖지 않는 책임".
 
 ## 3. Scope — in / out
@@ -61,9 +61,9 @@ agent gRPC 의 `APPLY_MANIFEST` 사용.
 
 - **사용자 / 그룹 / role membership 영속화** — Keycloak 이 truth. starter 는 mirror 안 함.
 - **OIDC JWT 발급 / 검증** — gateway 책임. backend 는 X-User-*/X-Groups 헤더만 trust (이미 anycloud `ImpersonationInterceptor` 가 처리).
-- **Addon catalog 와의 통합** — host 의 `AddonRbacBindingHook` 가 `AddonCatalog.find(catalogId).rbac.groupBindings` → mapper → `BindingApplyClient.apply` 호출. 자세한 구조는 [`../dynamic-addon-rbac.md`](../dynamic-addon-rbac.md).
+- **Addon catalog 와의 통합** — host 의 `AddonRbacBindingHook` 가 `AddonCatalog.find(catalogId).rbac.groupBindings` → mapper → `BindingApplyClient.apply` 호출. 자세한 구조는 [`../identity/dynamic-addon-rbac.md`](../identity/dynamic-addon-rbac.md).
 - **REST controller** — host 가 `@RestController` 작성. starter 는 service bean 만 제공.
-- **break-glass token 사용 시 별도 audit** — backend 의 `StaticTokenAuthFilter` 에서 처리 (runbook: `../../runbooks/keycloak-outage.md`).
+- **break-glass token 사용 시 별도 audit** — backend 의 `StaticTokenAuthFilter` 에서 처리 (runbook: `../../runbooks/identity/keycloak-outage.md`).
 - **UI** — frontend.
 
 ### 3.3 cluster-agent 측 책임
@@ -193,7 +193,7 @@ cluster-rbac:
 
 ## 9. 관련 자료
 
-- [`../starters.md`](../starters.md) — 전체 starter 모델 + DB-free 가정 매트릭스
-- [`../oidc-binding-multi-idp.md`](../oidc-binding-multi-idp.md) — Multi-IdP 설계
-- [`../dynamic-addon-rbac.md`](../dynamic-addon-rbac.md) — Addon catalog 기반 ClusterRoleBinding 자동 적용
-- [`../../runbooks/keycloak-outage.md`](../../runbooks/keycloak-outage.md) — Keycloak SPOF fallback
+- [`./overview.md`](./overview.md) — 전체 starter 모델 + DB-free 가정 매트릭스
+- [`../identity/oidc-binding-multi-idp.md`](../identity/oidc-binding-multi-idp.md) — Multi-IdP 설계
+- [`../identity/dynamic-addon-rbac.md`](../identity/dynamic-addon-rbac.md) — Addon catalog 기반 ClusterRoleBinding 자동 적용
+- [`../../runbooks/identity/keycloak-outage.md`](../../runbooks/identity/keycloak-outage.md) — Keycloak SPOF fallback

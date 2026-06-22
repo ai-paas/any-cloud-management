@@ -10,8 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * RabbitMQ 의 at-least-once 전달 보장으로 인해 동일 워크플로우 메시지가 두 번 도착할 수 있다.
- * 본 가드는 메시지 처리 직전과 직후를 감싸 다음을 보장한다.
+ * RabbitMQ 의 at-least-once 전달 보장으로 인해 동일 워크플로우 메시지가 두 번 도착가능.
+ * 본 가드는 메시지 처리 직전과 직후를 감싸 다음을 보장.
  *
  * <ol>
  *   <li><b>중복 차단</b>: vm_cluster.last_processed_workflow_message_id 와 동일하면 no-op</li>
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
  * </ol>
  *
  * 모든 판단은 vmClusterId 기반. vmClusterId 가 없는 메시지(예: 일부 destroy 흐름)는
- * 가드를 통과시켜 호출부의 별도 처리에 위임한다.
+ * 가드를 통과시켜 호출부의 별도 처리에 위임.
  */
 @Slf4j
 @Component
@@ -31,7 +31,7 @@ public class WorkflowMessageGuard {
     private final WorkflowMessageLogService workflowMessageLogService;
 
     /**
-     * 메시지를 처리해야 하는지 여부를 반환한다. true=처리, false=스킵.
+     * 메시지를 처리해야 하는지 여부를 반환. true=처리, false=스킵.
      */
     public boolean shouldProcess(VmClusterWorkflowMessage message) {
         if (message == null) {
@@ -104,7 +104,7 @@ public class WorkflowMessageGuard {
     }
 
     /**
-     * 메시지 처리 완료 후 messageId 를 영속화한다. 같은 메시지가 다시 와도 다음 호출은 {@link #shouldProcess} 에서 스킵된다.
+     * 메시지 처리 완료 후 messageId 를 영속화. 같은 메시지가 다시 와도 다음 호출은 {@link #shouldProcess} 에서 스킵.
      */
     public void markProcessed(VmClusterWorkflowMessage message) {
         if (message == null) {
@@ -122,7 +122,7 @@ public class WorkflowMessageGuard {
     }
 
     /**
-     * step 별로 entity 상태가 이미 그 단계를 지나간 경우를 감지한다.
+     * step 별로 entity 상태가 이미 그 단계를 지나간 경우를 감지.
      * 단계 도착 순서가 비정상일 때(예: VERIFY 완료 후 PROVISION 재도착) 메시지를 스킵하기 위함.
      */
     private boolean isStaleForCurrentStatus(VmClusterWorkflowStep step, VmClusterEntity entity) {

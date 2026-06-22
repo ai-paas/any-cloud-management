@@ -36,15 +36,20 @@ import org.springframework.web.bind.annotation.RestController;
  * Cluster 직접 접근을 위한 보조 endpoint.
  *
  * <ul>
- *   <li>GET  /v1/clusters/{c}/kubeconfig?serviceAccount=&namespace=&ttlSeconds= — kubeconfig YAML
- *       다운로드 (agent 단기 SA token). identity 는 KubeconfigIdentityResolver 가 결정 — VM(PULUMI)
- *       cluster 는 미지정 시 admin SA 기본, 그 외는 SA 명시. 단일 발급 엔드포인트.</li>
- *   <li>POST /v1/clusters/{c}/nodes/{node}/debug-pod — host namespace + privileged debug pod 생성.
- *       응답으로 (namespace, pod_name) 반환. Frontend 가 그 정보로 /v1/clusters/{c}/pods/{ns}/{pod}/exec
- *       WebSocket 으로 연결 (PodExec 재사용).</li>
+ * <li>GET /v1/clusters/{c}/kubeconfig?serviceAccount=&namespace=&ttlSeconds= —
+ * kubeconfig YAML
+ * 다운로드 (agent 단기 SA token). identity 는 KubeconfigIdentityResolver 가 결정 —
+ * VM(PULUMI)
+ * cluster 는 미지정 시 admin SA 기본, 그 외는 SA 명시. 단일 발급 엔드포인트.</li>
+ * <li>POST /v1/clusters/{c}/nodes/{node}/debug-pod — host namespace +
+ * privileged debug pod 생성.
+ * 응답으로 (namespace, pod_name) 반환. Frontend 가 그 정보로
+ * /v1/clusters/{c}/pods/{ns}/{pod}/exec
+ * WebSocket 으로 연결 (PodExec 재사용).</li>
  * </ul>
  *
- * <p>두 endpoint 모두 cluster 측 RBAC + agent AllowList 통과 필수.
+ * <p>
+ * 두 endpoint 모두 cluster 측 RBAC + agent AllowList 통과 필수.
  */
 @RestController
 @RequestMapping("/v1")
@@ -59,10 +64,11 @@ public class ClusterAccessController {
     private final KubeconfigExportService kubeconfigExportService;
     private final NodeDebugPodService nodeDebugPodService;
     private final com.aipaas.anycloud.domain.provisioning.remote.VmClusterSshAccessService vmClusterSshAccessService;
-    // kubeconfig 발급 identity(ns+SA) 결정의 단일 seam (VM admin 기본값 / 명시 SA / 향후 per-user).
+    // kubeconfig 발급 identity(ns+SA) 결정의 단일 seam (VM admin 기본값 / 명시 SA / 향후
+    // per-user).
     private final com.aipaas.anycloud.domain.cluster.kubeconfig.KubeconfigIdentityResolver kubeconfigIdentityResolver;
 
-    // ===== Kubeconfig  =====
+    // ===== Kubeconfig =====
 
     @GetMapping(path = "/clusters/{clusterName}/kubeconfig", produces = "application/yaml")
     @Operation(
@@ -84,7 +90,8 @@ public class ClusterAccessController {
                     @Size(max = ApiValidationConstants.K8S_NAME_MAX)
                     String namespace,
             @RequestParam(name = "ttlSeconds", required = false) Long ttlSeconds) {
-        // identity(ns+SA) 해석은 KubeconfigIdentityResolver 단일 seam — VM admin 기본 / 명시 SA / 향후 per-user.
+        // identity(ns+SA) 해석은 KubeconfigIdentityResolver 단일 seam — VM admin 기본 / 명시 SA
+        // / 향후 per-user.
         var identity = kubeconfigIdentityResolver.resolve(clusterName, serviceAccount, namespace);
         IssuedKubeconfig result = kubeconfigExportService.issue(
                 clusterName,
@@ -101,7 +108,7 @@ public class ClusterAccessController {
         return new ResponseEntity<>(result.kubeconfigYaml(), headers, HttpStatus.OK);
     }
 
-    // ===== Node Debug Pod  =====
+    // ===== Node Debug Pod =====
 
     @PostMapping("/clusters/{clusterName}/nodes/{nodeName}/debug-pod")
     @Operation(
@@ -131,22 +138,8 @@ public class ClusterAccessController {
         }
     }
 
-    // ===== VM node info + SSH access=====
-
-    @org.springframework.web.bind.annotation.GetMapping("/clusters/{clusterName}/vm-nodes")
-    @Operation(
-            summary = "VM cluster 노드 정보 조회",
-            description = "Provision 된 VM 노드 목록 (role, publicIp, privateIp 등) + SSH 사용자. "
-                    + "표준 ProvisioningOutput 기반이라 8개 CSP 동일. DB 저장본에서 즉시 반환.")
-    public ResponseEntity<
-                    ApiSuccessResponse<
-                            com.aipaas.anycloud.domain.provisioning.remote.VmClusterSshAccessService.NodeListResult>>
-            listVmNodes(
-                    @PathVariable @NotBlank @Pattern(regexp = CLUSTER_REGEXP) @Size(max = CLUSTER_MAX)
-                            String clusterName) {
-        var result = vmClusterSshAccessService.listNodes(clusterName);
-        return ResponseEntity.ok(ApiSuccessResponse.of(HttpStatus.OK.value(), "VM nodes loaded", result));
-    }
+    // ===== VM SSH access (Deprecated alias — canonical 은 /v1/vms/{name}/ssh-key)
+    // =====
 
     @PostMapping("/clusters/{clusterName}/ssh-key")
     @Operation(
@@ -169,7 +162,7 @@ public class ClusterAccessController {
     }
 
     // ===== Error mapping =====
-    //  에러는 전 API 공통의 ErrorResponse (RFC 9457) 한 가지 형태로 — 기존엔
+    // 에러는 전 API 공통의 ErrorResponse (RFC 9457) 한 가지 형태로 — 기존엔
     // ApiSuccessResponse(success=false) 로 내려 frontend 가 에러 파싱을 두 벌 유지해야 했다.
     // 원래 module 별 errorCode 문자열은 metadata.sourceCode 로 보존.
 
@@ -215,6 +208,8 @@ public class ClusterAccessController {
                         "NO_ACTIVE_AGENT".equals(sourceCode)
                                 ? "agent 설치/상태 확인: GET /v1/clusters/{name} 의 agentConnectivity, 설치는 GET /v1/clusters/{name}/agent-manifest.yaml."
                                 : null);
-        return ResponseEntity.status(code.getStatus()).body(body);
+        return ResponseEntity.status(code.getStatus())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body);
     }
 }

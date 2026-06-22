@@ -133,7 +133,6 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
             case AZURE -> "koreacentral";
             case OPENSTACK -> "RegionOne";
             case ALIBABA -> "ap-northeast-2";
-            case PROXMOX -> "pve-cluster";
             case OCI -> "ap-seoul-1";
             case DIGITALOCEAN -> "sgp1";
         };
@@ -146,7 +145,6 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
             case AZURE -> "Standard_D4s_v5";
             case OPENSTACK -> "m1.large";
             case ALIBABA -> "ecs.g6.large";
-            case PROXMOX -> "proxmox-standard-2x4";
             case OCI -> "VM.Standard.E4.Flex";
             case DIGITALOCEAN -> "s-2vcpu-4gb";
         };
@@ -157,7 +155,7 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
             case AWS, OPENSTACK -> "ubuntu-24.04";
             case GCP -> "ubuntu-2404-lts";
             case AZURE -> "Canonical Ubuntu 24.04 LTS";
-            case ALIBABA, PROXMOX, OCI, DIGITALOCEAN -> "Ubuntu 24.04";
+            case ALIBABA, OCI, DIGITALOCEAN -> "Ubuntu 24.04";
         };
     }
 
@@ -173,7 +171,7 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
 
     /**
      * keyword 기반 case-insensitive contains 매칭. 9 개 provider
-     * (AWS/Azure/GCP/OCI/Alibaba/OpenStack/Proxmox/DigitalOcean/Curated) 가 동일 9 줄을 각자
+     * (AWS/Azure/GCP/OCI/Alibaba/OpenStack/DigitalOcean/Curated) 가 동일 8 줄을 각자
      * 보유하던 패턴을 본 부모 메서드로 통합 — {@code keyword} 가 blank 면 모두 통과,
      * {@code value} 가 null 이면 false.
      */

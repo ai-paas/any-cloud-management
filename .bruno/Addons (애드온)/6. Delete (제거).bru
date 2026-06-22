@@ -16,7 +16,6 @@ headers {
 }
 
 vars:pre-request {
-  cluster_name: orb-kubernetes-001
   addon_id: addon-xxxxx
 }
 
@@ -29,6 +28,6 @@ tests {
 docs {
   Addon 제거 — DELETING state + uninstall queue. listener 가 helm uninstall 완료 후 DELETED.
   row 는 soft delete (operation 이력 보존).
-
+  
   helm release 이미 없는 경우에도 멱등 — agent 가 NotFound 로 처리.
 }

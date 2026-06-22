@@ -6,8 +6,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Workflow 메시지 처리 결과를 영속 기록한다.
- * Orchestrator / Guard 양쪽에서 사용한다.
+ * Workflow 메시지 처리 결과를 영속 기록.
+ * Orchestrator / Guard 양쪽에서 사용.
  */
 public interface WorkflowMessageLogService {
 

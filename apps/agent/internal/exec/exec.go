@@ -1,21 +1,13 @@
 // Package exec — PodExec orchestrator.
 //
-// 흐름 (agent 측):
-//  1. 메인 Stream RPC 가 ControlMessage{OpenExecSession} 수신.
-//  2. 본 패키지의 Run() 호출 → AgentRuntime/PodExec 새 bidi stream 을 backend 로 open.
-//  3. 첫 ExecPacket 으로 ExecRequest 전송 (session_id echo 포함).
-//  4. AllowList 의 ExecNamespaces 검증 — 거부면 ExecPacket{End: PERMISSION_DENIED} 후 close.
-//  5. k8s.Client.ExecInPod 호출 — stdin/stdout/stderr 는 io.Pipe 로 연결.
-//  6. Pump goroutines:
-//     - backend → agent: incoming ExecPacket 의 StdinData → pod stdin
-//     - pod stdout/stderr → backend: ExecPacket{StdoutData/StderrData}
-//     - incoming Resize → TerminalSizeQueue
-//  7. ExecInPod 가 종료되면 ExecPacket{End: ExecStatus} 전송 + CloseSend.
+// 메인 runtime stream 과 별도 bidi gRPC 채널 (AgentRuntime/PodExec) 사용 — 사용자 터미널 I/O 가
+// heartbeat / 다른 명령을 block 못 하도록. AllowList.ExecNamespaces 가 거부 시 즉시
+// PERMISSION_DENIED 로 close — backend 가 fan-out 후 검증해도 agent 측에서 한 번 더 차단.
 //
 // Concurrency:
-//   - Send 는 동시 호출 불가 (gRPC stream 제약) — sendMu 로 직렬화.
+//   - Send 는 gRPC stream 제약상 동시 호출 불가 — sendMu 로 직렬화.
 //   - Recv 는 단일 goroutine (recvLoop).
-//   - Pod stdout/stderr 는 각각 별도 goroutine 으로 읽어 ExecPacket 으로 send.
+//   - pod stdout/stderr 는 각자 별도 goroutine 에서 read → ExecPacket 으로 send.
 package exec
 
 import (

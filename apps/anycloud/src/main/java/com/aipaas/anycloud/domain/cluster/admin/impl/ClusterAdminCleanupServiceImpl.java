@@ -1,13 +1,11 @@
 package com.aipaas.anycloud.domain.cluster.admin.impl;
 
 import com.aipaas.anycloud.common.error.exception.ClusterNotFoundException;
-import com.aipaas.anycloud.common.error.exception.provisioning.CspStderrClassifier;
 import com.aipaas.anycloud.domain.cluster.ClusterRepository;
 import com.aipaas.anycloud.domain.cluster.admin.ClusterAdminCleanupService;
 import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
 import com.aipaas.anycloud.domain.provisioning.VmClusterRepository;
-import io.aipaas.cluster.provisioning.core.PulumiCommandResult;
-import io.aipaas.cluster.provisioning.service.PulumiCommandService;
+import io.aipaas.cluster.provisioning.api.ProvisioningService;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +24,7 @@ public class ClusterAdminCleanupServiceImpl implements ClusterAdminCleanupServic
 
     private final ClusterRepository clusterRepository;
     private final VmClusterRepository vmClusterRepository;
-    private final PulumiCommandService pulumiCommandService;
+    private final ProvisioningService provisioningService;
 
     @Override
     @Transactional
@@ -72,13 +70,9 @@ public class ClusterAdminCleanupServiceImpl implements ClusterAdminCleanupServic
     public Map<String, Object> cleanupOrphanState(String stackName) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("stackName", stackName);
-        PulumiCommandResult cmd = pulumiCommandService.removeStackForce(stackName, Map.of());
-        result.put("success", cmd.isSuccess());
-        result.put("exitCode", cmd.getExitCode());
-        if (!cmd.isSuccess()) {
-            log.warn("Orphan state cleanup failed for stack {}: {}", stackName, cmd.getStderr());
-            throw CspStderrClassifier.classifyPulumi("stack rm", cmd.getStderr());
-        }
+        // Automation API workspace.removeStack — state 파일만 제거, CSP 자원은 별도 정리 필요.
+        provisioningService.removeStack(stackName, Map.of());
+        result.put("success", true);
         log.warn("Orphan state cleanup done for stack {}", stackName);
         return result;
     }

@@ -35,7 +35,7 @@ public interface OperationService {
      * Step 2 (Entity → Domain) pilot — JPA-free immutable view.
      *
      * <p>새 consumer 는 이 메서드를 사용해 도메인 record 만 다루도록 하고, 기존
-     * {@link #findById(String)} 는 점진적으로 제거한다. 자세한 로드맵:
+     * {@link #findById(String)} 는 점진적으로 제거. 자세한 로드맵:
      * docs/architecture/design/domain-model-roadmap.md.
      */
     Optional<Operation> findDomainById(String operationId);

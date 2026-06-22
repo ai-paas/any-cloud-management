@@ -212,7 +212,7 @@ cluster-backup-starter 가 K8s API 호출을 수반하는 경우 (Velero install
 - starter 가 자체 K8s client (예: file-system snapshot 용 raw client) 를 보유한다면, host 의 `ImpersonationContext` bean 을 `ObjectProvider` 로 받아 `current()` 결과를 RPC payload 에 직접 매핑합니다.
 - 단독 admin action (예: backup catalog seed, scheduled cleanup) 은 holder 가 empty 상태이므로 자연스럽게 admin-equivalent 로 동작합니다. 명시적 user impersonation 이 필요한 호출은 caller 가 `ThreadLocalImpersonationContext.withIdentity` 로 wrap 합니다.
 
-상세 design 과 운영 활성화는 [`../k8s-impersonation-auth.md`](../k8s-impersonation-auth.md) 를 참조합니다.
+상세 design 과 운영 활성화는 [`../identity/k8s-impersonation-auth.md`](../identity/k8s-impersonation-auth.md) 를 참조합니다.
 
 ---
 

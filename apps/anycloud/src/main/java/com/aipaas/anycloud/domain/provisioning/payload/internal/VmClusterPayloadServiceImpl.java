@@ -11,7 +11,7 @@ import com.aipaas.anycloud.domain.provisioning.payload.VmClusterPayloadService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.aipaas.cluster.provisioning.core.ProvisioningRequest;
+import io.aipaas.cluster.provisioning.api.ProvisioningRequest;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +39,28 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
     private final ObjectMapper objectMapper;
 
     @Override
+    public ProvisioningRequest restoreProvisioningRequest(VmClusterEntity vmCluster, ResolvedCspCredential credential) {
+        VmClusterInternalRequestSnapshot snapshot = readRequestSnapshot(vmCluster.getRequestConfig());
+        String provider = firstNonBlank(snapshot.getClusterProvider(), vmCluster.getClusterProvider());
+        if (provider == null || provider.isBlank()) {
+            return null;
+        }
+        Map<String, String> config = snapshot.getProviderConfig() != null
+                ? new LinkedHashMap<>(snapshot.getProviderConfig())
+                : new LinkedHashMap<>();
+        return ProvisioningRequest.builder()
+                .provider(provider)
+                .clusterName(firstNonBlank(snapshot.getClusterName(), vmCluster.getClusterName()))
+                .environment(firstNonBlank(snapshot.getEnvironment(), vmCluster.getEnvironment()))
+                .region(firstNonBlank(snapshot.getRegion(), vmCluster.getRegion()))
+                .credentialId(credential != null ? credential.getCredentialId() : snapshot.getCredentialId())
+                .credentialName(credential != null ? credential.getCredentialName() : snapshot.getCredentialName())
+                .config(config)
+                .credentialEnvironment(credential != null ? credential.environmentOrEmpty() : Map.of())
+                .build();
+    }
+
+    @Override
     public String serializeRequestSnapshot(
             ProvisionClusterRequest cluster, ProvisioningRequest request, ResolvedCspCredential credential) {
         Map<String, String> config = cluster.getConfig() == null ? Map.of() : new LinkedHashMap<>(cluster.getConfig());
@@ -51,10 +73,6 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
                 .region(cluster.getRegion())
                 .credentialId(credential.getCredentialId())
                 .credentialName(credential.getCredentialName())
-                .credentialSourceType(
-                        credential.getSourceType() == null
-                                ? null
-                                : credential.getSourceType().name())
                 .masterVmSpec(firstNonBlank(
                         config.get(CONFIG_MASTER_VM_SPEC), config.get("anycloud-k8s:openstackFlavorName")))
                 .workerVmSpec(firstNonBlank(
@@ -94,10 +112,6 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
                 .environment(vmCluster.getEnvironment())
                 .region(vmCluster.getRegion())
                 .credentialName(firstNonBlank(vmCluster.getCredentialName(), requestSnapshot.getCredentialName()))
-                .credentialSourceType(
-                        vmCluster.getCredentialSourceType() == null
-                                ? requestSnapshot.getCredentialSourceType()
-                                : vmCluster.getCredentialSourceType().name())
                 .clusterRegistered(vmCluster.getClusterRegistered())
                 .masterVmSpec(
                         firstNonBlank(stringValue(outputMap.get("masterVmSpec")), requestSnapshot.getMasterVmSpec()))
@@ -129,10 +143,6 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
                 .region(vmCluster.getRegion())
                 .environment(vmCluster.getEnvironment())
                 .credentialName(firstNonBlank(vmCluster.getCredentialName(), requestSnapshot.getCredentialName()))
-                .credentialSourceType(
-                        vmCluster.getCredentialSourceType() == null
-                                ? requestSnapshot.getCredentialSourceType()
-                                : vmCluster.getCredentialSourceType().name())
                 .clusterRegistered(vmCluster.getClusterRegistered())
                 .lastError(vmCluster.getLastError())
                 .bootstrapLog(vmCluster.getBootstrapLog())

@@ -27,7 +27,6 @@ public final class ProvisioningCredentialRules {
             case AZURE -> List.of("ARM_CLIENT_ID", "ARM_CLIENT_SECRET", "ARM_SUBSCRIPTION_ID", "ARM_TENANT_ID");
             case ALIBABA -> List.of("ALICLOUD_ACCESS_KEY", "ALICLOUD_SECRET_KEY");
             case OPENSTACK -> List.of("OS_AUTH_URL", "OS_USERNAME", "OS_PASSWORD", "OS_PROJECT_NAME");
-            case PROXMOX -> List.of("PROXMOX_VE_ENDPOINT", "PROXMOX_VE_USERNAME", "PROXMOX_VE_PASSWORD");
             case OCI -> List.of(
                     "TF_VAR_tenancy_ocid",
                     "TF_VAR_user_ocid",

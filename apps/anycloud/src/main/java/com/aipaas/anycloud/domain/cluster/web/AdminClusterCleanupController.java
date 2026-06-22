@@ -65,7 +65,7 @@ public class AdminClusterCleanupController {
      * 남아 같은 stackName 으로 새 cluster create 가 충돌하는 시나리오에 사용. {@code pulumi stack rm
      * --force --yes} 가 state resource 무시하고 file 삭제.
      *
-     * <p>⚠ CSP 실 자원 (VPC/EC2 등) 정리 안 됨. 운영자가 콘솔/CLI 로 별도 정리해야 한다.
+     * <p>⚠ CSP 실 자원 (VPC/EC2 등) 정리 금지. 운영자가 콘솔/CLI 로 별도 정리필요.
      */
     @DeleteMapping("/{stackName}/orphan-state")
     @Operation(

@@ -357,16 +357,12 @@ const promCacheTTL = 5 * time.Minute
 
 // discoverPrometheusURL — label-based 자동 발견 + hardcoded fallback.
 //
-// Strategy:
-//   1. Cache hit 면 즉시 반환 (5분 TTL).
-//   2. LIST Service in ns (default "monitoring") with label app.kubernetes.io/name=prometheus.
-//      매칭 0개면 prometheus.io/scrape=true 로 재시도 (사용자 custom prometheus 대응).
-//   3. ClusterIP 있고 HTTP port 9090 매칭하는 service 의 ClusterIP:port URL 반환.
-//   4. 0개 또는 LIST 실패 시 hardcoded fallback (kube-prometheus-stack-prometheus.{ns}.svc:9090).
+// 5분 TTL cache 로 매 metric query 마다 LIST 회피. 1차 selector `app.kubernetes.io/name=prometheus`
+// 실패 시 `prometheus.io/scrape=true` 로 fallback — 사용자 custom prometheus 대응. 둘 다 0개면
+// hardcoded `kube-prometheus-stack-prometheus.{ns}.svc:9090` — backend 가 cluster row 의
+// monit_server_url 컬럼 없이도 query 가능하게.
 //
-// ns 가 빈 문자열이면 "monitoring" — kube-prometheus-stack 의 default namespace.
-//
-// Backend 가 cluster row 의 monit_server_url 컬럼 없이 metric 조회 가능.
+// ns 빈 문자열이면 "monitoring" (kube-prometheus-stack 의 default namespace).
 func discoverPrometheusURL(ctx context.Context, d *Dispatcher, ns string) string {
 	ns = defaultStr(ns, "monitoring")
 

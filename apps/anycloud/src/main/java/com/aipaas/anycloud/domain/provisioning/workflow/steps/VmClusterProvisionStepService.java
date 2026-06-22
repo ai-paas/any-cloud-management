@@ -1,6 +1,6 @@
 package com.aipaas.anycloud.domain.provisioning.workflow.steps;
 
-import io.aipaas.cluster.provisioning.core.ProvisioningRequest;
+import io.aipaas.cluster.provisioning.api.ProvisioningRequest;
 
 public interface VmClusterProvisionStepService {
 

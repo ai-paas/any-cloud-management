@@ -93,7 +93,6 @@ RESTful 자원 모델 기반 API 입니다. 모든 endpoint 가 `/v1` prefix 를
 
 | Method | Path | 설명 |
 |---|---|---|
-| POST | `/v1/clusters/importKubeconfig?validate=&strict=` | multipart `kubeconfigFile` → 자동 파싱 → registered cluster 등록 + 자동 연결성 검증. 기본 `validate=true&strict=false` (soft). `strict=true` 면 검증 실패 시 cluster rollback + 422 + Operation FAILED. |
 
 ### K8s Resources (단일 controller — cluster-scoped 포함)
 
@@ -341,7 +340,7 @@ POST /v1/cluster-validations
 # 4. 생성 (idempotent retry 안전)
 POST /v1/clusters
 Idempotency-Key: <uuid>
-{ "source": "vm", "clusterName": "demo-aws-01", "spec": {...} }
+{ "vmGroupName": "demo-aws-01", "provider": "aws", "region": "ap-northeast-2", "credentialId": "cred-aws-001", "config": {...} }
 → 202 + Location: /v1/operations/op-7f3a + Operation body
 
 # 5. 진행 추적 (SSE)
@@ -381,7 +380,7 @@ DELETE /v1/clusters/demo-aws-01    # → 202 Operation
 | `anycloud.helm.exec-timeout` | `60s` | 일반 helm 명령 (`HELM_EXEC_TIMEOUT`) |
 | `anycloud.helm.operation-timeout` | `5m` | install/upgrade/rollback/uninstall 의 `--timeout` |
 | `anycloud.helm.long-exec-timeout` | `10m` | install/upgrade ProcessBuilder timeout |
-| `csp-credential.encryption-key` | _(empty)_ | MANUAL credential AES-GCM key. min 32 chars, sentinel 거부 |
+| `csp-credential.encryption-key` | _(empty)_ | credential AES-GCM key. min 32 chars, sentinel 거부 |
 | `security.auth.enabled` | `false` | gateway 가 인증 담당 시 false. true 면 token 필수 |
 | `cluster.cert.expiry-check.cron` | `0 0 2 * * *` | cert scan cron (KST 11am ≒ UTC 2am) |
 | `pulumi.backup.cron` | `0 0 3 * * *` | Pulumi state daily backup |
@@ -427,7 +426,7 @@ Lock 테이블은 `shedlock` 입니다. Spring profile / replica 와 무관하�
 `CspCredentialCryptoServiceImpl` 부팅 시 검증을 수행합니다.
 | key 상태 | 거동 |
 |---|---|
-| blank | warn log + 부팅은 진행 (MANUAL credential 사용 시 런타임 실패) |
+| blank | warn log + 부팅은 진행 (credential 사용 시 런타임 실패) |
 | `< 32 chars` | `IllegalStateException` → 부팅 실패 |
 | sentinel (`change-me`, `anycloud-secret`, ...) | `IllegalStateException` → 부팅 실패 |
 

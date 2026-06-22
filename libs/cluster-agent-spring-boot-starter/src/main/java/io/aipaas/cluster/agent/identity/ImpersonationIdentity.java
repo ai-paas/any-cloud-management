@@ -9,7 +9,7 @@ import java.util.Objects;
  * K8s Impersonation 대상 user identity.
  *
  * <p>{@link ImpersonationContext} 가 backend 의 SecurityContext / gateway header 로부터 추출해
- * 보유한 채 starter 의 K8s 호출 path 에 자동 주입된다.
+ * 보유한 채 starter 의 K8s 호출 path 에 자동 주입.
  *
  * <p>매핑:
  * <ul>

@@ -9,7 +9,7 @@ import java.util.Map;
  * <p>
  * 컨트롤러는 보통 {@link #of(int, String, Object)} 만 사용하면 충분하다. meta(requestId/timestamp/
  * processingTimeMs) 는 {@code ResponseEnvelopeAdvice} 가 응답 직전 자동으로 채워준다.
- * links 가 필요하면 {@link #withLinks(Map)} 로 추가한다.
+ * links 가 필요하면 {@link #withLinks(Map)} 로 추가.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(description = "공통 성공 응답 envelope")

@@ -45,7 +45,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/v1/clusters/{clusterId}/agent")
 @RequiredArgsConstructor
 @Validated
-@Tag(name = "Cluster Agent (v1) — runtime test", description = "Phase 3 stream 검증용 — 운영 흐름 X")
+@Tag(name = "Cluster Agent (v1) — runtime test", description = "Agent stream 검증용 — 운영 흐름 X")
 public class AgentCommandTestController {
 
     private final AgentCommandRouter commandRouter;

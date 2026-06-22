@@ -9,7 +9,7 @@ import com.aipaas.anycloud.domain.provisioning.model.VmClusterStatus;
 import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterStepExecutionException;
 import com.aipaas.anycloud.domain.provisioning.workflow.steps.VmClusterDestroyStepService;
 import com.aipaas.anycloud.domain.provisioning.workflow.support.VmClusterWorkflowSupportService;
-import io.aipaas.cluster.provisioning.service.PulumiProvisioningService;
+import io.aipaas.cluster.provisioning.api.ProvisioningService;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,7 @@ public class VmClusterDestroyStepServiceImpl implements VmClusterDestroyStepServ
     private final ClusterRepository clusterRepository;
     private final VmClusterRepository vmClusterRepository;
     private final CspCredentialService cspCredentialService;
-    private final PulumiProvisioningService pulumiProvisioningService;
+    private final ProvisioningService provisioningService;
     private final VmClusterWorkflowSupportService workflowSupportService;
 
     @Override
@@ -44,8 +44,8 @@ public class VmClusterDestroyStepServiceImpl implements VmClusterDestroyStepServ
                     false);
 
             Map<String, String> credentialEnvironment = cspCredentialService.resolveEnvironment(
-                    vmCluster.getClusterProvider(), vmCluster.getCredentialId(), vmCluster.getCredentialSourceType());
-            pulumiProvisioningService.destroy(vmCluster.getStackName(), credentialEnvironment);
+                    vmCluster.getClusterProvider(), vmCluster.getCredentialId());
+            provisioningService.destroy(vmCluster.getStackName(), credentialEnvironment);
 
             Optional<ClusterEntity> cluster = clusterRepository.findById(clusterName);
             cluster.ifPresent(clusterRepository::delete);

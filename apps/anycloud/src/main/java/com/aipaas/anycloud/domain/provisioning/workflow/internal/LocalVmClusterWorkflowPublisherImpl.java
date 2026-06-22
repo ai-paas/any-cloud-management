@@ -13,9 +13,9 @@ import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 
 /**
- * 단일 노드 fallback publisher. RabbitMQ 비활성화 시 사용된다.
+ * 단일 노드 fallback publisher. RabbitMQ 비활성화 시 사용.
  * <p>
- * 메시지에 {@code messageId} 가 비어 있으면 UUID 를 자동 할당한 뒤 비동기 dispatch 한다.
+ * 메시지에 {@code messageId} 가 비어 있으면 UUID 를 자동 할당한 뒤 비동기 dispatch.
  * RabbitMQ publisher 와 동일한 멱등성 키 보장으로 두 모드의 가드 동작을 일치시킨다.
  */
 @Service

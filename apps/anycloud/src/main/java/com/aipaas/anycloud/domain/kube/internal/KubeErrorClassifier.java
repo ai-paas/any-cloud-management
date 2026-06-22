@@ -11,7 +11,7 @@ import java.util.Locale;
  *
  * <p>본 분류기는 {@link io.github.resilience4j.circuitbreaker.CircuitBreaker} fallback path 에서
  * caller (UI / 운영자) 가 "agent 가 죽음 vs RBAC 거부 vs 알 수 없는 kind" 등을 즉시 구분할 수 있도록
- * 표준 reason code 를 제공한다.
+ * 표준 reason code 를 제공.
  *
  * <p>cause unwrap 로직 유지 — wrapper exception 의 message 가 root cause 의
  * 진짜 키워드를 가리지 않도록 모든 cause level 의 message 를 누적 후 keyword scan.

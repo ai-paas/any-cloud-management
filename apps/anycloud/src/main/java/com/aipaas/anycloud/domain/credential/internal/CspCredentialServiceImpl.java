@@ -2,17 +2,16 @@ package com.aipaas.anycloud.domain.credential.internal;
 
 import com.aipaas.anycloud.common.error.enums.ErrorCode;
 import com.aipaas.anycloud.common.error.exception.CustomException;
-import com.aipaas.anycloud.domain.provisioning.preflight.validation.ProvisioningProviderValidator;
-import com.aipaas.anycloud.domain.credential.api.request.CreateCspCredentialRequest;
 import com.aipaas.anycloud.domain.credential.CspCredentialCryptoService;
 import com.aipaas.anycloud.domain.credential.CspCredentialEntity;
 import com.aipaas.anycloud.domain.credential.CspCredentialRepository;
-import com.aipaas.anycloud.domain.credential.api.response.CspCredentialResponse;
 import com.aipaas.anycloud.domain.credential.CspCredentialService;
 import com.aipaas.anycloud.domain.credential.ResolvedCspCredential;
-import com.aipaas.anycloud.domain.credential.model.CspCredentialSourceType;
+import com.aipaas.anycloud.domain.credential.api.request.CreateCspCredentialRequest;
+import com.aipaas.anycloud.domain.credential.api.response.CspCredentialResponse;
 import com.aipaas.anycloud.domain.provisioning.VmClusterRepository;
 import com.aipaas.anycloud.domain.provisioning.model.SupportedProvisioningProvider;
+import com.aipaas.anycloud.domain.provisioning.preflight.validation.ProvisioningProviderValidator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,28 +45,17 @@ public class CspCredentialServiceImpl implements CspCredentialService {
     @Override
     public CspCredentialResponse createCredential(CreateCspCredentialRequest request) {
         SupportedProvisioningProvider provider = SupportedProvisioningProvider.from(request.getProvider());
-        CspCredentialSourceType sourceType =
-                request.getSourceType() == null ? CspCredentialSourceType.MANUAL : request.getSourceType();
-
-        Map<String, String> payload = new LinkedHashMap<>();
-        String encryptedPayload = null;
-        List<String> credentialKeys;
-
-        if (sourceType == CspCredentialSourceType.ENV) {
-            ProvisioningProviderValidator.validateCredentialValues(provider, Map.of());
-            credentialKeys = ProvisioningProviderValidator.requiredCredentialKeys(provider);
-        } else {
-            payload.putAll(request.getCredentials() == null ? Map.of() : request.getCredentials());
-            ProvisioningProviderValidator.validateCredentialValues(provider, payload);
-            encryptedPayload = cspCredentialCryptoService.encrypt(writeJson(payload));
-            credentialKeys = payload.keySet().stream().sorted().toList();
-        }
+        // 모든 credential 은 encrypt 경로로 통일 — 과거 ENV 분기 (sourceType) 제거됨.
+        Map<String, String> payload =
+                new LinkedHashMap<>(request.getCredentials() == null ? Map.of() : request.getCredentials());
+        ProvisioningProviderValidator.validateCredentialValues(provider, payload);
+        String encryptedPayload = cspCredentialCryptoService.encrypt(writeJson(payload));
+        List<String> credentialKeys = payload.keySet().stream().sorted().toList();
 
         CspCredentialEntity entity = CspCredentialEntity.builder()
                 .provider(provider.getCanonicalName())
                 .name(request.getName())
                 .description(request.getDescription())
-                .sourceType(sourceType)
                 .encryptedPayload(encryptedPayload)
                 .credentialKeys(writeJson(credentialKeys))
                 .active(true)
@@ -87,39 +75,24 @@ public class CspCredentialServiceImpl implements CspCredentialService {
     @Override
     public ResolvedCspCredential resolveForProvision(String provider, String credentialId) {
         SupportedProvisioningProvider normalizedProvider = SupportedProvisioningProvider.from(provider);
-
-        if (credentialId != null && !credentialId.isBlank()) {
-            CspCredentialEntity entity = getEntity(credentialId);
-            assertProviderMatches(normalizedProvider, entity.getProvider());
-            return ResolvedCspCredential.builder()
-                    .credentialId(entity.getId())
-                    .credentialName(entity.getName())
-                    .sourceType(entity.getSourceType())
-                    .environment(resolveEnvironment(entity.getProvider(), entity.getId(), entity.getSourceType()))
-                    .build();
+        // credentialId 필수 — 과거 ENV fallback 제거. 자격증명 등록을 사용자 명시 작업으로 강제.
+        if (credentialId == null || credentialId.isBlank()) {
+            throw new CustomException("Credential ID is required for VM provisioning", ErrorCode.INVALID_INPUT_VALUE);
         }
-
-        ProvisioningProviderValidator.validateCredentialValues(normalizedProvider, Map.of());
+        CspCredentialEntity entity = getEntity(credentialId);
+        assertProviderMatches(normalizedProvider, entity.getProvider());
         return ResolvedCspCredential.builder()
-                .credentialId(null)
-                .credentialName("Application Environment")
-                .sourceType(CspCredentialSourceType.ENV)
-                .environment(Map.of())
+                .credentialId(entity.getId())
+                .credentialName(entity.getName())
+                .environment(resolveEnvironment(entity.getProvider(), entity.getId()))
                 .build();
     }
 
     @Override
-    public Map<String, String> resolveEnvironment(
-            String provider, String credentialId, CspCredentialSourceType sourceType) {
+    public Map<String, String> resolveEnvironment(String provider, String credentialId) {
         SupportedProvisioningProvider normalizedProvider = SupportedProvisioningProvider.from(provider);
-        if (sourceType == null || sourceType == CspCredentialSourceType.ENV) {
-            ProvisioningProviderValidator.validateCredentialValues(normalizedProvider, Map.of());
-            return Map.of();
-        }
-
         if (credentialId == null || credentialId.isBlank()) {
-            throw new CustomException(
-                    "Credential ID is required for stored MANUAL credentials", ErrorCode.INVALID_INPUT_VALUE);
+            throw new CustomException("Credential ID is required", ErrorCode.INVALID_INPUT_VALUE);
         }
 
         CspCredentialEntity entity = getEntity(credentialId);
@@ -152,7 +125,6 @@ public class CspCredentialServiceImpl implements CspCredentialService {
                 .provider(entity.getProvider())
                 .name(entity.getName())
                 .description(entity.getDescription())
-                .sourceType(entity.getSourceType())
                 .active(entity.getActive())
                 .credentialKeys(readJsonList(entity.getCredentialKeys()))
                 .createdAt(entity.getCreatedAt())

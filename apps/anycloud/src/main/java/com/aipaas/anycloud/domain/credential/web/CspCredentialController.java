@@ -3,9 +3,9 @@ package com.aipaas.anycloud.domain.credential.web;
 import com.aipaas.anycloud.common.web.ActionResponse;
 import com.aipaas.anycloud.common.web.ApiSuccessResponse;
 import com.aipaas.anycloud.common.web.PagedData;
+import com.aipaas.anycloud.domain.credential.CspCredentialService;
 import com.aipaas.anycloud.domain.credential.api.request.CreateCspCredentialRequest;
 import com.aipaas.anycloud.domain.credential.api.response.CspCredentialResponse;
-import com.aipaas.anycloud.domain.credential.CspCredentialService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -81,7 +81,6 @@ public class CspCredentialController {
 											  "credentialId": "cred-aws-001",
 											  "credentialName": "prod aws account",
 											  "provider": "AWS",
-											  "sourceType": "MANUAL",
 											  "secrets": {
 											    "AWS_ACCESS_KEY_ID": "AKIA...",
 											    "AWS_SECRET_ACCESS_KEY": "..."
@@ -95,21 +94,10 @@ public class CspCredentialController {
 											  "credentialId": "cred-gcp-001",
 											  "credentialName": "prod gcp project",
 											  "provider": "GCP",
-											  "sourceType": "MANUAL",
 											  "secrets": {
 											    "GOOGLE_APPLICATION_CREDENTIALS_JSON": "{\\"type\\":\\"service_account\\",...}",
 											    "GCP_PROJECT_ID": "my-project"
 											  }
-											}"""),
-                                                @ExampleObject(
-                                                        name = "ENV (앱 환경변수 참조)",
-                                                        value =
-                                                                """
-											{
-											  "credentialId": "cred-aws-env",
-											  "credentialName": "shared env creds",
-											  "provider": "AWS",
-											  "sourceType": "ENV"
 											}""")
                                             }))
                     @Valid

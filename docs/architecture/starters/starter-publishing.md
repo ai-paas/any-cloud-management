@@ -65,7 +65,7 @@ dependencies {
 - `docs/architecture/cluster-agent.md` 입니다.
 - `docs/architecture/starters/cluster-backup-starter.md` 입니다.
 - `docs/architecture/starters/cluster-provisioning-starter.md` 입니다.
-- `docs/architecture/k8s-impersonation-auth.md` (Impersonation SPI) 입니다.
+- `docs/architecture/identity/k8s-impersonation-auth.md` (Impersonation SPI) 입니다.
 
 ### 2.4 Feature toggle
 

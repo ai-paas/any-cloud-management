@@ -75,33 +75,14 @@ addon-webhook:
 
 pulumi:
   enabled: ${PULUMI_ENABLED:false}
-  binary-path: ${PULUMI_BINARY_PATH:pulumi}
-  project-dir: ${PULUMI_PROJECT_DIR:infra/pulumi}
   runtime-dir: ${PULUMI_RUNTIME_DIR:runtime/pulumi}
   stack-prefix: ${PULUMI_STACK_PREFIX:anycloud}
-  organization: ${PULUMI_ORGANIZATION:local}
-  auto-create-stack: ${PULUMI_AUTO_CREATE_STACK:true}
   passphrase: ${PULUMI_PASSPHRASE:}
   ssh-user: ${PULUMI_SSH_USER:ubuntu}
-  # Self-hosted state backend (RustFS / MinIO / Ceph 등 S3 호환).
-  # 비어 있으면 Pulumi 기본 동작.
+  # Self-hosted state backend (RustFS / MinIO / Ceph 등 S3 호환). 비어 있으면 Pulumi 기본.
   backend-url: ${PULUMI_BACKEND_URL:}
   # Secrets provider. self-hosted: "passphrase" 또는 "hashivault://<host>/<key>"
   secrets-provider: ${PULUMI_SECRETS_PROVIDER:}
-  # state 자동 백업 (Day-2 §6). 운영 환경에서 enabled=true 권장.
-  backup:
-    enabled: ${PULUMI_BACKUP_ENABLED:false}
-    cron: ${PULUMI_BACKUP_CRON:0 0 3 * * *}
-    directory: ${PULUMI_BACKUP_DIR:/var/lib/anycloud/pulumi-backups}
-    retention-days: ${PULUMI_BACKUP_RETENTION_DAYS:14}
-    # 백업 직후 "실제로 복구되는가" 자동 검증 (Day-2 §6 후속).
-    # 백업 cron 보다 30분 뒤에 도는 게 안전. deep-validation=true 면 Pulumi CLI 로
-    # 임시 stack 에 import 까지 시도하여 라운드트립 검증.
-    restore-dry-run:
-      enabled: ${PULUMI_BACKUP_RESTORE_DRYRUN_ENABLED:false}
-      cron: ${PULUMI_BACKUP_RESTORE_DRYRUN_CRON:0 30 3 * * *}
-      min-resource-count: ${PULUMI_BACKUP_RESTORE_DRYRUN_MIN_RESOURCES:1}
-      deep-validation: ${PULUMI_BACKUP_RESTORE_DRYRUN_DEEP:false}
   environment:
     PULUMI_ACCESS_TOKEN: ${PULUMI_ACCESS_TOKEN:}
     # OpenBao (Vault 호환) — secrets-provider 가 hashivault://... 일 때 사용
@@ -125,10 +106,6 @@ pulumi:
     OS_PROJECT_NAME: ${OS_PROJECT_NAME:}
     OS_TENANT_NAME: ${OS_TENANT_NAME:}
     OS_REGION_NAME: ${OS_REGION_NAME:}
-    PROXMOX_VE_ENDPOINT: ${PROXMOX_VE_ENDPOINT:}
-    PROXMOX_VE_USERNAME: ${PROXMOX_VE_USERNAME:}
-    PROXMOX_VE_PASSWORD: ${PROXMOX_VE_PASSWORD:}
-    PROXMOX_VE_INSECURE: ${PROXMOX_VE_INSECURE:}
     TF_VAR_tenancy_ocid: ${TF_VAR_tenancy_ocid:}
     TF_VAR_user_ocid: ${TF_VAR_user_ocid:}
     TF_VAR_fingerprint: ${TF_VAR_fingerprint:}

@@ -31,15 +31,13 @@
 - [k8s-access-paths.md](./architecture/k8s-access-paths.md) — backend ↔ K8s 접근 경로
 - [vmcluster-state-machine.md](./architecture/vmcluster-state-machine.md) — VM cluster lifecycle state machine
 - [vmcluster-workflow.md](./architecture/vmcluster-workflow.md) — VM cluster RabbitMQ workflow (provision → bootstrap → verify → ready)
-- [frontend-integration.md](./architecture/frontend-integration.md) — frontend ↔ backend 통합 (`/v1` API + SSE + webhook)
+- [frontend-integration.md](./architecture/frontend-integration.md) — frontend ↔ backend 통합 index (영역별 가이드는 [`frontend/`](./architecture/frontend/) — resources / terminal / monitoring / auth)
 - [dependency-rationalization.md](./architecture/dependency-rationalization.md) — 의존성 결정 (MariaDB + RabbitMQ stack)
 
 ### Cluster Agent
 
 - [cluster-agent.md](./architecture/cluster-agent.md) — cluster-agent 아키텍처
 - [helm-repo-sync.md](./architecture/helm-repo-sync.md) — backend ↔ agent helm-repo sync 모델
-- [k8s-impersonation-auth.md](./architecture/k8s-impersonation-auth.md) — K8s Impersonation pass-through 인증
-- [dynamic-addon-rbac.md](./architecture/dynamic-addon-rbac.md) — addon 설치 시 catalog 기반 ClusterRoleBinding 자동 적용
 - [monitoring-discovery.md](./architecture/monitoring-discovery.md) — agent prometheus service auto-discovery
 - [kind-resolver.md](./architecture/kind-resolver.md) — kind metadata schema cache (Caffeine TTL 30분)
 
@@ -51,6 +49,7 @@
 
 ### Starter Modules ([starters/](./architecture/starters/))
 
+- [overview.md](./architecture/starters/overview.md) — Layer 모델 + DB-free 가정 + state 책임 분리 매트릭스
 - [cluster-agent-starter.md](./architecture/starters/cluster-agent-starter.md) — **Layer 1** — Reverse-tunnel gRPC + PodExec WebSocket + Kube/Helm 서비스
 - [cluster-agent-features-starter.md](./architecture/starters/cluster-agent-features-starter.md) — **Layer 2 통합** — RBAC + Backup + Observability sub-feature 3개
   - [cluster-agent-rbac-starter.md](./architecture/starters/cluster-agent-rbac-starter.md) — RBAC sub-feature (OIDC → ClusterRoleBinding)
@@ -60,9 +59,11 @@
 - [starter-extension-guide.md](./architecture/starters/starter-extension-guide.md) — 도메인 특화 starter 확장 가이드
 - [starter-publishing.md](./architecture/starters/starter-publishing.md) — Maven 게시 절차
 
-### RBAC / Identity
+### Identity / RBAC ([identity/](./architecture/identity/))
 
-- [oidc-binding-multi-idp.md](./architecture/oidc-binding-multi-idp.md) — OIDC group binding (Keycloak / pocket-id / Google / Entra / generic)
+- [k8s-impersonation-auth.md](./architecture/identity/k8s-impersonation-auth.md) — K8s Impersonation pass-through 인증
+- [oidc-binding-multi-idp.md](./architecture/identity/oidc-binding-multi-idp.md) — OIDC group binding (Keycloak / pocket-id / Google / Entra / generic)
+- [dynamic-addon-rbac.md](./architecture/identity/dynamic-addon-rbac.md) — addon 설치 시 catalog 기반 ClusterRoleBinding 자동 적용
 
 ## api/ — 외부 노출 API
 
@@ -95,17 +96,17 @@ HTTP 엔드포인트 명세, 요청·응답 envelope 입니다.
 
 ## runbooks/ — 트러블슈팅 / 운영 절차
 
-### Cluster-agent policy / RBAC
+### Cluster-agent policy
 - [cluster-agent-resource-policy.md](./runbooks/cluster-agent-resource-policy.md) — agent ConfigMap `resource_policy` 운영 (kind-level 정책 제어)
 - [cluster-agent-allowlist-narrow.md](./runbooks/cluster-agent-allowlist-narrow.md) — prod cluster allowlist narrow override (보안 강화)
 - [cluster-agent-namespace-wildcard.md](./runbooks/cluster-agent-namespace-wildcard.md) — `allowed_namespaces: ["*"]` 트러블슈팅
 - [cluster-agent-configmap-migration.md](./runbooks/cluster-agent-configmap-migration.md) — 기존 chart 의 `helm.sh/resource-policy: keep` migration
 - [cluster-agent-secret-cleanup.md](./runbooks/cluster-agent-secret-cleanup.md) — cluster 삭제 후 K8s Secret 정리
-- [aggregate-to-view-crd-runbook.md](./runbooks/aggregate-to-view-crd-runbook.md) — impersonation 의 K8s `view` aggregate 안 되는 CRD 운영
 
-### Identity / fallback
-- [impersonation-production-activation.md](./runbooks/impersonation-production-activation.md) — Impersonation pass-through 운영 활성화 step-by-step
-- [keycloak-outage.md](./runbooks/keycloak-outage.md) — Keycloak / OIDC IdP outage 시 운영자 fallback
+### Identity / RBAC ([identity/](./runbooks/identity/))
+- [impersonation-production-activation.md](./runbooks/identity/impersonation-production-activation.md) — Impersonation pass-through 운영 활성화 step-by-step
+- [keycloak-outage.md](./runbooks/identity/keycloak-outage.md) — Keycloak / OIDC IdP outage 시 운영자 fallback
+- [aggregate-to-view-crd-runbook.md](./runbooks/identity/aggregate-to-view-crd-runbook.md) — impersonation 의 K8s `view` aggregate 안 되는 CRD 운영
 
 ### Cluster lifecycle / 도메인
 - [gpu-cluster.md](./runbooks/gpu-cluster.md) — NVIDIA GPU cluster 생성 / 운영 / troubleshoot
@@ -119,7 +120,7 @@ HTTP 엔드포인트 명세, 요청·응답 envelope 입니다.
 | API 통합자 (gateway / FE) | `api/v1-reference.md` → `architecture/frontend-integration.md` |
 | 운영자 / SRE | `operations/quickstart.md` → `architecture/pulumi/pulumi-runtime-with-gateway.md` → `operations/day-2-operations.md` → `runbooks/` |
 | Provider 확장 (새 CSP) | `architecture/pulumi/pulumi-multicloud-k8s-blueprint.md` §4–5 → `api/provider-credential-matrix.md` |
-| 인증 / RBAC | `architecture/k8s-impersonation-auth.md` → `architecture/oidc-binding-multi-idp.md` → `architecture/dynamic-addon-rbac.md` |
+| 인증 / RBAC | `architecture/identity/k8s-impersonation-auth.md` → `architecture/identity/oidc-binding-multi-idp.md` → `architecture/identity/dynamic-addon-rbac.md` |
 | Cluster addon / monitoring | `operations/monitoring-usage.md` → `architecture/kind-resolver.md` |
 | 외부 포털 통합 (webhook) | `api/webhooks.md` |
 

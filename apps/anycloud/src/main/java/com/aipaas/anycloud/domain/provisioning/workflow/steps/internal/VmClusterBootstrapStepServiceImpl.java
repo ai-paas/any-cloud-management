@@ -8,14 +8,13 @@ import com.aipaas.anycloud.domain.provisioning.bootstrap.VmClusterBootstrapServi
 import com.aipaas.anycloud.domain.provisioning.model.VmClusterStatus;
 import com.aipaas.anycloud.domain.provisioning.payload.VmClusterPayloadService;
 import com.aipaas.anycloud.domain.provisioning.registration.VmClusterRegistrationService;
-import com.aipaas.anycloud.domain.provisioning.remote.VmClusterKubeconfigService;
 import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterStepExecutionException;
 import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowMessage;
 import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowPublisher;
 import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowStep;
 import com.aipaas.anycloud.domain.provisioning.workflow.steps.VmClusterBootstrapStepService;
 import com.aipaas.anycloud.domain.provisioning.workflow.support.VmClusterWorkflowSupportService;
-import io.aipaas.cluster.provisioning.service.PulumiProvisioningService;
+import io.aipaas.cluster.provisioning.api.ProvisioningService;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,8 +27,7 @@ import org.springframework.stereotype.Service;
  *   <li>Repository / state — {@code vmClusterRepository}. step 진입 / 갱신.</li>
  *   <li>External lookup — {@code cspCredentialService}, {@code pulumiProvisioningService}. CSP env
  *       + Pulumi stack outputs.</li>
- *   <li>Bootstrap execution — {@code vmClusterBootstrapService}, {@code vmClusterKubeconfigService}
- *       (SSH 기반 kubeadm + kubeconfig collection).</li>
+ *   <li>Bootstrap execution — {@code vmClusterBootstrapService} (SSH 기반 kubeadm).</li>
  *   <li>Post-bootstrap registration — {@code vmClusterRegistrationService},
  *       {@code clusterAgentInstaller}. cluster row insert + agent helm install.</li>
  *   <li>Workflow continuation — {@code vmClusterWorkflowPublisher},
@@ -48,9 +46,8 @@ public class VmClusterBootstrapStepServiceImpl implements VmClusterBootstrapStep
 
     private final VmClusterRepository vmClusterRepository;
     private final CspCredentialService cspCredentialService;
-    private final PulumiProvisioningService pulumiProvisioningService;
+    private final ProvisioningService provisioningService;
     private final VmClusterBootstrapService vmClusterBootstrapService;
-    private final VmClusterKubeconfigService vmClusterKubeconfigService;
     private final VmClusterRegistrationService vmClusterRegistrationService;
     private final VmClusterPayloadService vmClusterPayloadService;
     private final VmClusterWorkflowPublisher vmClusterWorkflowPublisher;
@@ -79,13 +76,14 @@ public class VmClusterBootstrapStepServiceImpl implements VmClusterBootstrapStep
             vmClusterRepository.save(vmCluster);
 
             Map<String, String> credentialEnvironment = cspCredentialService.resolveEnvironment(
-                    vmCluster.getClusterProvider(), vmCluster.getCredentialId(), vmCluster.getCredentialSourceType());
+                    vmCluster.getClusterProvider(), vmCluster.getCredentialId());
             Map<String, Object> outputs =
-                    pulumiProvisioningService.stackOutputs(vmCluster.getStackName(), true, credentialEnvironment);
+                    provisioningService.stackOutputs(vmCluster.getStackName(), true, credentialEnvironment);
 
             vmClusterBootstrapService.bootstrap(vmCluster, outputs);
-            String kubeconfigContent = vmClusterKubeconfigService.fetchKubeconfig(vmCluster, outputs);
-            vmClusterRegistrationService.registerFromKubeconfig(vmCluster, kubeconfigContent);
+            // ClusterEntity 를 agent helm install 직전에 생성 — prepareBootstrap (JWT mint) 이
+            // cluster row 존재를 전제로 함. 동시에 vm_cluster.cluster_id FK backfill.
+            vmClusterRegistrationService.createClusterEntity(vmCluster);
             vmCluster.setRawOutputs(vmClusterPayloadService.serializeSanitizedOutputs(outputs));
             vmCluster.setClusterRegistered(true);
             vmClusterRepository.save(vmCluster);

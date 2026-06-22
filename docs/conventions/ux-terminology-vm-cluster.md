@@ -27,8 +27,8 @@
   - `VmOptionsQueryService`, `PulumiProvisioningService`
 - 외부 노출 API 는 v1 RESTful 통합 자원을 사용합니다.
   - `/v1/providers/...` — VM Options 카탈로그입니다.
-  - `/v1/clusters` — VM Cluster + Registered Cluster 통합 (body `source` 로 구분합니다).
-  - `/v1/clusters/importKubeconfig` — kubeconfig 파일 업로드로 등록합니다.
+  - `/v1/clusters` — K8s cluster 등록 자원 (manual register + agent self-registered).
+  - `/v1/vms` — CSP VM 그룹 자원 (Pulumi-managed). body 의 `vmGroupName` 으로 식별. 그룹 안에 master + worker 인스턴스 N개 포함.
 
 ## 도메인 구분
 

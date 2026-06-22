@@ -1,6 +1,6 @@
 # ============= Compose =============
 #   docker-compose.dev.yml — local source 빌드, Pulumi 통합 full stack (dev/integration)
-#   docker-compose.yml     — Docker Hub image pull only, production-like (demo/외부 평가)
+#   docker-compose.yml     — Docker Hub image pull only, production
 COMPOSE      := docker compose -f docker-compose.dev.yml
 COMPOSE_PROD := docker compose -f docker-compose.yml
 
@@ -15,12 +15,6 @@ IMAGE_TAG       ?= dev
 # 가 동작. local dev 에서 single-arch 만 원하면 IMAGE_PLATFORMS=linux/amd64 로 override.
 # build 시간이 ~2배 (QEMU emulation) 늘어나니 dev iteration 빠르게 하려면 local override 권장.
 IMAGE_PLATFORMS ?= linux/amd64,linux/arm64
-
-# Pulumi binary build tag — providers/factory_<csp>.go 의 //go:build <csp> || all selector.
-# 운영 default 는 모든 CSP 컴파일 (all). dev iteration 가속 시 특정 CSP 만:
-#   make backend-image PULUMI_BUILD_TAGS=aws,gcp
-# 미등록 CSP runtime 호출 시 binary 가 친절한 rebuild 가이드 error 반환.
-PULUMI_BUILD_TAGS ?= all
 
 # host 의 docker 데몬에서 buildx 가 push 한 image 이름.
 FULL_IMAGE      := $(DOCKER_USER)/$(AGENT_IMAGE):$(IMAGE_TAG)
@@ -91,7 +85,7 @@ SNAPSHOT_OUT                  := apps/agent/deploy/k8s/agent.yaml
 .PHONY: agent-chart-package agent-chart-push agent-publish agent-manifest-snapshot
 .PHONY: backend-build backend-test backend-image backend-publish
 .PHONY: test-unit test-integration test-coverage
-.PHONY: pulumi-build
+.PHONY:
 .PHONY: all-build all-test
 
 # ============= help =============
@@ -139,7 +133,6 @@ help:
 	@echo "  test-unit        backend unit tests only (no Testcontainers)                   [~30s]"
 	@echo "  test-integration backend integration tests (*IntegrationTest, Testcontainers)  [~3m]"
 	@echo "  test-coverage    backend-test + jacocoTestReport + HTML open                   [* ~5m]"
-	@echo "  pulumi-build     Pulumi Go build (infra/pulumi)                                [* ~2m / +10s incr]"
 	@echo ""
 	@echo "  all-build        backend + pulumi + agent build                                [* ~5m]"
 	@echo "  all-test         backend-test + agent-test                                     [* ~6m]"
@@ -383,10 +376,9 @@ test-coverage:
 # 본 image 명을 ANYCLOUD_BACKEND_IMAGE 로 pull. agent-image 와 동일하게 buildx 사용.
 # 사전 조건: docker login.
 backend-image: buildx-setup
-	@echo "==> Building & pushing $(FULL_BACKEND_IMAGE) for $(IMAGE_PLATFORMS) (tags=$(PULUMI_BUILD_TAGS))"
+	@echo "==> Building & pushing $(FULL_BACKEND_IMAGE) for $(IMAGE_PLATFORMS)"
 	docker buildx build \
 		--platform $(IMAGE_PLATFORMS) \
-		--build-arg PULUMI_BUILD_TAGS=$(PULUMI_BUILD_TAGS) \
 		-t $(FULL_BACKEND_IMAGE) \
 		-f Dockerfile.pulumi \
 		--push \
@@ -421,13 +413,10 @@ hooks-install:
 bootstrap-dev:
 	./scripts/bootstrap-dev.sh
 
-# ============= Pulumi =============
-
-pulumi-build:
-	cd infra/pulumi && go build ./...
-
 # ============= Aggregate =============
 
-all-build: backend-build pulumi-build agent-build
+# Pulumi 프로그램이 Java SDK 로 마이그된 후 (libs/cluster-provisioning-spring-boot-starter 의
+# program/ 패키지) — 별도 Go build target 없음. backend-build 가 jar 안 program 클래스 포함.
+all-build: backend-build agent-build
 
 all-test: backend-test agent-test

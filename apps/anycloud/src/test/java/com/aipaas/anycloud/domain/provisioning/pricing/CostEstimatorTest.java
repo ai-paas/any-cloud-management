@@ -13,10 +13,10 @@ class CostEstimatorTest {
     private final CostEstimator estimator = new CostEstimator(catalog);
 
     @Test
-    void catalogLoadsAllEightProviders() {
+    void catalogLoadsAllSevenProviders() {
         assertThat(catalog.supportedProviders())
                 .containsExactlyInAnyOrder(
-                        "aws", "gcp", "azure", "alibaba", "oci", "digitalocean", "openstack", "proxmox");
+                        "aws", "gcp", "azure", "alibaba", "oci", "digitalocean", "openstack");
     }
 
     @Test
@@ -52,21 +52,6 @@ class CostEstimatorTest {
         // breakdown 에 instanceType 이 채워져야 한다.
         assertThat(est.breakdown().get(0).instanceType()).isEqualTo("t3.large");
         assertThat(est.breakdown().get(1).instanceType()).isEqualTo("t3.large");
-    }
-
-    @Test
-    void proxmoxBareMetalCalculatesViaTcoBaseline() {
-        // proxmox-standard-4x8: 0.024/hr; 1 master + 2 workers = 0.072/hr
-        CostEstimate est = estimator.estimate(
-                "proxmox",
-                Map.of(
-                        "masterInstanceType", "proxmox-standard-4x8",
-                        "workerInstanceType", "proxmox-standard-4x8",
-                        "masterCount", "1",
-                        "workerCount", "2"),
-                false);
-        assertThat(est.status()).isEqualTo(CostEstimate.Status.FULL);
-        assertThat(est.totalHourly()).isEqualByComparingTo(new BigDecimal("0.0720"));
     }
 
     @Test

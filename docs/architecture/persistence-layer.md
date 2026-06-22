@@ -100,4 +100,4 @@ domain/cluster/ClusterRepository.java                    // port/ 로 이동 필
 | Observability (Prometheus metrics, Alertmanager rules) | cluster 안 Prometheus | observability starter 는 query passthrough 만 |
 
 → backend DB 의 책임은 cluster registry / Pulumi metadata / CSP credential / workflow audit /
-LRO state 로 명확히 좁아짐. 자세한 분리: [`starters.md`](./starters.md).
+LRO state 로 명확히 좁아짐. 자세한 분리: [`starters.md`](./starters/overview.md).

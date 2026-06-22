@@ -295,7 +295,7 @@
       grid-template-columns: minmax(280px, 360px) 1fr;
       gap: 1.2rem;
     }
-    /* Region 미지원 provider (proxmox 등) — 좌측 Regions 컬럼 숨기고 1-column 으로. */
+    /* Region 미지원 provider — 좌측 Regions 컬럼 숨기고 1-column 으로. */
     .provider-workspace.no-region { grid-template-columns: 1fr; }
     .provider-workspace.no-region .col-regions { display: none; }
     .provider-workspace .col-regions {
@@ -360,7 +360,7 @@
         <select id="ctxProvider" onchange="onCtxProviderChange()">
           <option value="aws">aws</option><option value="gcp">gcp</option><option value="azure">azure</option>
           <option value="alibaba">alibaba</option><option value="oci">oci</option><option value="digitalocean">digitalocean</option>
-          <option value="openstack">openstack</option><option value="proxmox">proxmox</option>
+          <option value="openstack">openstack</option>
         </select>
       </div>
       <span class="sep">·</span>
@@ -743,7 +743,7 @@
           <select id="credProvider" onchange="onCredProviderChange()">
             <option value="AWS">aws</option><option value="GCP">gcp</option><option value="AZURE">azure</option>
             <option value="ALICLOUD">alibaba</option><option value="OCI">oci</option><option value="DIGITALOCEAN">digitalocean</option>
-            <option value="OPENSTACK">openstack</option><option value="PROXMOX">proxmox</option>
+            <option value="OPENSTACK">openstack</option>
           </select>
         </label>
         <label>sourceType
@@ -1000,7 +1000,7 @@ function onTabEnter(tabId) {
   if (tabId === 'provider') {
     refreshProviderWorkspace();
     if (ctx.credentialId) {
-      // region 지원 provider 만 regions 목록 fetch — proxmox 같은 건 의미 없음.
+      // region 지원 provider 만 regions 목록 fetch.
       if (providerHasRegion(ctx.provider)) {
         loadProviderRegionsList().catch(() => {});
         if (ctx.region) autoLoadRegionScopedData();
@@ -1039,13 +1039,12 @@ const credIdToProvider = {};
 
 /**
  * Provider 별 region 개념 보유 여부.
- * - false : single-datacenter / regionless (proxmox)
+ * - false : single-datacenter / regionless
  * - true  : 다중 region 지원 — region 선택 필수
  */
 const PROVIDER_HAS_REGION = {
   aws: true, gcp: true, azure: true, alibaba: true, oci: true,
-  digitalocean: true, openstack: true,
-  proxmox: false
+  digitalocean: true, openstack: true
 };
 function providerHasRegion(p) {
   return PROVIDER_HAS_REGION[String(p || '').toLowerCase()] !== false;
@@ -1289,8 +1288,7 @@ const CREDENTIAL_EXAMPLES = {
   ALICLOUD: { ALICLOUD_ACCESS_KEY: "LTAI...", ALICLOUD_SECRET_KEY: "..." },
   OCI: { TF_VAR_tenancy_ocid: "ocid1.tenancy.oc1..aaaa", TF_VAR_user_ocid: "ocid1.user.oc1..aaaa", TF_VAR_fingerprint: "aa:bb:...", TF_VAR_region: "ap-seoul-1", TF_VAR_private_key: "-----BEGIN RSA PRIVATE KEY-----\\n...\\n-----END" },
   DIGITALOCEAN: { DIGITALOCEAN_TOKEN: "dop_v1_..." },
-  OPENSTACK: { OS_AUTH_URL: "https://keystone:5000/v3", OS_USERNAME: "admin", OS_PASSWORD: "...", OS_PROJECT_NAME: "admin", OS_USER_DOMAIN_NAME: "Default", OS_PROJECT_DOMAIN_NAME: "Default" },
-  PROXMOX: { PROXMOX_VE_ENDPOINT: "https://proxmox.example.com:8006/api2/json", PROXMOX_VE_USERNAME: "root@pam!anycloud", PROXMOX_VE_PASSWORD: "f807c057-5e9d-4055-..." }
+  OPENSTACK: { OS_AUTH_URL: "https://keystone:5000/v3", OS_USERNAME: "admin", OS_PASSWORD: "...", OS_PROJECT_NAME: "admin", OS_USER_DOMAIN_NAME: "Default", OS_PROJECT_DOMAIN_NAME: "Default" }
 };
 function onCredProviderChange() { const p = document.getElementById('credProvider').value; document.getElementById('credExamplePre').textContent = JSON.stringify(CREDENTIAL_EXAMPLES[p] || {}, null, 2); }
 function fillCredSample() { const p = document.getElementById('credProvider').value; document.getElementById('credKeys').value = JSON.stringify(CREDENTIAL_EXAMPLES[p] || {}, null, 2); }
@@ -1339,7 +1337,7 @@ async function deleteCredentialById(id) {
 
 //#region Provider
 /** ctx.credentialId 가 있으면 query string 으로 붙임 — backend 가 그 credential 의 decrypted
- * keys 로 인증함 (proxmox 등). 없으면 backend 는 env 변수 fallback. */
+ * keys 로 인증함. 없으면 backend 는 env 변수 fallback. */
 function withCredentialId(qs) {
   if (ctx.credentialId) qs.set('credentialId', ctx.credentialId);
   return qs;
@@ -1466,8 +1464,7 @@ const VM_CONFIG_EXAMPLES = {
   alibaba: { workerCount: "3", kubernetesVersion: "1.30.4", instanceType: "ecs.g6.large" },
   oci: { workerCount: "3", kubernetesVersion: "1.30.4", shape: "VM.Standard.E4.Flex" },
   digitalocean: { workerCount: "3", kubernetesVersion: "1.30.4", size: "s-2vcpu-4gb" },
-  openstack: { workerCount: "3", kubernetesVersion: "1.30.4", flavor: "m1.medium" },
-  proxmox: { workerCount: "3", kubernetesVersion: "1.30.4", cores: "2", memoryMB: "4096" }
+  openstack: { workerCount: "3", kubernetesVersion: "1.30.4", flavor: "m1.medium" }
 };
 
 function vmCreateBody() {
@@ -1510,7 +1507,7 @@ function openVmCreateModal() {
   document.getElementById('vmCreateGpu').value = 'false';
   document.getElementById('vmCreateConfig').value = JSON.stringify(VM_CONFIG_EXAMPLES[ctx.provider] || {}, null, 2);
   // ctx 부족 시 banner + [생성] 버튼 disable — 의도치 않은 요청 막음.
-  // proxmox 처럼 region 개념 없는 provider 는 region 미체크.
+  // region 개념 없는 provider 는 region 미체크.
   const missing = [];
   if (!ctx.credentialId) missing.push('credential');
   if (providerHasRegion(ctx.provider) && !ctx.region) missing.push('region');

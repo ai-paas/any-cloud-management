@@ -514,7 +514,7 @@ public class ChartServiceImpl implements ChartService {
     }
 
     // createKubeconfigFile / deleteKubeconfigFile 제거됨 — agent path 가 in-cluster
-    // ServiceAccount token 으로 K8s API 호출하므로 임시 kubeconfig 파일이 필요 없다. backend 의
+    // ServiceAccount token 으로 K8s API 호출하므로 임시 kubeconfig 파일이 불필요. backend 의
     // disk write / cleanup surface (특히 cleanup 누락 위험) 가 사라짐.
 
     /**

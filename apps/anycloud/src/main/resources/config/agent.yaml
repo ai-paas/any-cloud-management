@@ -25,9 +25,8 @@ cluster-agent:
     bind-timeout: ${ANYCLOUD_AGENT_EXEC_BIND_TIMEOUT:30s}
     websocket-buffer-bytes: ${ANYCLOUD_AGENT_WS_BUFFER:65536}
   # Day-2 K8s ops (logs/get/list/delete/apply) + Helm release ops 를 agent stream 으로 routing.
-  # Phase 3 이후 항상 agent-only — fabric8 fall-through 가 모두 제거됐고 strict-mode toggle
-  # 도 사라졌다. agent 가 inactive 면 즉시 503 AGENT_UNAVAILABLE 반환 — 운영자가 agent 복구.
-  # routing.enabled 는 starter 의 backwards compat 토글로만 남아 있음 (기본 true).
+  # 항상 agent-only — fabric8 fall-through / strict-mode toggle 없음. agent inactive 시 즉시
+  # 503 AGENT_UNAVAILABLE 반환. routing.enabled 는 backwards compat 토글 (기본 true).
   routing:
     enabled: ${ANYCLOUD_AGENT_ROUTING_ENABLED:true}
     command-timeout-seconds: ${ANYCLOUD_AGENT_ROUTING_TIMEOUT:15}
@@ -51,7 +50,7 @@ agent:
       server-name: ${ANYCLOUD_AGENT_TLS_SERVER_NAME:}
       # dev 편의 — production 절대 사용 금지.
       insecure-skip-verify: ${ANYCLOUD_AGENT_TLS_INSECURE_SKIP_VERIFY:false}
-  # Phase 7 — Pulumi-provisioned cluster 에 BOOTSTRAP 직후 자동 agent 설치 (API_MANAGED 모드).
+  # Pulumi-provisioned cluster 에 BOOTSTRAP 직후 자동 agent 설치 (API_MANAGED 모드).
   api-managed:
     enabled: ${ANYCLOUD_AGENT_API_MANAGED_ENABLED:true}
   # Manifest template 의 image / namespace / pull policy.

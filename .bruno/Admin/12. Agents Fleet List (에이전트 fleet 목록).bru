@@ -1,0 +1,54 @@
+meta {
+  name: 12. Agents Fleet List (에이전트 fleet 목록)
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/agents?page=0&size=50
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 0
+  size: 50
+  ~status: ACTIVE,DEGRADED
+  ~clusterName: aws-prod-01
+  ~versionPrefix: 0.3
+  ~lastSeenOlderThanSec: 3600
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("envelope 형식 확인", function() {
+    const body = res.getBody();
+    expect(body.success).to.equal(true);
+    expect(body.status).to.equal(200);
+    expect(body.data).to.be.an('object');
+    expect(body.data.items).to.be.an('array');
+    expect(body.data.total).to.be.a('number');
+    expect(body.data.page).to.equal(0);
+    expect(body.data.size).to.equal(50);
+  });
+
+  test("item 필드 노출", function() {
+    const items = res.getBody().data.items;
+    if (items.length > 0) {
+      const item = items[0];
+      expect(item).to.have.property("agentId");
+      expect(item).to.have.property("clusterName");
+      expect(item).to.have.property("status");
+      expect(["REGISTERING", "REGISTERED", "ACTIVE", "DEGRADED", "FAILED", "REVOKED"])
+        .to.include(item.status);
+    }
+  });
+}

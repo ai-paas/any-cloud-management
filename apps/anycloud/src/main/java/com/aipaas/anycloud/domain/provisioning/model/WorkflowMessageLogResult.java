@@ -3,7 +3,7 @@ package com.aipaas.anycloud.domain.provisioning.model;
 /**
  * Workflow 메시지 처리 결과 분류.
  * <p>
- * 운영 시 RabbitMQ at-least-once 재전달 / 단계 비정상 도착 / 실패 원인을 한 컬럼으로 가시화한다.
+ * 운영 시 RabbitMQ at-least-once 재전달 / 단계 비정상 도착 / 실패 원인을 한 컬럼으로 가시화.
  */
 public enum WorkflowMessageLogResult {
 

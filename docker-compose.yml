@@ -183,6 +183,8 @@ services:
       CSP_CREDENTIAL_ENCRYPTION_KEY: ${CSP_CREDENTIAL_ENCRYPTION_KEY:?CSP_CREDENTIAL_ENCRYPTION_KEY must be set}
       ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT: ${ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT:?ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT must be set (e.g. anycloud.example.com:9090)}
       ANYCLOUD_AGENT_HELM_REPO_URL: ${ANYCLOUD_AGENT_HELM_REPO_URL:?ANYCLOUD_AGENT_HELM_REPO_URL must be set}
+      # Cluster 등록 응답의 kubectl apply 명령에 박히는 base URL. 미설정 시 HTTP 요청 host 자동 사용.
+      ANYCLOUD_PUBLIC_URL: ${ANYCLOUD_PUBLIC_URL:-}
     volumes:
       - pulumi-home:/app/.pulumi
       - pulumi-runtime:/app/runtime

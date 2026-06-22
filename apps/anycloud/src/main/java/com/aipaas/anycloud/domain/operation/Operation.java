@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
  * boundary 에서 처리한다 (Hexagonal pattern 의 adapter 경계).
  *
  * <p>Step 2 pilot — 다른 entity (Cluster, VmCluster 등) 의 domain 추출은 동일한 패턴을 따르되
- * incremental 하게 진행한다. 자세한 로드맵: docs/architecture/design/domain-model-roadmap.md.
+ * incremental 하게 진행. 자세한 로드맵: docs/architecture/design/domain-model-roadmap.md.
  *
  * @param id            UUID. JPA insert 전에는 비어있을 수 있음 — start() 에서 채워짐.
  * @param type          Operation 종류 (CLUSTER_CREATE / VM_CLUSTER_DELETE 등).

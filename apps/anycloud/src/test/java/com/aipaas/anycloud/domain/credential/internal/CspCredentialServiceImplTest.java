@@ -9,12 +9,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.aipaas.anycloud.common.error.exception.CustomException;
-import com.aipaas.anycloud.domain.credential.api.request.CreateCspCredentialRequest;
 import com.aipaas.anycloud.domain.credential.CspCredentialCryptoService;
 import com.aipaas.anycloud.domain.credential.CspCredentialEntity;
 import com.aipaas.anycloud.domain.credential.CspCredentialRepository;
+import com.aipaas.anycloud.domain.credential.api.request.CreateCspCredentialRequest;
 import com.aipaas.anycloud.domain.credential.api.response.CspCredentialResponse;
-import com.aipaas.anycloud.domain.credential.model.CspCredentialSourceType;
 import com.aipaas.anycloud.domain.provisioning.VmClusterRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -72,7 +71,6 @@ class CspCredentialServiceImplTest {
         CreateCspCredentialRequest req = new CreateCspCredentialRequest();
         req.setProvider("aws");
         req.setName("my-aws");
-        req.setSourceType(CspCredentialSourceType.MANUAL);
         req.setCredentials(Map.of(
                 "AWS_ACCESS_KEY_ID", "AKIA...",
                 "AWS_SECRET_ACCESS_KEY", "wJalr..."));
@@ -93,7 +91,6 @@ class CspCredentialServiceImplTest {
                 .as("plaintext 저장 회귀 방지 — 항상 crypto 출력값")
                 .isEqualTo("iv:cipher");
         assertThat(saved.getProvider()).isEqualTo("AWS");
-        assertThat(saved.getSourceType()).isEqualTo(CspCredentialSourceType.MANUAL);
         assertThat(saved.getActive()).isTrue();
     }
 
@@ -103,7 +100,6 @@ class CspCredentialServiceImplTest {
         CreateCspCredentialRequest req = new CreateCspCredentialRequest();
         req.setProvider("googlecloud");
         req.setName("my-gcp");
-        req.setSourceType(CspCredentialSourceType.MANUAL);
         req.setCredentials(Map.of("GOOGLE_CREDENTIALS", "{\"type\":\"service_account\"}"));
 
         when(crypto.encrypt(anyString())).thenReturn("enc");
@@ -141,7 +137,6 @@ class CspCredentialServiceImplTest {
                 .id("cred-1")
                 .provider("AWS")
                 .name("my-aws")
-                .sourceType(CspCredentialSourceType.MANUAL)
                 .build();
         when(repository.findById("cred-1")).thenReturn(Optional.of(entity));
 
@@ -172,7 +167,6 @@ class CspCredentialServiceImplTest {
                 .id("cred-1")
                 .provider("AWS")
                 .name("aws-cred")
-                .sourceType(CspCredentialSourceType.MANUAL)
                 .encryptedPayload("iv:enc")
                 .build();
         when(repository.findById("cred-1")).thenReturn(Optional.of(awsEntity));
@@ -192,14 +186,14 @@ class CspCredentialServiceImplTest {
     @Test
     void resolveEnvironment_manualWithoutCredentialId_throws() {
         // 회귀 lock — MANUAL 인데 credentialId null 이면 silent ENV fallback 하면 안 됨.
-        assertThatThrownBy(() -> service.resolveEnvironment("aws", null, CspCredentialSourceType.MANUAL))
+        assertThatThrownBy(() -> service.resolveEnvironment("aws", null))
                 .isInstanceOf(CustomException.class)
                 .hasMessageContaining("Credential ID is required");
     }
 
     @Test
     void resolveEnvironment_manualWithBlankCredentialId_throws() {
-        assertThatThrownBy(() -> service.resolveEnvironment("aws", "  ", CspCredentialSourceType.MANUAL))
+        assertThatThrownBy(() -> service.resolveEnvironment("aws", "  "))
                 .isInstanceOf(CustomException.class)
                 .hasMessageContaining("Credential ID is required");
     }
@@ -216,7 +210,6 @@ class CspCredentialServiceImplTest {
                 .provider("AWS")
                 .name("aws-prod")
                 .description("production keys")
-                .sourceType(CspCredentialSourceType.MANUAL)
                 .active(true)
                 .credentialKeys("[\"AWS_ACCESS_KEY_ID\",\"AWS_SECRET_ACCESS_KEY\"]")
                 .createdAt(created)
@@ -230,7 +223,6 @@ class CspCredentialServiceImplTest {
         assertThat(dto.getProvider()).isEqualTo("AWS");
         assertThat(dto.getName()).isEqualTo("aws-prod");
         assertThat(dto.getDescription()).isEqualTo("production keys");
-        assertThat(dto.getSourceType()).isEqualTo(CspCredentialSourceType.MANUAL);
         assertThat(dto.getActive()).isTrue();
         assertThat(dto.getCredentialKeys()).containsExactly("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY");
     }
@@ -241,14 +233,12 @@ class CspCredentialServiceImplTest {
                 .id("cred-2")
                 .provider("AWS")
                 .name("newer")
-                .sourceType(CspCredentialSourceType.MANUAL)
                 .active(true)
                 .build();
         CspCredentialEntity older = CspCredentialEntity.builder()
                 .id("cred-1")
                 .provider("AWS")
                 .name("older")
-                .sourceType(CspCredentialSourceType.MANUAL)
                 .active(true)
                 .build();
         // repository 가 이미 ordered list 반환.

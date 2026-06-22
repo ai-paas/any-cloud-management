@@ -7,9 +7,11 @@ import com.aipaas.anycloud.domain.vmoptions.api.VmOptionImage;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionSpec;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+@Slf4j
 @Service
 public class VmOptionsSelectionValidator {
 
@@ -55,6 +57,17 @@ public class VmOptionsSelectionValidator {
         }
         List<VmOptionSpec> candidates =
                 vmOptionsQueryService.listSpecs(provider, credentialId, region, value, false, 200);
+        if (candidates.isEmpty()) {
+            // CSP API 가 빈 list 를 반환하는 경우 — circuit breaker fallback (CSP API 장애)
+            // 또는 IAM 권한 부족. 사용자 선택을 hard reject 하기보다 Pulumi 의 실 launch 단계에 위임
+            // (InvalidParameterValue 등 더 정확한 진단 받음). 정상 데이터로 못 찾는 경우는 다음 라인의
+            // exists=false 분기에서 reject 유지.
+            log.warn(
+                    "VM spec validation skipped — listSpecs returned empty (provider={}, region={}, value={}). "
+                            + "Likely CSP API unavailable; deferring to Pulumi launch.",
+                    provider, region, value);
+            return;
+        }
         boolean exists = candidates.stream().anyMatch(item -> value.equalsIgnoreCase(item.getName()));
         if (!exists) {
             throw new CustomException(
@@ -71,6 +84,13 @@ public class VmOptionsSelectionValidator {
         }
         List<VmOptionImage> candidates =
                 vmOptionsQueryService.listImages(provider, credentialId, region, value, null, null, 200);
+        if (candidates.isEmpty()) {
+            log.warn(
+                    "OS image validation skipped — listImages returned empty (provider={}, region={}, value={}). "
+                            + "Likely CSP API unavailable; deferring to Pulumi launch.",
+                    provider, region, value);
+            return;
+        }
         boolean exists = candidates.stream().anyMatch(item -> value.equalsIgnoreCase(item.getName()));
         if (!exists) {
             throw new CustomException(

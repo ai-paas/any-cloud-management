@@ -24,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>본 adapter 가 inject 됨으로써 {@code ClusterObservabilityAutoConfiguration} 의 {@code
  * @ConditionalOnBean(ClusterCatalog.class)} 조건이 충족 → query/install/dashboard service 들이
- * 자동 wire 된다.
+ * 자동 wire.
  */
 @Slf4j
 @Component

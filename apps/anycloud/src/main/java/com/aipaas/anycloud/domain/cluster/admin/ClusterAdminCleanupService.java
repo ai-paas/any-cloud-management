@@ -6,7 +6,7 @@ import java.util.Map;
  * Admin force-delete + Pulumi orphan stack 정리 서비스.
  *
  * <p>컨트롤러가 Repository 를 직접 inject 하면 계층 위반이므로 service 로 추출.
- * 컨트롤러는 본 service 만 호출한다.
+ * 컨트롤러는 본 service 만 호출.
  */
 public interface ClusterAdminCleanupService {
 

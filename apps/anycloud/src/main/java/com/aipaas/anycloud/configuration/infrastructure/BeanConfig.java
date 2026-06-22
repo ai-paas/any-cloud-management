@@ -99,7 +99,7 @@ public class BeanConfig {
     }
 
     /**
-     * CSP API 전용 RestTemplate. 7 provider (GCP/Azure/OCI/Alibaba/OpenStack/Proxmox/DigitalOcean)
+     * CSP API 전용 RestTemplate. 6 provider (GCP/Azure/OCI/Alibaba/OpenStack/DigitalOcean)
      * 의 listSpecs / listImages 호출이 사용. fail-fast 짧은 timeout — 가짜 cred 또는 일시 장애 시
      * controller 전체 latency 가 누적되지 않게.
      *

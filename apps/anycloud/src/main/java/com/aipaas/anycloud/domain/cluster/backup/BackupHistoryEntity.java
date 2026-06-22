@@ -16,7 +16,7 @@ import lombok.Setter;
 /**
  * etcd / PKI / Velero backup 의 영구 기록.  *
  * <p>cluster-backup-starter 의 {@link io.aipaas.cluster.agent.backup.port.BackupHistoryWriter}
- * SPI 를 통해 starter 의 backup service 가 backup 시작/완료 시점에 본 row 를 갱신한다.
+ * SPI 를 통해 starter 의 backup service 가 backup 시작/완료 시점에 본 row 를 갱신.
  * adapter: {@link com.aipaas.anycloud.domain.cluster.backup.JpaBackupHistoryWriter}.
  *
  * <p>설계 결정:

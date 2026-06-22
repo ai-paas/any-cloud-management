@@ -1,0 +1,45 @@
+meta {
+  name: 14. Multi Query (batch PromQL)
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/metrics/multi-query
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+body:json {
+  {
+    "queries": [
+      {"name": "cpuTotal", "type": "instant", "query": "sum(kube_node_status_capacity{resource=\"cpu\"})"},
+      {"name": "memTotal", "type": "instant", "query": "sum(kube_node_status_capacity{resource=\"memory\"})"},
+      {"name": "cpuRange", "type": "range", "query": "sum(rate(node_cpu_seconds_total{mode!=\"idle\"}[1m]))", "start": "{{start}}", "end": "{{end}}", "step": "300"}
+    ]
+  }
+}
+
+vars:pre-request {
+  cluster_name: test-cluster-01
+  start: 1781737987
+  end: 1781748787
+}
+
+tests {
+  test("상태 코드 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("name 별 결과 매핑", function() {
+    const data = res.getBody().data;
+    expect(data).to.have.property("cpuTotal");
+    expect(data).to.have.property("memTotal");
+    expect(data).to.have.property("cpuRange");
+  });
+}

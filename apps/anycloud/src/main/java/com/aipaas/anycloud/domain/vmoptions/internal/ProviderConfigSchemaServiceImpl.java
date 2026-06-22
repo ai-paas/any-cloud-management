@@ -26,7 +26,7 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
         } catch (IllegalArgumentException e) {
             throw new CustomException(
                     "Unsupported provider: " + provider
-                            + ". 지원: AWS, GCP, Azure, Alibaba, OpenStack, Proxmox, OCI, DigitalOcean",
+                            + ". 지원: AWS, GCP, Azure, Alibaba, OpenStack, OCI, DigitalOcean",
                     ErrorCode.PROVISIONING_PROVIDER_UNSUPPORTED);
         }
         List<ProviderConfigKey> schema = new ArrayList<>(commonKeys(p));
@@ -165,31 +165,6 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                             .required(false)
                             .description("Floating IP pool 이름. ExternalNetworkId 와 하나 필수.")
                             .build());
-            case PROXMOX -> List.of(
-                    ProviderConfigKey.builder()
-                            .key("anycloud-k8s:proxmoxNodeName")
-                            .type("string")
-                            .required(true)
-                            .description("Proxmox PVE 노드 이름 (예: pve-node-01).")
-                            .build(),
-                    ProviderConfigKey.builder()
-                            .key("anycloud-k8s:proxmoxTemplateVmId")
-                            .type("integer")
-                            .required(true)
-                            .description("Cloud-init 이 가능한 template VM ID.")
-                            .build(),
-                    ProviderConfigKey.builder()
-                            .key("anycloud-k8s:proxmoxDatastoreId")
-                            .type("string")
-                            .required(true)
-                            .description("Proxmox datastore ID (예: local-lvm).")
-                            .build(),
-                    ProviderConfigKey.builder()
-                            .key("anycloud-k8s:proxmoxNetworkBridge")
-                            .type("string")
-                            .required(true)
-                            .description("Proxmox network bridge 이름 (예: vmbr0).")
-                            .build());
             case OCI -> List.of(ProviderConfigKey.builder()
                     .key("anycloud-k8s:ociCompartmentId")
                     .type("string")
@@ -219,7 +194,6 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
             case OPENSTACK -> "m1.large";
             case OCI -> "VM.Standard.E4.Flex";
             case DIGITALOCEAN -> "s-2vcpu-4gb";
-            case PROXMOX -> "proxmox-standard-2x4";
             case AWS -> "t3.large";
         };
     }

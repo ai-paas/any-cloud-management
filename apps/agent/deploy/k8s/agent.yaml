@@ -87,6 +87,10 @@ data:
     - "LIST_HELM_RELEASE_HISTORY"
     - "LIST_RESOURCE_KINDS"
     - "RESOLVE_RESOURCE"
+  # PodExec 대상 namespace allowlist. 미지정 시 빈 list → 모든 exec deny. wildcard "*" = 전부 허용.
+  # compliance 환경에서는 narrowing 권장 (예: ["default", "monitoring", "aipaas-system"]).
+  allowed_exec_namespaces: |
+    - "*"
 
 ---
 # Source: cluster-agent/templates/rbac.yaml
@@ -119,6 +123,13 @@ rules:
 - apiGroups: [""]
   resources: ["pods/log", "pods/status"]
   verbs: ["get"]
+# pods/exec — kubectl exec 등가. WebSocket terminal 진입 시 K8s API server 가 SubjectAccessReview
+# 로 SA 의 create on pods/exec 권한 확인. 미부여 시 forbidden 으로 EXEC_FAILED 반환.
+# single-pod 모드에서는 installer SA 가 본 ClusterRole 도 자동 바인딩되므로 (aipaas-agent-installer-core-read)
+# 양쪽 모두 cover. allowed_exec_namespaces (agent 측 allowlist) 와 별개 — K8s RBAC + agent allowlist 둘 다 필수.
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["create"]
 # metrics.k8s.io — verbs 가 list 만 — wildcard 와 동일하므로 사실상 redundant 이나 가시성 위해 유지.
 - apiGroups: ["metrics.k8s.io"]
   resources: ["nodes", "pods"]

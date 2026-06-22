@@ -353,4 +353,4 @@ graph LR
 
 - [api-inventory.md](./api-inventory.md) — REST + gRPC endpoint 목록입니다.
 - [feature-flows.md](./feature-flows.md) — 등록 / 갱신 / 회수 / 업그레이드 flow 입니다.
-- [k8s-impersonation-auth.md](./k8s-impersonation-auth.md) — user RBAC pass-through 디자인입니다.
+- [k8s-impersonation-auth.md](./identity/k8s-impersonation-auth.md) — user RBAC pass-through 디자인입니다.

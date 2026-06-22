@@ -60,7 +60,7 @@ func (o *EtcdBackupOptions) applyDefaults() {
 // gRPC server-streaming 의 stream.Send 에 wrapping.
 type ChunkSink func(seq int, payload []byte, isLast bool, totalSha256 string, totalSize int64, metadata string) error
 
-// RunEtcdBackup — etcdctl snapshot save 실행 후 결과 file 을 ChunkSink 로 보낸다.
+// RunEtcdBackup — etcdctl snapshot save 실행 후 결과 file 을 ChunkSink 로 chunk 전송.
 //
 // 절차:
 //   1. mktemp /tmp/etcd-backup-*.db
@@ -144,7 +144,7 @@ func streamFileChunks(r io.Reader, chunkSize int, totalSize int64, metadata stri
 		}
 		if readErr != nil {
 			if readErr == io.EOF {
-				// payload 0 인 마지막 chunk — 빈 chunk 라도 last 표식만 보낸다.
+				// payload 0 인 마지막 chunk — 빈 chunk 라도 last 표식만 전송.
 				seq++
 				sha := hex.EncodeToString(hash.Sum(nil))
 				return sink(seq, nil, true, sha, totalSize, metadata)

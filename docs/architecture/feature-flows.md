@@ -451,4 +451,4 @@ heartbeat 30s 로 connection alive 를 확인합니다. cancellation 은 client 
 - 코드: `apps/agent/internal/core/`
 - 코드: `libs/cluster-agent-spring-boot-starter/src/main/java/io/aipaas/cluster/agent/runtime/`
 - 정리 절차: [`../runbooks/cluster-agent-secret-cleanup.md`](../runbooks/cluster-agent-secret-cleanup.md)
-- Impersonation 인증: [`k8s-impersonation-auth.md`](./k8s-impersonation-auth.md)
+- Impersonation 인증: [`k8s-impersonation-auth.md`](./identity/k8s-impersonation-auth.md)

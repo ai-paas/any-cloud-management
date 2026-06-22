@@ -150,7 +150,7 @@ kubeadm 이 발급한 인증서를 만료 전에 갱신합니다.
 2. 갱신: `kubeadm certs renew all`
 3. control-plane 컴포넌트 재시작 (`docker restart` 또는 정적 Pod 자동)
 4. kubeconfig 재발급: `kubeadm kubeconfig user --client-name <admin> --org system:masters`
-5. **본 백엔드의 `ClusterEntity.clientCa/clientKey` 갱신** — `PATCH /v1/clusters/{name}` body `{spec:{clientCa:"...", clientKey:"..."}}` 호출하여 새 인증서로 교체합니다. 또는 kubeconfig 전체 재업로드 `POST /v1/clusters/importKubeconfig` (기존 cluster 삭제 후 재등록) 합니다.
+5. **cluster-agent 재시작** — 새 kubeconfig 의 SA token 이 agent pod 의 init script 가 자동 fetch (in-cluster mount). agent 가 새 자격으로 backend 와 gRPC 재연결.
 6. KubernetesClient cache 자동 invalidate (이미 구현됨)
 
 **검증**

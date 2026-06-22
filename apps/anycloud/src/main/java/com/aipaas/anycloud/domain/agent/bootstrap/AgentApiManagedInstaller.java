@@ -53,6 +53,14 @@ public class AgentApiManagedInstaller {
     private String agentNamespace;
 
     /**
+     * BootstrapInfo.kubectlApplyCommand 의 curl base URL override. 운영에서 backend 가
+     * reverse-proxy 뒤에 있을 때 외부 접근 가능한 URL 명시 (e.g., https://api.aipaas.example.com).
+     * 비어있으면 현재 HTTP 요청의 host (X-Forwarded-* 포함) 또는 localhost:8888 fallback.
+     */
+    @Value("${anycloud.public-url:}")
+    private String configuredPublicUrl;
+
+    /**
      * agent install path 별 counter — chicken-and-egg fallback (BOOTSTRAP) 발동 빈도 추적.
      * Metric: {@code anycloud_agent_install_total{path="AGENT|BOOTSTRAP|FAILED"}}.
      */
@@ -202,7 +210,7 @@ public class AgentApiManagedInstaller {
                         + "  oci://docker.io/aipaas/cluster-agent --version 0.1.0",
                 issued.token(), backendEndpoint);
         String manifestUrl = "/v1/clusters/" + clusterName + "/agent-manifest.yaml";
-        String kubectlApplyCommand = "curl -sS http://<anycloud-backend>:8888" + manifestUrl + " | kubectl apply -f -";
+        String kubectlApplyCommand = "curl -sS " + resolveBackendBaseUrl() + manifestUrl + " | kubectl apply -f -";
         return new BootstrapInfo(
                 issued.token(),
                 issued.expiresAt().toString(),
@@ -210,5 +218,30 @@ public class AgentApiManagedInstaller {
                 manifestUrl,
                 helmInstallCommand,
                 kubectlApplyCommand);
+    }
+
+    /**
+     * kubectl apply 명령의 curl base URL 도출. 우선순위:
+     * <ol>
+     *   <li>{@code anycloud.public-url} property — 운영에서 reverse-proxy / gateway 경유 URL 명시</li>
+     *   <li>현재 HTTP 요청의 scheme://host[:port] — dev / single-host 자동 해결 (X-Forwarded-* 헤더가
+     *       설정되어 있으면 framework 가 자동 반영 — server.forward-headers-strategy=FRAMEWORK 권장)</li>
+     *   <li>localhost:8888 — request context 외부 호출 (테스트 등) fallback</li>
+     * </ol>
+     */
+    private String resolveBackendBaseUrl() {
+        if (configuredPublicUrl != null && !configuredPublicUrl.isBlank()) {
+            return configuredPublicUrl.endsWith("/")
+                    ? configuredPublicUrl.substring(0, configuredPublicUrl.length() - 1)
+                    : configuredPublicUrl;
+        }
+        try {
+            return org.springframework.web.servlet.support.ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .build()
+                    .toUriString();
+        } catch (IllegalStateException e) {
+            // request context 외부 (e.g., 비동기 worker) — fallback default
+            return "http://localhost:8888";
+        }
     }
 }

@@ -86,7 +86,7 @@ day-2 ops 에서는 호출되지 않습니다.
 ## RBAC
 
 agent core ClusterRole 이 wildcard `get/list/watch` + `impersonate` verb 를 보유합니다. 사용자 RBAC pass-through
-가 필요하면 [`k8s-impersonation-auth.md`](./k8s-impersonation-auth.md) 의 toggle 을 활성화합니다.
+가 필요하면 [`k8s-impersonation-auth.md`](./identity/k8s-impersonation-auth.md) 의 toggle 을 활성화합니다.
 
 ## 운영 가시화
 

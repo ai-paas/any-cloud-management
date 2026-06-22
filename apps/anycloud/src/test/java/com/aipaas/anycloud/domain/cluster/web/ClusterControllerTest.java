@@ -95,26 +95,15 @@ class ClusterControllerTest extends AbstractUnitTest {
     }
 
     @Test
-    void createVmCluster_returns202_withLocationAndOperationBody() throws Exception {
-        when(clusterFacade.createDomain(any()))
-                .thenReturn(stubOperationDomain(
-                        "op-create01", OperationType.CREATE_CLUSTER, "demo-aws-01", OperationState.RUNNING));
-
+    void createVmCluster_isRejected_useVmsEndpointInstead() throws Exception {
+        // VM 인프라 생성은 /v1/clusters 에서 제거됐다 — /v1/vms 로 분리. 잘못된 호출은 400.
         String body = json.writeValueAsString(java.util.Map.of(
                 "source", "vm",
                 "clusterName", "demo-aws-01",
                 "spec", java.util.Map.of("provider", "aws", "region", "ap-northeast-2", "environment", "dev")));
 
         mvc.perform(post("/v1/clusters").contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isAccepted())
-                .andExpect(header().string("Location", "/v1/operations/op-create01"))
-                // : data 가 ClusterRegistrationResponse wrapper — operation 필드 안에 OperationResponse.
-                .andExpect(jsonPath("$.data.operation.id").value("op-create01"))
-                .andExpect(jsonPath("$.data.operation.type").value("CREATE_CLUSTER"))
-                .andExpect(jsonPath("$.data.operation.state").value("RUNNING"))
-                .andExpect(jsonPath("$.links.self").value("/v1/operations/op-create01"))
-                .andExpect(jsonPath("$.links.resource").value("/v1/clusters/demo-aws-01"))
-                .andExpect(jsonPath("$.links.events").value("/v1/operations/op-create01/events"));
+                .andExpect(status().isBadRequest());
     }
 
     @Test

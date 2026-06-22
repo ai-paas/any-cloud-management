@@ -47,6 +47,10 @@ public enum ErrorCode {
     PROVISIONING_PROVIDER_UNSUPPORTED(400, "지원하지 않는 provider."),
     PROVISIONING_CONFIG_MISSING_KEY(400, "필수 provisioning config 키 누락."),
     PROVISIONING_CONFIG_INVALID_VALUE(400, "Provisioning config 값이 유효하지 않습니다."),
+    // PROVISION step 재시도 시 vm_cluster.request_config 가 비어있거나 credential resolve 실패로
+    // ProvisioningRequest 를 복원하지 못한 경우. legacy row (V0.2 이전) 또는 credential 삭제 후
+    // retry 시 발생. 사용자가 해당 클러스터를 DELETE 후 새로 생성해야 회복.
+    PROVISIONING_REQUEST_MISSING(409, "ProvisioningRequest 복원 실패 — request_config 누락 또는 credential 삭제됨."),
 
     // Agent routing 실패 → 즉시 503. 모든 day-2 ops (K8s + Helm) 는 agent-only path 라
     // 본 에러로 떨어진다. 운영자 점검 포인트: agent ACTIVE / cluster_agent 테이블 / heartbeat 신선도.

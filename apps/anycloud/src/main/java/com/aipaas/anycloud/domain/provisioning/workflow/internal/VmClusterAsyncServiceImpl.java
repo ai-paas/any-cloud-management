@@ -7,7 +7,7 @@ import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterAsyncService;
 import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowMessage;
 import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowPublisher;
 import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowStep;
-import io.aipaas.cluster.provisioning.core.ProvisioningRequest;
+import io.aipaas.cluster.provisioning.api.ProvisioningRequest;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

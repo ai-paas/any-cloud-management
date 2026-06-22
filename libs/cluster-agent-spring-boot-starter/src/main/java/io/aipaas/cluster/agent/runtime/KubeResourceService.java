@@ -96,8 +96,17 @@ public class KubeResourceService {
 	/** LIST_RESOURCES (paginated) — kubectl get &lt;kind&gt; 등가. */
 	public KubeResourcePage listResourcesPaginated(String clusterName, String namespace, String kind,
 			int limit, String continueToken, String labelSelector) {
+		return listResourcesPaginated(clusterName, namespace, kind, limit, continueToken, labelSelector, "");
+	}
+
+	/**
+	 * LIST_RESOURCES with fieldSelector — Event 같이 involvedObject.* 로 필터링이 필요한 자원에 사용.
+	 * labelSelector 와 AND 조합 (둘 다 채우면 둘 다 적용).
+	 */
+	public KubeResourcePage listResourcesPaginated(String clusterName, String namespace, String kind,
+			int limit, String continueToken, String labelSelector, String fieldSelector) {
 		var future = commandRouter.listResources(clusterName,
-				namespace == null ? "" : namespace, kind, limit, continueToken, labelSelector);
+				namespace == null ? "" : namespace, kind, limit, continueToken, labelSelector, fieldSelector);
 
 		CommandResponse resp = await(future, "LIST_RESOURCES", commandTimeoutSeconds + 5L);
 		requireOk(resp, "LIST_RESOURCES");

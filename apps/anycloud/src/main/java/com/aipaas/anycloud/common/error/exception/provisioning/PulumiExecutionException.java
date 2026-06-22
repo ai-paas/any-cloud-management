@@ -7,7 +7,7 @@ package com.aipaas.anycloud.common.error.exception.provisioning;
  *
  * <p>외부 시스템 호출이라 기본 {@link TransientProvisioningFailure} 로 분류 — 호출자는
  * "Pulumi 출력의 root cause 가 영구 (잘못된 region 등) 면 PermanentProvisioningFailure 로
- * 재분류" 하는 정책을 적용할 수 있다.
+ * 재분류" 하는 정책을 적용가능.
  */
 public class PulumiExecutionException extends TransientProvisioningFailure {
 

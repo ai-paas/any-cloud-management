@@ -1,0 +1,36 @@
+meta {
+  name: 11. Resource Events (이벤트 조회)
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/namespaces/{{namespace}}/{{resource_kind}}/{{resource_name}}/events
+  body: none
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+vars:pre-request {
+  namespace: default
+  resource_kind: pods
+  resource_name: test-probe
+}
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("성공 envelope + items 배열 확인", function() {
+    const data = res.getBody();
+    expect(data.success).to.equal(true);
+    expect(data.status).to.equal(200);
+    expect(data.data).to.not.be.undefined;
+    expect(data.data.items).to.not.be.undefined;
+  });
+}

@@ -5,11 +5,11 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import java.util.Map;
 
 /**
- * logback %anycloudMdc 변환 — workflow 컨텍스트 키들을 한 토큰으로 합쳐 출력한다.
+ * logback %anycloudMdc 변환 — workflow 컨텍스트 키들을 한 토큰으로 합쳐 출력.
  * <p>
  * 값이 모두 비어 있으면 빈 문자열을 반환해 일반 요청 로그(컨텍스트 없는 경우)에 잡음을 남기지
  * 않는다. 값이 하나라도 있으면 {@code [cluster=… msg=… step=… retry=N] } 형태로 출력하고
- * 끝에 공백 한 칸을 둬 뒤따르는 logger 이름과 시각적으로 분리한다.
+ * 끝에 공백 한 칸을 둬 뒤따르는 logger 이름과 시각적으로 분리.
  */
 public class LoggingMdcConverter extends ClassicConverter {
 

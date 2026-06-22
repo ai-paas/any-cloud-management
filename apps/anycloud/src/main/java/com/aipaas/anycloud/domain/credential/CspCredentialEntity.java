@@ -1,11 +1,8 @@
 package com.aipaas.anycloud.domain.credential;
 
-import com.aipaas.anycloud.domain.credential.model.CspCredentialSourceType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -55,11 +52,6 @@ public class CspCredentialEntity implements Serializable {
     @Size(max = 255)
     @Column(name = "description")
     private String description;
-
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    @Column(name = "source_type", nullable = false, length = 30)
-    private CspCredentialSourceType sourceType;
 
     @Lob
     @Column(name = "encrypted_payload", columnDefinition = "LONGTEXT")

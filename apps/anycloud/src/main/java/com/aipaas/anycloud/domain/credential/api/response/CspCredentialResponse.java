@@ -1,6 +1,5 @@
 package com.aipaas.anycloud.domain.credential.api.response;
 
-import com.aipaas.anycloud.domain.credential.model.CspCredentialSourceType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,9 +28,6 @@ public class CspCredentialResponse {
 
     @Schema(description = "자격증명 설명", example = "AWS development account")
     private String description;
-
-    @Schema(description = "저장 방식", example = "MANUAL")
-    private CspCredentialSourceType sourceType;
 
     @Schema(description = "활성 여부", example = "true")
     private Boolean active;

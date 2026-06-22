@@ -12,12 +12,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * ProvisionClusterRequest.
- *
- * @description Pulumi 기반 클러스터 프로비저닝 요청 DTO
- * @since 2026-04-02
- */
+/** Pulumi 기반 클러스터 프로비저닝 요청 DTO. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

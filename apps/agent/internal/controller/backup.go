@@ -90,7 +90,7 @@ func (d *Dispatcher) backupEtcd(ctx context.Context, cmd *agentv1.CommandRequest
 	return okBackupResponse(payload, lastChunk, nodeName)
 }
 
-// backupPki — BACKUP_PKI 핸들러. 동일 패턴, control-plane 검사는 PKI 의미상 노드 선택만 한다.
+// backupPki — BACKUP_PKI 핸들러. backupEtcd 와 동일 패턴, control-plane 검사는 PKI 의미상 노드 선택용.
 func (d *Dispatcher) backupPki(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {
 	if d.kube == nil {
 		return errorResponse(agentv1.Status_AGENT_UNAVAILABLE, "K8S_CLIENT_NIL", "K8s client not initialized")

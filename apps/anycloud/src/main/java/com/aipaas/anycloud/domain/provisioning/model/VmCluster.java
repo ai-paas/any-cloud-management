@@ -1,6 +1,5 @@
 package com.aipaas.anycloud.domain.provisioning.model;
 
-import com.aipaas.anycloud.domain.credential.model.CspCredentialSourceType;
 import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowStep;
 import java.time.LocalDateTime;
 
@@ -26,7 +25,6 @@ public record VmCluster(
         String activeRequestKey,
         String credentialId,
         String credentialName,
-        CspCredentialSourceType credentialSourceType,
         String requestConfig,
         String rawOutputs,
         String lastError,

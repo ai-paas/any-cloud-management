@@ -1,26 +1,13 @@
 // Package k8s — discovery / catalog 헬퍼.
 //
-// Cluster 가 지원하는 모든 API resource (kind) 를 enumerate. UI 의 "resource kind picker"
-// 채우는 LIST_RESOURCE_KINDS 명령 백엔드. CRD 도 자연스럽게 포함됨 — discovery API 가 동일하게
-// 보고하므로 client 측 추가 필터 불요.
-//
-// 흐름:
-//
-//	┌──────────────┐    Discovery.ServerPreferredResources()    ┌─────────────────────────┐
-//	│  realClient  │──────────────────────────────────────────► │  K8s discovery API      │
-//	└──────────────┘                                            │  (/api, /apis, /apis/*) │
-//	       ▲                                                    └─────────────────────────┘
-//	       │                ┌───────────────────────────────────────┐
-//	       │  []*APIResourceList ◄── normalizeAPIResources(filter+sort) ──── raw groups/versions
-//	       │                └───────────────────────────────────────┘
-//	       ▼
-//	[]APIResourceInfo (UI-facing shape: plural/singular/kind/group/version/namespaced/shortNames)
+// Cluster 가 지원하는 모든 API resource enumerate (UI 의 resource kind picker 백엔드). CRD 도
+// 자동 포함 — discovery API 가 동일하게 보고하므로 추가 필터 불요.
 //
 // 필터:
-//   - subresource (name 에 "/" — 예: "pods/log", "pods/exec") 제외 — list 안 됨.
-//   - verbs 에 "list" 없는 자원 제외 — UI 의 picker 의미 없음.
+//   - subresource (name 에 "/", e.g. "pods/log", "pods/exec") 제외 — list 안 됨.
+//   - verbs 에 "list" 없는 자원 제외 — UI picker 에 의미 없음.
 //
-// 정렬: (Group, Plural) 안정 정렬 — backend cache key / UI 표시 결정성.
+// 정렬: (Group, Plural) 안정 정렬 — backend cache key / UI 결정성 위해.
 
 package k8s
 
@@ -44,23 +31,13 @@ type APIResourceInfo struct {
 	ShortNames []string // ["po"] for pods, [] when absent
 }
 
-// ListAPIResources — server discovery 결과를 list. kubeconfig RBAC 가 GET /api, /apis 권한을
-// 가져야 함 (default cluster-admin OK). 결과는 (Group, Plural) 안정 정렬.
-//
-// Subresource ("pods/log" 등) 와 list verb 미지원 자원은 자동 제외 — picker UI 가 enumerate
-// 못하는 entry 는 노출 안 함.
+// ListAPIResources: 클러스터의 모든 API 자원 종류를 UI picker 용으로 반환.
+// CRD 자동 포함. subresource 와 list verb 미지원 자원 제외, (Group, Plural) 안정 정렬.
 func (c *realClient) ListAPIResources(ctx context.Context) ([]APIResourceInfo, error) {
-	// ServerPreferredResources — 각 group 의 preferred version 만 반환. deprecated group 처리.
-	// 부분 실패 (일부 group 의 discovery 가 깨진 경우) 도 본 호출은 결과를 partial 로 돌려주는 경우
-	// 가 있어 nil 체크가 아닌 error 가 아닌 한 진행.
+	// 일부 CRD 가 깨져도 정상 자원은 partial 반환 — lists 가 nil 일 때만 에러.
 	lists, err := c.cs.Discovery().ServerPreferredResources()
-	if err != nil {
-		// client-go 는 partial discovery (일부 group 만 실패) 도 error 로 보고하지만 lists 는
-		// 부분 채워서 돌려준다. 운영 cluster 의 CRD 가 깨졌을 때 전체 fail 시키지 않도록
-		// lists 가 non-nil 이면 best-effort 로 진행.
-		if lists == nil {
-			return nil, fmt.Errorf("discovery: %w", err)
-		}
+	if err != nil && lists == nil {
+		return nil, fmt.Errorf("discovery: %w", err)
 	}
 	return normalizeAPIResources(lists), nil
 }

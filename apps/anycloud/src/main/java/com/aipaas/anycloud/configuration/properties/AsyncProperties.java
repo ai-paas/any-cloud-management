@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
  * 도메인별 비동기 풀 설정.
  * <p>
  * 각 풀은 독립된 {@code ThreadPoolTaskExecutor} 로 구성되어 한 도메인의 부하 폭주가
- * 다른 도메인의 비동기 작업을 굶기지 않도록 격리한다.
+ * 다른 도메인의 비동기 작업을 굶기지 않도록 격리.
  *
  * <pre>
  * async:

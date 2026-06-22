@@ -1,6 +1,5 @@
 package com.aipaas.anycloud.domain.provisioning;
 
-import com.aipaas.anycloud.domain.credential.model.CspCredentialSourceType;
 import com.aipaas.anycloud.domain.provisioning.model.VmClusterStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.Column;
@@ -51,6 +50,15 @@ public class VmClusterEntity implements Serializable {
     @Column(name = "cluster_name", nullable = false, length = 45)
     private String clusterName;
 
+    /**
+     * 매칭된 K8s ClusterEntity 의 id (FK). VERIFY / cluster-agent self-register 시점에 SET.
+     * 미설정 = 아직 K8s cluster 등록 전 (provisioning 중). ON DELETE SET NULL — cluster row 삭제 시
+     * vm_cluster 의 audit 보존을 위해 FK 만 끊는다.
+     */
+    @Size(max = 45)
+    @Column(name = "cluster_id", length = 45)
+    private String clusterId;
+
     @Size(max = 255)
     @Column(name = "description")
     private String description;
@@ -89,10 +97,6 @@ public class VmClusterEntity implements Serializable {
     @Size(max = 100)
     @Column(name = "credential_name", length = 100)
     private String credentialName;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "credential_source_type", length = 30)
-    private CspCredentialSourceType credentialSourceType;
 
     @Lob
     @Column(name = "request_config", columnDefinition = "LONGTEXT")
@@ -145,7 +149,7 @@ public class VmClusterEntity implements Serializable {
     private Integer workflowRetryCount = 0;
 
     /**
-     * 가장 최근에 처리한 workflow 메시지의 ID. 동일 messageId 가 재전달되면 orchestrator 가 스킵한다.
+     * 가장 최근에 처리한 workflow 메시지의 ID. 동일 messageId 가 재전달되면 orchestrator 가 스킵.
      */
     @Column(name = "last_processed_workflow_message_id", length = 36)
     private String lastProcessedWorkflowMessageId;

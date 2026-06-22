@@ -202,3 +202,21 @@ allowlist:
     # UI 의 K8s resource explorer ("kind picker") + shortname → 정규화 입력 처리에 필수.
     - LIST_RESOURCE_KINDS
     - RESOLVE_RESOURCE
+  # PodExec 대상 namespace 화이트리스트. allowed_namespaces 와 별개 — exec 는 kubectl exec 등가의
+  # 강력한 권한 (terminal 진입, container 내부 임의 명령). compliance 환경에서는 narrowing 권장.
+  # 현재 dev policy: wildcard. agent code 가 "*" 를 "모든 ns 허용" 으로 해석.
+  # 명시 set 예시: ["default", "kube-system", "aipaas-system", "monitoring"]
+  execNamespaces:
+    - "*"
+
+# ---------- identity Secret ----------
+identity:
+  # cluster-agent-identity Secret 의 pre-install/pre-upgrade cleanup. cluster 재생성 시 backend DB
+  # 의 새 token hash 와 어긋난 옛 Secret 자동 정리. helm install 마다 fresh registrationToken 으로
+  # 새 identity 발급 — 60일 token cycle 의 시작점을 install 시점으로 일치.
+  cleanupHook:
+    enabled: true
+    # bitnami/kubectl 은 2025 부터 Docker Hub public access 가 제한되어 ImagePullBackOff 발생.
+    # rancher/kubectl 은 동등 기능 + Docker Hub public 유지. 운영자가 own registry 의 kubectl
+    # 이미지를 쓰고 싶을 때 override.
+    image: "rancher/kubectl:v1.31.0"

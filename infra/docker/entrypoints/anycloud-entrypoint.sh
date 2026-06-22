@@ -16,6 +16,12 @@ case "${PULUMI_PASSPHRASE:-}" in
     ;;
 esac
 
+# Pulumi CLI 존재 확인 — Automation API 가 invoke. binary 자체가 없으면 즉시 실패 (stale image).
+if ! command -v pulumi >/dev/null 2>&1; then
+  echo "FATAL: 'pulumi' binary not in PATH — Pulumi Automation Java SDK 가 호출할 수 없음. Dockerfile.pulumi 재빌드 필요." >&2
+  exit 1
+fi
+
 # Volume ownership 보정. anycloud user 가 작성 가능하도록 chown 시도.
 # 권한이 없으면 (rootless docker 등) silently skip — 정상 동작하면 OK.
 ensure_writable() {
