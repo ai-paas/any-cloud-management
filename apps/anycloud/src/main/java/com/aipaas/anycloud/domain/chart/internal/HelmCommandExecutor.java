@@ -3,12 +3,19 @@ package com.aipaas.anycloud.domain.chart.internal;
 import com.aipaas.anycloud.common.error.exception.HelmDeploymentException;
 import com.aipaas.anycloud.common.util.CommandExecutionSupport;
 import com.aipaas.anycloud.common.util.CommandExecutionSupport.CommandExecutionResult;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
 /**
@@ -23,11 +30,14 @@ import org.springframework.stereotype.Component;
  * <p>새로운 helm CLI 호출이 필요할 때는 본 클래스에 args helper 추가 전에 PR 리뷰에서 "왜 in-process
  * 또는 cluster-agent 로 대체 불가능한가" 명시 필요.
  */
-@Slf4j
 @Component
 public class HelmCommandExecutor {
 
+    private static final Logger log = LoggerFactory.getLogger(HelmCommandExecutor.class);
     private static final Duration DEFAULT_TIMEOUT = Duration.ofMinutes(2);
+    private static final String BUNDLED_HELM_RESOURCE = "helm/v3.19.0/linux-amd64/helm";
+
+    private volatile Path bundledHelmPath;
 
     /**
      * Helm CLI 실행 + exit code 0 확인. 실패면 {@link HelmDeploymentException}.
@@ -37,8 +47,45 @@ public class HelmCommandExecutor {
      * @return stdout (utf-8 텍스트). stderr 는 로그에만 보냄.
      */
     public String executeAndCheck(List<String> args, String kubeconfigPath) {
+        String helmBinary = "helm";
+        CommandExecutionResult lookup = CommandExecutionSupport.execute(
+                List.of("/bin/sh", "-c", "command -v helm >/dev/null 2>&1"),
+                null,
+                Map.of(),
+                Duration.ofSeconds(5));
+        if (!lookup.isSuccess()) {
+            Path cached = bundledHelmPath;
+            if (cached == null || !Files.isExecutable(cached)) {
+                synchronized (this) {
+                    cached = bundledHelmPath;
+                    if (cached == null || !Files.isExecutable(cached)) {
+                        Resource resource = new ClassPathResource(BUNDLED_HELM_RESOURCE);
+                        if (!resource.exists()) {
+                            throw new IllegalStateException("Helm binary not found on PATH and bundled resource missing: "
+                                    + BUNDLED_HELM_RESOURCE);
+                        }
+                        try (InputStream in = resource.getInputStream()) {
+                            cached = Files.createTempFile("anycloud-bundled-helm-", "");
+                            Files.copy(in, cached, StandardCopyOption.REPLACE_EXISTING);
+                            if (!cached.toFile().setExecutable(true, true)) {
+                                throw new IllegalStateException("Failed to mark bundled Helm executable: " + cached);
+                            }
+                            bundledHelmPath = cached;
+                            log.info(
+                                    "Using bundled Helm binary from classpath resource {} -> {}",
+                                    BUNDLED_HELM_RESOURCE,
+                                    cached);
+                        } catch (IOException e) {
+                            throw new IllegalStateException("Failed to extract bundled Helm binary: " + e.getMessage(), e);
+                        }
+                    }
+                }
+            }
+            helmBinary = cached.toString();
+        }
+
         List<String> cmd = new ArrayList<>();
-        cmd.add("helm");
+        cmd.add(helmBinary);
         cmd.addAll(args);
         CommandExecutionResult result = CommandExecutionSupport.execute(cmd, null, Map.of(), DEFAULT_TIMEOUT);
         if (!result.isSuccess()) {
