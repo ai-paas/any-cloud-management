@@ -72,11 +72,11 @@ dependencies {
     compileOnly 'org.apache.tomcat:annotations-api:6.0.53'
 
     // ---- Spring Boot core ----
-    api 'org.springframework.boot:spring-boot-starter:3.2.5'
-    api 'org.springframework.boot:spring-boot-starter-websocket:3.2.5'
-    api 'org.springframework.boot:spring-boot-starter-validation:3.2.5'
+    api 'org.springframework.boot:spring-boot-starter:3.5.16'
+    api 'org.springframework.boot:spring-boot-starter-websocket:3.5.16'
+    api 'org.springframework.boot:spring-boot-starter-validation:3.5.16'
     // configuration metadata processor — IDE 가 application.yaml 자동완성.
-    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:3.2.5'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:3.5.16'
 
     // ---- JWT (registration token) ----
     api 'io.jsonwebtoken:jjwt-api:0.12.6'
@@ -102,7 +102,7 @@ dependencies {
     annotationProcessor "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
 
     // ---- Test ----
-    testImplementation 'org.springframework.boot:spring-boot-starter-test:3.2.5'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test:3.5.16'
     testImplementation 'org.awaitility:awaitility:4.2.1'
     testCompileOnly "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
     testAnnotationProcessor "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"

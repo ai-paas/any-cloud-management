@@ -90,7 +90,7 @@ spotless {
 dependencyManagement {
     imports {
         mavenBom "io.fabric8:kubernetes-client-bom:7.8.0"
-        mavenBom "org.testcontainers:testcontainers-bom:1.20.4"
+        mavenBom "org.testcontainers:testcontainers-bom:1.21.4"
     }
 }
 
