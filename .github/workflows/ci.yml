@@ -62,11 +62,14 @@ jobs:
         # CI 에서 starter 모두 publishToMavenLocal 이 성공하는지 확인.
         # observability / backup starter 는 cluster-agent-features-spring-boot-starter 로
         # 통합되어 settings.gradle 에 존재하지 않는다 (v0.3.0). 실제 모듈 3개만 검증.
-        run: ./gradlew \
-          :cluster-agent-spring-boot-starter:publishToMavenLocal \
-          :cluster-agent-features-spring-boot-starter:publishToMavenLocal \
-          :cluster-provisioning-spring-boot-starter:publishToMavenLocal \
-          --no-daemon --console=plain
+        # 블록 스칼라(|) 로 둔다. plain scalar 는 줄바꿈을 공백으로 접어서
+        # '\ :task' 가 되고, Gradle 이 앞 공백을 빈 path segment 로 읽어 실패한다.
+        run: |
+          ./gradlew \
+            :cluster-agent-spring-boot-starter:publishToMavenLocal \
+            :cluster-agent-features-spring-boot-starter:publishToMavenLocal \
+            :cluster-provisioning-spring-boot-starter:publishToMavenLocal \
+            --no-daemon --console=plain
 
       - name: Upload checkstyle / spotless reports on failure
         if: failure()
