@@ -106,6 +106,9 @@ dependencies {
     testImplementation 'org.awaitility:awaitility:4.2.1'
     testCompileOnly "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
     testAnnotationProcessor "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+    // Gradle 9 는 launcher 를 test runtime classpath 에서 찾는다. 다른 모듈은 자동 주입이
+    // 걸리는데 여기는 걸리지 않아 test 태스크가 아예 뜨지 못했다. 버전은 junit-bom 이 정한다.
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 test {

@@ -5,11 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/** classpath 의 alert-rules/*.yaml 7개를 모두 로드하고 placeholder 치환 동작을 확인. */
+/** classpath 의 alert-rules/*.yaml 8개를 모두 로드하고 placeholder 치환 동작을 확인. */
 class AlertRuleCatalogTest {
 
 	private static final List<String> EXPECTED_IDS = List.of(
-			"control-plane", "controllers", "kube-node", "node",
+			"control-plane", "controllers", "gpu", "kube-node", "node",
 			"pod", "prometheus-stack", "storage");
 
 	@Test

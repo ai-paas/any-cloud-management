@@ -295,7 +295,7 @@ class KubeResourceServiceTest {
 						.putFields("returned_count", Value.newBuilder().setNumberValue(1).build())
 						.build())
 				.build();
-		when(router.listResources(eq("c1"), eq("web"), eq("pods"), eq(50), eq(""), eq("")))
+		when(router.listResources(eq("c1"), eq("web"), eq("pods"), eq(50), eq(""), eq(""), eq("")))
 				.thenReturn(CompletableFuture.completedFuture(resp));
 
 		KubeResourcePage page = svc.listResourcesPaginated("c1", "web", "pods", 50, "", "");
@@ -318,7 +318,7 @@ class KubeResourceServiceTest {
 						.putFields("returned_count", Value.newBuilder().setNumberValue(0).build())
 						.build())
 				.build();
-		when(router.listResources(anyString(), anyString(), anyString(), anyInt(), anyString(), anyString()))
+		when(router.listResources(anyString(), anyString(), anyString(), anyInt(), anyString(), anyString(), anyString()))
 				.thenReturn(CompletableFuture.completedFuture(resp));
 
 		KubeResourcePage page = svc.listResourcesPaginated("c1", null, "pods", 50, "", "");
@@ -333,7 +333,7 @@ class KubeResourceServiceTest {
 				.setErrorCode("K8S_LIST_FAILED")
 				.setErrorMessage("forbidden")
 				.build();
-		when(router.listResources(anyString(), anyString(), anyString(), anyInt(), anyString(), anyString()))
+		when(router.listResources(anyString(), anyString(), anyString(), anyInt(), anyString(), anyString(), anyString()))
 				.thenReturn(CompletableFuture.completedFuture(resp));
 
 		assertThatThrownBy(() -> svc.listResourcesPaginated("c1", "web", "pods", 50, "", ""))
@@ -349,7 +349,7 @@ class KubeResourceServiceTest {
 						.putFields("items", Value.newBuilder().setStringValue("{ broken JSON").build())
 						.build())
 				.build();
-		when(router.listResources(anyString(), anyString(), anyString(), anyInt(), anyString(), anyString()))
+		when(router.listResources(anyString(), anyString(), anyString(), anyInt(), anyString(), anyString(), anyString()))
 				.thenReturn(CompletableFuture.completedFuture(resp));
 
 		assertThatThrownBy(() -> svc.listResourcesPaginated("c1", "web", "pods", 50, "", ""))
