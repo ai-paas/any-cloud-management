@@ -8,11 +8,11 @@ import com.aipaas.anycloud.domain.provisioning.bootstrap.support.VmClusterBootst
 import com.aipaas.anycloud.domain.provisioning.convergence.ComponentHealth;
 import com.aipaas.anycloud.domain.provisioning.convergence.ConvergenceSignal;
 import com.aipaas.anycloud.domain.provisioning.convergence.RequestedAddonInspector;
+import com.aipaas.anycloud.domain.provisioning.convergence.RequestedAddons;
 import com.aipaas.anycloud.domain.provisioning.convergence.Requirement;
 import com.aipaas.anycloud.domain.provisioning.model.VmClusterInternalRequestSnapshot;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,7 +44,8 @@ public class RequestedAddonInspectorImpl implements RequestedAddonInspector {
         if (clusterId == null || clusterId.isBlank()) {
             return List.of();
         }
-        Set<String> requested = requestedCatalogIds(snapshotService.read(vmCluster.getRequestConfig()));
+        Set<String> requested =
+                RequestedAddons.catalogEntries(snapshotService.read(vmCluster.getRequestConfig())).keySet();
         if (requested.isEmpty()) {
             return List.of();
         }
@@ -89,15 +90,4 @@ public class RequestedAddonInspectorImpl implements RequestedAddonInspector {
                 addon.getLastError() != null ? addon.getLastError() : "addon state=" + state);
     }
 
-    /** 요청 플래그 → 카탈로그 id. 카탈로그 항목이 바뀌면 여기만 고친다. */
-    private Set<String> requestedCatalogIds(VmClusterInternalRequestSnapshot spec) {
-        Set<String> ids = new LinkedHashSet<>();
-        if (Boolean.TRUE.equals(spec.getEnableGpuOperator())) {
-            ids.add("nvidia-gpu-operator");
-        }
-        if (Boolean.TRUE.equals(spec.getEnableIngress())) {
-            ids.add("ingress-nginx");
-        }
-        return ids;
-    }
 }
