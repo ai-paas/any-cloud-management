@@ -27,12 +27,14 @@ public final class GpuFlavorMapper {
     public static final String CONFIG_KEY_WORKER_ACCELERATOR_COUNT = "workerAcceleratorCount";
 
     /**
-     * Pulumi 측의 NVIDIA GPU operator 자동 설치 flag — ClusterSpec.EnableGpuOperator 와 매핑.
-     * GPU instance 만 띄우면 driver 가 없음. 본 flag 가 true 면 Pulumi 가 nvidia/gpu-operator helm
-     * chart 를 cluster bootstrap 단계에서 설치 (driver + container runtime + device plugin).
+     * NVIDIA GPU operator 요청 flag. GPU instance 만 띄우면 driver 가 없다.
      *
-     * <p>cluster-observability 의 dcgm-exporter 와 별개 — gpu-operator 가 노드 측 driver/runtime
-     * 담당, dcgm-exporter 가 메트릭 노출. 둘 다 필요.
+     * <p>Pulumi 는 이 값을 읽지 않는다 — VM 과 네트워크까지가 Pulumi 의 범위다. true 면
+     * {@code nvidia-gpu-operator} addon 이 등록되고, agent 연결 후 helm 으로 설치되며
+     * operator 가 driver / container runtime / device plugin 을 관리한다.
+     *
+     * <p>dcgm-exporter 는 별도 addon 이다 — operator 가 노드 측 driver/runtime 을 담당하고
+     * dcgm-exporter 가 메트릭을 노출한다. 카탈로그가 operator 쪽 dcgmExporter 를 꺼서 중복을 피한다.
      */
     public static final String CONFIG_KEY_ENABLE_GPU_OPERATOR = "enableGpuOperator";
 
@@ -226,8 +228,7 @@ public final class GpuFlavorMapper {
                     existing);
         }
 
-        // Pulumi 측의 EnableGpuOperator 자동 활성화 — 운영자가 명시적으로 끄지 않는 한 GPU cluster 는
-        // driver/runtime 이 반드시 필요하므로 default true.
+        // 운영자가 명시적으로 끄지 않는 한 GPU cluster 는 driver/runtime 이 반드시 필요하므로 default true.
         String gpuOpExisting = config.get(CONFIG_KEY_ENABLE_GPU_OPERATOR);
         if (gpuOpExisting == null || gpuOpExisting.isBlank()) {
             config.put(CONFIG_KEY_ENABLE_GPU_OPERATOR, "true");

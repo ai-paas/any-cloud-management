@@ -32,8 +32,6 @@ public record ClusterSpec(
         String podCidr,
         String serviceCidr,
         String joinToken,
-        boolean enableIngress,
-        boolean enableGpuOperator,
         String openstackImageName,
         String openstackFlavorName,
         String openstackExternalNetworkId,
@@ -65,8 +63,6 @@ public record ClusterSpec(
                 str(cfg, "podCidr"),
                 str(cfg, "serviceCidr"),
                 str(cfg, "joinToken"),
-                boolVal(cfg, "enableIngress"),
-                boolVal(cfg, "enableGpuOperator"),
                 str(cfg, "openstackImageName"),
                 str(cfg, "openstackFlavorName"),
                 str(cfg, "openstackExternalNetworkId"),
@@ -160,8 +156,6 @@ public record ClusterSpec(
         private String podCidr;
         private String serviceCidr;
         private String joinToken;
-        private boolean enableIngress;
-        private boolean enableGpuOperator;
         private String openstackImageName;
         private String openstackFlavorName;
         private String openstackExternalNetworkId;
@@ -190,8 +184,6 @@ public record ClusterSpec(
             this.podCidr = src.podCidr;
             this.serviceCidr = src.serviceCidr;
             this.joinToken = src.joinToken;
-            this.enableIngress = src.enableIngress;
-            this.enableGpuOperator = src.enableGpuOperator;
             this.openstackImageName = src.openstackImageName;
             this.openstackFlavorName = src.openstackFlavorName;
             this.openstackExternalNetworkId = src.openstackExternalNetworkId;
@@ -227,7 +219,7 @@ public record ClusterSpec(
                     provider, name, environment, region, gcpProject, azureResourceGroup, ociCompartmentId,
                     vpcCidr, subnetCidrs, sshUser, masterInstanceType, workerInstanceType,
                     masterCount, workerCount, kubernetesVersion, podCidr, serviceCidr, joinToken,
-                    enableIngress, enableGpuOperator, openstackImageName, openstackFlavorName,
+                    openstackImageName, openstackFlavorName,
                     openstackExternalNetworkId, openstackFloatingIpPool, database, useSpot, osImage,
                     rootDiskSizeGb);
         }

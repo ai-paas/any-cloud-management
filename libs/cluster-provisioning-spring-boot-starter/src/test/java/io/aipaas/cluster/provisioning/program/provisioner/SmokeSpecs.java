@@ -33,8 +33,6 @@ public final class SmokeSpecs {
                 /* podCidr */ "192.168.0.0/16",
                 /* serviceCidr */ "10.96.0.0/12",
                 /* joinToken */ "abcdef.1234567890abcdef",
-                /* enableIngress */ false,
-                /* enableGpuOperator */ false,
                 /* openstackImageName */ "ubuntu-24.04",
                 /* openstackFlavorName */ "m1.large",
                 /* openstackExternalNetworkId */ "ext-net-id",
