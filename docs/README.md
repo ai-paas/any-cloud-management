@@ -57,6 +57,7 @@
 - [pulumi-multicloud-k8s-blueprint.md](./architecture/pulumi/pulumi-multicloud-k8s-blueprint.md) — 멀티 CSP VM Kubernetes 프로비저닝 청사진
 - [pulumi-runtime-with-gateway.md](./architecture/pulumi/pulumi-runtime-with-gateway.md) — Gateway + Spring + Pulumi 운영 구조 / RustFS + OpenBao
 - [pulumi-gpu-support.md](./architecture/pulumi/pulumi-gpu-support.md) — Pulumi GPU node + DCGM exporter
+- [pulumi-yaml-migration.md](./architecture/pulumi/pulumi-yaml-migration.md) — 타입 SDK(732MB)를 생성 YAML로 교체하는 설계
 
 ### Starter Modules ([starters/](./architecture/starters/))
 
