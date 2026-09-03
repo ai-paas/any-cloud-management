@@ -54,7 +54,7 @@ dependencies {
     api "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${rootProject.ext.jacksonVersion}"
 
     // SnakeYAML — Backup 의 velero-policies, Observability 의 alert-rules catalog 로드.
-    implementation 'org.yaml:snakeyaml:2.3'
+    implementation 'org.yaml:snakeyaml:2.7'
 
     // Caffeine — RBAC 의 SimpleBindingFleetView TTL cache.
     api 'com.github.ben-manes.caffeine:caffeine:3.1.8'
