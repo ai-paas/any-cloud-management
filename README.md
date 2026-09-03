@@ -113,14 +113,13 @@ OpenBao 모드로 전환하려면 `PULUMI_SECRETS_PROVIDER=hashivault://openbao:
 | `apps/agent/` | Cluster Agent (Go, in-cluster) |
 | `libs/cluster-agent-spring-boot-starter/` | **Layer 1** — gRPC reverse-tunnel · 인증 · PodExec WebSocket |
 | `libs/cluster-agent-features-spring-boot-starter/` | **Layer 2 통합** — RBAC + Backup + Observability sub-feature |
-| `libs/cluster-provisioning-spring-boot-starter/` | 별도 — Pulumi CLI 위임 multi-CSP VM 인프라 orchestration |
-| `infra/pulumi/` | Pulumi Go IaC, provider 별 sub-package |
+| `libs/cluster-provisioning-spring-boot-starter/` | 별도 — Pulumi **Java SDK** 기반 multi-CSP VM 인프라 orchestration. provider 별 `*Provisioner` |
 | `infra/helm/` | Helm 차트 · binary 번들 |
 | `infra/manifests/` | K8s manifest 예시 (gpu-observability, postgresql, kured) |
 | `infra/docker/` | Dockerfile entrypoints · 빌드 보조 자산 |
-| `proto/` | 공유 protobuf 스키마 (Java + Go generate) |
+| `libs/cluster-agent-spring-boot-starter/src/main/proto/` | 공유 protobuf 스키마 (Java + Go generate). 생성물은 gitignore |
 | `docker-compose.dev.yml` | MariaDB + RabbitMQ + ChartMuseum + RustFS + OpenBao + backend + worker 통합 dev compose (`make dev-up`) |
 | `docker-compose.yml` | GHCR image pull 만 — production-like (`make prod-up`) |
-| `Dockerfile.pulumi` | Pulumi CLI + Go 포함 backend 이미지 |
+| `Dockerfile.pulumi` | Pulumi CLI 포함 backend 이미지 |
 | `.bruno/` | API 통합 테스트 컬렉션 (Bruno) |
 | `.github/workflows/` | GitHub Actions CI |

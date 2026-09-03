@@ -44,11 +44,11 @@ anycloud monorepo 의 component / package / 의존성 지도입니다. 자세한
 
 | Component | 위치 | 책임 |
 |---|---|---|
-| `apps/anycloud` | Spring Boot 3.2.5 / Java 21 | REST + gRPC server. JPA / Flyway. 핵심 control plane. |
-| `apps/agent` | Go 1.22+ | target K8s cluster 내 sidecar/controller. bearer-over-TLS bidi stream 으로 backend 와 통신. |
+| `apps/anycloud` | Spring Boot 3.5.16 / Java 21 | REST + gRPC server. JPA / Flyway. 핵심 control plane. |
+| `apps/agent` | Go 1.26+ | target K8s cluster 내 sidecar/controller. bearer-over-TLS bidi stream 으로 backend 와 통신. |
 | `libs/cluster-agent-spring-boot-starter` | Java starter (**Layer 1**) | gRPC schema (proto), starter SPI (runtime/identity/exec/logstream) — anycloud 와 모든 Layer 2/3 starter 가 의존. → [Extension guide](./starters/starter-extension-guide.md) |
-| `libs/cluster-agent-observability-spring-boot-starter` | Java starter (**Layer 2**) | Prometheus / Grafana 표준 query 카탈로그. cluster-agent starter 위에 build. |
-| `infra/pulumi` | Go (Pulumi IaC) | VM cluster provisioning (AWS / Azure / GCP / Proxmox / Ncloud). |
+| `libs/cluster-agent-features-spring-boot-starter` | Java starter (**Layer 2**) | RBAC, Backup, Observability 통합. v0.3.0 에서 observability / backup starter 를 흡수했다. |
+| `libs/cluster-provisioning-spring-boot-starter` | Java starter | VM cluster provisioning. Pulumi **Java SDK** 기반이며 provider 별 `*Provisioner` 로 구현. v0.3.0 에서 Go 구현(`infra/pulumi`)을 대체했다. |
 | `apps/agent/deploy/helm/cluster-agent` | Helm chart | target cluster 에 agent 배포 패키지. |
 
 ## 2. anycloud Backend (Java) — package 지도

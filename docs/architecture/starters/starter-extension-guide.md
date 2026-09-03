@@ -69,14 +69,14 @@ dependencies {
     api project(':cluster-agent-spring-boot-starter')
 
     // Spring Boot core
-    api 'org.springframework.boot:spring-boot-starter:3.2.5'
+    api 'org.springframework.boot:spring-boot-starter:3.5.16'
 
-    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:3.2.5'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:3.5.16'
 
     compileOnly 'org.projectlombok:lombok:1.18.34'
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
 
-    testImplementation 'org.springframework.boot:spring-boot-starter-test:3.2.5'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test:3.5.16'
     testCompileOnly 'org.projectlombok:lombok:1.18.34'
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.34'
 }
