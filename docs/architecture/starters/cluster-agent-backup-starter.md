@@ -10,8 +10,8 @@ sub-package `io.aipaas.cluster.agent.backup` 으로 제공. 본 문서는 Backup
 | Starter | 책임 | 호스트 의존 SPI |
 |---|---|---|
 | `cluster-agent-spring-boot-starter` (Layer 1) | gRPC reverse-tunnel, agent registration, K8s API / Helm dispatcher | `AgentIdentityStore` |
-| `cluster-agent-observability-spring-boot-starter` (Layer 2) | PromQL / Alertmanager / Grafana 통신, alert silence, rule | `ClusterCatalog` |
-| **`cluster-agent-backup-spring-boot-starter`** (Layer 2) | **etcd / PKI 원시 백업, Velero install, Backup, Restore, Schedule** | `BackupHistoryWriter` (선택) |
+| `cluster-agent-features-spring-boot-starter` — `observability` (Layer 2) | PromQL / Alertmanager / Grafana 통신, alert silence, rule | `ClusterCatalog` |
+| **`cluster-agent-features-spring-boot-starter` — `backup`** (Layer 2) | **etcd / PKI 원시 백업, Velero install, Backup, Restore, Schedule** | `BackupHistoryWriter` (선택) |
 | 호스트 application (e.g. anycloud) | DB, schedule, KEK, credential 통합, REST controller | — |
 
 Layer 2 의 두 starter (observability / backup) 는 서로 독립적입니다. 어느 하나만 import 해도 동작하며, 둘 다 cluster-agent-starter 위에 build 됩니다.
@@ -105,10 +105,10 @@ starter 는 `VeleroInstallSpec` 만 받습니다 — credential 출처는 알지
 ## 4. 모듈 layout
 
 ```
-libs/cluster-agent-backup-spring-boot-starter/
+libs/cluster-agent-features-spring-boot-starter/
 ├── build.gradle
 ├── src/main/
-│   ├── java/io/aipaas/cluster/backup/
+│   ├── java/io/aipaas/cluster/agent/backup/
 │   │   ├── autoconfigure/
 │   │   │   ├── BackupAutoConfiguration.java
 │   │   │   └── BackupProperties.java

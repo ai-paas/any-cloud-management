@@ -10,9 +10,9 @@ sub-package `io.aipaas.cluster.agent.rbac` 으로 제공. 본 문서는 RBAC sub
 | Starter | 책임 | 호스트 의존 SPI |
 |---|---|---|
 | `cluster-agent-spring-boot-starter` (Layer 1) | gRPC reverse-tunnel, agent registration, K8s API / Helm dispatcher | `AgentIdentityStore` |
-| `cluster-agent-observability-spring-boot-starter` (Layer 2) | PromQL / Alertmanager / Grafana 통신, alert silence, rule | `ClusterCatalog` |
-| `cluster-agent-backup-spring-boot-starter` (Layer 2) | etcd / PKI 백업, Velero install, Backup, Restore, Schedule | `BackupHistoryWriter` (선택) |
-| **`cluster-agent-rbac-spring-boot-starter`** (Layer 2) | **OIDC group → ClusterRoleBinding 자동 apply, fleet view, audit** | (선택) `BindingTemplateCatalog` / `BindingAuditSink` |
+| `cluster-agent-features-spring-boot-starter` — `observability` (Layer 2) | PromQL / Alertmanager / Grafana 통신, alert silence, rule | `ClusterCatalog` |
+| `cluster-agent-features-spring-boot-starter` — `backup` (Layer 2) | etcd / PKI 백업, Velero install, Backup, Restore, Schedule | `BackupHistoryWriter` (선택) |
+| **`cluster-agent-features-spring-boot-starter` — `rbac`** (Layer 2) | **OIDC group → ClusterRoleBinding 자동 apply, fleet view, audit** | (선택) `BindingTemplateCatalog` / `BindingAuditSink` |
 | 호스트 application (e.g. anycloud) | REST controller, cluster registry, addon catalog 통합 | — |
 
 Layer 2 의 3 starter (observability / backup / rbac) 는 모두 독립. 어느 하나만 import 해도 동작.
@@ -170,7 +170,7 @@ public class ClusterAgentRbacAutoConfiguration {
 // build.gradle.kts
 dependencies {
     implementation("io.aipaas.cluster:cluster-agent-spring-boot-starter:0.1.0")
-    implementation("io.aipaas.cluster:cluster-agent-rbac-spring-boot-starter:0.1.0")
+    implementation("io.aipaas.cluster:cluster-agent-features-spring-boot-starter:0.1.0")
 }
 ```
 

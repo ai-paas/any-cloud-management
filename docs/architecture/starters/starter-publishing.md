@@ -107,8 +107,7 @@ publishPassword=<token>
 ```bash
 ./gradlew \
   :cluster-agent-spring-boot-starter:publish \
-  :cluster-agent-observability-spring-boot-starter:publish \
-  :cluster-agent-backup-spring-boot-starter:publish \
+  :cluster-agent-features-spring-boot-starter:publish \
   :cluster-provisioning-spring-boot-starter:publish
 ```
 
