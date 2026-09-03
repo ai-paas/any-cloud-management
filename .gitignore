@@ -12,8 +12,6 @@ apps/anycloud/src/main/resources/agent-chart/
 .env.*.local
 secrets/
 
-# Local-only test compose — personal experimentation. Recommended: make dev-up
-docker-compose.test.yml
 
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
@@ -92,6 +90,3 @@ infra/pulumi/anycloud-pulumi
 *.swp
 *~
 
-# Local-only contributor guides — not version controlled.
-AGENTS.md
-CLAUDE.md
