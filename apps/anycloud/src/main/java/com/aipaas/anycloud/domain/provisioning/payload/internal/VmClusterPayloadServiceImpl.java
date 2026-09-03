@@ -3,9 +3,15 @@ package com.aipaas.anycloud.domain.provisioning.payload.internal;
 import com.aipaas.anycloud.domain.credential.ResolvedCspCredential;
 import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
 import com.aipaas.anycloud.domain.provisioning.api.request.ProvisionClusterRequest;
+import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterComponentResponse;
 import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterListItemResponse;
 import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterNodeResponse;
+import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterRequestedAddonResponse;
 import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterStatusResponse;
+import com.aipaas.anycloud.domain.provisioning.convergence.ConvergenceSignal;
+import com.aipaas.anycloud.domain.provisioning.convergence.RequestedAddonInspector;
+import com.aipaas.anycloud.domain.provisioning.convergence.VmClusterComponentEntity;
+import com.aipaas.anycloud.domain.provisioning.convergence.VmClusterComponentRepository;
 import com.aipaas.anycloud.domain.provisioning.model.VmClusterInternalRequestSnapshot;
 import com.aipaas.anycloud.domain.provisioning.payload.VmClusterPayloadService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -16,9 +22,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
 
@@ -37,6 +45,8 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
     private static final String CONFIG_AZURE_IMAGE = "anycloud-k8s:azureImage";
 
     private final ObjectMapper objectMapper;
+    private final VmClusterComponentRepository componentRepository;
+    private final RequestedAddonInspector addonInspector;
 
     @Override
     public ProvisioningRequest restoreProvisioningRequest(VmClusterEntity vmCluster, ResolvedCspCredential credential) {
@@ -158,6 +168,8 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
                 .kubeconfigFetchCommand(stringValue(outputMap.get("kubeconfigFetchCommand")))
                 .masterSshCommand(stringValue(outputMap.get("masterSshCommand")))
                 .nodes(toVmClusterNodes(outputMap.get("nodes")))
+                .components(toComponents(vmCluster))
+                .requestedAddons(toRequestedAddons(vmCluster))
                 .createdAt(vmCluster.getCreatedAt())
                 .updatedAt(vmCluster.getUpdatedAt())
                 .requestedAt(vmCluster.getRequestedAt())
@@ -169,6 +181,42 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
                 .deletingStartedAt(vmCluster.getDeletingStartedAt())
                 .deletedAt(vmCluster.getDeletedAt())
                 .build();
+    }
+
+    /** 저장된 관측 결과만 읽는다. 조회 API 가 매 요청마다 SSH 를 열면 안 된다. */
+    private java.util.List<VmClusterComponentResponse> toComponents(VmClusterEntity vmCluster) {
+        try {
+            return componentRepository.findByVmClusterId(vmCluster.getId()).stream()
+                    .map(VmClusterPayloadServiceImpl::toComponentResponse)
+                    .toList();
+        } catch (Exception e) {
+            log.warn("구성 요소 조회 실패 cluster={}: {}", vmCluster.getClusterName(), e.toString());
+            return java.util.List.of();
+        }
+    }
+
+    private static VmClusterComponentResponse toComponentResponse(VmClusterComponentEntity row) {
+        return VmClusterComponentResponse.builder()
+                .type(row.getComponentType().name())
+                .requirement(row.getRequirement().name())
+                .health(row.getHealth().name())
+                .attempts(row.getAttempts())
+                .nextAttemptAt(row.getNextAttemptAt())
+                .lastProbedAt(row.getLastProbedAt())
+                .lastError(row.getLastError())
+                .build();
+    }
+
+    private java.util.List<VmClusterRequestedAddonResponse> toRequestedAddons(VmClusterEntity vmCluster) {
+        java.util.List<ConvergenceSignal> signals = addonInspector.inspect(vmCluster);
+        return signals.stream()
+                .map(signal -> VmClusterRequestedAddonResponse.builder()
+                        .catalogId(signal.source())
+                        .requirement(signal.requirement().name())
+                        .health(signal.health().name())
+                        .detail(signal.detail())
+                        .build())
+                .toList();
     }
 
     /**
