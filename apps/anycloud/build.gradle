@@ -154,8 +154,8 @@ dependencies {
 
     // ShedLock (H5/H11): @Scheduled 의 leader election. replica 여러개 띄워도
     // cert scan / state backup / DLQ drain 이 한 노드에서만 실행되도록 DB row lock.
-    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.16.0'
-    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.16.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:7.9.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:7.9.0'
 
     // ---- Cluster Agent infrastructure ----
     implementation project(':cluster-agent-spring-boot-starter')
