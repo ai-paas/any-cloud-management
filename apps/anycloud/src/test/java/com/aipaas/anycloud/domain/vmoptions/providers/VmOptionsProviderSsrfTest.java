@@ -44,6 +44,10 @@ class VmOptionsProviderSsrfTest {
         String link(String url, String host) {
             return sameHostOrNull(url, host);
         }
+
+        String host(String url, String expected) {
+            return requireExpectedHost(url, expected);
+        }
     }
 
     private final TestProvider provider = new TestProvider();
@@ -89,6 +93,17 @@ class VmOptionsProviderSsrfTest {
         assertThat(URI.create("https://identity." + "attacker.com/" + ".oraclecloud.com")
                         .getHost())
                 .isEqualTo("identity.attacker.com");
+    }
+
+    @Test
+    @DisplayName("조립한 URL 의 host 가 기대값과 다르면 요청 전에 막는다")
+    void assembledUrl_hostMustMatch() {
+        assertThatCode(() -> provider.host("https://ecs.cn-hangzhou.aliyuncs.com/", "ecs.cn-hangzhou.aliyuncs.com"))
+                .doesNotThrowAnyException();
+        assertThatThrownBy(() -> provider.host("https://ecs.attacker.com/", "ecs.cn-hangzhou.aliyuncs.com"))
+                .isInstanceOf(CustomException.class);
+        assertThatThrownBy(() -> provider.host("not a url", "ecs.cn-hangzhou.aliyuncs.com"))
+                .isInstanceOf(CustomException.class);
     }
 
     @Test

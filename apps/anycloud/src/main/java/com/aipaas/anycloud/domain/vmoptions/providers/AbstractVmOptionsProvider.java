@@ -217,6 +217,28 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
     }
 
     /**
+     * 조립한 URL 의 host 가 기대한 값과 정확히 일치하는지 확인한다.
+     *
+     * <p>{@link #requireValidRegionId} 로 입력을 걸렀더라도, 조립 결과를 한 번 더 파싱해
+     * host 를 대조한다. 문자열 조립 규칙이 바뀌거나 새 호출부가 검증을 빠뜨려도
+     * 요청이 나가기 전에 걸린다.
+     *
+     * @throws CustomException host 가 기대한 값과 다른 경우
+     */
+    protected String requireExpectedHost(String url, String expectedHost) {
+        String host;
+        try {
+            host = java.net.URI.create(url).getHost();
+        } catch (IllegalArgumentException e) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "endpoint", url, "endpoint URL 을 해석할 수 없습니다");
+        }
+        if (!expectedHost.equalsIgnoreCase(host)) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "endpoint", host, "허용되지 않은 endpoint host 입니다");
+        }
+        return url;
+    }
+
+    /**
      * 응답 본문에서 받은 URL(pagination link 등) 이 기대한 host 인지 확인한다.
      *
      * <p>이 URL 로 다시 요청할 때 access token 이 함께 붙으므로, host 를 확인하지 않으면

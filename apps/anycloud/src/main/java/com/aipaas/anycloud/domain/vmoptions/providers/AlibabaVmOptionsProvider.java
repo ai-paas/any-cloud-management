@@ -216,7 +216,9 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
         }
         // region 이 host 에 들어간다. 검증 없이 넣으면 host 가 통째로 바뀌고,
         // 쿼리스트링의 AccessKeyId 와 Signature 가 그대로 따라 나간다.
-        return "https://ecs." + requireValidRegionId(regionId) + ".aliyuncs.com/";
+        String region = requireValidRegionId(regionId);
+        String host = "ecs." + region + ".aliyuncs.com";
+        return requireExpectedHost("https://" + host + "/", host);
     }
 
     private String sign(String canonicalQuery) {
