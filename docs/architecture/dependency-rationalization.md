@@ -28,12 +28,12 @@ proto `events.proto` 는 messaging-agnostic schema 로 유지합니다 — `Clus
 ## Docker compose
 
 `docker-compose.dev.yml` 은 **MariaDB + RabbitMQ** 로 구성됩니다.
-- 메모리 사용량은 ~0.5 GB 입니다.
+- 메모리 사용량은 ~0.5 GB
 - `make dev-up` 으로 부팅합니다.
 
 ## 통합 테스트
 
-- `application-test.yaml` — MariaDB + RabbitMQ 만 active 입니다.
+- `application-test.yaml` — MariaDB + RabbitMQ 만 active
 - Testcontainers 가 두 컴포넌트를 spin up 합니다.
 
 ## 현재 Spring Boot starter 표면

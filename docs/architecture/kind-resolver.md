@@ -69,11 +69,11 @@ Caffeine cache.put(key, ResolvedResource)
 <clusterName> + "|" + lowercased(input)
 ```
 
-- 대소문자 무관입니다 — `pods`, `PODS`, `Pods` 는 동일 entry 입니다.
+- 대소문자 무관입니다 — `pods`, `PODS`, `Pods` 는 동일 entry
 - shortname / Kind 정규화 — agent 가 `po` → `pods` 로 변환해 같은 ResolvedResource 를 반환합니다.
   (단, cache key 자체는 입력 그대로 lowercased 됩니다 — `po` 와 `pods` 가 별도 entry 입니다. agent 호출만
   중복될 뿐, 결과는 일치하므로 정합성 문제는 없습니다.)
-- cluster 별 격리입니다 — `c1|pods` vs `c2|pods` 는 별도 entry 입니다.
+- cluster 별 격리입니다 — `c1|pods` vs `c2|pods` 는 별도 entry
 
 ### 2.3 TTL & 용량
 

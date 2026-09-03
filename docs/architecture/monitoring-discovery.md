@@ -40,7 +40,7 @@ Cluster 등록 body 에 `monitServerURL` 필드가 없습니다 — agent 가 in
 
 ### 캐시 정책
 
-- TTL 은 5분입니다.
+- TTL 은 5분
 - Key 는 implicit 입니다 (process-wide single URL). 다중 prometheus 지원 시 ns 별 캐시로 확장이 필요합니다.
 - Invalidation 은 TTL only 입니다 — agent 재기동 시 cold start 합니다.
 

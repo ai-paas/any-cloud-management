@@ -117,8 +117,8 @@ POST /v1/clusters
 ```
 
 **실패 모드:**
-- 중복 이름 → 409 DUPLICATE 입니다.
-- base64/PEM 손상 → 400 INVALID_INPUT_VALUE 입니다.
+- 중복 이름 → 409 DUPLICATE
+- base64/PEM 손상 → 400 INVALID_INPUT_VALUE
 - API server unreachable → status=UNKNOWN 으로 남습니다. retry/refresh op 를 호출합니다.
 
 ## 3. Cert renewal (mTLS lifecycle)
@@ -267,7 +267,7 @@ sequenceDiagram
 - 운영자가 endpoint 호출 후 추가 작업을 수행합니다 (이 endpoint 자체는 DB 변경만 수행합니다).
 
 **실패 모드:**
-- `ttlYears` 범위 외 → 400 BadRequest 입니다.
+- `ttlYears` 범위 외 → 400 BadRequest
 - BouncyCastle 실패 → IllegalStateException 입니다 (RNG / JCE 점검 필요).
 
 ## 7. Cert revocation (admin)

@@ -43,11 +43,11 @@ config:
 `ClusterSpec.enableGpuOperator` 가 true 이면 Pulumi 가 다음을 처리합니다.
 
 1. 워커 노드 프로비저닝입니다 (`WorkerInstanceType` 사용).
-2. `kubeadm` cluster bootstrap 완료 후 `nvidia/gpu-operator` Helm chart 설치입니다.
-   - NVIDIA driver (DaemonSet) 입니다.
-   - NVIDIA Container Toolkit (containerd runtime config) 입니다.
-   - NVIDIA device plugin (`nvidia.com/gpu` resource 노출) 입니다.
-3. (옵션) node label `nvidia.com/gpu.present=true` 자동 추가입니다.
+2. `kubeadm` cluster bootstrap 완료 후 `nvidia/gpu-operator` Helm chart 설치
+   - NVIDIA driver (DaemonSet)
+   - NVIDIA Container Toolkit (containerd runtime config)
+   - NVIDIA device plugin (`nvidia.com/gpu` resource 노출)
+3. (옵션) node label `nvidia.com/gpu.present=true` 자동 추가
 
 GPU operator 가 설치되면 cluster-agent 의 `CountGpuNodes` 가 노드를 감지하여 → backend
 `has_gpu_nodes=true` 가 backfill 됩니다 → 다음 monitoring auto-install 시 `dcgm-exporter` 도 자동 설치됩니다.
@@ -72,19 +72,19 @@ curl -X POST https://anycloud/v1/clusters -H 'Content-Type: application/json' -d
 
 내부 흐름은 다음과 같습니다.
 1. `GpuFlavorMapper.applyGpuDefaults` → `workerInstanceType=g5.xlarge` + `enableGpuOperator=true` 자동 주입입니다.
-2. Pulumi `ml-prod-01` stack up 입니다.
-   - 4 x `g5.xlarge` 워커 노드 프로비저닝입니다.
-   - kubeadm cluster 구성입니다.
-   - `nvidia/gpu-operator` 자동 설치 → driver + runtime 준비입니다.
-   - kubeconfig 반환입니다.
-3. Agent 자동 설치 → ACTIVE 전환입니다.
+2. Pulumi `ml-prod-01` stack up
+   - 4 x `g5.xlarge` 워커 노드 프로비저닝
+   - kubeadm cluster 구성
+   - `nvidia/gpu-operator` 자동 설치 → driver + runtime 준비
+   - kubeconfig 반환
+3. Agent 자동 설치 → ACTIVE 전환
 4. Agent 가 5분 내 GPU 노드를 감지하여 → heartbeat 로 `gpu_node_count=4` 를 보고합니다.
 5. Backend 가 `cluster.has_gpu_nodes=true` 를 갱신합니다.
 6. `MonitoringAutoInstaller` 가 자동 동작합니다.
-   - `kube-prometheus-stack` 설치입니다.
+   - `kube-prometheus-stack` 설치
    - `dcgm-exporter` 설치입니다 (GPU 메트릭 노출).
    - Grafana `AIPaaS Cluster Overview` + `AIPaaS GPU Overview` dashboard import 입니다.
-7. 운영자가 frontend 에서 Grafana 접속 → GPU 사용률이 즉시 보입니다.
+7. 운영자가 frontend 에서 Grafana 접속 → GPU 사용률이 즉시 보
 
 운영자 추가 개입은 **0회** 입니다.
 

@@ -85,9 +85,9 @@ model/provisioning                       64.8%
 ## 회피 항목
 - `*Dto*`, `**/dto/**` — 단순 record/POJO 입니다. Lombok generated.
 - `**/gen/agent/v1/**`, `com/aipaas/anycloud/agent/v1/**` — protoc generated 입니다.
-- `UnifiedClusterServiceImpl` (1073 missed) — 제거 예정입니다.
+- `UnifiedClusterServiceImpl` (1073 missed) — 제거 예정
 
 ## 참고
-- 게이트 설정: 루트 `build.gradle`, `jacocoTestCoverageVerification` block 입니다.
+- 게이트 설정: 루트 `build.gradle`, `jacocoTestCoverageVerification` block
 - 제외 패턴 변경 시 `coverageExcludes` 를 수정합니다.
 - 모듈 추가 시 `configure(subprojects.findAll { ... })` 의 이름 list 에 추가합니다.

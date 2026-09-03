@@ -39,21 +39,23 @@ Client
 
 Spring 은 요청 직후 다음을 수행합니다.
 
-1. 메타데이터 DB 에 `PROVISIONING` 상태 저장입니다.
-2. Pulumi stack 이름 생성입니다.
-3. 비동기 Executor 또는 Job Queue 에 실행 위임입니다.
-4. 즉시 `202 Accepted` 를 반환합니다.
+1. 메타데이터 DB 에 `PROVISIONING` 상태를 저장한다
+2. Pulumi stack 이름을 만든다
+3. 비동기 Executor 또는 Job Queue 에 실행을 넘긴다
+4. 즉시 `202 Accepted` 를 반환한다
 
 ### 3. 비동기 Worker 에서 Pulumi 실행
 
 Worker 는 다음 순서로 처리합니다.
 
-1. `pulumi stack init` 또는 `pulumi stack select` 입니다.
-2. `pulumi config set` 입니다.
-3. `pulumi up --yes --skip-preview` 입니다.
-4. `pulumi stack output --json` 입니다.
-5. output 을 DB 에 저장합니다.
-6. 상태를 `READY` 또는 `FAILED` 로 변경합니다.
+1. `LocalWorkspace.createOrSelectStack()` 으로 stack 을 준비한다
+2. CSP credential 을 Pulumi config 로 주입한다
+3. `stack.up()` 을 호출한다
+4. `stack.outputs()` 로 결과를 읽는다
+5. output 을 DB 에 저장한다
+6. 상태를 `READY` 또는 `FAILED` 로 바꾼다
+
+CLI 를 프로세스로 부르지 않고 Automation API 로 같은 일을 합니다.
 
 ## Docker 구성 전략
 
@@ -80,22 +82,22 @@ Gateway -> anycloud-backend -> pulumi-runner
 
 이 방식은 나중에 다음 상황에서 고려하면 좋습니다.
 
-- Pulumi 실행 권한을 따로 격리하고 싶을 때입니다.
-- 동시 프로비저닝 요청이 많을 때입니다.
-- Spring 이미지를 가볍게 유지하고 싶을 때입니다.
+- Pulumi 실행 권한을 따로 격리하고 싶을 때
+- 동시 프로비저닝 요청이 많을 때
+- Spring 이미지를 가볍게 유지하고 싶을 때
 
 ## Compose 권장 형태
 
 기본 서비스는 다음과 같습니다.
 
-- `gateway` 입니다.
-- `anycloud-backend` 입니다.
-- `anycloud-db` 입니다.
+- `gateway`
+- `anycloud-backend`
+- `anycloud-db`
 
 선택 서비스는 다음과 같습니다.
 
-- `rabbitmq` 입니다 (workflow messaging).
-- `pulumi-runner` 입니다.
+- `rabbitmq` (workflow messaging)
+- `pulumi-runner`
 
 현재 리포지토리에는 `anycloud-backend` + `anycloud-db` 가 이미 있으므로,
 Pulumi 확장용 오버레이 compose 를 추가하는 방식이 안전합니다.
@@ -186,11 +188,12 @@ docker compose -f docker-compose.dev.yml exec anycloud-backend pulumi login --he
 환경변수 또는 secret mount 로 주입합니다. `application.yaml` 의 `pulumi.environment` 맵에
 누적됩니다.
 
-- AWS 는 `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` 입니다.
+- AWS — `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`
 - Azure 는 `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID` 입니다.
-- GCP 는 `GOOGLE_CREDENTIALS` 또는 `GOOGLE_APPLICATION_CREDENTIALS` 입니다.
-- OpenStack 은 `OS_AUTH_URL` 등입니다.
-- 기타 CSP 도 동일 패턴입니다.
+- GCP — `GOOGLE_CREDENTIALS` 또는 `GOOGLE_APPLICATION_CREDENTIALS`
+- OpenStack — `OS_AUTH_URL` 등
+
+나머지 CSP 도 같은 패턴을 따릅니다.
 
 > **주의**: backend 용 `AWS_*` 변수와 CSP(AWS) 용 `AWS_*` 변수가 충돌합니다.
 > RustFS backend 와 AWS CSP 를 동시에 쓰려면 CSP 자격증명은 `PULUMI_CONFIG`
@@ -200,22 +203,17 @@ docker compose -f docker-compose.dev.yml exec anycloud-backend pulumi login --he
 
 ### 컴포넌트 분리
 
-- `PulumiProperties` 입니다.
-  - binary path 입니다.
-  - project dir 입니다.
-  - stack prefix 입니다.
-  - env vars 입니다.
+- `PulumiProperties` — `runtimeDir`, `stackPrefix`, `backendUrl`, `secretsProvider`,
+  `passphrase`, `environment`
 - `PulumiCommandService` 는 CLI 실행을 담당합니다.
-- `PulumiProvisioningService` 입니다.
-  - stack naming 입니다.
-  - config set 입니다.
-  - up/destroy/output orchestration 입니다.
+- `AutomationProvisioningService` — stack 이름 생성, config 주입,
+  up / preview / destroy / output 오케스트레이션
 - `ClusterProvisioningFacade` 는 기존 `ClusterService` 와 연결됩니다.
 
 현재 리포지토리 기준 권장 분리는 다음과 같습니다.
 
-- `ClusterEntity` 는 kubeconfig 기반으로 실제 Kubernetes API 에 붙는 운영 엔티티입니다.
-- `ClusterProvisioningEntity` 는 Pulumi infra 생성 상태와 raw output 을 저장하는 엔티티입니다.
+- `ClusterEntity` 는 kubeconfig 기반으로 실제 Kubernetes API 에 붙는 운영 엔티티
+- `ClusterProvisioningEntity` 는 Pulumi infra 생성 상태와 raw output 을 저장하는 엔티티
 
 즉, `프로비저닝 완료` 와 `운영용 클러스터 등록 완료` 를 같은 개념으로 두지 않습니다.
 이 분리는 현재 프로젝트의 kubeconfig 중심 구조와 잘 맞습니다.
@@ -234,10 +232,10 @@ docker compose -f docker-compose.dev.yml exec anycloud-backend pulumi login --he
 Gateway/프론트 polling 기준 권장 의미는 다음과 같습니다.
 
 - `REQUESTED` 는 요청은 저장되었고 아직 worker 가 시작 전 상태입니다.
-- `PROVISIONING` 은 Pulumi 실행 중입니다.
+- `PROVISIONING` 은 Pulumi 실행 중인 상태입니다.
 - `READY` 는 infra 생성 성공, kubeconfig 등록 완료, cluster API 사용 가능 상태입니다.
 - `FAILED` 는 프로비저닝 또는 kubeconfig 등록 실패 상태입니다.
-- `DELETING` 은 `pulumi destroy` 또는 stack cleanup 진행 중인 상태입니다.
+- `DELETING` 은 `stack.destroy()` 또는 stack cleanup 진행 중인 상태입니다.
 - `DELETED` 는 클러스터 연결 정보와 Pulumi stack 정리 완료 상태입니다.
 
 ## 운영 시 주의점
@@ -245,7 +243,7 @@ Gateway/프론트 polling 기준 권장 의미는 다음과 같습니다.
 - Pulumi 실행은 API 요청 thread 에서 직접 처리하지 않습니다.
 - stdout/stderr 전체를 로깅하고 마지막 에러를 DB 에도 남깁니다.
 - stack 이름 규칙을 강제합니다.
-  - 예: `anycloud-aws-dev-demo` 입니다.
+  - 예: `anycloud-aws-dev-demo`
 - destroy 시 partial failure 처리 전략이 필요합니다.
 - provider 별 quota 체크를 선행하면 장애가 줄어듭니다.
 

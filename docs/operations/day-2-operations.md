@@ -72,7 +72,7 @@ state backend 는 RustFS (S3 호환), secrets 는 OpenBao (Vault 호환) 입니�
 - 핵심 워크로드 정상 (Pod ready, Ingress 응답, GPU Pod 동작)
 
 **주의**
-- minor 두 단계 점프 금지입니다 (kubeadm 정책). 항상 X.Y → X.(Y+1) 입니다.
+- minor 두 단계 점프 금지입니다 (kubeadm 정책). 항상 X.Y → X.(Y+1)
 - N-2 deprecation 매트릭스를 확인해야 합니다 (특히 CRI/CNI 호환성).
 - master 1대 환경에서는 control-plane upgrade 중 짧은 downtime (1-2분) 이 발생합니다.
 - ETCD 백업을 권장합니다 (`etcdctl snapshot save` 후 진행).
@@ -134,7 +134,7 @@ Helm 으로 설치된 cluster add-on 의 마이너 업그레이드입니다.
 **주의**
 - CNI 업그레이드 중 Pod 네트워크가 일시 끊길 수 있습니다.
 - Ingress-nginx 의 controller pod 는 PDB 적용을 권장합니다.
-- 롤백: `helm rollback <release> <rev>` 입니다. 다만 CRD 변경이 있으면 자동 롤백 불가 (수동 정리) 입니다.
+- 롤백: `helm rollback <release> <rev>` 입니다. 다만 CRD 변경이 있으면 자동 롤백 불가 (수동 정리)
 
 ---
 

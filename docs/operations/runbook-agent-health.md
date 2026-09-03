@@ -37,7 +37,7 @@ Grafana dashboard `Anycloud — Cluster Agent Fleet Health` (UID `anycloud-clust
    kubectl -n aipaas-system get pods -l app=cluster-agent
    kubectl -n aipaas-system describe pod <pod-name>
    ```
-   - `CrashLoopBackOff` / `ImagePullBackOff` / `Pending` → pod 자체 문제입니다.
+   - `CrashLoopBackOff` / `ImagePullBackOff` / `Pending` → pod 자체 문제
    - `Running` 인데 alert 인 경우 — 다음 단계로 진행합니다.
 4. **Agent logs**
    ```bash

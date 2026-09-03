@@ -138,8 +138,8 @@ func (c *realClient) dynamicForCtx(ctx context.Context) (dynamic.Interface, erro
 `ImpersonationInterceptor` 는 gateway header 3종을 읽어 ThreadLocal 에 set/clear 합니다.
 
 - `X-Forwarded-User` → username 입니다 (필수, 비면 admin-equivalent 입니다).
-- `X-Forwarded-Groups` → CSV 또는 multi-value 입니다.
-- `X-Forwarded-Extra-<key>` → multi-value extras 입니다.
+- `X-Forwarded-Groups` → CSV 또는 multi-value
+- `X-Forwarded-Extra-<key>` → multi-value extras
 
 `WebMvcImpersonationConfig` 가 `@ConditionalOnProperty(security.auth.enabled=true)` 로 활성화됩니다 →
 toggle OFF 시 interceptor 가 미등록되어 → ThreadLocal 이 항상 empty → admin-equivalent 로 동작합니다.
@@ -219,7 +219,7 @@ curl -s -H "X-Forwarded-User: alice@example.com" -H "X-Forwarded-Groups: viewer"
 
 - RabbitMQ listener (`cluster.addon.install`) → INSTALL_ADDON 명령은 system action 의도와 일치합니다.
 - Scheduled job (cluster ACTIVE 시점 helm_repositories 자동 push, kubeconfig export 등) 입니다.
-- Boot-time runner 입니다.
+- Boot-time runner
 
 명시적으로 특정 user 권한으로 async 작업하려면 `ThreadLocalImpersonationContext.withIdentity(id, () -> {...})`
 로 wrap 합니다.

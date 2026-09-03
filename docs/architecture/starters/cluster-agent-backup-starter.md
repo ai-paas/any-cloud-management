@@ -39,11 +39,11 @@ Layer 2 의 두 starter (observability / backup) 는 서로 독립적입니다. 
 - **state persistence** — BackupHistory DB 입니다. `BackupHistoryWriter` SPI 만 제공합니다.
 - **scheduling** — Spring `@Scheduled` 또는 외부 cron 입니다. Velero Schedule CR 외의 cluster-side scheduling 은 호스트 책임입니다.
 - **storage destination** — S3 / GCS / NFS / Azure Blob credential 관리는 호스트의 credential 시스템 위에 있습니다.
-- **KEK 관리** — PKI 백업 암호화 키입니다. Vault / KMS 통합은 host 책임입니다.
-- **retention policy** — keep N days / N copies 정책입니다.
+- **KEK 관리** — PKI 백업 암호화 키입니다. Vault / KMS 통합은 host 책임
+- **retention policy** — keep N days / N copies 정책
 - **audit log** — host 의 audit framework 를 사용합니다.
 - **REST controller** — host 가 `@RestController` 를 작성합니다. starter 는 service bean 만 제공합니다 (observability 패턴 답습).
-- **UI** — frontend 입니다.
+- **UI** — frontend
 
 ### 2.3 cluster-agent / node-agent 측의 책임 분담 (starter 외부 module)
 

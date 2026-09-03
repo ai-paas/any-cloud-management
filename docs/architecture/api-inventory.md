@@ -368,7 +368,7 @@ synchronous register 경로에선 미사용이며 — 향후 async saga / audit 
 
 ## 7. 관련 문서
 
-- [overview.md](./overview.md) — component 다이어그램입니다.
-- [feature-flows.md](./feature-flows.md) — 실제 호출 sequence 입니다.
-- OpenAPI: `/v3/api-docs` 또는 `/swagger-ui.html` (runtime) 입니다.
+- [overview.md](./overview.md) — component 다이어그램
+- [feature-flows.md](./feature-flows.md) — 실제 호출 sequence
+- OpenAPI: `/v3/api-docs` 또는 `/swagger-ui.html` (runtime)
 - gRPC proto: `libs/cluster-agent-spring-boot-starter/src/main/proto/agent/v1/` 입니다.

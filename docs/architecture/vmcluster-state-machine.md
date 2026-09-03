@@ -121,15 +121,15 @@ vmCluster.transitionTo(VmClusterStatus.READY, "workflow.ready");
 
 ## 7. 회귀 보호
 
-- `VmClusterStatusTransitionTest` — graph 의 valid / invalid case 10개 회귀 보호입니다.
+- `VmClusterStatusTransitionTest` — graph 의 valid / invalid case 10개 회귀 보호
 - `VmClusterWorkflowStep.isStaleForStatus` — workflow message guard 와 graph 일관성을 보장합니다 (별도 enum).
 
 ## 8. 변경 절차
 
 새 transition 추가 (또는 기존 제거) 시 다음을 수행합니다.
-1. `VmClusterStatus.ALLOWED_TRANSITIONS` static block 수정입니다.
-2. `VmClusterStatusTransitionTest` 에 test case 추가입니다.
-3. 본 문서의 matrix + diagram 업데이트입니다.
+1. `VmClusterStatus.ALLOWED_TRANSITIONS` static block 수정
+2. `VmClusterStatusTransitionTest` 에 test case 추가
+3. 본 문서의 matrix + diagram 업데이트
 
 ## 9. Limitations
 

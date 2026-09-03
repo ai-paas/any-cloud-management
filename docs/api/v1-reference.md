@@ -317,7 +317,7 @@ POST /v1/clusters
 - `masterCount >= 2` 일 때 lead master 의 `kubeadm init` 에
   `--control-plane-endpoint=<leadIp>:6443` + `--upload-certs` 가 자동으로 추가됩니다.
 - Extra master 들은 `kubeadm join --control-plane --certificate-key` 로 join 합니다.
-- **PoC 한계**: control-plane endpoint 가 lead master IP 자체이며, VIP/LB 는 미적용입니다.
+- **PoC 한계**: control-plane endpoint 가 lead master IP 자체이며, VIP/LB 는 미적용
   lead master 장애 시 신규 join 이 불가능합니다 (기존 컴포넌트는 정상 동작합니다). 실제 HA 는 별도로 구성해야 합니다.
 - Strategy 별 지원: GenericLinux (모든 deb-like) + Proxmox provisioner 입니다. 그 외 7
   providers (AWS, GCP, Azure, OCI, Alibaba, DigitalOcean, OpenStack) 는 multi-master 를 지원하지 않습니다.
