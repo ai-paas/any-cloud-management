@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/v1/admin/clusters/{{cluster_name}}/kind-cache:flush
+  url: {{baseUrl}}/v1/admin/clusters/{{cluster_name}}/kind-cache/flush
   body: none
   auth: none
 }
@@ -39,6 +39,6 @@ tests {
   test("scope=single + clusterName 일치", function() {
     const data = res.getBody().data;
     expect(data.scope).to.equal("single");
-    expect(data.clusterName).to.equal(bru.getVar("cluster_name"));
+    expect(data.clusterName).to.equal(bru.getEnvVar("cluster_name"));
   });
 }
