@@ -48,7 +48,9 @@ public class ClusterAddonEntity implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
-    @Column(name = "id", nullable = false, length = 36)
+    // "addon-" + UUID = 42자. Flyway 는 varchar(64) 인데 이 값이 36 이라
+    // ddl-auto 로 스키마를 만드는 환경에서 varchar(36) 이 생성돼 insert 가 항상 깨졌다.
+    @Column(name = "id", nullable = false, length = 64)
     private String id;
 
     /** FK cluster.id. CASCADE delete — cluster 제거 시 addon row 도 정리. */
