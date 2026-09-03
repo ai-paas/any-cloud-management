@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	google.golang.org/grpc v1.82.1
-	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
+	google.golang.org/protobuf v1.36.12
 	helm.sh/helm/v3 v3.21.4
 	k8s.io/api v0.37.0
 	k8s.io/apimachinery v0.37.0
