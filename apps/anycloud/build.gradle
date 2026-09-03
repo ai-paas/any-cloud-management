@@ -106,23 +106,23 @@ test {
 
 dependencies {
     implementation platform('software.amazon.awssdk:bom:2.25.53')
-    implementation 'org.springframework.boot:spring-boot-starter-web:3.2.5'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
     // P1-1 (tech-debt review) — @Audited annotation 의 AOP. AspectJ 자동 proxy 활성화.
-    implementation 'org.springframework.boot:spring-boot-starter-aop:3.2.5'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
     // websocket / jjwt / grpc-* / proto stubs 는 cluster-agent starter 의 api 로 transitively.
-    implementation 'org.springframework.boot:spring-boot-starter-actuator:3.2.5'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
-    implementation 'org.springframework.boot:spring-boot-starter-security:3.2.5'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa:3.2.5'
-    implementation 'org.springframework.boot:spring-boot-starter-validation:3.2.5'
-    implementation 'org.springframework.boot:spring-boot-starter-amqp:3.2.5'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-amqp'
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.flywaydb:flyway-mysql'
-    implementation 'org.springframework.boot:spring-boot-starter-cache:3.2.5'
-    implementation "com.github.ben-manes.caffeine:caffeine:${rootProject.ext.caffeineVersion}"
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation "com.github.ben-manes.caffeine:caffeine"
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0'
-    implementation 'org.mariadb.jdbc:mariadb-java-client:3.1.2'
-    implementation 'io.fabric8:kubernetes-client:7.8.0'
+    implementation 'org.mariadb.jdbc:mariadb-java-client'
+    implementation 'io.fabric8:kubernetes-client'
     implementation 'org.modelmapper:modelmapper:3.1.1'
     // MapStruct 도입. ModelMapper / static mapper 와 점진 마이그레이션.
     // lombok-mapstruct-binding 은 annotation processor 순서 (Lombok → MapStruct) 보장 — 둘 다 사용 시 필수.
@@ -130,15 +130,15 @@ dependencies {
     annotationProcessor "org.mapstruct:mapstruct-processor:${rootProject.ext.mapstructVersion}"
     annotationProcessor "org.projectlombok:lombok-mapstruct-binding:${rootProject.ext.lombokMapstructBindingVersion}"
     implementation "org.json:json:20230618"
-    implementation "com.google.code.gson:gson:2.10.1"
+    implementation "com.google.code.gson:gson"
     implementation 'com.google.auth:google-auth-library-oauth2-http:1.51.0'
-    implementation "com.fasterxml.jackson.core:jackson-core:${rootProject.ext.jacksonVersion}"
-    implementation "com.fasterxml.jackson.core:jackson-databind:${rootProject.ext.jacksonVersion}"
-    implementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
+    implementation "com.fasterxml.jackson.core:jackson-core"
+    implementation "com.fasterxml.jackson.core:jackson-databind"
+    implementation 'org.apache.httpcomponents.client5:httpclient5'
     // Helm chart .tgz unpacking — gzip + tar 파서 (subprocess `helm show` 대체).
     implementation 'org.apache.commons:commons-compress:1.27.1'
     implementation 'io.hypersistence:hypersistence-utils-hibernate-60:3.5.2'
-    implementation "com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations:${rootProject.ext.jacksonVersion}"
+    implementation "com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations"
     implementation "org.bouncycastle:bcprov-jdk18on:${rootProject.ext.bouncyCastleVersion}"
     implementation "org.bouncycastle:bcpkix-jdk18on:${rootProject.ext.bouncyCastleVersion}"
     implementation 'software.amazon.awssdk:ec2'
@@ -170,19 +170,19 @@ dependencies {
     // Spring Boot starter-test 가 JUnit 5 / AssertJ / Mockito / spring-test 묶어서 제공.
     // 예시 통합 테스트는 src/test 의 AbstractIntegrationTest 참조.
     // DevTools — make dev-run 시 코드 변경 자동 restart (1-2초). production 자동 제외 (developmentOnly).
-    developmentOnly 'org.springframework.boot:spring-boot-devtools:3.2.5'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
-    testImplementation 'org.springframework.boot:spring-boot-starter-test:3.2.5'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.amqp:spring-rabbit-test'
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:mariadb'
     testImplementation 'org.testcontainers:rabbitmq'
     // K3s — ephemeral K8s cluster for integration test. 실 K8s API quirk 회귀 검증
     // (mock 한계 회피). 자세히는 docs/operations/k8s-integration-testing.md.
-    testImplementation 'org.testcontainers:k3s:1.20.1'
+    testImplementation 'org.testcontainers:k3s'
     // LocalStack — AWS API mock (EC2/VPC/IAM/STS/S3 등) for Pulumi e2e. 실 AWS 비용 없이
     // provisioning 흐름 회귀 검증. 자세히는 docs/operations/pulumi-e2e-testing.md.
-    testImplementation 'org.testcontainers:localstack:1.20.1'
+    testImplementation 'org.testcontainers:localstack'
     testImplementation 'org.springframework.security:spring-security-test'
 
     // ArchUnit — convention (folder-structure.md) 자동 enforce. internal/ 외부 import 차단,
