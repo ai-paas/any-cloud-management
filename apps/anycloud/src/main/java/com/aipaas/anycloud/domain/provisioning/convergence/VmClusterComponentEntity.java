@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.ZonedDateTime;
@@ -25,7 +26,14 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "vm_cluster_component")
+// ddl-auto 로 스키마를 만드는 환경(통합 테스트)과 Flyway 가 같은 제약을 갖도록 명시한다.
+// 엔티티에만 없으면 관측이 매 주기 중복 행을 만들어도 아무도 막지 못한다.
+@Table(
+        name = "vm_cluster_component",
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uk_vm_cluster_component",
+                        columnNames = {"vm_cluster_id", "component_type"}))
 public class VmClusterComponentEntity implements Serializable {
 
     @Serial

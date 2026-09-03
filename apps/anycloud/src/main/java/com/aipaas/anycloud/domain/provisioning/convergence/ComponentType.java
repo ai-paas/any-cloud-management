@@ -3,12 +3,10 @@ package com.aipaas.anycloud.domain.provisioning.convergence;
 /**
  * VM 위에 설치되는 계층 중 desired state 대비 관측이 필요한 것.
  *
- * <p>GPU 드라이버는 항목이 아니다 — GPU operator 가 driver.enabled=true 로 컨테이너 드라이버를
- * 관리한다. 호스트에 드라이버를 따로 깔면 operator 의 driver 파드가 종료되고, NVIDIA 가 금지하는
- * 조합이 된다.
+ * <p>AGENT 하나뿐인 이유 — 나머지(GPU operator, ingress, monitoring 등)는 전부 addon 이고,
+ * addon 설치는 {@code HelmReleaseService} 가 agent gRPC 로 보낸다. agent 만 자기 자신을 설치할 수
+ * 없어 백엔드 SSH 가 필요하고, 그래서 유일하게 구성 요소로 남는다.
  */
 public enum ComponentType {
-    GPU_OPERATOR,
-    INGRESS,
     AGENT
 }

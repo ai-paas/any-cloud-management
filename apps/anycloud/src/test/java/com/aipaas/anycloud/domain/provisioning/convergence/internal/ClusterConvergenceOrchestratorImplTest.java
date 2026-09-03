@@ -34,7 +34,7 @@ class ClusterConvergenceOrchestratorImplTest {
     }
 
     private ComponentObservation observation(Requirement requirement, ComponentHealth health) {
-        return new ComponentObservation(ComponentType.GPU_OPERATOR, requirement, health, null);
+        return new ComponentObservation(ComponentType.AGENT, requirement, health, null);
     }
 
     @Test

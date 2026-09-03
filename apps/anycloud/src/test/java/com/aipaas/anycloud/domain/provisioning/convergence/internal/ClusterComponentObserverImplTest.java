@@ -59,7 +59,7 @@ class ClusterComponentObserverImplTest {
     @Test
     void observe_skipsNotApplicableComponents() {
         ClusterComponent skipped =
-                stubComponent(ComponentType.GPU_OPERATOR, Requirement.NOT_APPLICABLE, ComponentProbe.ready());
+                stubComponent(ComponentType.AGENT, Requirement.NOT_APPLICABLE, ComponentProbe.ready());
 
         assertThat(observer(List.of(skipped)).observe(cluster())).isEmpty();
         verify(skipped, never()).probe(any(), any());
@@ -68,7 +68,7 @@ class ClusterComponentObserverImplTest {
     @Test
     void observe_probesApplicableComponentsAndPersists() {
         ClusterComponent probed = stubComponent(
-                ComponentType.GPU_OPERATOR, Requirement.REQUIRED, ComponentProbe.notReady("no allocatable gpu"));
+                ComponentType.AGENT, Requirement.REQUIRED, ComponentProbe.notReady("no allocatable gpu"));
 
         var result = observer(List.of(probed)).observe(cluster());
 
@@ -81,7 +81,7 @@ class ClusterComponentObserverImplTest {
     @Test
     void observe_clearsLastErrorWhenReady() {
         ClusterComponent healthy =
-                stubComponent(ComponentType.INGRESS, Requirement.REQUIRED, ComponentProbe.ready());
+                stubComponent(ComponentType.AGENT, Requirement.REQUIRED, ComponentProbe.ready());
         VmClusterComponentEntity existing = new VmClusterComponentEntity();
         existing.setLastError("직전 실패 사유");
         when(repository.findByVmClusterIdAndComponentType(anyString(), any()))
@@ -112,7 +112,7 @@ class ClusterComponentObserverImplTest {
     void observe_recordsUnknownWhenProbeThrows() {
         // 계약상 probe 는 예외를 던지지 않지만, 구현 실수가 나머지 컴포넌트 관측을 막으면 안 된다.
         ClusterComponent broken = mock(ClusterComponent.class);
-        when(broken.type()).thenReturn(ComponentType.INGRESS);
+        when(broken.type()).thenReturn(ComponentType.AGENT);
         when(broken.requirementFor(any())).thenReturn(Requirement.REQUIRED);
         when(broken.probe(any(), any())).thenThrow(new RuntimeException("boom"));
 

@@ -9,6 +9,9 @@ import java.util.Map;
  *
  * <p>probe 가 apply 와 분리되는 것이 계약의 핵심이다. "설치 명령을 실행했다" 는 "설치되었다" 가
  * 아니다 — 실패를 무시하는 셸 스크립트에서 그 등식이 깨졌다.
+ *
+ * <p>addon 으로 설치되는 것은 여기 오지 않는다. {@code AddonInstaller} 와 {@code AddonState} 가
+ * 이미 같은 일을 하며, 두 벌로 만들면 버전과 values 가 갈린다.
  */
 public interface ClusterComponent {
 

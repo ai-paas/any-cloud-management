@@ -27,7 +27,7 @@ class ClusterConvergenceServiceImplTest {
     }
 
     private ComponentObservation required(ComponentHealth health) {
-        return new ComponentObservation(ComponentType.GPU_OPERATOR, Requirement.REQUIRED, health, null);
+        return new ComponentObservation(ComponentType.AGENT, Requirement.REQUIRED, health, null);
     }
 
     @Test
