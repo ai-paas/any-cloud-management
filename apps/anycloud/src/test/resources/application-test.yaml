@@ -55,6 +55,13 @@ agent:
 cluster-agent:
   routing:
     enabled: false   # 명시적으로도 off (starter 기본 true 와 분리).
+  exec:
+    # pod exec WebSocket endpoint off. ServletServerContainerFactoryBean 은 실제 embedded
+    # servlet container 의 jakarta.websocket.server.ServerContainer 를 요구하는데,
+    # @SpringBootTest 기본값인 MOCK web environment 에는 없어서 context 부팅이 실패한다.
+    # 통합 테스트 목적(context/Flyway/repository)에 exec 경로는 불필요.
+    # 실제로 띄우려면 webEnvironment = RANDOM_PORT 가 대안이지만 테스트가 느려진다.
+    enabled: false
 
 # net.devh gRPC server — test profile 은 port=0 (random) 으로 bind 충돌 회피.
 grpc:
