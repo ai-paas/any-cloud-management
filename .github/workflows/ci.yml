@@ -150,6 +150,22 @@ jobs:
         working-directory: .
         run: buf generate
 
+      # go.mod 의 go 지시자보다 Dockerfile 의 GO_VERSION 이 낮으면 go build 가 거부한다.
+      # publish-agents.yml 은 tag push 에서만 돌고 GO_VERSION 을 넘기지도 않아,
+      # 어긋나면 릴리스 태그를 찍는 시점에야 드러난다. 여기서 먼저 막는다.
+      - name: Check Dockerfile GO_VERSION matches go.mod
+        run: |
+          mod_go=$(grep -E '^go ' go.mod | awk '{print $2}')
+          img_go=$(grep -E '^ARG GO_VERSION=' Dockerfile | cut -d= -f2)
+          echo "go.mod=$mod_go  Dockerfile=$img_go"
+          # major.minor 만 비교한다 (go.mod 은 1.26.0, 이미지 태그는 1.26).
+          mod_mm=$(echo "$mod_go" | cut -d. -f1,2)
+          img_mm=$(echo "$img_go" | cut -d. -f1,2)
+          if [ "$(printf '%s\n%s\n' "$mod_mm" "$img_mm" | sort -V | head -1)" != "$mod_mm" ]; then
+            echo "::error::Dockerfile GO_VERSION=$img_go < go.mod go=$mod_go — 이미지 빌드가 실패한다"
+            exit 1
+          fi
+
       - name: go mod download
         run: go mod download
 

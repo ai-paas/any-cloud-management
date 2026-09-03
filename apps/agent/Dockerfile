@@ -10,7 +10,10 @@
 # 에서 추출해 final image 의 /usr/local/bin/etcdctl 에 동봉. cluster-agent target 은 stub script
 # 로 image layout 일관성 유지.
 
-ARG GO_VERSION=1.23
+# go.mod 의 go 지시자와 맞춘다. k8s.io/* 0.37 과 helm 3.21 이 go 1.26.0 을 요구해
+# go mod tidy 가 올렸고, 여기가 낮으면 go build 가 거부한다.
+# publish-agents.yml 은 이 값을 넘기지 않으므로 기본값이 곧 릴리스 빌드 버전이다.
+ARG GO_VERSION=1.26
 ARG ALPINE_VERSION=3.20
 ARG ETCD_VERSION=v3.5.16
 
