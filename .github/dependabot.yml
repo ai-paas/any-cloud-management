@@ -30,6 +30,9 @@ updates:
         update-types: ["minor", "patch"]
       testcontainers:
         patterns: ["org.testcontainers:*"]
+        # major 를 빼지 않으면 BOM 만 2.x 로 가고 k3s/localstack 은 1.x 로 남아
+        # BOM 과 아티팩트 버전이 어긋난다.
+        update-types: ["minor", "patch"]
       jackson:
         patterns: ["com.fasterxml.jackson*"]
 
@@ -42,6 +45,14 @@ updates:
     labels:
       - "dependencies"
       - "starter"
+    ignore:
+      # Spring Boot major — 이 저장소는 Boot 3.2.5 를 쓴다. starter 만 major 로 올리면
+      # 배포 POM 에는 새 버전이 박히는데 앱은 3.2.5 로 해석되어 소비자 쪽에서만 깨진다.
+      # apps/anycloud 와 같은 규칙을 둔다 (없어서 Boot 4.1.1 PR 이 올라왔다).
+      - dependency-name: "org.springframework.boot:*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "org.springframework:*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "gradle"
     directory: "/libs/cluster-agent-features-spring-boot-starter"
@@ -52,6 +63,14 @@ updates:
     labels:
       - "dependencies"
       - "starter"
+    ignore:
+      # Spring Boot major — 이 저장소는 Boot 3.2.5 를 쓴다. starter 만 major 로 올리면
+      # 배포 POM 에는 새 버전이 박히는데 앱은 3.2.5 로 해석되어 소비자 쪽에서만 깨진다.
+      # apps/anycloud 와 같은 규칙을 둔다 (없어서 Boot 4.1.1 PR 이 올라왔다).
+      - dependency-name: "org.springframework.boot:*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "org.springframework:*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "gradle"
     directory: "/libs/cluster-provisioning-spring-boot-starter"
@@ -62,32 +81,14 @@ updates:
     labels:
       - "dependencies"
       - "starter"
-
-  # ============ Go (Pulumi) ============
-  - package-ecosystem: "gomod"
-    directory: "/infra/pulumi"
-    schedule:
-      interval: "weekly"
-      day: "tuesday"
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-      - "pulumi"
     ignore:
-      # Pulumi SDK / CSP provider major upgrade — breaking change 가능
-      - dependency-name: "github.com/pulumi/pulumi/sdk/v*"
+      # Spring Boot major — 이 저장소는 Boot 3.2.5 를 쓴다. starter 만 major 로 올리면
+      # 배포 POM 에는 새 버전이 박히는데 앱은 3.2.5 로 해석되어 소비자 쪽에서만 깨진다.
+      # apps/anycloud 와 같은 규칙을 둔다 (없어서 Boot 4.1.1 PR 이 올라왔다).
+      - dependency-name: "org.springframework.boot:*"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "github.com/pulumi/pulumi-*"
+      - dependency-name: "org.springframework:*"
         update-types: ["version-update:semver-major"]
-      # K8s client-go major
-      - dependency-name: "k8s.io/client-go"
-        update-types: ["version-update:semver-major"]
-    groups:
-      pulumi-csp-providers:
-        patterns:
-          - "github.com/pulumi/pulumi-*"
-          - "github.com/muhlba91/pulumi-proxmoxve/*"
-        update-types: ["minor", "patch"]
 
   # ============ Go (cluster-agent) ============
   - package-ecosystem: "gomod"
@@ -104,6 +105,21 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "google.golang.org/grpc"
         update-types: ["version-update:semver-major"]
+    groups:
+      # k8s 생태계는 lockstep 이다. apimachinery 만 올리면 client-go 가 참조하는
+      # structured-merge-diff 버전이 어긋나 컴파일이 깨진다 (#9 가 그렇게 올라왔다).
+      # helm 도 k8s.io/kubectl 을 통해 같은 축에 묶여 있어 함께 움직여야 한다.
+      # k8s.io/* 는 0.x 라 minor 취급이므로 위 major ignore 로는 걸러지지 않는다.
+      kubernetes:
+        patterns:
+          - "k8s.io/*"
+          - "sigs.k8s.io/*"
+          - "helm.sh/helm/v3"
+      grpc-protobuf:
+        patterns:
+          - "google.golang.org/grpc"
+          - "google.golang.org/protobuf"
+        update-types: ["minor", "patch"]
 
   # ============ GitHub Actions ============
   - package-ecosystem: "github-actions"
@@ -115,6 +131,11 @@ updates:
     labels:
       - "dependencies"
       - "ci"
+    ignore:
+      # action major 는 입력 파라미터가 바뀌는 경우가 있다. publish-* 워크플로는
+      # tag push 에서만 돌아 PR 시점에 검증되지 않으므로 릴리스 노트를 보고 수동으로 올린다.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   # ============ Docker (base image) ============
   - package-ecosystem: "docker"
@@ -126,3 +147,8 @@ updates:
     labels:
       - "dependencies"
       - "docker"
+    ignore:
+      # JDK/JRE major 는 런타임 환경 변경이다. build.gradle 의 sourceCompatibility 와
+      # 함께 결정해야 하므로 봇에 맡기지 않는다.
+      - dependency-name: "eclipse-temurin"
+        update-types: ["version-update:semver-major"]
