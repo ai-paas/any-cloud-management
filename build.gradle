@@ -15,6 +15,21 @@ bootJar { enabled = false }
 jar { enabled = true }
 
 ext {
+    jacksonVersion = '2.17.2'
+
+    // ---- BOM property 오버라이드 ----
+    // 개별 아티팩트에 버전을 박으면 같은 계열의 나머지가 BOM 값으로 남아 갈라진다.
+    // 실제로 jackson 은 core/databind 만 2.17.2 이고 dataformat-yaml 등 6개가 2.15.4 로
+    // 남아 있었다. BOM property 로 올리면 계열 전체가 함께 움직인다.
+    // libs/* 는 publish 대상이라 명시 버전을 유지한다. 버전을 지우면 생성된 POM 의
+    // <dependencies> 에 version 없는 항목이 남고, 소비자가 해석하지 못한다
+    // (dependencyManagement 로 덮이지 않는 항목이 있다).
+    set('jackson-bom.version', jacksonVersion)
+    // 아래 둘은 현재 해석값을 그대로 유지한다 (BOM 기본은 5.2.3 / 3.3.3).
+    // 버전 상향은 Boot 업그레이드와 함께 결정한다.
+    set('httpclient5.version', '5.2.1')
+    set('mariadb.version', '3.1.2')
+
     // Spring Boot 3.2.5 BOM 은 commons-lang3 를 3.13.0 으로 고정한다.
     // 그런데 apps/anycloud 가 쓰는 commons-compress 1.27.1 의 TarArchiveOutputStream 은
     // 3.15.0 에 추가된 org.apache.commons.lang3.ArrayFill 을 호출한다.
@@ -23,7 +38,6 @@ ext {
     // BOM property 를 덮어써서 commons-compress 가 요구하는 하한 이상으로 올린다.
     set('commons-lang3.version', '3.17.0')
 
-    jacksonVersion = '2.17.2'
     lombokVersion = '1.18.36'
     mapstructVersion = '1.5.5.Final'
     lombokMapstructBindingVersion = '0.2.0'
@@ -82,7 +96,7 @@ configure(subprojects.findAll { it.name != 'loadtest' && it.name != 'cluster-age
     dependencies {
         compileOnly "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
         annotationProcessor "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
-        developmentOnly 'org.springframework.boot:spring-boot-devtools:3.2.5'
+        developmentOnly 'org.springframework.boot:spring-boot-devtools'
         implementation 'org.springframework.boot:spring-boot-starter-webflux'
     }
 }
