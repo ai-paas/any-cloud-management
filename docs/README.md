@@ -41,6 +41,7 @@
 - [k8s-access-paths.md](./architecture/k8s-access-paths.md) — backend ↔ K8s 접근 경로
 - [vmcluster-state-machine.md](./architecture/vmcluster-state-machine.md) — VM cluster lifecycle state machine
 - [vmcluster-workflow.md](./architecture/vmcluster-workflow.md) — VM cluster RabbitMQ workflow (provision → bootstrap → verify → ready)
+- [vmcluster-convergence.md](./architecture/vmcluster-convergence.md) — VM 생성 이후 계층(GPU, agent, ingress)의 재시도와 상태 수렴 설계
 - [frontend-integration.md](./architecture/frontend-integration.md) — frontend ↔ backend 통합 index (영역별 가이드는 [`frontend/`](./architecture/frontend/) — resources / terminal / monitoring / auth)
 - [dependency-rationalization.md](./architecture/dependency-rationalization.md) — 의존성 결정 (MariaDB + RabbitMQ stack)
 
