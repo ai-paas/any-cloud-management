@@ -53,4 +53,18 @@ class AlertRuleCatalogTest {
 		AlertRuleSet node = catalog.byId("node").orElseThrow();
 		assertThat(node.ruleCount()).isEqualTo(5);
 	}
+
+	@Test
+	void gpuRuleSetDeclaresRequiredCapability() {
+		// GPU 규칙을 GPU 없는 cluster 에 깔면 절대 발화하지 않는 PrometheusRule 이 남는다.
+		AlertRuleCatalog catalog = new AlertRuleCatalog();
+		assertThat(catalog.byId("gpu").orElseThrow().requiredCapability()).isEqualTo("gpu");
+	}
+
+	@Test
+	void nonGpuRuleSetsRequireNoCapability() {
+		AlertRuleCatalog catalog = new AlertRuleCatalog();
+		assertThat(catalog.byId("node").orElseThrow().requiredCapability()).isNull();
+		assertThat(catalog.byId("pod").orElseThrow().requiredCapability()).isNull();
+	}
 }

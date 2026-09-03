@@ -7,6 +7,7 @@ import io.aipaas.cluster.agent.v1.ControlMessage;
 import io.aipaas.cluster.agent.v1.Status;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
+import io.aipaas.cluster.agent.observability.core.ClusterCapabilities;
 import io.aipaas.cluster.agent.runtime.AgentSessionRegistry;
 import io.aipaas.cluster.agent.observability.core.ObservabilityException;
 import java.time.Duration;
@@ -34,7 +35,6 @@ import lombok.extern.slf4j.Slf4j;
  * 일치시켜야 rule 이 실제로 활성됨.
  */
 @Slf4j
-@RequiredArgsConstructor
 public class AlertRuleInstaller {
 
 	private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
@@ -43,6 +43,20 @@ public class AlertRuleInstaller {
 
 	private final AgentSessionRegistry sessionRegistry;
 	private final AlertRuleCatalog catalog;
+
+	/** null 이면 capability 필터 없이 전체 설치 — SPI 미구현 호스트 호환. */
+	private final ClusterCapabilities capabilities;
+
+	public AlertRuleInstaller(AgentSessionRegistry sessionRegistry, AlertRuleCatalog catalog) {
+		this(sessionRegistry, catalog, null);
+	}
+
+	public AlertRuleInstaller(
+			AgentSessionRegistry sessionRegistry, AlertRuleCatalog catalog, ClusterCapabilities capabilities) {
+		this.sessionRegistry = sessionRegistry;
+		this.catalog = catalog;
+		this.capabilities = capabilities;
+	}
 
 	/**
 	 * 단일 rule-set 설치. namespace/release 가 null/blank 면 default (monitoring / kube-prometheus-stack).
@@ -74,6 +88,11 @@ public class AlertRuleInstaller {
 			String namespace, String release, Duration timeout) {
 		List<AlertRuleApplyResult> out = new ArrayList<>();
 		for (AlertRuleSet rs : catalog.list()) {
+			if (!supportedBy(clusterName, rs)) {
+				log.debug("install-all: rule-set {} skipped on cluster {} \u2014 capability {} 없음",
+						rs.id(), clusterName, rs.requiredCapability());
+				continue;
+			}
 			try {
 				out.add(install(clusterName, rs.id(), namespace, release, timeout));
 			} catch (ObservabilityException e) {
@@ -86,6 +105,23 @@ public class AlertRuleInstaller {
 			}
 		}
 		return out;
+	}
+
+	/**
+	 * capability 가 필요한 rule-set 을 그 능력이 없는 cluster 에 설치하지 않는다. 설치해도 지표가
+	 * 없어 절대 발화하지 않는 PrometheusRule 이 남고, 운영자가 알림 목록에서 혼동한다.
+	 *
+	 * <p>알 수 없는 capability 는 설치하는 쪽으로 둔다 — 새 라벨이 조용히 빠지는 것보다 낫다.
+	 */
+	private boolean supportedBy(String clusterName, AlertRuleSet rs) {
+		String required = rs.requiredCapability();
+		if (required == null || capabilities == null) {
+			return true;
+		}
+		if ("gpu".equals(required)) {
+			return capabilities.hasGpuNodes(clusterName);
+		}
+		return true;
 	}
 
 	/** 단일 rule-set 제거 — {@code PrometheusRule/anycloud-<id>} 삭제. */

@@ -9,6 +9,8 @@ metadata:
     release: ${RELEASE}
     source: anycloud-default
     rule-set: gpu
+    # 이 라벨이 있으면 해당 capability 가 없는 cluster 에는 설치하지 않는다.
+    requires-capability: gpu
 spec:
   groups:
     - name: gpu

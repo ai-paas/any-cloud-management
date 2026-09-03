@@ -56,6 +56,15 @@ public class AlertRuleCatalog {
 
 	// ----- internal -----
 
+	/** {@code metadata.labels.requires-capability} 값. 정규식으로 충분하다 — 라벨 한 줄이다. */
+	private static String requiredCapability(String yaml) {
+		java.util.regex.Matcher m = REQUIRES_CAPABILITY.matcher(yaml);
+		return m.find() ? m.group(1) : null;
+	}
+
+	private static final java.util.regex.Pattern REQUIRES_CAPABILITY =
+			java.util.regex.Pattern.compile("(?m)^\\s*requires-capability:\\s*(\\S+)\\s*$");
+
 	private static Map<String, AlertRuleSet> load(String pattern) {
 		PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
 		Resource[] resources;
@@ -86,6 +95,7 @@ public class AlertRuleCatalog {
 					toDisplayName(id),
 					describe(id),
 					ruleCount,
+					requiredCapability(yaml),
 					yaml));
 		}
 		return Collections.unmodifiableMap(out);

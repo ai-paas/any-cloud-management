@@ -66,8 +66,10 @@ public class ClusterObservabilityAutoConfiguration {
 	@ConditionalOnMissingBean
 	@ConditionalOnProperty(prefix = "cluster-observability.alerts", name = "enabled", matchIfMissing = true)
 	public AlertRuleInstaller alertRuleInstaller(
-			AgentSessionRegistry sessionRegistry, AlertRuleCatalog catalog) {
-		return new AlertRuleInstaller(sessionRegistry, catalog);
+			AgentSessionRegistry sessionRegistry,
+			AlertRuleCatalog catalog,
+			org.springframework.beans.factory.ObjectProvider<ClusterCapabilities> capabilities) {
+		return new AlertRuleInstaller(sessionRegistry, catalog, capabilities.getIfAvailable());
 	}
 
 	@Bean

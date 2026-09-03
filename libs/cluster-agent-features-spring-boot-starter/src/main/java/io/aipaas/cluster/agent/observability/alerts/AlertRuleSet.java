@@ -20,5 +20,7 @@ public record AlertRuleSet(
 		String displayName,
 		String description,
 		int ruleCount,
+		/** 이 값이 있으면 해당 capability 를 가진 cluster 에만 설치한다. 없으면 모든 cluster. */
+		String requiredCapability,
 		String manifestYaml) {
 }
