@@ -1,5 +1,5 @@
 plugins {
-    id 'org.springframework.boot' version '3.2.5'
+    id 'org.springframework.boot' version '3.5.16'
     id 'io.spring.dependency-management' version '1.1.0'
     id 'idea'
     id 'java'
@@ -15,28 +15,21 @@ bootJar { enabled = false }
 jar { enabled = true }
 
 ext {
-    jacksonVersion = '2.17.2'
+    // Boot 3.5.16 BOM 의 jackson-bom 과 같은 값.
+    // dependency-management 가 적용되지 않는 cluster-agent-spring-boot-starter 가 참조한다.
+    jacksonVersion = '2.21.4'
 
     // ---- BOM property 오버라이드 ----
     // 개별 아티팩트에 버전을 박으면 같은 계열의 나머지가 BOM 값으로 남아 갈라진다.
     // 실제로 jackson 은 core/databind 만 2.17.2 이고 dataformat-yaml 등 6개가 2.15.4 로
     // 남아 있었다. BOM property 로 올리면 계열 전체가 함께 움직인다.
+    // httpclient5, mariadb, commons-lang3 오버라이드는 제거했다.
+    // Boot 3.5.16 BOM 이 각각 5.5.2 / 3.5.8 / 3.17.0 을 주며, 이전에 오버라이드가
+    // 필요했던 이유(3.2.5 BOM 의 commons-lang3 3.13.0 이 commons-compress 1.27.1 의
+    // ArrayFill 을 못 채움)가 해소됐다.
+    //
     // libs/* 는 publish 대상이라 명시 버전을 유지한다. 버전을 지우면 생성된 POM 의
-    // <dependencies> 에 version 없는 항목이 남고, 소비자가 해석하지 못한다
-    // (dependencyManagement 로 덮이지 않는 항목이 있다).
-    set('jackson-bom.version', jacksonVersion)
-    // 아래 둘은 현재 해석값을 그대로 유지한다 (BOM 기본은 5.2.3 / 3.3.3).
-    // 버전 상향은 Boot 업그레이드와 함께 결정한다.
-    set('httpclient5.version', '5.2.1')
-    set('mariadb.version', '3.1.2')
-
-    // Spring Boot 3.2.5 BOM 은 commons-lang3 를 3.13.0 으로 고정한다.
-    // 그런데 apps/anycloud 가 쓰는 commons-compress 1.27.1 의 TarArchiveOutputStream 은
-    // 3.15.0 에 추가된 org.apache.commons.lang3.ArrayFill 을 호출한다.
-    // 방치하면 tar 를 쓰는 모든 경로(Testcontainers 의 컨테이너 파일 복사 포함)가
-    // NoClassDefFoundError: org/apache/commons/lang3/ArrayFill 로 죽는다.
-    // BOM property 를 덮어써서 commons-compress 가 요구하는 하한 이상으로 올린다.
-    set('commons-lang3.version', '3.17.0')
+    // <dependencies> 에 version 없는 항목이 남고, 소비자가 해석하지 못한다.
 
     lombokVersion = '1.18.36'
     mapstructVersion = '1.5.5.Final'

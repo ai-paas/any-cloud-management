@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.aipaas.anycloud.domain.provisioning.model.VmClusterStatus;
 import com.aipaas.anycloud.testsupport.AbstractIntegrationTest;
 import java.time.LocalDateTime;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,8 +54,11 @@ class VmClusterRepositoryIntegrationTest extends AbstractIntegrationTest {
     }
 
     private VmClusterEntity newCluster(String name) {
+        // id 는 넣지 않는다. @GeneratedValue(UUID) 가 채운다.
+        // 미리 넣으면 Hibernate 6.6 이 detached 로 판정해 INSERT 대신 UPDATE 를 보내고,
+        // 대상 row 가 없어 ObjectOptimisticLockingFailureException 이 난다.
+        // 운영 코드도 VmClusterEntity.builder() 로 만들며 id 를 지정하지 않는다.
         VmClusterEntity e = new VmClusterEntity();
-        e.setId(UUID.randomUUID().toString());
         e.setClusterName(name);
         e.setClusterProvider("AWS");
         e.setProvisioningStatus(VmClusterStatus.PROVISIONING);
