@@ -150,7 +150,7 @@ dependencies {
     // Sprint 3 — JSON structured logging (ELK 호환). 기본 profile 는 string pattern 그대로,
     // SPRING_PROFILES_ACTIVE 에 'json' 포함 시 logback-spring.xml 의 <springProfile name="json">
     // 분기가 활성화돼 logstash 인코더로 JSON 출력.
-    implementation 'net.logstash.logback:logstash-logback-encoder:8.0'
+    implementation 'net.logstash.logback:logstash-logback-encoder:9.0'
 
     // ShedLock (H5/H11): @Scheduled 의 leader election. replica 여러개 띄워도
     // cert scan / state backup / DLQ drain 이 한 노드에서만 실행되도록 DB row lock.
