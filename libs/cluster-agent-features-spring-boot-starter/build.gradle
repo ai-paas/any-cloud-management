@@ -47,8 +47,8 @@ spotless {
 dependencies {
     api project(':cluster-agent-spring-boot-starter')
 
-    api 'org.springframework.boot:spring-boot-starter:3.2.5'
-    api 'org.springframework.boot:spring-boot-starter-validation:3.2.5'
+    api 'org.springframework.boot:spring-boot-starter:4.1.1'
+    api 'org.springframework.boot:spring-boot-starter-validation:4.1.1'
 
     // YAML 파서 — RBAC 의 binding-templates.yaml.
     api "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${rootProject.ext.jacksonVersion}"
@@ -59,12 +59,12 @@ dependencies {
     // Caffeine — RBAC 의 SimpleBindingFleetView TTL cache.
     api 'com.github.ben-manes.caffeine:caffeine:3.1.8'
 
-    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:3.2.5'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:4.1.1'
 
     compileOnly "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
     annotationProcessor "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
 
-    testImplementation 'org.springframework.boot:spring-boot-starter-test:3.2.5'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test:4.1.1'
     testCompileOnly "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
     testAnnotationProcessor "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
 }
