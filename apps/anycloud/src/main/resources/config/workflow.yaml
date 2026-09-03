@@ -115,3 +115,20 @@ pulumi:
     TF_VAR_private_key_password: ${TF_VAR_private_key_password:}
     DIGITALOCEAN_TOKEN: ${DIGITALOCEAN_TOKEN:}
     DIGITALOCEAN_ACCESS_TOKEN: ${DIGITALOCEAN_ACCESS_TOKEN:}
+
+# VM cluster 구성 요소 수렴 — VERIFY 단계의 시간 제한 루프 + 주기 조정 루프.
+# 자세한 설계: docs/architecture/vmcluster-convergence.md
+anycloud:
+  vm-cluster:
+    component:
+      agent:
+        # agent 미연결을 DEGRADED 사유로 볼지. agent 가 ACTIVE 로 가려면 backend gRPC
+        # endpoint 가 CSP VM 에서 도달 가능해야 한다 — dev 는 도달 불가라 BEST_EFFORT.
+        requirement: ${ANYCLOUD_VM_CLUSTER_AGENT_REQUIREMENT:REQUIRED}
+    convergence:
+      interval-ms: ${ANYCLOUD_VM_CLUSTER_CONVERGENCE_INTERVAL_MS:300000}
+      initial-delay-ms: ${ANYCLOUD_VM_CLUSTER_CONVERGENCE_INITIAL_DELAY_MS:60000}
+      # VERIFY 안에서 도는 수렴 루프의 상한. RabbitMQ consumer 스레드 위에서 실행되므로
+      # 오래 붙잡으면 consumer 하나가 통째로 묶인다. 3회 x 1분 = 최대 3분.
+      verify-max-attempts: ${ANYCLOUD_VM_CLUSTER_CONVERGENCE_VERIFY_MAX_ATTEMPTS:3}
+      verify-interval: ${ANYCLOUD_VM_CLUSTER_CONVERGENCE_VERIFY_INTERVAL:PT1M}
