@@ -58,13 +58,11 @@ tests {
   });
 
   test("pvc → persistentvolumeclaims plural 변환", function() {
-    if (res.getStatus() === 200) {
-      // input=pvc 일 때만 의미
-      const data = res.getBody().data;
-      if (bru.getVar("input") === "pvc") {
-        expect(data.plural).to.equal("persistentvolumeclaims");
-        expect(data.namespaced).to.equal(true);
-      }
-    }
+    // 이 요청은 params:query 로 input=pvc 를 고정 전송한다.
+    // bru.getVar("input") 로 감싸면 query param 은 runtime var 가 아니라 undefined 가 되어
+    // 조건이 거짓이 되고 assertion 이 조용히 건너뛰어진다.
+    const data = res.getBody().data;
+    expect(data.plural).to.equal("persistentvolumeclaims");
+    expect(data.namespaced).to.equal(true);
   });
 }
