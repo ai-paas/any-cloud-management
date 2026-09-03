@@ -10,6 +10,7 @@ import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 
@@ -52,16 +53,26 @@ class FlywayMigrationIntegrationTest extends AbstractIntegrationTest {
     private DataSource dataSource;
 
     @Test
-    void allMigrations_appliedToLatestVersion() {
+    void allMigrations_appliedToLatestVersion() throws Exception {
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
 
-        // flyway_schema_history 의 최신 version row.
-        Integer maxVersion = jdbc.queryForObject(
-                "SELECT MAX(CAST(REPLACE(version, '.', '') AS UNSIGNED)) "
-                        + "FROM flyway_schema_history WHERE success = 1",
-                Integer.class);
+        // 실패한 migration 이 하나도 없어야 한다.
+        Integer failed =
+                jdbc.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success = 0", Integer.class);
+        assertThat(failed).as("실패한 migration 이 없어야 함").isZero();
 
-        assertThat(maxVersion).as("최소 V33 까지 apply 되어야 함").isNotNull().isGreaterThanOrEqualTo(33);
+        // classpath 의 V*.sql 개수와 적용된 versioned migration 개수가 일치해야 한다.
+        // 특정 버전 번호를 박아두면 migration 이 baseline 으로 통합될 때마다 테스트가 깨진다
+        // (v0.3.0 에서 실제로 V33 -> V1 baseline 통합이 일어났다).
+        int scriptCount =
+                new PathMatchingResourcePatternResolver().getResources("classpath:db/migration/V*.sql").length;
+        assertThat(scriptCount).as("migration script 가 하나는 있어야 함").isPositive();
+
+        Integer applied = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM flyway_schema_history WHERE success = 1 AND type = 'SQL'", Integer.class);
+        assertThat(applied)
+                .as("classpath 의 V*.sql %d 개가 모두 적용되어야 함", scriptCount)
+                .isEqualTo(scriptCount);
     }
 
     @Test
