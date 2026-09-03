@@ -117,6 +117,40 @@ jobs:
           fi
           buf breaking --against '.git#branch=origin/main'
 
+  go:
+    name: Go build + vet + test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # apps/agent (Cluster Agent + backup agent) 는 Go 모듈이다. 이 job 이 없으면
+    # Go 만 바꾸는 PR 은 실행되는 job 이 전부 통과해 초록으로 표시된다 — 검사한 적이
+    # 없는 것과 통과한 것이 화면에서 구분되지 않는다. 실제로 apimachinery 만 올리고
+    # client-go 를 두어 컴파일이 깨진 의존성 PR 이 초록으로 올라와 있었다.
+    # publish-agents.yml 은 tag push 에서만 돌아서 릴리스 시점에야 드러난다.
+    defaults:
+      run:
+        working-directory: apps/agent
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          # go.mod 의 toolchain 을 따른다. 버전을 여기 박아두면 go.mod 와 어긋난다.
+          go-version-file: apps/agent/go.mod
+          cache-dependency-path: apps/agent/go.sum
+
+      - name: go mod download
+        run: go mod download
+
+      - name: go build ./...
+        run: go build ./...
+
+      - name: go vet ./...
+        run: go vet ./...
+
+      - name: go test ./...
+        run: go test ./...
+
   rustfs-smoke:
     name: RustFS + OpenBao smoke
     runs-on: ubuntu-latest
@@ -142,13 +176,24 @@ jobs:
         run: docker compose -f docker-compose.dev.yml pull rustfs openbao
         # bootstrap 컨테이너(amazon/aws-cli)는 작아서 pull 생략해도 ok.
 
-      - name: Start rustfs + openbao + bucket bootstrap
-        # backend 빌드는 건너뛰고 self-hosted 의존성 3개만 띄움.
-        # bootstrap 은 bucket 생성 후 exit 0 (service_completed_successfully) → 검증 신호로 활용.
+      - name: Start rustfs + openbao
+        # backend 빌드는 건너뛰고 self-hosted 의존성만 띄움.
+        # --wait 은 "running/healthy 상태 도달"을 기다린다. 일회성 컨테이너를 같이 넣으면
+        # bucket 생성 후 정상 종료(exit 0)한 것을 "running 아님"으로 읽어 실패한다.
+        # 폴링 타이밍에 따라 갈리는 경쟁이라 로컬 5회 중 4회 실패했다. 장기 실행
+        # 서비스만 --wait 에 둔다.
         run: |
           docker compose -f docker-compose.dev.yml up -d \
             --wait --wait-timeout 120 \
-            rustfs openbao pulumi-backend-bootstrap
+            rustfs openbao
+
+      - name: Create pulumi-state bucket (bootstrap)
+        # --exit-code-from 은 해당 컨테이너가 끝날 때까지 기다렸다가 그 종료 코드를
+        # 그대로 반환한다. bucket 생성 실패를 여기서 잡는다.
+        run: |
+          docker compose -f docker-compose.dev.yml up \
+            --exit-code-from pulumi-backend-bootstrap \
+            pulumi-backend-bootstrap
 
       - name: Verify rustfs bucket via aws-cli
         run: |
