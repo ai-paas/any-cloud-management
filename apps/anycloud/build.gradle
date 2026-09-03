@@ -179,10 +179,10 @@ dependencies {
     testImplementation 'org.testcontainers:rabbitmq'
     // K3s — ephemeral K8s cluster for integration test. 실 K8s API quirk 회귀 검증
     // (mock 한계 회피). 자세히는 docs/operations/k8s-integration-testing.md.
-    testImplementation 'org.testcontainers:k3s:1.20.1'
+    testImplementation 'org.testcontainers:k3s:1.21.4'
     // LocalStack — AWS API mock (EC2/VPC/IAM/STS/S3 등) for Pulumi e2e. 실 AWS 비용 없이
     // provisioning 흐름 회귀 검증. 자세히는 docs/operations/pulumi-e2e-testing.md.
-    testImplementation 'org.testcontainers:localstack:1.20.1'
+    testImplementation 'org.testcontainers:localstack:1.21.4'
     testImplementation 'org.springframework.security:spring-security-test'
 
     // ArchUnit — convention (folder-structure.md) 자동 enforce. internal/ 외부 import 차단,
