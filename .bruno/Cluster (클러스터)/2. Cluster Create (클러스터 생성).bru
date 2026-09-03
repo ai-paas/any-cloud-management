@@ -38,7 +38,7 @@ script:post-response {
     if (op.resourceId) bru.setEnvVar('cluster_name', op.resourceId);
     if (op.id) bru.setEnvVar('last_operation_id', op.id);
     if (d.bootstrap) {
-      if (d.bootstrap.token) bru.setEnvVar('bootstrap_token', d.bootstrap.token);
+      if (d.bootstrap.token) bru.setVar('bootstrap_token', d.bootstrap.token);
       if (d.bootstrap.manifestUrl) bru.setEnvVar('bootstrap_manifest_url', d.bootstrap.manifestUrl);
       // Console 에 helm install command 출력 — Bruno 사용자가 copy 후 kubectl context 에서 실행.
       if (d.bootstrap.helmInstallCommand) {
