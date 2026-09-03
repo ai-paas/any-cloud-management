@@ -50,7 +50,7 @@ in-cluster Prometheus / Alertmanager / Grafana
 | 영역 | 좌표 |
 |---|---|
 | 선행 starter | `api project(':cluster-agent-spring-boot-starter')` |
-| Spring Boot | `spring-boot-starter:3.2.5`, `spring-boot-starter-validation:3.2.5` |
+| Spring Boot | `spring-boot-starter:3.5.16`, `spring-boot-starter-validation:3.5.16` |
 | Jackson | `cluster-agent` 로부터 transitive |
 | 빌드 보조 | `spring-boot-configuration-processor` (annotationProcessor), Lombok (compileOnly) |
 

@@ -45,11 +45,11 @@ build.gradle 기준 주요 좌표는 다음과 같습니다.
 
 | 영역 | 좌표 |
 |---|---|
-| Java / Spring Boot | Java 21, Spring Boot 3.2.5 |
+| Java / Spring Boot | Java 21, Spring Boot 3.5.16 |
 | gRPC | `io.grpc:grpc-netty-shaded:1.65.1`, `grpc-protobuf:1.65.1`, `grpc-stub:1.65.1` |
 | gRPC server starter | `net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE` |
 | Protobuf | `com.google.protobuf:protobuf-java:3.25.5`, `protobuf-java-util:3.25.5` |
-| Web / WS | `spring-boot-starter-websocket:3.2.5`, `spring-boot-starter-validation:3.2.5` |
+| Web / WS | `spring-boot-starter-websocket:3.5.16`, `spring-boot-starter-validation:3.5.16` |
 | JWT | `io.jsonwebtoken:jjwt-api:0.12.6` (+ runtimeOnly impl / jackson) |
 | Jackson | `jackson-databind` (rootProject `jacksonVersion`) |
 | Cache | `com.github.ben-manes.caffeine:caffeine` (`AgentSessionRegistry.pendingByRequest` bounded cache) |
