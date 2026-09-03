@@ -10,6 +10,11 @@ import org.springframework.stereotype.Repository;
 public interface VmClusterRepository
         extends JpaRepository<VmClusterEntity, String>, JpaSpecificationExecutor<VmClusterEntity> {
 
+    /** 조정 루프 대상 — READY / DEGRADED 클러스터. */
+    List<VmClusterEntity> findByProvisioningStatusIn(
+            java.util.Collection<com.aipaas.anycloud.domain.provisioning.model.VmClusterStatus> statuses);
+
+
     Optional<VmClusterEntity> findFirstByClusterNameOrderByCreatedAtDesc(String clusterName);
 
     List<VmClusterEntity> findAllByOrderByCreatedAtDesc();
