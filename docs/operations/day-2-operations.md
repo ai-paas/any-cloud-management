@@ -17,7 +17,7 @@ state backend 는 RustFS (S3 호환), secrets 는 OpenBao (Vault 호환) 입니�
 워커 노드 수를 변경합니다 (예: 3 → 5 또는 5 → 3).
 
 **자동화 범위**
-- 자동: Pulumi config (`workerCount`) 갱신 → `pulumi up` 으로 VM 추가/삭제 생성·삭제
+- 자동: Pulumi config (`workerCount`) 갱신 → `pulumi up` 으로 VM 추가/삭제 생성, 삭제
 - 자동: 신규 VM 의 cloud-init 으로 kubeadm join 자동 수행
 - 수동: cluster-autoscaler 도입은 별건 (CSP cloud-provider 필요)
 
@@ -167,7 +167,7 @@ kubeadm 이 발급한 인증서를 만료 전에 갱신합니다.
 
 ## 6. Pulumi state 백업 & 복구 (RustFS)
 
-state backend 손상·삭제 시 복구할 수 있어야 합니다.
+state backend 손상, 삭제 시 복구할 수 있어야 합니다.
 
 **자동화 범위**
 - 수동: cron 으로 `mc mirror` 또는 RustFS replication
@@ -286,7 +286,7 @@ dead-letter queue 적재 메시지를 검토 후 재처리하거나 폐기합니
 
 ## 10. 모니터링 / 알람 SLO
 
-백엔드와 클러스터 군의 운영 상태를 측정·알람합니다.
+백엔드와 클러스터 군의 운영 상태를 측정, 알람합니다.
 
 **자동화 범위**
 - 자동: kube-prometheus-stack 의 cluster 별 설치 — `cluster_addon` 테이블 + RabbitMQ async workflow.

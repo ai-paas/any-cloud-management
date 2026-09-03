@@ -204,7 +204,7 @@ POM 에 의도적으로 노출되지 않는 의존성은 다음과 같습니다.
 
 ---
 
-## 프로젝트 컨텍스트 · 호환성 (any-cloud-management)
+## 프로젝트 컨텍스트, 호환성 (any-cloud-management)
 
 본 starter 는 [any-cloud-management](../../README.md) 모노레포의 일부로 함께 빌드 / publish 됩니다.
 외부 consumer (자체 backend) 는 동일한 Maven coordinate 로 임포트할 수 있습니다.

@@ -2,16 +2,16 @@
 
 Velero install + schedule, etcd snapshot, PKI backup. Layer 2 통합 starter
 [`cluster-agent-features-spring-boot-starter`](./cluster-agent-features-starter.md) 의
-sub-package `io.aipaas.cluster.agent.backup` 으로 제공. 본 문서는 Backup sub-feature 의 scope ·
-책임 · 외부 API · SPI 를 정의합니다.
+sub-package `io.aipaas.cluster.agent.backup` 으로 제공. 본 문서는 Backup sub-feature 의 scope,
+책임, 외부 API, SPI 를 정의합니다.
 
 ## 1. Layer 와 위치
 
 | Starter | 책임 | 호스트 의존 SPI |
 |---|---|---|
 | `cluster-agent-spring-boot-starter` (Layer 1) | gRPC reverse-tunnel, agent registration, K8s API / Helm dispatcher | `AgentIdentityStore` |
-| `cluster-agent-observability-spring-boot-starter` (Layer 2) | PromQL / Alertmanager / Grafana 통신, alert silence·rule | `ClusterCatalog` |
-| **`cluster-agent-backup-spring-boot-starter`** (Layer 2) | **etcd / PKI 원시 백업, Velero install·Backup·Restore·Schedule** | `BackupHistoryWriter` (선택) |
+| `cluster-agent-observability-spring-boot-starter` (Layer 2) | PromQL / Alertmanager / Grafana 통신, alert silence, rule | `ClusterCatalog` |
+| **`cluster-agent-backup-spring-boot-starter`** (Layer 2) | **etcd / PKI 원시 백업, Velero install, Backup, Restore, Schedule** | `BackupHistoryWriter` (선택) |
 | 호스트 application (e.g. anycloud) | DB, schedule, KEK, credential 통합, REST controller | — |
 
 Layer 2 의 두 starter (observability / backup) 는 서로 독립적입니다. 어느 하나만 import 해도 동작하며, 둘 다 cluster-agent-starter 위에 build 됩니다.
@@ -100,7 +100,7 @@ public class VeleroSetupService {
 }
 ```
 
-starter 는 `VeleroInstallSpec` 만 받습니다 — credential 출처는 알지 못합니다. `VeleroInstallSpec` 은 AWS S3 / S3-compatible (MinIO·Wasabi·R2) / GCS / Azure Blob 의 quick-constructor 를 제공합니다.
+starter 는 `VeleroInstallSpec` 만 받습니다 — credential 출처는 알지 못합니다. `VeleroInstallSpec` 은 AWS S3 / S3-compatible (MinIO, Wasabi, R2) / GCS / Azure Blob 의 quick-constructor 를 제공합니다.
 
 ## 4. 모듈 layout
 
@@ -204,7 +204,7 @@ wire-compatibility 를 위해 다음은 유지합니다.
 
 ## 8. Impersonation SPI 호환성
 
-cluster-backup-starter 가 K8s API 호출을 수반하는 경우 (Velero install / backup / restore 의 cluster-side plan·apply 등) — cluster-agent-spring-boot-starter 의 `ImpersonationContext` SPI 를 통과해야 user RBAC 가 적용됩니다.
+cluster-backup-starter 가 K8s API 호출을 수반하는 경우 (Velero install / backup / restore 의 cluster-side plan, apply 등) — cluster-agent-spring-boot-starter 의 `ImpersonationContext` SPI 를 통과해야 user RBAC 가 적용됩니다.
 
 원칙은 다음과 같습니다.
 

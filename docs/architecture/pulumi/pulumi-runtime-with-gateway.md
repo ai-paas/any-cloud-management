@@ -162,7 +162,7 @@ docker compose -f docker-compose.dev.yml exec openbao bao write -f transit/keys/
 docker compose -f docker-compose.dev.yml exec anycloud-backend pulumi login --help
 ```
 
-`docker compose` 만으로 Pulumi backend·secrets 가 같이 올라가므로
+`docker compose` 만으로 Pulumi backend, secrets 가 같이 올라가므로
 사용자는 `PULUMI_PASSPHRASE` (또는 OpenBao 모드일 때 `VAULT_TOKEN`) 만 안전하게 주입하면 됩니다.
 
 ### 운영 환경 점검 체크리스트

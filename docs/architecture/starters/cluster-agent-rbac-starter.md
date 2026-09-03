@@ -2,16 +2,16 @@
 
 OIDC group → K8s ClusterRoleBinding orchestration. Layer 2 통합 starter
 [`cluster-agent-features-spring-boot-starter`](./cluster-agent-features-starter.md) 의
-sub-package `io.aipaas.cluster.agent.rbac` 으로 제공. 본 문서는 RBAC sub-feature 의 scope ·
-책임 · 외부 API · SPI 를 정의합니다.
+sub-package `io.aipaas.cluster.agent.rbac` 으로 제공. 본 문서는 RBAC sub-feature 의 scope,
+책임, 외부 API, SPI 를 정의합니다.
 
 ## 1. Layer 와 위치
 
 | Starter | 책임 | 호스트 의존 SPI |
 |---|---|---|
 | `cluster-agent-spring-boot-starter` (Layer 1) | gRPC reverse-tunnel, agent registration, K8s API / Helm dispatcher | `AgentIdentityStore` |
-| `cluster-agent-observability-spring-boot-starter` (Layer 2) | PromQL / Alertmanager / Grafana 통신, alert silence·rule | `ClusterCatalog` |
-| `cluster-agent-backup-spring-boot-starter` (Layer 2) | etcd / PKI 백업, Velero install·Backup·Restore·Schedule | `BackupHistoryWriter` (선택) |
+| `cluster-agent-observability-spring-boot-starter` (Layer 2) | PromQL / Alertmanager / Grafana 통신, alert silence, rule | `ClusterCatalog` |
+| `cluster-agent-backup-spring-boot-starter` (Layer 2) | etcd / PKI 백업, Velero install, Backup, Restore, Schedule | `BackupHistoryWriter` (선택) |
 | **`cluster-agent-rbac-spring-boot-starter`** (Layer 2) | **OIDC group → ClusterRoleBinding 자동 apply, fleet view, audit** | (선택) `BindingTemplateCatalog` / `BindingAuditSink` |
 | 호스트 application (e.g. anycloud) | REST controller, cluster registry, addon catalog 통합 | — |
 
