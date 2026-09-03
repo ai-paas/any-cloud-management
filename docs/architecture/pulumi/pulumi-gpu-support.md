@@ -40,7 +40,7 @@ config:
 
 ## Pulumi 측 구현 책임
 
-`infra/pulumi/pkg/model.ClusterSpec.EnableGpuOperator` 가 true 이면 Pulumi 가 다음을 처리합니다.
+`ClusterSpec.enableGpuOperator` 가 true 이면 Pulumi 가 다음을 처리합니다.
 
 1. 워커 노드 프로비저닝입니다 (`WorkerInstanceType` 사용).
 2. `kubeadm` cluster bootstrap 완료 후 `nvidia/gpu-operator` Helm chart 설치입니다.
@@ -138,7 +138,7 @@ if spec.EnableGpuOperator {
 }
 ```
 
-`infra/pulumi/pkg/providers/<provider>/provision.go` 의 worker bootstrap 단계에
+provider 별 `*Provisioner` 의 worker bootstrap 단계에
 `gpu-operator` 설치 step 추가가 필요합니다 (해당 작업은 Pulumi 영역이며 — 본 문서는 backend 계약만 명시합니다).
 
 ## 트러블슈팅

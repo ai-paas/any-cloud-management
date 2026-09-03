@@ -6,7 +6,7 @@ Spring Boot 백엔드에 `Pulumi Automation API` 계층을 붙여서 여러 CSP 
 기준 구현은 다음과 같습니다.
 
 - 백엔드는 Java 21 / Spring Boot 입니다.
-- IaC 엔진은 Pulumi Go 입니다.
+- IaC 엔진은 Pulumi Java SDK 입니다.
 - 현재 실제 구현은 AWS 입니다.
 - 확장 대상은 GCP, Azure, OCI, Alibaba Cloud, DigitalOcean, OpenStack 입니다.
 
@@ -56,7 +56,7 @@ ProvisioningService
    ↓
 Pulumi Automation API
    ↓
-infra/pulumi (Go program)
+cluster-provisioning starter (inline program)
    ↓
 Provider-specific resource creation
    ↓
@@ -70,7 +70,7 @@ VM-based kubeadm cluster
   - 클러스터 메타데이터 저장입니다.
   - Pulumi stack 생성/업데이트/삭제 오케스트레이션입니다.
   - Output 을 `ClusterEntity` 로 매핑합니다.
-- Pulumi Go Program 의 책임은 다음과 같습니다.
+- Pulumi program (`*Provisioner`) 의 책임은 다음과 같습니다.
   - 네트워크/VPC/보안/IAM/VM/DB 생성입니다.
   - kubeadm user-data 생성입니다.
   - 접속 정보와 운영 정보 export 입니다.
@@ -247,10 +247,10 @@ config:
     secure: BASE64_ENCODED_SECRET
 ```
 
-실행 순서는 다음과 같습니다.
+실행 순서는 다음과 같습니다. 아래는 Pulumi CLI 로 stack 을 직접 다룰 때의 예시이며,
+운영 경로에서는 backend 가 Automation API 로 같은 일을 수행합니다.
 
 ```bash
-cd infra/pulumi
 pulumi stack init dev
 pulumi config set anycloud-k8s:provider aws
 pulumi config set anycloud-k8s:name demo-aws

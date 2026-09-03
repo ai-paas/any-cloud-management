@@ -286,7 +286,7 @@ Profile 변형은 다음과 같습니다.
 graph LR
   AC[anycloud] --> ACS[cluster-agent-starter]
   AC --> COS[cluster-observability-starter]
-  AC --> PUL[infra/pulumi via process exec]
+  AC --> PUL[cluster-provisioning starter — Pulumi Java SDK]
   AG[agent Go] -.gRPC.-> AC
   AC -.K8s REST.-> KS[Target K8s clusters]
   AC --> DB[(MariaDB)]
@@ -316,7 +316,7 @@ graph LR
 | anycloud cluster.kubeconfig | 1 신규 (KubeconfigBuilderImpl 9 cases) | cover |
 | agent (Go) `core` | 6 | bootstrap / rotation cover, cert_renewal 미커버 |
 | agent (Go) 외 패키지 | ~10 | `helm`, `leader`, `logstream` 없음 |
-| infra/pulumi | 1 (names_test.go) | **거의 부재** |
+| cluster-provisioning starter | — | **거의 없음** |
 
 → 변경 이력은 `git log` 를 참고합니다.
 

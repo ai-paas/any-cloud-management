@@ -56,7 +56,6 @@ OpenBao 모드로 전환하려면 `PULUMI_SECRETS_PROVIDER=hashivault://openbao:
 | `make format` | `spotlessApply` — Palantir Java Format | ~5 s |
 | `make format-check` | `spotlessCheck` — CI 동일 | ~5 s |
 | `make proto-lint` | `buf lint` | ~2 s |
-| `make pulumi-build` | Pulumi Go 빌드 | ~2 min / ~10 s |
 | `make all-build` | backend + pulumi + agent | ~5 min |
 
 ## API 목록

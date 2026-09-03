@@ -1,7 +1,7 @@
-# Gateway 뒤에서 Spring + Pulumi Go 운영 구조
+# Gateway 뒤에서 Spring + Pulumi 운영 구조
 
 `any-cloud-management` 는 외부에서 직접 Pulumi 를 호출하지 않고, Gateway 를 통해 들어온 요청을
-Spring Boot 가 받아 내부에서 Pulumi Go 프로젝트를 실행합니다.
+Spring Boot 가 받아 내부에서 Pulumi 를 실행합니다.
 
 구조는 다음과 같습니다.
 
@@ -9,15 +9,15 @@ Spring Boot 가 받아 내부에서 Pulumi Go 프로젝트를 실행합니다.
 Client
   -> API Gateway
   -> anycloud-backend (Spring Boot)
-  -> Pulumi CLI + infra/pulumi (Go program)
+  -> Pulumi Java SDK (Automation API, inline program)
   -> AWS / GCP / Azure / OpenStack ...
 ```
 
 핵심 포인트는 다음과 같습니다.
 
-- Go 는 상시 실행 서버가 아닙니다.
-- `infra/pulumi` 는 Pulumi program 입니다.
-- Spring 이 `pulumi up`, `pulumi destroy`, `pulumi stack output --json` 을 호출합니다.
+- Pulumi program 은 별도 프로세스가 아니라 backend JVM 안에서 실행됩니다.
+- provider 별 구현은 `libs/cluster-provisioning-spring-boot-starter` 의 `*Provisioner` 입니다.
+- Automation API 가 up / destroy / stack output 을 담당합니다.
 - 긴 작업은 HTTP 요청 안에서 직접 처리하지 않고 비동기 Job 으로 돌립니다.
 
 ## 실행 모델
@@ -63,11 +63,12 @@ Worker 는 다음 순서로 처리합니다.
 
 `anycloud-backend` 이미지 안에 아래를 함께 넣습니다.
 
-- Java runtime 입니다.
-- Pulumi CLI 입니다.
-- Go toolchain 입니다.
-- `infra/pulumi` 소스입니다.
-- CSP credential 주입 경로입니다.
+- Java runtime
+- Pulumi CLI
+- CSP credential 주입 경로
+
+Go toolchain 과 Pulumi program 소스는 필요 없습니다. provisioning 은 Java SDK 의
+inline program 으로 backend JVM 안에서 실행됩니다.
 
 이 방식은 가장 단순하고 PoC 속도가 빠릅니다.
 
@@ -104,8 +105,7 @@ Pulumi 확장용 오버레이 compose 를 추가하는 방식이 안전합니다
 Pulumi 실행 시 아래 경로는 volume 또는 외부 backend 를 고려해야 합니다.
 
 - `/home/anycloud/.pulumi`
-- `/workspace/infra/pulumi`
-- `/tmp/pulumi`
+- `/tmp/pulumi` (inline program 의 workspace 가 여기 생성됨)
 - kubeconfig export 디렉터리
 - SSH private key export 디렉터리
 

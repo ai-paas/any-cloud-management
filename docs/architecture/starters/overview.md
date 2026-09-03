@@ -111,7 +111,7 @@ K8s minor version upgrade 는 **scope 외** (별도 운영 도구 — `docs/runb
 | 책임 | API |
 |---|---|
 | Pulumi CLI orchestration | `PulumiCommandService` |
-| 8 CSP provider modules | `infra/pulumi` Go 코드 (별도 binary) |
+| 8 CSP provider modules | `program/provisioner/*Provisioner` (Java) |
 | stack-config 영속화 | `ClusterDescriptorRepository` SPI (host = backend DB) |
 
 > 본 starter 만 외부 storage (RustFS/S3) 필수 — Pulumi state 가 외부에서만 의미.

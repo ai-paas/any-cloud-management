@@ -424,7 +424,7 @@ POST /v1/clusters {provisioningType=PULUMI, providerConfig, ...}
   → VmClusterWorkflowConsumer
       → PulumiOrchestrator
           → external 'pulumi up' (process exec)
-              → infra/pulumi/main.go 가 CSP provisioning
+              → cluster-provisioning starter 가 CSP provisioning
   → operation row 상태 갱신
   → 완료 후 helm install cluster-agent (위 §1 flow 와 합류)
 ```

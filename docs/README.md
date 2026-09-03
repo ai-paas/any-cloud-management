@@ -6,21 +6,15 @@
 > **현재 상태 reference** = 본 docs/ 아래 카테고리 폴더 <br>
 > **변경 이력** = `git log` (또는 PR 본문)
 
-## v0.3.0 구조 변경 — 아직 반영되지 않은 문서
-
-v0.3.0 에서 아래 두 가지가 바뀌었고, 일부 문서가 이전 구조를 전제로 남아 있습니다.
+## v0.3.0 구조 변경
 
 | 변경 | 이전 | 현재 |
 |---|---|---|
 | Pulumi 구현 | `infra/pulumi/` (Go program, 별도 binary) | `libs/cluster-provisioning-spring-boot-starter` (Pulumi Java SDK, provider 별 `*Provisioner`) |
 | Layer 2 starter | `cluster-agent-observability-*`, `cluster-agent-backup-*` 별도 모듈 | `cluster-agent-features-spring-boot-starter` 로 통합 (`rbac` / `backup` / `observability` 서브패키지) |
 
-`infra/pulumi` 경로나 위 두 starter 를 모듈로 언급하는 문서는 **v0.3.0 이전 내용**입니다.
-실제 구조는 [`architecture/overview.md`](./architecture/overview.md) 의 component 표와
-저장소의 `settings.gradle` 이 기준입니다.
-
-해당 문서: `architecture/pulumi/*`, `architecture/starters/*`, `architecture/cluster-agent.md`,
-`architecture/feature-flows.md`, `operations/pulumi-e2e-testing.md`, `operations/test-coverage.md`
+문서는 모두 현재 구조를 기준으로 갱신했습니다. 이전 경로나 모듈명이 보이면
+"과거에 이랬다" 는 이력 서술입니다.
 
 ## 처음 오셨다면 — 30분 코스
 
