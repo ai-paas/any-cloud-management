@@ -3,6 +3,7 @@ package com.aipaas.anycloud.domain.provisioning.convergence.internal;
 import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
 import com.aipaas.anycloud.domain.provisioning.convergence.ClusterComponentObserver;
 import com.aipaas.anycloud.domain.provisioning.convergence.ClusterConvergenceService;
+import com.aipaas.anycloud.domain.provisioning.convergence.RequestedAddonInspector;
 import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,14 +20,17 @@ import org.springframework.stereotype.Service;
 public class ClusterConvergenceServiceImpl implements ClusterConvergenceService {
 
     private final ClusterComponentObserver observer;
+    private final RequestedAddonInspector addonInspector;
     private final int maxAttempts;
     private final Duration attemptInterval;
 
     public ClusterConvergenceServiceImpl(
             ClusterComponentObserver observer,
+            RequestedAddonInspector addonInspector,
             @Value("${anycloud.vm-cluster.convergence.verify-max-attempts:3}") int maxAttempts,
             @Value("${anycloud.vm-cluster.convergence.verify-interval:PT1M}") Duration attemptInterval) {
         this.observer = observer;
+        this.addonInspector = addonInspector;
         this.maxAttempts = maxAttempts;
         this.attemptInterval = attemptInterval;
     }
@@ -36,7 +40,8 @@ public class ClusterConvergenceServiceImpl implements ClusterConvergenceService 
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             ConvergenceVerdict verdict;
             try {
-                verdict = ClusterConvergenceOrchestratorImpl.evaluate(observer.observe(vmCluster));
+                verdict = ClusterConvergenceOrchestratorImpl.evaluate(
+                        ClusterConvergenceOrchestratorImpl.collectSignals(observer, addonInspector, vmCluster));
             } catch (Exception e) {
                 log.warn(
                         "수렴 관측 실패 cluster={} attempt={}: {}",

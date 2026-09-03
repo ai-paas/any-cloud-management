@@ -11,6 +11,7 @@ import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
 import com.aipaas.anycloud.domain.provisioning.convergence.ClusterComponentObserver;
 import com.aipaas.anycloud.domain.provisioning.convergence.ComponentHealth;
 import com.aipaas.anycloud.domain.provisioning.convergence.ComponentObservation;
+import com.aipaas.anycloud.domain.provisioning.convergence.RequestedAddonInspector;
 import com.aipaas.anycloud.domain.provisioning.convergence.ComponentType;
 import com.aipaas.anycloud.domain.provisioning.convergence.Requirement;
 import java.time.Duration;
@@ -20,10 +21,12 @@ import org.junit.jupiter.api.Test;
 class ClusterConvergenceServiceImplTest {
 
     private final ClusterComponentObserver observer = mock(ClusterComponentObserver.class);
+    private final RequestedAddonInspector addonInspector = mock(RequestedAddonInspector.class);
 
     /** 테스트에서 대기 0 — 실제 지연은 설정값이라 로직만 검증한다. */
     private ClusterConvergenceServiceImpl service(int maxAttempts) {
-        return new ClusterConvergenceServiceImpl(observer, maxAttempts, Duration.ZERO);
+        when(addonInspector.inspect(any())).thenReturn(List.of());
+        return new ClusterConvergenceServiceImpl(observer, addonInspector, maxAttempts, Duration.ZERO);
     }
 
     private ComponentObservation required(ComponentHealth health) {
