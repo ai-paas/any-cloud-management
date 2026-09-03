@@ -73,6 +73,15 @@ public final class KubeadmUserData {
             systemctl restart containerd
             systemctl enable containerd
 
+            # NVIDIA GPU operator 의 driver 컨테이너는 nouveau 와 공존할 수 없다. 부팅 시점에
+            # 처리해야 재부팅 비용이 없다. GPU 없는 노드에서는 로드되지 않아 무해하다.
+            cat <<'EOF' >/etc/modprobe.d/blacklist-nouveau.conf
+            blacklist nouveau
+            options nouveau modeset=0
+            EOF
+            update-initramfs -u
+            if lsmod | grep -q '^nouveau '; then modprobe -r nouveau; fi
+
             mkdir -p /opt/anycloud
             echo "%s-prepared" >/opt/anycloud/bootstrap-role
             """;
