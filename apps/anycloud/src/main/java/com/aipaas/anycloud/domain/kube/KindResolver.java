@@ -30,7 +30,7 @@ import io.aipaas.cluster.agent.runtime.ResolvedResource;
  * <ul>
  *   <li>TTL 30분 자동 만료</li>
  *   <li>Addon install 직후 {@link #invalidate(String)} 자동 호출 (새 CRD 도입 시점)</li>
- *   <li>Admin endpoint {@code POST /admin/clusters/{c}/kind-cache:flush}</li>
+ *   <li>Admin endpoint {@code POST /v1/admin/clusters/{c}/kind-cache/flush}</li>
  * </ul>
  *
  * <h2>Fallback</h2>
