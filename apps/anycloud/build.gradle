@@ -106,19 +106,19 @@ test {
 
 dependencies {
     implementation platform('software.amazon.awssdk:bom:2.25.53')
-    implementation 'org.springframework.boot:spring-boot-starter-web:3.2.5'
+    implementation 'org.springframework.boot:spring-boot-starter-web:3.5.16'
     // P1-1 (tech-debt review) — @Audited annotation 의 AOP. AspectJ 자동 proxy 활성화.
-    implementation 'org.springframework.boot:spring-boot-starter-aop:3.2.5'
+    implementation 'org.springframework.boot:spring-boot-starter-aop:3.5.16'
     // websocket / jjwt / grpc-* / proto stubs 는 cluster-agent starter 의 api 로 transitively.
-    implementation 'org.springframework.boot:spring-boot-starter-actuator:3.2.5'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator:3.5.16'
     implementation 'io.micrometer:micrometer-registry-prometheus'
-    implementation 'org.springframework.boot:spring-boot-starter-security:3.2.5'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa:3.2.5'
-    implementation 'org.springframework.boot:spring-boot-starter-validation:3.2.5'
-    implementation 'org.springframework.boot:spring-boot-starter-amqp:3.2.5'
+    implementation 'org.springframework.boot:spring-boot-starter-security:3.5.16'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa:3.5.16'
+    implementation 'org.springframework.boot:spring-boot-starter-validation:3.5.16'
+    implementation 'org.springframework.boot:spring-boot-starter-amqp:3.5.16'
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.flywaydb:flyway-mysql'
-    implementation 'org.springframework.boot:spring-boot-starter-cache:3.2.5'
+    implementation 'org.springframework.boot:spring-boot-starter-cache:3.5.16'
     implementation "com.github.ben-manes.caffeine:caffeine:${rootProject.ext.caffeineVersion}"
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0'
     implementation 'org.mariadb.jdbc:mariadb-java-client:3.1.2'
@@ -170,9 +170,9 @@ dependencies {
     // Spring Boot starter-test 가 JUnit 5 / AssertJ / Mockito / spring-test 묶어서 제공.
     // 예시 통합 테스트는 src/test 의 AbstractIntegrationTest 참조.
     // DevTools — make dev-run 시 코드 변경 자동 restart (1-2초). production 자동 제외 (developmentOnly).
-    developmentOnly 'org.springframework.boot:spring-boot-devtools:3.2.5'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools:3.5.16'
 
-    testImplementation 'org.springframework.boot:spring-boot-starter-test:3.2.5'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test:3.5.16'
     testImplementation 'org.springframework.amqp:spring-rabbit-test'
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:mariadb'
