@@ -17,6 +17,8 @@ import com.pulumi.automation.WorkspaceStack;
 import io.aipaas.cluster.provisioning.api.exception.ProvisioningExecutionException;
 import io.aipaas.cluster.provisioning.api.ProvisioningResult;
 import io.aipaas.cluster.provisioning.api.ProvisioningRequest;
+import io.aipaas.cluster.provisioning.program.yaml.YamlEmitters;
+import java.nio.file.Path;
 import io.aipaas.cluster.provisioning.api.ExecutionConfig;
 import io.aipaas.cluster.provisioning.api.ProvisioningPreview;
 import io.aipaas.cluster.provisioning.api.ProvisioningService;
@@ -79,11 +81,10 @@ public class AutomationProvisioningService implements ProvisioningService {
                 CspCredentialPulumiConfigMapper.toPulumiConfig(request.getProvider(), rawCredEnv);
         Map<String, String> envVars = buildEnvVars(rawCredEnv);
 
-        Consumer<Context> programFn = ctx -> program.run(ctx, request);
         LocalWorkspaceOptions workspaceOpts = buildWorkspaceOptions(envVars);
 
-        try (WorkspaceStack stack =
-                LocalWorkspace.createOrSelectStack(PROJECT_NAME, stackName, programFn, workspaceOpts)) {
+        Path[] workDir = new Path[1];
+        try (WorkspaceStack stack = openStack(stackName, request, workspaceOpts, workDir)) {
             applyConfig(stack, request, cspStackConfig);
 
             UpResult result = stack.up(UpOptions.builder()
@@ -95,6 +96,8 @@ public class AutomationProvisioningService implements ProvisioningService {
             throw new ProvisioningExecutionException("Pulumi automation up failed: " + e.getMessage(), e);
         } catch (Exception e) {
             throw new ProvisioningExecutionException("Unexpected error during provision: " + e.getMessage(), e);
+        } finally {
+            YamlWorkspaceFactory.delete(workDir[0]);
         }
     }
 
@@ -109,11 +112,10 @@ public class AutomationProvisioningService implements ProvisioningService {
                 CspCredentialPulumiConfigMapper.toPulumiConfig(request.getProvider(), rawCredEnv);
         Map<String, String> envVars = buildEnvVars(rawCredEnv);
 
-        Consumer<Context> programFn = ctx -> program.run(ctx, request);
         LocalWorkspaceOptions workspaceOpts = buildWorkspaceOptions(envVars);
 
-        try (WorkspaceStack stack =
-                LocalWorkspace.createOrSelectStack(PROJECT_NAME, stackName, programFn, workspaceOpts)) {
+        Path[] workDir = new Path[1];
+        try (WorkspaceStack stack = openStack(stackName, request, workspaceOpts, workDir)) {
             applyConfig(stack, request, cspStackConfig);
             PreviewResult result = stack.preview();
             return toProvisioningPreview(stackName, result);
@@ -121,6 +123,8 @@ public class AutomationProvisioningService implements ProvisioningService {
             throw new ProvisioningExecutionException("Pulumi automation preview failed: " + e.getMessage(), e);
         } catch (Exception e) {
             throw new ProvisioningExecutionException("Unexpected error during preview: " + e.getMessage(), e);
+        } finally {
+            YamlWorkspaceFactory.delete(workDir[0]);
         }
     }
 
@@ -139,14 +143,15 @@ public class AutomationProvisioningService implements ProvisioningService {
 
         // outputs 조회는 program 실행이 불필요 — noop program. 단, LocalWorkspace 는 program 이 필요해
         // null 불가 — empty Consumer 로 우회.
-        Consumer<Context> noopProgram = ctx -> {};
-        try (WorkspaceStack stack =
-                LocalWorkspace.selectStack(PROJECT_NAME, stackName, noopProgram, workspaceOpts)) {
+        Path[] workDir = new Path[1];
+        try (WorkspaceStack stack = openStackWithoutProgram(stackName, workspaceOpts, workDir, false)) {
             return unwrapOutputs(stack.getOutputs());
         } catch (AutomationException e) {
             throw new ProvisioningExecutionException("Failed to read stack outputs: " + e.getMessage(), e);
         } catch (Exception e) {
             throw new ProvisioningExecutionException("Unexpected error reading outputs: " + e.getMessage(), e);
+        } finally {
+            YamlWorkspaceFactory.delete(workDir[0]);
         }
     }
 
@@ -173,11 +178,10 @@ public class AutomationProvisioningService implements ProvisioningService {
                 CspCredentialPulumiConfigMapper.toPulumiConfig(request.getProvider(), rawCredEnv);
         Map<String, String> envVars = buildEnvVars(rawCredEnv);
 
-        Consumer<Context> programFn = ctx -> program.run(ctx, request);
         LocalWorkspaceOptions workspaceOpts = buildWorkspaceOptions(envVars);
 
-        try (WorkspaceStack stack =
-                LocalWorkspace.createOrSelectStack(PROJECT_NAME, stackName, programFn, workspaceOpts)) {
+        Path[] workDir = new Path[1];
+        try (WorkspaceStack stack = openStack(stackName, request, workspaceOpts, workDir)) {
             applyConfig(stack, request, cspStackConfig);
             UpdateResult result = stack.refresh(RefreshOptions.builder()
                     .onEvent(event -> eventAdapter.publish(operationId, event))
@@ -189,6 +193,8 @@ public class AutomationProvisioningService implements ProvisioningService {
             throw new ProvisioningExecutionException("Pulumi automation refresh failed: " + e.getMessage(), e);
         } catch (Exception e) {
             throw new ProvisioningExecutionException("Unexpected error during refresh: " + e.getMessage(), e);
+        } finally {
+            YamlWorkspaceFactory.delete(workDir[0]);
         }
     }
 
@@ -200,15 +206,16 @@ public class AutomationProvisioningService implements ProvisioningService {
         LocalWorkspaceOptions workspaceOpts = buildWorkspaceOptions(envVars);
 
         // removeStack 은 program 무관 — state 파일만 삭제. noop program 사용.
-        Consumer<Context> noopProgram = ctx -> {};
-        try (WorkspaceStack stack =
-                LocalWorkspace.selectStack(PROJECT_NAME, stackName, noopProgram, workspaceOpts)) {
+        Path[] workDir = new Path[1];
+        try (WorkspaceStack stack = openStackWithoutProgram(stackName, workspaceOpts, workDir, false)) {
             stack.workspace().removeStack(stackName);
             log.warn("removeStack: state file for stack {} removed (CSP resources not touched)", stackName);
         } catch (AutomationException e) {
             throw new ProvisioningExecutionException("Failed to remove stack state: " + e.getMessage(), e);
         } catch (Exception e) {
             throw new ProvisioningExecutionException("Unexpected error removing stack: " + e.getMessage(), e);
+        } finally {
+            YamlWorkspaceFactory.delete(workDir[0]);
         }
     }
 
@@ -222,9 +229,8 @@ public class AutomationProvisioningService implements ProvisioningService {
         String operationId = "destroy-" + stackName + "-" + UUID.randomUUID();
 
         // destroy 는 stack state 의 resource 목록을 사용하므로 program 재선언 없이 동작.
-        Consumer<Context> noopProgram = ctx -> {};
-        try (WorkspaceStack stack =
-                LocalWorkspace.createOrSelectStack(PROJECT_NAME, stackName, noopProgram, workspaceOpts)) {
+        Path[] workDir = new Path[1];
+        try (WorkspaceStack stack = openStackWithoutProgram(stackName, workspaceOpts, workDir, true)) {
             UpdateResult destroyResult = stack.destroy(DestroyOptions.builder()
                     .onEvent(event -> eventAdapter.publish(operationId, event))
                     .build());
@@ -236,6 +242,8 @@ public class AutomationProvisioningService implements ProvisioningService {
             throw new ProvisioningExecutionException("Pulumi automation destroy failed: " + e.getMessage(), e);
         } catch (Exception e) {
             throw new ProvisioningExecutionException("Unexpected error during destroy: " + e.getMessage(), e);
+        } finally {
+            YamlWorkspaceFactory.delete(workDir[0]);
         }
     }
 
@@ -301,6 +309,42 @@ public class AutomationProvisioningService implements ProvisioningService {
         }
 
         stack.setAllConfig(allConfig);
+    }
+
+
+    /**
+     * 스택을 연다. YAML emitter 가 있는 provider 는 local workDir 프로그램을, 나머지는 기존 inline
+     * 프로그램을 쓴다. 한 번에 하나씩만 위험에 노출한다.
+     *
+     * <p>{@code workDirHolder} 에 생성된 임시 디렉토리를 담아 caller 가 finally 에서 지운다.
+     */
+    private WorkspaceStack openStack(
+            String stackName,
+            ProvisioningRequest request,
+            LocalWorkspaceOptions workspaceOpts,
+            Path[] workDirHolder)
+            throws AutomationException {
+        if (YamlEmitters.supports(request.getProvider())) {
+            Path workDir = YamlWorkspaceFactory.create(YamlProgramAssembler.assemble(request));
+            workDirHolder[0] = workDir;
+            return LocalWorkspace.createOrSelectStack(stackName, workDir, workspaceOpts);
+        }
+        Consumer<Context> programFn = ctx -> program.run(ctx, request);
+        return LocalWorkspace.createOrSelectStack(PROJECT_NAME, stackName, programFn, workspaceOpts);
+    }
+
+    /**
+     * 리소스 정의가 필요 없는 경로(outputs 조회, destroy)용. 빈 YAML 프로그램이면 provider 를 몰라도
+     * 되고, YAML 로 만든 스택과 runtime 이 어긋나지도 않는다.
+     */
+    private WorkspaceStack openStackWithoutProgram(
+            String stackName, LocalWorkspaceOptions workspaceOpts, Path[] workDirHolder, boolean createIfMissing)
+            throws AutomationException {
+        Path workDir = YamlWorkspaceFactory.create(YamlProgramAssembler.emptyProgram());
+        workDirHolder[0] = workDir;
+        return createIfMissing
+                ? LocalWorkspace.createOrSelectStack(stackName, workDir, workspaceOpts)
+                : LocalWorkspace.selectStack(stackName, workDir, workspaceOpts);
     }
 
     private Map<String, Object> unwrapOutputs(Map<String, OutputValue> outputs) {

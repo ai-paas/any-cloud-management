@@ -138,7 +138,7 @@ final class OpenstackYamlEmitter implements ProviderYamlEmitter {
         port.put("fixedIps", List.of(Map.of("subnetId", YamlRef.of("subnet", "id"))));
         port.put("region", spec.region());
         // router interface 가 붙기 전에 포트를 만들면 외부 통신이 안 되는 상태로 인스턴스가 뜬다.
-        b.resource("port-" + node, T_PORT, port, Map.of("dependsOn", List.of(YamlRef.of("routerIface", "id"))));
+        b.resource("port-" + node, T_PORT, port, Map.of("dependsOn", List.of(YamlRef.resource("routerIface"))));
 
         Map<String, Object> instance = new LinkedHashMap<>();
         instance.put("name", spec.name() + "-" + node);

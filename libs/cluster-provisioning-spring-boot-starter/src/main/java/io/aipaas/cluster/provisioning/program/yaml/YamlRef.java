@@ -13,6 +13,16 @@ public final class YamlRef {
 
     private YamlRef() {}
 
+    /**
+     * {@code ${resource}} — 리소스 자체 참조.
+     *
+     * <p>{@code dependsOn} 은 속성이 아니라 리소스를 받는다. {@code ${res.id}} 를 넘기면 Pulumi 가
+     * "to must be a struct type, got pulumiyaml.lateboundResource" 로 panic 한다.
+     */
+    public static String resource(String resource) {
+        return "${" + resource + "}";
+    }
+
     /** {@code ${resource.property}} — 타입 SDK 의 {@code resource.property()} 등가. */
     public static String of(String resource, String property) {
         return "${" + resource + "." + property + "}";

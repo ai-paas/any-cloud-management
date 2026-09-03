@@ -144,4 +144,15 @@ class OpenstackYamlEmitterTest {
         assertThat(refs.vpcResource()).isEqualTo("net");
         assertThat(refs.sshKeyResource()).isEqualTo("sshKey");
     }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void dependsOnReferencesResourceNotProperty() {
+        // ${res.id} 를 넘기면 Pulumi 가 "to must be a struct type" 으로 panic 한다.
+        Map<String, Object> res = resourcesOf(spec(1));
+        Map<String, Object> options = (Map<String, Object>) ((Map<String, Object>) res.get("port-master")).get("options");
+        List<String> dependsOn = (List<String>) options.get("dependsOn");
+
+        assertThat(dependsOn).containsExactly("${routerIface}");
+    }
 }
