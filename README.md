@@ -73,7 +73,7 @@ OpenBao 모드로 전환하려면 `PULUMI_SECRETS_PROVIDER=hashivault://openbao:
 | K8s Resources | `*/v1/clusters/{c}/namespaces/{ns}/{kind}/{name}` | 통합 controller — cluster-scoped 도 동일 path 패턴 |
 | Helm Releases | `*/v1/clusters/{c}/helm-releases/{r}` | install / upgrade / rollback / uninstall (LRO) |
 | Helm Repos & Charts | `*/v1/helm-repos/{repoName}/charts/{chartName}` | repo CRUD + chart catalog |
-| Operations (LRO) | `*/v1/operations/{operationId}` + `/events` (SSE) | 모든 비동기 작업의 단일 진실 소스 |
+| Operations (LRO) | `*/v1/operations/{operationId}` + `/events` (SSE) | 모든 비동기 작업의 상태를 여기서 확인 |
 | Audit Logs | `GET /v1/audit-logs` | 자동 기록된 mutation 감사 로그 |
 | Workflow (admin) | `GET /v1/workflow/queues` | RabbitMQ queue + DLQ 메시지 검색 |
 

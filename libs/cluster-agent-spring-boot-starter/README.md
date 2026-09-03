@@ -214,7 +214,7 @@ POM 에 의도적으로 노출되지 않는 의존성은 다음과 같습니다.
 | Java | **21** (Records / sealed / virtual threads 사용) |
 | Spring Boot | **3.2.x** (BOM) |
 | Gradle | **8.10.x** (wrapper 고정) |
-| Jackson | 2.17.2 (root `ext.jacksonVersion` 단일 진실) |
+| Jackson | 2.17.2 (root `ext.jacksonVersion` 기준) |
 | Lombok | 1.18.36 (annotationProcessor + compileOnly 동일) |
 | Resilience4j | 2.2.0 |
 

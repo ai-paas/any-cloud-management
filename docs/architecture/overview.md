@@ -1,10 +1,10 @@
 # Architecture Overview
 
-anycloud monorepo 의 component / package / 의존성 지도입니다. 자세한 API 목록은
+anycloud monorepo 의 component / package / 의존 관계를 정리했습니다. 자세한 API 목록은
 [`api-inventory.md`](./api-inventory.md), 주요 flow 는 [`feature-flows.md`](./feature-flows.md) 를
 참고합니다.
 
-## 1. 거시 구성
+## 1. 전체 구성
 
 ```
 ┌────────────────────────────────────────────────────────────────┐

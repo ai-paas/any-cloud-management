@@ -1,6 +1,6 @@
 # K8s Impersonation Pass-through 인증
 
-Gateway 가 검증한 사용자 identity 를 K8s API 까지 전파해 K8s RBAC 를 단일 진실 소스로 사용하는
+Gateway 가 검증한 사용자 identity 를 K8s API 까지 전파해 K8s RBAC 를 기준으로 삼는
 인증 모델입니다. backend 자체 authorization layer (membership / ABAC) 도입 없이 K8s 네이티브 RBAC 만으로
 multi-user / multi-tenant 권한을 분리합니다.
 
