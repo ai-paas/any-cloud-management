@@ -102,6 +102,7 @@ HTTP 엔드포인트 명세, 요청·응답 envelope 입니다.
 - [cluster-agent-namespace-wildcard.md](./runbooks/cluster-agent-namespace-wildcard.md) — `allowed_namespaces: ["*"]` 트러블슈팅
 - [cluster-agent-configmap-migration.md](./runbooks/cluster-agent-configmap-migration.md) — 기존 chart 의 `helm.sh/resource-policy: keep` migration
 - [cluster-agent-secret-cleanup.md](./runbooks/cluster-agent-secret-cleanup.md) — cluster 삭제 후 K8s Secret 정리
+- [cluster-agent-local-k3d.md](./runbooks/cluster-agent-local-k3d.md) — 로컬 k3d 에 agent 연결 (K8s API 로컬 검증)
 
 ### Identity / RBAC ([identity/](./runbooks/identity/))
 - [impersonation-production-activation.md](./runbooks/identity/impersonation-production-activation.md) — Impersonation pass-through 운영 활성화 step-by-step
