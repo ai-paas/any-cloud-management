@@ -137,7 +137,7 @@ dependencies {
     implementation 'org.apache.httpcomponents.client5:httpclient5'
     // Helm chart .tgz unpacking — gzip + tar 파서 (subprocess `helm show` 대체).
     implementation 'org.apache.commons:commons-compress:1.27.1'
-    implementation 'io.hypersistence:hypersistence-utils-hibernate-60:3.5.2'
+    implementation 'io.hypersistence:hypersistence-utils-hibernate-60:3.9.4'
     implementation "com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations"
     implementation "org.bouncycastle:bcprov-jdk18on:${rootProject.ext.bouncyCastleVersion}"
     implementation "org.bouncycastle:bcpkix-jdk18on:${rootProject.ext.bouncyCastleVersion}"
@@ -150,12 +150,12 @@ dependencies {
     // Sprint 3 — JSON structured logging (ELK 호환). 기본 profile 는 string pattern 그대로,
     // SPRING_PROFILES_ACTIVE 에 'json' 포함 시 logback-spring.xml 의 <springProfile name="json">
     // 분기가 활성화돼 logstash 인코더로 JSON 출력.
-    implementation 'net.logstash.logback:logstash-logback-encoder:8.0'
+    implementation 'net.logstash.logback:logstash-logback-encoder:9.0'
 
     // ShedLock (H5/H11): @Scheduled 의 leader election. replica 여러개 띄워도
     // cert scan / state backup / DLQ drain 이 한 노드에서만 실행되도록 DB row lock.
-    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.16.0'
-    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.16.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:7.9.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:7.9.0'
 
     // ---- Cluster Agent infrastructure ----
     implementation project(':cluster-agent-spring-boot-starter')
