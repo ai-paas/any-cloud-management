@@ -55,7 +55,14 @@ ext {
 allprojects {
     group = 'com.aipaas.anycloud'
     version = '0.0.1-SNAPSHOT'
-    sourceCompatibility = '21'
+
+    // sourceCompatibility 를 project 속성으로 직접 쓰면 JavaPluginConvention 경로를 타는데
+    // Gradle 9 에서 제거됐다. java 확장으로 설정한다.
+    plugins.withId('java') {
+        java {
+            sourceCompatibility = JavaVersion.VERSION_21
+        }
+    }
 
     repositories {
         mavenCentral()
