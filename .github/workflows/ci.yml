@@ -139,6 +139,17 @@ jobs:
           go-version-file: apps/agent/go.mod
           cache-dependency-path: apps/agent/go.sum
 
+      # apps/agent/internal/gen 은 .gitignore 대상이다 (buf 가 .proto 에서 생성).
+      # 저장소에 없으므로 빌드 전에 만들어야 한다. proto job 과 같은 buf 버전을 쓴다.
+      - name: Setup buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          version: 1.45.0
+
+      - name: buf generate (agent Go stubs)
+        working-directory: .
+        run: buf generate
+
       - name: go mod download
         run: go mod download
 
