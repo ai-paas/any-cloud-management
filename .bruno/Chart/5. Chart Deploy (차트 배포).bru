@@ -1,58 +1,69 @@
 meta {
-  name: Chart Deploy (차트 배포)
+  name: 5. Chart Deploy (차트 배포)
   type: http
   seq: 5
 }
 
 post {
-  url: {{baseUrl}}/charts/{{repo_name}}/{{chart_name}}/deploy
-  body: multipartForm
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/helm-releases
+  body: json
   auth: none
 }
 
 headers {
-  User-Agent: bruno/1.11.0
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+  User-Agent: bruno/3.3.0
 }
 
-body:multipartForm {
-  releaseName: {{release_name}}
-  clusterId: {{cluster_id}}
-  namespace: {{namespace}}
-  version: {{version}}
-  ~valuesFile: @file({{values_file_path}})
+body:json {
+  {
+    "releaseName": "{{release_name}}",
+    "chart": "{{repo_name}}/{{chart_name}}",
+    "version": "{{version}}",
+    "namespace": "{{namespace}}",
+    "values": {
+      "replicaCount": 3,
+      "service": {
+        "type": "LoadBalancer",
+        "ports": {
+          "http": 81
+        }
+      }
+    }
+  }
 }
 
 vars:pre-request {
   repo_name: chart-museum-external
-  chart_name: nginx
+  chart_name: ingress-nginx
   release_name: nginx-test-release
-  cluster_id: yby654
   namespace: default
-  version: 
-  values_file_path: values.yaml
-  // 파일을 업로드하지 않으려면 values_file_path를 비워두세요
-  // values_file_path: 
+  version: 4.15.1
 }
 
 tests {
-  test("상태 코드 200 확인", function() {
-    expect(res.getStatus()).to.equal(200);
+  test("status 202 (LRO)", function() {
+    expect(res.getStatus()).to.equal(202);
   });
   
-  test("Response Data 확인", function() {
-    const data = res.getBody();
-    expect(data).to.not.be.undefined;
-    expect(data.data).to.not.be.undefined;
+  test("Operation 응답 + Location", function() {
+    expect(res.getBody().data.type).to.equal("INSTALL_HELM_RELEASE");
+    expect(res.getHeader("Location")).to.match(/^\/v1\/operations\/op-/);
   });
+}
+
+docs {
+  Helm release 설치 (JSON body, values 객체 형식).
   
-        test("배포 요청 결과 확인", function() {
-          const data = res.getBody();
-          if (data.data) {
-            expect(data.data).to.have.property('success');
-            expect(data.data).to.have.property('message');
-            expect(data.data.success).to.be.true;
-            expect(data.data.message).to.include('Deployment request submitted');
-            expect(data.data.message).to.include('Check status later');
-          }
-        });
+  values 입력 방식 — 3 가지 중 하나 :
+    A. values 객체 (이 파일, 권장)      → JSON object 그대로. escape 없음.
+    B. valuesYaml 문자열                  → raw YAML 을 JSON string 에 넣음 (escape 필요, 비권장).
+                                            valuesYaml 형식이 필요하면 multipart 변형 endpoint 권장.
+    C. values 미지정 (5-1 파일)           → chart 의 default values.yaml 사용.
+  
+  version 이 빈 값이면 helm 이 latest 선택. body 에서 그 줄을 빼도 됨 (null 처리).
+  큰 values 파일은 별도 multipart endpoint (file 업로드) 사용 권장 — Bruno 의 escape 우회.
+  
+  Backend resolveValuesYaml(values, valuesYaml) 가 두 형식을 통일해 helm 으로 전달.
 }

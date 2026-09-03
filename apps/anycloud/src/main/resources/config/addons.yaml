@@ -1,0 +1,151 @@
+# Addon catalog — frontend 가 GET /v1/addons 로 받는 목록. 각 entry 의 id 가 AddonSpec.catalogId 의 ref.
+#
+# Catalog-driven install. caller (frontend) 는 catalogId 만 보내고
+# 필요시 chartVersion/namespace/values 만 override. catalog 가 chart spec 의 source-of-truth.
+#
+# 새 addon 추가는 본 YAML 에 entry 1개만 추가 — 코드 변경 불필요.
+#
+# 필드:
+#   id                   : URL-safe lowercase-kebab. AddonSpec.catalogId 값.
+#   type                 : AddonInstallerRegistry 의 dispatch key (MONITORING/VELERO/GPU_EXPORTER/...).
+#   displayName          : UI 표시명.
+#   description          : 짧은 설명 — UI tooltip.
+#   chartRepo/chartName  : helm repo alias + chart name.
+#   chartVersion         : default version. caller override 가능.
+#   namespace            : default 설치 namespace.
+#   releaseName          : default helm release name.
+#   repoUrl              : M8 — agent alias resolve 우회용 명시 URL. 비어있으면 backend 가 HelmRepoEntity lookup.
+#   requiredCapabilities : 설치 prerequisite (예: gpu 노드 보유). 미충족 cluster 에는 frontend 가 disable.
+#   defaultValuesYaml    : 권장 values (JSON 또는 YAML). caller 가 override 가능.
+#   tags                 : UI filter 용도.
+
+addon-catalog:
+  enabled: true
+  addons:
+    - id: kube-prometheus-stack
+      type: MONITORING
+      displayName: "Prometheus + Grafana Stack"
+      description: "kube-prometheus-stack — Prometheus operator + Grafana + Alertmanager. cluster 모니터링 핵심."
+      chartRepo: prometheus-community
+      chartName: kube-prometheus-stack
+      chartVersion: "65.0.0"
+      namespace: monitoring
+      releaseName: kube-prometheus-stack
+      repoUrl: https://prometheus-community.github.io/helm-charts
+      requiredCapabilities: []
+      tags: [monitoring, default, observability]
+      # OidcGroupBinding operator 활성 시 install 후 자동 binding.
+      # operator 미배포 환경에선 rbac.groupBindings 무시 (CR apply 안 됨).
+      rbac:
+        groupBindings:
+          - oidcGroupSelector:
+              matchExact: [dev-team, qa-team, viewer]
+            roleRefs:
+              - kind: ClusterRole
+                name: kube-prometheus-stack-prometheus
+                scope: ClusterScope
+          - oidcGroupSelector:
+              matchExact: [ops-team]
+            roleRefs:
+              - kind: ClusterRole
+                name: kube-prometheus-stack-operator
+                scope: ClusterScope
+
+    - id: nvidia-gpu-operator
+      type: GENERIC
+      displayName: "NVIDIA GPU Operator"
+      description: "GPU 노드 의 NVIDIA driver / nvidia-container-toolkit / device plugin / MIG 자동 관리. cluster.hasGpuNodes=true 시 driver install 의 K8s native 경로 — bootstrap-worker SSH driver install 대체."
+      chartRepo: nvidia
+      chartName: gpu-operator
+      chartVersion: "v24.6.0"
+      namespace: gpu-operator
+      releaseName: gpu-operator
+      repoUrl: https://helm.ngc.nvidia.com/nvidia
+      requiredCapabilities: [gpu]
+      tags: [gpu, ops]
+      defaultValuesYaml: |
+        # driver auto-install — operator 가 nvidia driver DaemonSet 으로 GPU node 마다 설치.
+        # bootstrap-worker 가 SSH 로 driver 미설치 — operator 가 K8s native 관리 (CSP 무관).
+        driver:
+          enabled: true
+        # nvidia-container-toolkit — containerd 의 nvidia runtime 자동 config.
+        toolkit:
+          enabled: true
+        # DCGM 은 별도 dcgm-exporter addon 으로 install — duplicate 회피.
+        dcgmExporter:
+          enabled: false
+        # GPU Feature Discovery — node label (nvidia.com/gpu.product 등) 자동 부착.
+        gfd:
+          enabled: true
+        # device-plugin — kubelet 의 nvidia.com/gpu resource advertise.
+        devicePlugin:
+          enabled: true
+
+    - id: dcgm-exporter
+      type: GPU_EXPORTER
+      displayName: "NVIDIA DCGM Exporter"
+      description: "GPU 노드 metric (utilization, memory, temperature) Prometheus exporter. nvidia-gpu-operator 의 driver/runtime 이 prerequisite."
+      chartRepo: nvidia
+      chartName: dcgm-exporter
+      chartVersion: "3.5.0"
+      namespace: monitoring
+      releaseName: dcgm-exporter
+      repoUrl: https://nvidia.github.io/dcgm-exporter/helm-charts
+      requiredCapabilities: [gpu]
+      tags: [monitoring, gpu]
+
+    - id: velero
+      type: VELERO
+      displayName: "Velero Backup"
+      description: "K8s cluster backup/restore — namespace, PV, CRD 단위 백업."
+      chartRepo: vmware-tanzu
+      chartName: velero
+      chartVersion: "7.1.5"
+      namespace: velero
+      releaseName: velero
+      repoUrl: https://vmware-tanzu.github.io/helm-charts
+      requiredCapabilities: []
+      tags: [backup, ops]
+      # dev/qa/viewer 는 backup 결과 read-only, ops 만 mutating.
+      # dynamic team naming 은 Keycloak group hierarchy 또는 attribute mapper 활용 (regex 폐기).
+      rbac:
+        groupBindings:
+          - oidcGroupSelector:
+              matchExact: [dev-team, qa-team]
+            roleRefs:
+              - kind: ClusterRole
+                name: velero-server
+                scope: ClusterScope
+          - oidcGroupSelector:
+              matchExact: [ops-team]
+            roleRefs:
+              - kind: ClusterRole
+                name: velero
+                scope: ClusterScope
+
+    - id: cert-manager
+      type: CERT_MANAGER
+      displayName: "cert-manager"
+      description: "TLS 인증서 자동 발급/갱신 (Let's Encrypt, internal CA)."
+      chartRepo: jetstack
+      chartName: cert-manager
+      chartVersion: "v1.15.3"
+      namespace: cert-manager
+      releaseName: cert-manager
+      repoUrl: https://charts.jetstack.io
+      defaultValuesYaml: '{"installCRDs":true}'
+      requiredCapabilities: []
+      tags: [tls, security]
+
+    - id: ingress-nginx
+      type: INGRESS_NGINX
+      displayName: "Ingress NGINX"
+      description: "K8s Ingress controller — HTTP/HTTPS L7 routing."
+      chartRepo: ingress-nginx
+      chartName: ingress-nginx
+      chartVersion: "4.11.3"
+      namespace: ingress-nginx
+      releaseName: ingress-nginx
+      repoUrl: https://kubernetes.github.io/ingress-nginx
+      requiredCapabilities: []
+      tags: [networking, default]

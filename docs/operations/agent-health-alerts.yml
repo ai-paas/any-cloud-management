@@ -1,0 +1,156 @@
+# Prometheus alerting rules — Anycloud cluster-agent health.
+#
+# 사용:
+#   1. 본 파일을 Prometheus rule_files: 의 디렉토리에 마운트.
+#   2. (kube-prometheus-stack 사용 시) PrometheusRule CR 로 wrap — 본 파일의 groups: 섹션을
+#      그대로 spec.groups: 에 넣음.
+#   3. anycloud backend 가 /actuator/prometheus 로 export 한 시리즈 (anycloud_agent_*) 가
+#      scrape 되고 있어야 함. ServiceMonitor 가 anycloud Service 의 actuator endpoint 를 가리키도록.
+#
+# Anycloud backend metric 정의는 apps/anycloud/.../domain/agent/metrics/AgentHealthMetricsBinder.java.
+
+groups:
+  - name: anycloud-agent-health
+    interval: 30s
+    rules:
+      # =====================================================================
+      # 1. Agent unhealthy (heartbeat / stream / status 종합) — 가장 핵심.
+      #    Anycloud backend 의 healthy gauge 가 0 인 cluster.
+      # =====================================================================
+      - alert: AnycloudClusterAgentUnhealthy
+        expr: anycloud_agent_healthy == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: cluster-agent
+        annotations:
+          summary: "Cluster {{ $labels.cluster }} agent unhealthy (5+ min)"
+          description: |
+            Anycloud backend 가 cluster {{ $labels.cluster }} 의 agent 를 healthy 로 판단하지 못한 지
+            5분 이상 경과. 가능한 원인:
+              - agent pod 가 crashed / pending / not deployed
+              - backend ↔ agent gRPC stream 끊김 (network policy / NAT timeout)
+              - agent 의 heartbeat 가 stale (60s 임계)
+              - agent status 가 DEGRADED / FAILED / REVOKED
+            점검 순서:
+              1. /v1/clusters/{{ $labels.cluster }}/health endpoint 호출 — summary 필드 확인
+              2. cluster_agent 테이블 row 확인 (status, last_seen_at, last_error)
+              3. agent pod logs (kubectl -n aipaas-system logs deploy/cluster-agent)
+          runbook_url: https://docs.example.com/anycloud/runbooks/agent-health
+
+      # =====================================================================
+      # 2. Heartbeat 가 1분 이상 stale — stream 은 살아있지만 신호 없음 (deadlocked agent).
+      # =====================================================================
+      - alert: AnycloudAgentHeartbeatStale
+        expr: anycloud_agent_heartbeat_age_seconds > 60 and anycloud_agent_heartbeat_age_seconds < 86400
+        for: 2m
+        labels:
+          severity: warning
+          component: cluster-agent
+        annotations:
+          summary: "Cluster {{ $labels.cluster }} heartbeat stale ({{ $value | printf \"%.0f\" }}s)"
+          description: |
+            Agent 의 heartbeat 가 {{ $value | printf "%.0f" }}초 동안 도착하지 않음. 임계 60초.
+            agent process 가 deadlocked / blocked / OOM 직전일 가능성.
+          runbook_url: https://docs.example.com/anycloud/runbooks/agent-health
+
+      # =====================================================================
+      # 3. Agent status 가 FAILED / REVOKED — 인증 / bootstrap 단계 실패.
+      # =====================================================================
+      - alert: AnycloudAgentStatusFailedOrRevoked
+        expr: sum by (cluster) (anycloud_agent_status{status=~"FAILED|REVOKED"}) > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: cluster-agent
+        annotations:
+          summary: "Cluster {{ $labels.cluster }} agent FAILED or REVOKED"
+          description: |
+            Agent identity 가 FAILED 또는 REVOKED 상태. bootstrap token 만료 / 인증 거부 / 운영자가
+            수동 revoke. cluster 의 day-2 ops 가 503 으로 떨어짐.
+            복구: cluster 를 backend 에서 re-register (helm upgrade 또는 raw manifest 재적용).
+          runbook_url: https://docs.example.com/anycloud/runbooks/agent-health
+
+      # =====================================================================
+      # 4. Fleet 전체의 unhealthy 비율 임계 — large-scale incident 감지.
+      # =====================================================================
+      - alert: AnycloudFleetDegraded
+        expr: |
+          (
+            sum(anycloud_agent_healthy == 0)
+            /
+            count(anycloud_agent_healthy)
+          ) > 0.20
+        for: 10m
+        labels:
+          severity: critical
+          component: cluster-agent
+        annotations:
+          summary: "Anycloud fleet >20% unhealthy ({{ $value | humanizePercentage }})"
+          description: |
+            등록된 cluster 중 {{ $value | humanizePercentage }} 가 unhealthy. backend 자체 또는
+            backend 네트워크 (gRPC ingress / cert / DNS) 문제일 가능성 높음 — 개별 cluster 문제로
+            보기 어려운 규모.
+          runbook_url: https://docs.example.com/anycloud/runbooks/agent-health
+
+      # =====================================================================
+      # 5. Stream 끊김 — agent status 는 ACTIVE 인데 stream 비활성. backend restart 직후 흔함.
+      #    5분 이상 지속되면 alert (backend restart 후 자동 reconnect 도 5분 내).
+      # =====================================================================
+      - alert: AnycloudAgentStreamDown
+        expr: |
+          anycloud_agent_stream_active == 0
+          and on(cluster) (sum by (cluster) (anycloud_agent_status{status="ACTIVE"}) > 0)
+        for: 5m
+        labels:
+          severity: warning
+          component: cluster-agent
+        annotations:
+          summary: "Cluster {{ $labels.cluster }} agent stream not connected"
+          description: |
+            cluster_agent 테이블의 status 가 ACTIVE 이지만 backend 가 stream 을 받지 못하고 있음.
+            agent 가 backend public endpoint 에 도달하지 못하거나 TLS / 인증 거부.
+            점검: agent logs 의 "GRPC_RECONNECT_FAILED" / TLS handshake error 확인.
+          runbook_url: https://docs.example.com/anycloud/runbooks/agent-health
+
+  # =========================================================================
+  # mTLS cert lifecycle alerts (Phase mtls.3+).
+  # =========================================================================
+  - name: anycloud-agent-mtls
+    interval: 30s
+    rules:
+      # =====================================================================
+      # mTLS cert 가 임박했지만 renewal 이 진행 안 됨 (agent 또는 backend RenewCert 문제).
+      # cert TTL 24h 기준 0.5d (12h) 가 renewal trigger 임계.
+      # =====================================================================
+      - alert: AnycloudAgentMtlsCertRenewalStuck
+        expr: anycloud_agent_mtls_cert_days_remaining > 0 and anycloud_agent_mtls_cert_days_remaining < 0.25
+        for: 10m
+        labels:
+          severity: warning
+          component: cluster-agent-mtls
+        annotations:
+          summary: "Cluster {{ $labels.cluster }} mTLS cert renewal stuck ({{ $value | printf \"%.2f\" }} days)"
+          description: |
+            cert 만료까지 {{ $value | printf "%.2f" }}일 남았는데 renewal 이 진행 안 됨.
+            정상 흐름은 0.5일 (12h) 시점에 자동 renewal — 미진행 이면:
+              - agent 의 renewer goroutine 정지 (logs: "cert renewal stopped")
+              - backend 의 RenewCert RPC 실패 (PERMISSION_DENIED, revoked, serial mismatch)
+              - cluster_agent.revoked_at 가 set 됐을 가능성
+          runbook_url: https://docs.example.com/anycloud/runbooks/mtls
+
+      # =====================================================================
+      # mTLS cert 이미 만료 — connection 끊김 / runtime stream 차단 임박.
+      # =====================================================================
+      - alert: AnycloudAgentMtlsCertExpired
+        expr: anycloud_agent_mtls_cert_days_remaining < 0 and anycloud_agent_mtls_cert_days_remaining > -365
+        for: 1m
+        labels:
+          severity: critical
+          component: cluster-agent-mtls
+        annotations:
+          summary: "Cluster {{ $labels.cluster }} mTLS cert EXPIRED"
+          description: |
+            cert 가 만료됨 ({{ $value | printf "%.1f" }}일 over). mTLS dial enabled cluster 면
+            runtime stream 차단됨. 운영자가 cluster 재등록 또는 강제 renewal 필요.
+          runbook_url: https://docs.example.com/anycloud/runbooks/mtls

@@ -1,28 +1,55 @@
 meta {
-  name: Helm repo Delete (헬름저장소 삭제)
+  name: 4. HelmRepo Delete (헬름저장소 삭제)
   type: http
-  seq: 5
+  seq: 4
 }
 
 delete {
-  url: {{baseUrl}}/helm-repos/{{helmRepo_name}}
+  url: {{baseUrl}}/v1/helm-repos/{{helmRepo_name}}
   body: none
   auth: none
 }
 
 headers {
   content-type: application/json
-  User-Agent: bruno/1.11.0
+  Idempotency-Key: {{$randomUUID}}
+  User-Agent: bruno/3.3.0
+}
+
+vars:pre-request {
+  helmRepo_name: anycloud-chartmuseum-internal
 }
 
 tests {
   test("상태 코드 200 확인", function() {
     expect(res.getStatus()).to.equal(200);
   });
-  
-  test("Response Data 확인", function() {
+
+  test("성공 envelope 확인", function() {
     const data = res.getBody();
-    // console.log("   ✓ data length", Object.keys(data).length);
-    expect(data).to.not.be.undefined;
+    expect(data.success).to.equal(true);
+    expect(data.status).to.equal(200);
+    expect(data.data.operation).to.equal("delete");
+    expect(data.data.resourceType).to.equal("helmRepository");
   });
+}
+
+docs {
+  ## Delete 흐름 + Orphan cleanup (H-50/H-51/H-57, 2026-06-08)
+
+  본 endpoint 호출 시:
+  1. backend 의 `helm_repo` row 삭제
+  2. `HelmRepoChangedEvent` publish (operation="delete")
+  3. `TransactionalEventListener(AFTER_COMMIT)` 가 모든 ACTIVE cluster 에 broadcast
+  4. agent 의 `apply_config.go` 가 `SyncRepositoriesWithCleanup` 호출
+     → `anycloud-` prefix 의 RepositoryFile entry 중 삭제된 repo 도 제거
+
+  ### prefix 가 없는 repo 삭제 시
+  agent 측 helm SDK RepositoryFile 에서 자동 제거 안 됨 (사용자가 helm CLI 로
+  직접 추가한 것으로 인식, 보호). 필요 시 직접:
+    kubectl exec -n aipaas-system <agent-pod> -- helm repo remove <name>
+
+  ### 검증
+  - backend log: `broadcastHelmRepoChange: done — ok=N, fail=0`
+  - agent log: `apply_agent_config: helm repositories synced added=N, removed=1`
 }

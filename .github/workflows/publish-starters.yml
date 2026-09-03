@@ -1,0 +1,87 @@
+name: Publish Starter Jars (GHCR Maven)
+
+# 3 starter jar 를 GHCR (GitHub Packages 의 Maven repository) 에 publish.
+# GHCR 의 Maven endpoint: https://maven.pkg.github.com/<owner>/<repo>
+#
+# 외부 Java 프로젝트가 starter 를 의존성으로 추가하는 방법은 docs/architecture/
+# starters/starter-publishing.md 참조.
+#
+# 발동 조건:
+#   - tag push (vX.Y.Z)   → 정식 release. tag 의 version 이 -PstarterVersion 으로 gradle 에
+#                           자동 주입 — build.gradle 의 version 을 수동 동기화할 필요 없음.
+#   - workflow_dispatch   → 응급 수동 publish. 명시적 -PstarterVersion 입력 받음.
+#
+# main push 는 publish 안 함 — GHCR Maven release immutability 와 충돌. SNAPSHOT publish 가
+# 필요하면 향후 별도 workflow 도입.
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Override starter version (예: 0.1.0-rc1). 빈 값이면 build.gradle 의 fallback 사용.'
+        required: false
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-starters-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish 3 starters to GHCR Maven
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle (with cache)
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          cache-disabled: false
+
+      - name: Resolve starter version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            # ref_name: 'v0.1.0' → '0.1.0' (leading v strip).
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION=""
+          fi
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved starter version: ${VERSION:-(fallback to build.gradle default)}"
+
+      - name: Publish 3 starters
+        # build.gradle 의 publishing.repositories 가 findProperty('publishUrl') 패턴이라
+        # -PpublishUrl / -PpublishUsername / -PpublishPassword 만 넘기면 됨.
+        # starter 의 version 은 findProperty('starterVersion') ?: 'X.Y.Z-SNAPSHOT' 로 외부 주입.
+        env:
+          GH_OWNER: ${{ github.repository_owner }}
+          GH_REPO: ${{ github.event.repository.name }}
+        run: |
+          VERSION_ARG=""
+          if [ -n "${{ steps.version.outputs.value }}" ]; then
+            VERSION_ARG="-PstarterVersion=${{ steps.version.outputs.value }}"
+          fi
+          ./gradlew \
+            :cluster-agent-spring-boot-starter:publish \
+            :cluster-agent-features-spring-boot-starter:publish \
+            :cluster-provisioning-spring-boot-starter:publish \
+            $VERSION_ARG \
+            -PpublishUrl="https://maven.pkg.github.com/${GH_OWNER}/${GH_REPO}" \
+            -PpublishUsername="${{ github.actor }}" \
+            -PpublishPassword="${{ secrets.GITHUB_TOKEN }}" \
+            --no-daemon --console=plain

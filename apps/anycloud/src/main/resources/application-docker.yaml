@@ -1,0 +1,43 @@
+# Docker container 환경 — SPRING_PROFILES_ACTIVE=docker.
+#
+# 기존 root/application.properties_docker 의 대체.
+# - DB 접속은 env-driven (compose 의 ${DB_*} variable).
+# - JPA ddl-auto=validate (schema 는 Flyway 가 담당, JPA 는 매핑 검증만).
+# - show-sql=true 는 컨테이너 로그 디버깅 편의 — 운영 환경에선 SPRING_JPA_SHOW_SQL=false 로 끄기.
+
+spring:
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mariadb://${DATABASE_HOST:aipaas-db}:${DATABASE_PORT:3306}/${DATABASE_NAME:aipaas}
+    username: ${DATABASE_USERID:aipaas}
+    password: ${DATABASE_USERPASS:aipaas}
+    # ---------------------------------------------------------------------
+    # HikariCP pool 명시. 기본값 (max 10) 은 멀티 cluster
+    # 환경에서 ClusterConnectivityServiceImpl 의 cluster 단위 fan-out + 동시
+    # workflow 처리 시 connection 경합 발생. 운영은 env 로 override:
+    #   DB_POOL_MAX=30 DB_POOL_MIN=8
+    # max-lifetime 은 MariaDB wait_timeout (기본 8h) 보다 안전 마진 두고 30 분.
+    # ---------------------------------------------------------------------
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:30}
+      minimum-idle: ${DB_POOL_MIN:8}
+      max-lifetime: ${DB_POOL_MAX_LIFETIME_MS:1800000}
+      idle-timeout: ${DB_POOL_IDLE_TIMEOUT_MS:600000}
+      connection-timeout: ${DB_POOL_CONNECTION_TIMEOUT_MS:30000}
+      # Leak detection — 60s 동안 connection 반환 안 된 호출 stacktrace 로그. 0=비활성.
+      # 운영에서 5s 미만 query 가 대부분이므로 60s 면 명백한 leak 만 잡힘.
+      leak-detection-threshold: ${DB_POOL_LEAK_DETECTION_MS:60000}
+      pool-name: anycloud-hikari
+  jpa:
+    open-in-view: false
+    show-sql: ${SPRING_JPA_SHOW_SQL:true}
+    hibernate:
+      ddl-auto: ${SPRING_JPA_DDL_AUTO:validate}
+
+# docker (운영) profile 에서는 외부 public helm-repo 자동 등록 비활성 default.
+# 운영자가 명시적으로 ANYCLOUD_HELM_REPO_AUTO_SEED=true 로 켜야만 prometheus-community / grafana
+# / bitnami seed. air-gapped 환경 (가장 흔한 운영 시나리오) 즉시 안전. dev profile (application-dev.yaml)
+# 은 그대로 true default.
+helm-repo:
+  auto-seed:
+    enabled: ${ANYCLOUD_HELM_REPO_AUTO_SEED:false}

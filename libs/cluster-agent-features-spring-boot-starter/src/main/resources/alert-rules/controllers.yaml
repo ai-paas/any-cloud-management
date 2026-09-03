@@ -1,0 +1,58 @@
+# Workload controllers (Deployment / StatefulSet / Job / HPA).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: anycloud-controllers
+  namespace: ${NAMESPACE}
+  labels:
+    release: ${RELEASE}
+    source: anycloud-default
+    rule-set: controllers
+spec:
+  groups:
+    - name: anycloud.controllers
+      rules:
+        - alert: DeploymentRolloutStuck
+          expr: |
+            kube_deployment_status_observed_generation
+              != kube_deployment_metadata_generation
+          for: 15m
+          labels:
+            severity: warning
+            source: anycloud-default
+          annotations:
+            summary: "Deployment rollout stuck — {{ $labels.namespace }}/{{ $labels.deployment }}"
+            description: "Observed generation != metadata generation for {{ $labels.namespace }}/{{ $labels.deployment }} for 15 min."
+
+        - alert: StatefulSetReplicasMismatch
+          expr: |
+            kube_statefulset_status_replicas_ready
+              != kube_statefulset_status_replicas
+          for: 15m
+          labels:
+            severity: warning
+            source: anycloud-default
+          annotations:
+            summary: "StatefulSet replicas mismatch — {{ $labels.namespace }}/{{ $labels.statefulset }}"
+            description: "Ready replicas != desired for {{ $labels.namespace }}/{{ $labels.statefulset }} for 15 min."
+
+        - alert: JobFailed
+          expr: kube_job_failed > 0
+          for: 5m
+          labels:
+            severity: warning
+            source: anycloud-default
+          annotations:
+            summary: "Job failed — {{ $labels.namespace }}/{{ $labels.job_name }}"
+            description: "Job {{ $labels.namespace }}/{{ $labels.job_name }} reports failed state."
+
+        - alert: HpaScalingUnable
+          expr: |
+            kube_horizontalpodautoscaler_status_condition{condition="ScalingActive",status="false"} == 1
+          for: 15m
+          labels:
+            severity: warning
+            source: anycloud-default
+          annotations:
+            summary: "HPA unable to scale — {{ $labels.namespace }}/{{ $labels.horizontalpodautoscaler }}"
+            description: "HPA {{ $labels.namespace }}/{{ $labels.horizontalpodautoscaler }} ScalingActive=false for 15 min (often missing metrics)."

@@ -1,0 +1,124 @@
+// 메시징/이벤트 스키마 — agent 와 backend 모두 producer/consumer 가능.
+//
+// 전송 layer 는 호스트 애플리케이션 선택 (Anycloud 는 RabbitMQ topic exchange 권장):
+//   cluster.registration.*  — agent register 흐름 (install.completed, register.request, register.completed)
+//   cluster.lifecycle.*     — cluster 상태 변화 (active, degraded, failed, deleted)
+//   cluster.events.*        — 클러스터 내부 이벤트 forwarding (pod.crashed, addon.installed)
+//
+// Routing key prefix 는 cluster_id 권장 → 같은 cluster 이벤트 순서 보존.
+// schema_version 으로 forward/backward compat.
+//
+// NOTE: 현재 Anycloud 는 synchronous register flow 라 본 메시지들은 publish 되지 않음.
+// 비동기 saga / 외부 통합 (UI live update, audit pipeline) 도입 시 publisher 추가 예정.
+
+syntax = "proto3";
+
+package com.aipaas.anycloud.agent.v1;
+
+option java_multiple_files = true;
+option java_package = "io.aipaas.cluster.agent.v1";
+option java_outer_classname = "EventsProto";
+option go_package = "anycloud/proto/agent/v1;agentv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+import "agent/v1/common.proto";
+
+// ---- cluster.registration.* routing ----
+
+// Agent → broker 발행. Backend consumer 가 받아 DB transaction + identity_token 발급.
+// 같은 메시지가 여러 번 들어와도 한 번만 처리되도록 cluster_id + agent_instance_id 기준 upsert.
+message ClusterInstallCompleted {
+  string event_id = 1;
+  google.protobuf.Timestamp occurred_at = 2;
+
+  string cluster_id = 3;
+  string registration_token_jti = 4;     // JWT 의 jti — IdempotencyStore dedup 용.
+
+  ClusterInfo cluster = 5;
+  AgentInfo agent = 6;
+
+  string source = 7;       // "cluster-agent".
+  string schema_version = 8;     // "v1".
+}
+
+// Backend → broker 발행 (identity_token 발급 완료 후). UI 또는 다른 consumer 가 받음.
+message ClusterRegistered {
+  string event_id = 1;
+  google.protobuf.Timestamp occurred_at = 2;
+
+  ClusterInfo cluster = 3;
+  AgentInfo agent = 4;
+
+  string source = 5;
+  string schema_version = 6;
+}
+
+// Agent 등록 실패 (registration_token expired, cluster_id 충돌 등).
+message ClusterAgentFailed {
+  string event_id = 1;
+  google.protobuf.Timestamp occurred_at = 2;
+
+  string cluster_id = 3;
+  string error_code = 4;       // "INVALID_REGISTRATION_TOKEN" 등.
+  string error_message = 5;
+  string install_mode = 6;     // "HELM_BOOTSTRAP" / "MANUAL" / "API_MANAGED".
+
+  string source = 7;
+  string schema_version = 8;
+}
+
+// ---- cluster.lifecycle.* routing ----
+
+message ClusterStatusChanged {
+  string event_id = 1;
+  google.protobuf.Timestamp occurred_at = 2;
+
+  string cluster_id = 3;
+  string old_status = 4;     // PENDING / ACTIVE / DEGRADED / FAILED / DELETED.
+  string new_status = 5;
+  string reason = 6;
+
+  string source = 7;
+  string schema_version = 8;
+}
+
+// ---- cluster.events.* routing ----
+
+// Agent 가 in-cluster 이벤트를 forward. (예: pod crashed, deployment scaled, addon installed).
+message ClusterInternalEvent {
+  string event_id = 1;
+  google.protobuf.Timestamp occurred_at = 2;
+
+  string cluster_id = 3;
+  string event_type = 4;       // "pod.crashed", "addon.installed" 등 dot-separated.
+  string namespace = 5;
+  string resource_kind = 6;    // "Pod", "Deployment", "HelmRelease" 등.
+  string resource_name = 7;
+
+  google.protobuf.Struct payload = 8;
+
+  string source = 9;
+  string schema_version = 10;
+}
+
+// ---- 공통 sub-messages ----
+
+message ClusterInfo {
+  string cluster_id = 1;
+  string k8s_cluster_uid = 2;
+  string name = 3;
+  string description = 4;
+  string distribution = 5;
+  string version = 6;
+  string endpoint = 7;
+  NetworkInfo network = 8;
+}
+
+message AgentInfo {
+  string agent_instance_id = 1;
+  string version = 2;
+  string node_name = 3;
+}
+
+// NetworkInfo 는 common.proto 에 정의 — 위 message 들이 import 해서 사용.

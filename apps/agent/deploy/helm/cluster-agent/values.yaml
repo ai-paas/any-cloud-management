@@ -1,0 +1,222 @@
+# Default values for cluster-agent.
+# 모든 값은 `helm install --set ...` 또는 `--values custom.yaml` 로 override 가능.
+# anycloud backend 의 Helm release install API 는 chartRef 가 cluster-agent 인 경우
+# `backend.grpcAddr` 가 비어있으면 backend 의 `agent.grpc.public-endpoint` 설정을 자동 주입.
+
+# ---------- image ----------
+image:
+  # 본 chart 는 어떤 registry 든 가리킬 수 있게 설계됨. default 는 GHCR 의 publish-agents.yml
+  # workflow 가 release tag push 시 부착하는 :latest (= main branch tag 의 latest semver).
+  # local dev 는 `helm install --set image.repository=consine2c/cluster-agent --set image.tag=dev` 로 override.
+  # 운영에서는 image.tag 를 pin (예: v0.1.0) 권장 — :latest 가 다음 release 로 silent 갱신되는 위험 회피.
+  repository: ghcr.io/aipaas/cluster-agent
+  tag: latest
+  pullPolicy: IfNotPresent
+  # private repo (GHCR 초기 private 상태) 면 imagePullSecret 이름 (별도 secret 생성 후 여기에 박기)
+  pullSecrets: []
+  # - name: ghcr-creds
+
+# ---------- backend connection ----------
+# 원격 cluster 에서 outbound 로 backend gRPC 에 접속할 endpoint (host:port).
+# 비워두면 backend 가 install 시점에 자체 `agent.grpc.public-endpoint` 값을 주입.
+# 사용자가 직접 지정하면 그 값이 우선.
+backend:
+  grpcAddr: ""
+  # Transport TLS — agent 가 backend gRPC server 의 cert 를 검증. 비활성 default = plaintext.
+  # Anycloud backend 의 agent.tls.* 설정이 켜져 있으면 ChartRenderer 가 자동 주입.
+  # mTLS proper (client cert) 는 별도 sprint — 현재는 server cert 만.
+  tls:
+    enabled: false
+    # PEM 인라인 — backend 의 cert chain 의 CA. 비우면 system roots (e.g. Let's Encrypt).
+    caCert: ""
+    # SNI override. 비우면 grpcAddr 의 host 부분 자동.
+    serverName: ""
+    # dev 편의. production 절대 X.
+    insecureSkipVerify: false
+
+# ---------- bootstrap token ----------
+# Backend 가 발급한 JWT (registration_token). 미설정 시 chart 는 secret 을 만들지 않음 —
+# 외부에서 미리 `aipaas-agent-bootstrap` 이름의 secret 을 만들어두면 동작.
+bootstrap:
+  registrationToken: ""
+  existingSecret: ""        # 기존 secret 이름 지정 시 chart 가 secret 을 만들지 않고 그것을 마운트
+  secretKey: "registration-token"
+
+# ---------- runtime ----------
+agent:
+  mode: core                # core | installer (단일 pod 모드는 core 권장)
+  namespace: aipaas-system  # Release namespace 와 별개로 agent 자체 식별용
+  leaderElection: false     # replicas > 1 일 때 true 권장
+  extraEnv: []
+  # - name: LOG_LEVEL
+  #   value: debug
+
+  # readOnlyRootFilesystem=true + runAsUser=65534 환경 호환. deployment 에 HOME=/tmp 설정 +
+  # /tmp emptyDir mount → helm SDK 의 chart cache (~/.cache/helm, ~/.config/helm) + backend
+  # push tarball 모두 /tmp 안에 생성. mount 없으면 INSTALL_ADDON
+  # 의 TEMPFILE_FAILED + helm chart unpack 도 실패.
+  tmpVolume:
+    sizeLimit: 128Mi        # chart .tgz (~5MB) + helm cache + 동시 install 대비
+
+# ---------- deployment ----------
+# mode: single | split.
+#   single : 1 Deployment, SA = installer (mutating + core read 자동 binding).
+#            개발 환경 default — 단일 pod 가 모든 명령 처리.
+#   split  : 2 Deployment.
+#              <release>-core     : SA = aipaas-agent-core, AGENT_MODE=core, read-only RPC
+#              <release>-installer: SA = aipaas-agent-installer, AGENT_MODE=installer, mutating RPC
+#            installer SA 에 core ClusterRole binding 없음 — 권한 분리. agent dispatcher 의
+#            mode-aware RPC allowlist enforce 는 미구현 — 현재는 helm scaffold 만 (양쪽 binary
+#            동일, SA 권한만 분리).
+deployment:
+  mode: single                  # single | split
+
+replicaCount: 1
+strategy:
+  type: Recreate            # leaderElection=false 면 Recreate. true 면 RollingUpdate 추천.
+
+# ---------- pod security ----------
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  fsGroup: 65534
+
+containerSecurityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+
+# ---------- resources ----------
+resources:
+  requests:
+    cpu: "50m"
+    memory: "64Mi"
+  limits:
+    cpu: "500m"
+    memory: "256Mi"
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ---------- RBAC ----------
+# core (read-only) + installer (mutating). dev 권장값은 둘 다 활성.
+# OIDC group → ClusterRoleBinding 자동화는 agent 자체 reconciler 또는 RBAC starter
+# (cluster-agent-rbac-spring-boot-starter) 가 수행.
+rbac:
+  core:
+    enabled: true
+    serviceAccountName: aipaas-agent-core
+  installer:
+    enabled: true
+    serviceAccountName: aipaas-agent-installer
+    # installer 의 RBAC privilege escalation 권한 (escalate/bind/webhook 전권).
+    # default true 는 cert-manager / kube-prometheus-stack / velero / ingress-nginx 등 자체
+    # RBAC 를 동봉하는 차트의 single-rule install 을 가능하게 함.
+    #
+    # 운영 환경에서 addon hook 의 RBAC 자동 적용 (BindingApplyClient) 검증 완료 후 false 로
+    # 전환 → cluster-admin 동급 권한 회수. binding 은 chart 가 동봉한 ClusterRole reference 만
+    # 가능하며 임의 ClusterRole 부여는 차단됨.
+    #
+    # allowEscalation: false 의 제약:
+    #   - 새 ClusterRole 생성 시 installer SA 자신이 그 rule 을 보유해야 함 → cert-manager
+    #     처럼 cluster-admin equiv rule 동봉하는 chart 는 별도 admin SA 로 helm install 필요
+    #   - mutating/validating webhook 등록 차단 — webhook 사용하는 chart 도 별도 path
+    allowEscalation: true
+  # "전체 권한 kubeconfig" 다운로드용 admin SA (cluster-admin binding).
+  # default false — backend 가 VM(PULUMI) 프로비저닝 cluster 설치 시에만 enabled=true 로 렌더.
+  # GET /v1/clusters/{name}/kubeconfig 가 이 SA 의 단기 token 발급 (정적 자격 아님).
+  # registered/BYO cluster 는 false 유지 — 사용자 자격 사용, cluster-admin SA 미생성.
+  adminKubeconfig:
+    enabled: false
+    serviceAccountName: aipaas-admin
+  # OIDC binding 은 starter 의 BindingTemplate / BindingApplyClient (RBAC sub-feature) 가 직접
+  # apply — backend 가 OidcBindingExpander 로 expand 후 APPLY_AGENT_CONFIG.oidc_bindings 로
+  # push, agent reconciler 가 ClusterRoleBinding 생성. operator / view-extras catalog 미사용.
+
+# ---------- AllowList ConfigMap ----------
+# Agent 가 watch — 변경 즉시 반영.
+#
+# namespace 정책 적용 범위 (apps/agent/internal/controller/dispatcher.go):
+#   - LIST_RESOURCES / GET_RESOURCE / DELETE_RESOURCE / APPLY_MANIFEST 모두 검사
+#   - cluster-scoped kind (nodes, namespaces, PVs, storageclasses, CRDs 등) 는 bypass
+#
+# 현재 default: 제한 없음 ('*' wildcard). 추후 user-tenant gating 도입 시 명시 ns 목록으로
+# override:
+#   --set 'allowlist.namespaces={monitoring,ingress-system,cert-manager}'
+# ConfigMap watch (config.Loader) 가 단일 reload path. kubectl edit / helm upgrade / Argo CD
+# / Backend API 모두 ConfigMap 변경 → 즉시 reload. Helm values 패턴 그대로 — 운영자가 values
+# 수정 → upgrade → ConfigMap 갱신 → 정책 반영.
+
+allowlist:
+  enabled: true
+  # ConfigMap name — agent 가 watch + APPLY_AGENT_CONFIG handler 가 patch 할 대상. RBAC 의
+  # Role.resourceNames 와 매칭되어야 함. 거의 항상 default 유지.
+  configMapName: aipaas-agent-allowlist
+  # APPLY_AGENT_CONFIG (proto enum 26) — backend 의 PUT /v1/admin/clusters/{c}/agent-policy
+  # 처리 path. true 면 agent SA 에 본 ConfigMap 의 get/update/patch 권한이 부여되어 backend 가
+  # snapshot 을 push 가능. false 면 Role/RoleBinding 미생성 → APPLY_AGENT_CONFIG 호출 시 dispatcher
+  # 가 FORBIDDEN 반환 (compliance 환경에서 ConfigMap 을 kubectl edit 만 허용하고 싶을 때).
+  applyAgentConfigEnabled: true
+  # chart 제한 default 는 wildcard — 운영자가 INSTALL_ADDON 명령을 호출할 때마다 chart name 을
+  # 미리 allowlist 에 등록할 friction 제거. compliance 환경 (SOC2 / FedRAMP) 에서 chart 명시
+  # 제한 원하면 본 list 를 narrowing.
+  charts:
+    - "*/*:0.0.0-99.99.99"
+  namespaces:
+    # 현재 dev policy: no restriction. agent code 가 wildcard "*" 를 "모든 ns 허용" 으로 해석.
+    - "*"
+  commands:
+    # 본 list 는 bootstrap 용. cluster ACTIVE 시점에 backend 의 AgentProperties.Policy.defaultCommands
+    # 로 통째 교체 (enforce-on-cluster-active=true). 그 이후엔 agent reconciler 가 backend snapshot
+    # 을 desired 로 보존. backend defaults 와 동기화 유지 — drift 시 첫 push 가 의도치 않은 변경 유발.
+    - LIST_PODS
+    - GET_LOG
+    - GET_CLUSTER_INFO
+    - INSTALL_ADDON
+    - UPGRADE_ADDON
+    - UNINSTALL_ADDON
+    - LIST_RESOURCES
+    - LIST_HELM_RELEASES
+    - DELETE_RESOURCE
+    - GET_RESOURCE
+    - APPLY_MANIFEST
+    - INSTALL_OBSERVABILITY_STACK
+    - QUERY_METRICS
+    - LIST_METRIC_TARGETS
+    - LIST_ALERTS
+    - GET_DASHBOARD_URL
+    - GENERATE_KUBECONFIG
+    - CREATE_NODE_DEBUG_POD
+    - APPLY_AGENT_CONFIG
+    - ENSURE_AGENT_CONFIG_ANNOTATIONS
+    - GET_HELM_RELEASE_STATUS
+    - LIST_HELM_RELEASE_RESOURCES
+    - EXEC_POD
+    - GENERATE_CSR_TOKEN
+    - GET_AGENT_CONFIG
+    - GET_AGENT_HEALTH
+    - LIST_HELM_RELEASE_HISTORY
+    # KubeResourceService LIST_RESOURCE_KINDS / RESOLVE_RESOURCE.
+    # UI 의 K8s resource explorer ("kind picker") + shortname → 정규화 입력 처리에 필수.
+    - LIST_RESOURCE_KINDS
+    - RESOLVE_RESOURCE
+  # PodExec 대상 namespace 화이트리스트. allowed_namespaces 와 별개 — exec 는 kubectl exec 등가의
+  # 강력한 권한 (terminal 진입, container 내부 임의 명령). compliance 환경에서는 narrowing 권장.
+  # 현재 dev policy: wildcard. agent code 가 "*" 를 "모든 ns 허용" 으로 해석.
+  # 명시 set 예시: ["default", "kube-system", "aipaas-system", "monitoring"]
+  execNamespaces:
+    - "*"
+
+# ---------- identity Secret ----------
+identity:
+  # cluster-agent-identity Secret 의 pre-install/pre-upgrade cleanup. cluster 재생성 시 backend DB
+  # 의 새 token hash 와 어긋난 옛 Secret 자동 정리. helm install 마다 fresh registrationToken 으로
+  # 새 identity 발급 — 60일 token cycle 의 시작점을 install 시점으로 일치.
+  cleanupHook:
+    enabled: true
+    # bitnami/kubectl 은 2025 부터 Docker Hub public access 가 제한되어 ImagePullBackOff 발생.
+    # rancher/kubectl 은 동등 기능 + Docker Hub public 유지. 운영자가 own registry 의 kubectl
+    # 이미지를 쓰고 싶을 때 override.
+    image: "rancher/kubectl:v1.31.0"

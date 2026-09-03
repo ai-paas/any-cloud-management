@@ -1,0 +1,63 @@
+meta {
+  name: 5. Prometheus Query Range (range raw)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/metrics/query_range?query=up&start={{range_start}}&end={{range_end}}&step=30s
+  body: none
+  auth: none
+}
+
+params:query {
+  query: up
+  start: {{range_start}}
+  end: {{range_end}}
+  step: 30s
+  ~timeout: 30s
+  ~limit: 100
+  ~lookback_delta: 5m
+  ~stats: all
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+script:pre-request {
+  // 최근 1 시간 구간 — Unix epoch seconds.
+  const now = Math.floor(Date.now() / 1000);
+  bru.setVar("range_start", String(now - 3600));
+  bru.setVar("range_end", String(now));
+}
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Prometheus matrix envelope", function() {
+    const data = res.getBody();
+    expect(data).to.have.property("status");
+    expect(data).to.have.property("data");
+    if (data.status === "success" && data.data) {
+      expect(["matrix"]).to.include(data.data.resultType);
+    }
+  });
+}
+
+docs {
+  Prometheus HTTP API `/api/v1/query_range` 의 raw passthrough.
+  
+  필수: query (PromQL), start, end, step
+    start/end: RFC3339 또는 Unix timestamp
+    step     : duration (예 "30s", "5m") 또는 초
+  
+  optional: timeout, limit, lookback_delta, stats — instant 와 동일.
+  
+  응답: Prometheus envelope 그대로 — `resultType: "matrix"`, 각 series 는 [[ts, value], ...] 시계열.
+  
+  pre-request script 가 start/end 를 지난 1 시간으로 자동 세팅. 다른 구간 필요시 vars 에서 직접 지정.
+}

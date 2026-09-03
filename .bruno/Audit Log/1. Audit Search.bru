@@ -1,0 +1,41 @@
+meta {
+  name: 1. Audit Search
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/audit-logs?resource-type=cluster&limit=50
+  body: none
+  auth: none
+}
+
+params:query {
+  resource-type: cluster
+  limit: 50
+}
+
+docs {
+  ## resource-type 값
+
+  AuditInterceptor 가 URI prefix 로 resource-type 을 유도:
+  - `/v1/clusters` (unified — vm + registered) → `cluster`
+  - `/v1/clusters/{c}/helm-releases` → `helmRelease`
+  - `/v1/credentials` → `cspCredential`
+  - `/v1/helm-repos` → `helmRepo`
+
+  `vmCluster` 라는 resource-type 은 기록되지 않음 — VM cluster 생성도 unified
+  `/v1/clusters` 를 통하므로 `cluster` 로 기록. VM cluster 의 step-level audit
+  trail 은 `GET /v1/clusters/{name}/state-history` 가 별도 제공.
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("audit log 응답 확인", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("data");
+  });
+}

@@ -1,44 +1,121 @@
 meta {
-  name: Cluster Create (클러스터 생성)
+  name: 2. Cluster Create (클러스터 생성)
   type: http
   seq: 2
 }
 
 post {
-  url: {{baseUrl}}/system/cluster
+  url: {{baseUrl}}/v1/clusters
   body: json
   auth: none
 }
 
 headers {
   content-type: application/json
-  User-Agent: bruno/1.11.0
+  Idempotency-Key: {{$randomUUID}}
+  User-Agent: bruno/3.3.0
 }
 
 body:json {
   {
-    "clusterType": "Public",
-    "clusterProvider": "AWS",
+    "source": "registered",
     "clusterName": "aws-kubernetes-001",
-    "description": "테스트",
-    "apiServerIp": "127.0.0.1",
-    "apiServerUrl": "https://127.0.0.1:6443",
-    "serverCA": "",
-    "clientCA": "",
-    "clientKey": "",
-    "clientToken": "",
-    "monitServerURL": ""
+    "spec": {
+      "clusterType": "Public",
+      "provider": "AWS",
+      "description": "테스트"
+    }
+  }
+}
+
+script:post-response {
+  // 2026-06-08 (H-48): body 단순화 — metadata 만. 응답 data 는 ClusterRegistrationResponse:
+  //   { operation: {id, type, ...}, bootstrap: {token, expiresAt, helmInstallCommand, ...} }
+  // operation.resourceId / id 를 env 로 저장 + bootstrap.token 도 (후속 manual install 또는 디버깅 용).
+  if (res && res.body && res.body.data) {
+    const d = res.body.data;
+    const op = d.operation || d;     // legacy fallback (vm async)
+    if (op.resourceId) bru.setEnvVar('cluster_name', op.resourceId);
+    if (op.id) bru.setEnvVar('last_operation_id', op.id);
+    if (d.bootstrap) {
+      if (d.bootstrap.token) bru.setEnvVar('bootstrap_token', d.bootstrap.token);
+      if (d.bootstrap.manifestUrl) bru.setEnvVar('bootstrap_manifest_url', d.bootstrap.manifestUrl);
+      // Console 에 helm install command 출력 — Bruno 사용자가 copy 후 kubectl context 에서 실행.
+      if (d.bootstrap.helmInstallCommand) {
+        console.log("=== Run this in your kubectl context ===");
+        console.log(d.bootstrap.helmInstallCommand);
+        console.log("=== Or: ===");
+        console.log(d.bootstrap.kubectlApplyCommand);
+      }
+    }
   }
 }
 
 tests {
-  test("상태 코드 200 확인", function() {
-    expect(res.getStatus()).to.equal(200);
+  test("상태 코드 201 (registered 즉시 완료)", function() {
+    expect(res.getStatus()).to.equal(201);
   });
-  
-  test("Response Data 확인", function() {
+
+  test("Response shape — operation + bootstrap", function() {
     const data = res.getBody();
-    // console.log("   ✓ data length", Object.keys(data).length);
-    expect(data).to.not.be.undefined;
+    expect(data).to.have.property("success");
+    expect(data.data).to.have.property("operation");
+    expect(data.data.operation.type).to.equal("CREATE_CLUSTER");
   });
+
+  test("Bootstrap — token + helm command 노출", function() {
+    const b = res.getBody().data.bootstrap;
+    expect(b).to.be.an('object');
+    expect(b.token).to.be.a('string').that.is.not.empty;
+    expect(b.expiresAt).to.be.a('string').that.is.not.empty;
+    expect(b.helmInstallCommand).to.match(/helm install cluster-agent/);
+    expect(b.manifestUrl).to.match(/agent-manifest\.yaml$/);
+  });
+}
+
+docs {
+  ## Agent-led cluster registration (2026-06-08, H-48)
+
+  Body 가 metadata 만 — provider / clusterType / description / hasGpuNodes. 이전 모델 (apiServerUrl /
+  serverCA / clientCA / clientKey / clientToken / monitServerURL) 은 제거.
+
+  ### 응답 구조
+  - `data.operation` — lifecycle operation (state 추적)
+  - `data.bootstrap.token` — short-lived JWT (default 30분)
+  - `data.bootstrap.helmInstallCommand` — kubectl context 에서 실행할 한 줄 명령
+  - `data.bootstrap.kubectlApplyCommand` — 대안 (manifest URL curl + apply)
+  - `data.bootstrap.manifestUrl` — `/v1/clusters/{name}/agent-manifest.yaml`
+  - `links.manifest` — 동상 URL (HATEOAS)
+
+  ### 사용 흐름
+  1. POST /v1/clusters → 응답에서 helm command 또는 manifestUrl copy
+  2. 자신의 kubectl context (orbstack / minikube / EKS / ...) 에서 helm install 실행
+  3. cluster-agent pod 부팅 → backend gRPC dial-in → cluster state 가 PENDING_AGENT → ACTIVE 전환
+}
+
+example {
+  name: orb-kubernetes-01 (agent-led)
+
+  request: {
+    url: {{baseUrl}}/v1/clusters
+    method: POST
+    mode: json
+    headers: {
+      content-type: application/json
+      Idempotency-Key: {{$randomUUID}}
+      User-Agent: bruno/3.3.0
+    }
+
+    body:json: {
+      {
+        "source": "registered",
+        "clusterName": "orb-kubernetes-001",
+        "spec": {
+          "clusterType": "Public",
+          "provider": "orb",
+          "description": "로컬 OrbStack 테스트"
+        }
+      }
+    }
+  }
 }

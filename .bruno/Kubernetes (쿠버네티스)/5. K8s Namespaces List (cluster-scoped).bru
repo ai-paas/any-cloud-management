@@ -1,0 +1,22 @@
+meta {
+  name: 5. K8s Namespaces List (cluster-scoped)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/namespaces/-/namespaces?pageSize=50
+  body: none
+  auth: none
+}
+
+docs {
+  Cluster-scoped kind 는 namespaces path 의 값을 무시한다. K8s 컨벤션 `-` 를 권장.
+  `kind=namespaces` 일 때 K8s 의 모든 namespace 자원을 list 한다.
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

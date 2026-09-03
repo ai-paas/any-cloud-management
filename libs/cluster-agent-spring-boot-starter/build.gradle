@@ -1,0 +1,214 @@
+// Cluster Agent Spring Boot Starter
+//
+// 다른 Java/Spring Boot 프로젝트가 Cluster Agent 인프라를 의존성 한 줄로 가져다 쓸 수 있도록 추출한 모듈.
+// 포함:
+//   - gRPC 서버 (AgentBootstrap.Register / AgentRuntime.Stream / AgentRuntime.PodExec)
+//   - Agent 신원 인증 (Bearer token → SPI lookup)
+//   - 세션 레지스트리 (cluster_name → 활성 stream)
+//   - PodExec WebSocket ↔ gRPC bridge
+//   - Auto-configuration (의존성 추가만으로 동작)
+//
+// 사용처는 SPI 인터페이스만 구현하면 됨:
+//   - AgentIdentityStore   — agent 신원 영구 저장소 (JPA/Mongo/DynamoDB 등 자유)
+//   - IdempotencyStore     — 등록 토큰 jti 중복 방지 (DB INSERT IGNORE / in-memory 등 자유)
+//   - AgentLifecycleListener — 등록·heartbeat·exec 이벤트 훅 (선택, RabbitMQ/HTTP forward 등 활용)
+
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'com.diffplug.spotless'
+    id 'com.google.protobuf'
+}
+
+// 외부 consumer 가 starter 를 dependency 로 받을 때 자연스러운 좌표 — java 패키지 (io.aipaas.cluster.*)
+// 와 일치. 저장소 root 의 group=com.aipaas.anycloud 는 backend 앱 전용이므로 이 모듈만 override.
+// 변경 시 외부 consumer 도 의존성 좌표 갱신 필요 — README 참조.
+group = 'io.aipaas.cluster'
+
+// starter SemVer 좌표. proto wire-format 변경 시 minor bump, SPI breaking 시 major bump.
+// publish-starters.yml workflow 가 tag push 시 -PstarterVersion=<ref_name without v> 주입.
+// local mavenLocal publish / dev 시 fallback 으로 '-SNAPSHOT' 사용.
+version = findProperty('starterVersion') ?: '0.1.0-SNAPSHOT'
+
+// Library 모듈 — root build.gradle 이 org.springframework.boot plugin 을 본 모듈에 apply 하지
+// 않으므로 bootJar task 는 존재하지 않음. 표준 java jar 만 publish.
+jar {
+    archiveClassifier = ''
+}
+
+// 외부 IDE 가 source 를 hover 로 보여주고 javadoc 도 함께 publish — Maven 관행.
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+// Javadoc 의 strict doclint 가 한국어 주석에서 빈번히 경고 발생 — publish 막지 않도록 OFF.
+tasks.withType(Javadoc).configureEach {
+    options.addStringOption('Xdoclint:none', '-quiet')
+    failOnError = false
+}
+
+// Spotless: anycloud 와 동일 정책.
+spotless {
+    enforceCheck false
+    ratchetFrom 'origin/main'
+    java {
+        target 'src/**/*.java'
+        palantirJavaFormat('2.50.0')
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+dependencies {
+    // ---- gRPC + Protobuf ----
+    api 'io.grpc:grpc-netty-shaded:1.65.1'
+    api 'io.grpc:grpc-protobuf:1.65.1'
+    api 'io.grpc:grpc-stub:1.65.1'
+    api 'com.google.protobuf:protobuf-java:3.25.5'
+    api 'com.google.protobuf:protobuf-java-util:3.25.5'
+    api 'net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE'
+    compileOnly 'org.apache.tomcat:annotations-api:6.0.53'
+
+    // ---- Spring Boot core ----
+    api 'org.springframework.boot:spring-boot-starter:3.2.5'
+    api 'org.springframework.boot:spring-boot-starter-websocket:3.2.5'
+    api 'org.springframework.boot:spring-boot-starter-validation:3.2.5'
+    // configuration metadata processor — IDE 가 application.yaml 자동완성.
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:3.2.5'
+
+    // ---- JWT (registration token) ----
+    api 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+    // ---- Jackson (WebSocket text frames) ----
+    api "com.fasterxml.jackson.core:jackson-databind:${rootProject.ext.jacksonVersion}"
+
+    // ---- Micrometer (mtls.5 auth path metric). optional — consumer 가 actuator + meter
+    //      registry 추가하면 자동 동작. compileOnly 라 starter 자체는 dep 없음. ----
+    compileOnly "io.micrometer:micrometer-core:${rootProject.ext.micrometerVersion}"
+    testImplementation "io.micrometer:micrometer-core:${rootProject.ext.micrometerVersion}"
+
+    // ---- Caffeine (P1-5 — AgentSessionRegistry.pendingByRequest bounded cache). consumer 의
+    //      spring-boot-starter-cache 가 transitively 가져가는 경우가 많지만 starter 자체가 의존하지
+    //      않도록 api 가 아닌 implementation. consumer 가 caffeine 미사용이면 fall-back 동작 X
+    //      (현재 starter 는 caffeine 필수 — 향후 compileOnly 로 변환 + 조건부 wiring 검토). ----
+    implementation "com.github.ben-manes.caffeine:caffeine:${rootProject.ext.caffeineVersion}"
+
+    // ---- Lombok ----
+    compileOnly "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+
+    // ---- Test ----
+    testImplementation 'org.springframework.boot:spring-boot-starter-test:3.2.5'
+    testImplementation 'org.awaitility:awaitility:4.2.1'
+    testCompileOnly "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+}
+
+test {
+    useJUnitPlatform()
+    maxHeapSize = '512m'
+}
+
+// ============= Proto generation =============
+// Source: cluster-agent-spring-boot-starter/src/main/proto/agent/v1/*.proto
+// 본 디렉토리가 저장소 전체의 canonical proto 소스 (buf.yaml 이 가리킴). repo root 의 buf 가
+// 여기서 Go 코드 생성 (apps/agent/internal/gen) — Java 는 아래 protobuf plugin 이 처리.
+// generated Java classes 의 java_package 는 proto 파일에 명시됨 (com.aipaas.anycloud.agent.v1).
+
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.25.5'
+    }
+    plugins {
+        grpc {
+            artifact = 'io.grpc:protoc-gen-grpc-java:1.65.1'
+        }
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.plugins {
+                grpc {}
+            }
+        }
+    }
+}
+
+// .proto 원본은 protobuf-gradle-plugin 이 default 로 jar 안 agent/v1/*.proto 에 자동 포함 —
+// 외부 consumer (Java 외 언어로 client 만들 때) 가 jar 풀어서 사용 가능. 추가 설정 불필요.
+//
+// 다른 의존성과의 classpath 충돌이 우려되면 후속 작업으로 META-INF/proto 로 namespace 추가 검토.
+
+// ============= Publishing =============
+// 외부 Java/Spring Boot 프로젝트가 이 starter 를 의존성으로 가져갈 수 있도록 maven-publish 설정.
+//
+// 로컬 테스트 (consumer 가 같은 머신에서) :
+//   ./gradlew :cluster-agent-spring-boot-starter:publishToMavenLocal
+//   → consumer 의 build.gradle 에 mavenLocal() repository 추가
+//   → implementation 'io.aipaas.cluster:cluster-agent-spring-boot-starter:0.0.1-SNAPSHOT'
+//
+// 원격 publish (Nexus / Artifactory / GitHub Packages) :
+//   gradle.properties 에 publishUrl + publishUsername + publishPassword 정의 후
+//   ./gradlew :cluster-agent-spring-boot-starter:publish
+//   publishUrl 이 비어 있으면 remote publish task 는 등록되지 않아 누락 실수 방지.
+
+publishing {
+    publications {
+        starter(MavenPublication) {
+            from components.java
+            artifactId = 'cluster-agent-spring-boot-starter'
+
+            pom {
+                name = 'Cluster Agent Spring Boot Starter'
+                description = 'Spring Boot starter for hosting the Cluster Agent backend — gRPC server, ' +
+                    'agent identity authentication, session registry, and PodExec WebSocket bridge. ' +
+                    'External Spring Boot apps add this dependency and implement two SPI interfaces ' +
+                    '(AgentIdentityStore + IdempotencyStore) to host the cluster-agent control plane.'
+                url = 'https://github.com/aipaas/any-cloud-management'
+
+                licenses {
+                    license {
+                        name = 'Apache License, Version 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                        distribution = 'repo'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = 'aipaas'
+                        name = 'AIPaaS Team'
+                        email = 'aipaas@innogrid.com'
+                    }
+                }
+
+                scm {
+                    url = 'https://github.com/aipaas/any-cloud-management'
+                    connection = 'scm:git:https://github.com/aipaas/any-cloud-management.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/aipaas/any-cloud-management.git'
+                }
+            }
+        }
+    }
+
+    // Remote repository — properties 가 정의된 경우에만 등록. 정의 안 되면 publishToMavenLocal 만 동작.
+    repositories {
+        def remoteUrl = findProperty('publishUrl')
+        if (remoteUrl) {
+            maven {
+                name = 'remote'
+                url = remoteUrl
+                allowInsecureProtocol = remoteUrl.toString().startsWith('http://')
+                if (findProperty('publishUsername') && findProperty('publishPassword')) {
+                    credentials {
+                        username = findProperty('publishUsername')
+                        password = findProperty('publishPassword')
+                    }
+                }
+            }
+        }
+    }
+}

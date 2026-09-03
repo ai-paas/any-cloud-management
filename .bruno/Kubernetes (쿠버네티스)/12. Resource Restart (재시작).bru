@@ -1,0 +1,42 @@
+meta {
+  name: 12. Resource Restart (재시작)
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/namespaces/{{namespace}}/{{resource_kind}}/{{resource_name}}/restart
+  body: none
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+  User-Agent: bruno/3.3.0
+}
+
+vars:pre-request {
+  namespace: default
+  resource_kind: deployments
+  resource_name: podinfo
+}
+
+docs {
+  pods: 단순 delete (컨트롤러가 재생성).
+  deployments / statefulsets / daemonsets: spec.template.metadata.annotations 의 kubectl.kubernetes.io/restartedAt 갱신.
+  그 외 kind 는 400.
+}
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("성공 envelope 확인", function() {
+    const data = res.getBody();
+    expect(data.success).to.equal(true);
+    expect(data.status).to.equal(200);
+    expect(data.data).to.not.be.undefined;
+  });
+}

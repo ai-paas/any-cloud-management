@@ -1,0 +1,123 @@
+# kured (KUbernetes REboot Daemon)
+# OS 패치 후 노드 재부팅을 워크로드 영향 최소화로 수행 (day-2-operations.md §3).
+#
+# 동작:
+#   1. 각 노드의 /var/run/reboot-required (apt 패키지 매니저 sentinel) 감시
+#   2. 노드 reboot 필요 발견 시 cordon + drain (DaemonSet 제외, emptyDir 삭제)
+#   3. 한 번에 한 노드만 reboot (lock 으로 보장)
+#   4. 재부팅 후 uncordon, 다음 노드로 진행
+#
+# 적용:
+#   kubectl apply -f manifests/platform/kured.yaml
+#
+# 검증:
+#   kubectl -n kube-system get ds/kured
+#   kubectl -n kube-system logs ds/kured | head -20
+#
+# 비활성화 (점검 윈도우 등):
+#   kubectl -n kube-system annotate ds/kured weave.works/kured-node-lock=...
+#   또는 ds 를 그대로 삭제
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kured
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kured
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "patch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list", "delete", "get"]
+  - apiGroups: [""]
+    resources: ["pods/eviction"]
+    verbs: ["create"]
+  - apiGroups: ["apps"]
+    resources: ["daemonsets"]
+    resourceNames: ["kured"]
+    verbs: ["update"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kured
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kured
+subjects:
+  - kind: ServiceAccount
+    name: kured
+    namespace: kube-system
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kured
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: kured
+    app.kubernetes.io/part-of: anycloud-platform
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kured
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kured
+    spec:
+      serviceAccountName: kured
+      hostPID: true
+      restartPolicy: Always
+      tolerations:
+        - effect: NoSchedule
+          operator: Exists
+      containers:
+        - name: kured
+          image: ghcr.io/kubereboot/kured:1.16.2
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+          env:
+            - name: KURED_NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          command:
+            - /usr/bin/kured
+            - --reboot-sentinel=/var/run/reboot-required
+            - --period=1h                       # 매 1h 간격으로 sentinel 확인
+            - --start-time=03:00                # 재부팅 가능 시간 윈도우 시작 (UTC)
+            - --end-time=05:00                  # 종료
+            - --time-zone=UTC
+            - --drain-grace-period=300          # 5m
+            - --drain-pod-selector=
+            - --reboot-days=mon,tue,wed,thu,fri # 주말은 skip
+            - --notify-url=                     # Slack/Teams 알림 URL (운영 시 설정)
+          volumeMounts:
+            - name: hostproc
+              mountPath: /proc
+              readOnly: true
+            - name: varrun
+              mountPath: /var/run
+              readOnly: false
+      volumes:
+        - name: hostproc
+          hostPath:
+            path: /proc
+        - name: varrun
+          hostPath:
+            path: /var/run

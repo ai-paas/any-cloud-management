@@ -1,0 +1,44 @@
+# Azure on-demand pricing.
+#
+# 출처: East US Pay-As-You-Go (https://azure.microsoft.com/pricing/details/virtual-machines/linux/).
+# Linux 가격 기준 — Windows 는 라이센스 비용 별도. 다른 region 은 5-25% 변동.
+provider: azure
+currency: USD
+region: eastus
+spotDiscount: 0.7         # Azure Spot 평균 70% 할인 (workload 별 50-90%)
+updatedAt: "2026-05-23"
+notes: |
+  Prices reflect East US Linux Pay-As-You-Go list price as of 2026-05-23.
+  Reserved instances (1y/3y) discount up to 70% NOT reflected — those are
+  pre-commit. Managed disk / bandwidth NOT included.
+
+instanceTypes:
+  # B-series (burstable)
+  Standard_B1s:    { hourly: 0.0104, vcpu: 1, memoryGb: 1 }
+  Standard_B1ms:   { hourly: 0.0208, vcpu: 1, memoryGb: 2 }
+  Standard_B2s:    { hourly: 0.0416, vcpu: 2, memoryGb: 4 }
+  Standard_B2ms:   { hourly: 0.0832, vcpu: 2, memoryGb: 8 }
+  Standard_B4ms:   { hourly: 0.166,  vcpu: 4, memoryGb: 16 }
+  Standard_B8ms:   { hourly: 0.333,  vcpu: 8, memoryGb: 32 }
+  # D-series v5 (general purpose)
+  Standard_D2s_v5: { hourly: 0.096,  vcpu: 2, memoryGb: 8 }
+  Standard_D4s_v5: { hourly: 0.192,  vcpu: 4, memoryGb: 16 }
+  Standard_D8s_v5: { hourly: 0.384,  vcpu: 8, memoryGb: 32 }
+  Standard_D16s_v5: { hourly: 0.768, vcpu: 16, memoryGb: 64 }
+  # E-series v5 (memory-optimized)
+  Standard_E2s_v5: { hourly: 0.126,  vcpu: 2, memoryGb: 16 }
+  Standard_E4s_v5: { hourly: 0.252,  vcpu: 4, memoryGb: 32 }
+  Standard_E8s_v5: { hourly: 0.504,  vcpu: 8, memoryGb: 64 }
+  # F-series v2 (compute-optimized)
+  Standard_F2s_v2: { hourly: 0.085,  vcpu: 2, memoryGb: 4 }
+  Standard_F4s_v2: { hourly: 0.17,   vcpu: 4, memoryGb: 8 }
+  Standard_F8s_v2: { hourly: 0.34,   vcpu: 8, memoryGb: 16 }
+  # NC-series T4 (GPU)
+  Standard_NC4as_T4_v3: { hourly: 0.526, vcpu: 4, memoryGb: 28, gpu: 1 }
+  Standard_NC8as_T4_v3: { hourly: 0.752, vcpu: 8, memoryGb: 56, gpu: 1 }
+  # NC6s_v3 (V100) — gpu-medium alias
+  Standard_NC6s_v3:           { hourly: 3.06,  vcpu: 6,  memoryGb: 112, gpu: 1 }
+  # NC24ads A100_v4 (A100) — gpu-large alias
+  Standard_NC24ads_A100_v4:   { hourly: 3.67,  vcpu: 24, memoryGb: 220, gpu: 1 }
+  # ND96isr H100_v5 (H100 8x) — gpu-h100 alias
+  Standard_ND96isr_H100_v5:   { hourly: 98.30, vcpu: 96, memoryGb: 1900, gpu: 8 }

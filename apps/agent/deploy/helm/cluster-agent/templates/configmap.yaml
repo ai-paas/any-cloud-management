@@ -1,0 +1,39 @@
+{{/*
+AllowList ConfigMap — agent 가 watch. 변경 즉시 반영 (kubelet ConfigMap sync 주기 후).
+운영 권장: charts/namespaces/commands 를 환경별로 narrower 하게 설정.
+*/}}
+{{- if .Values.allowlist.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aipaas-agent-allowlist
+  namespace: {{ .Values.agent.namespace }}
+  labels:
+    {{- include "cluster-agent.labels" . | nindent 4 }}
+  annotations:
+    # APPLY_AGENT_CONFIG (proto enum 26) handler 가 본 ConfigMap 의 data 를 K8s API 로 직접 patch.
+    # 그 결과 backend 의 PUT /v1/admin/clusters/{c}/agent-policy 가 operator-owned 영역이 됨.
+    # 본 annotation 은 `helm upgrade` 가 ConfigMap 을 덮어쓰지 않도록 보호 — 즉 "install-once,
+    # 이후 operator/backend 가 소유" semantics. 삭제 시에도 (`helm uninstall`) 본 CM 은 보존.
+    "helm.sh/resource-policy": "keep"
+data:
+  # 모든 항목 quote 처리 — wildcard "*" 가 YAML alias 로 오해되는 것 방지. 일반 문자열도
+  # 안전 (chart-version range 의 "0.1.0-0.2.0" 같은 dash 포함 케이스).
+  allowed_charts: |
+    {{- range .Values.allowlist.charts }}
+    - {{ . | quote }}
+    {{- end }}
+  allowed_namespaces: |
+    {{- range .Values.allowlist.namespaces }}
+    - {{ . | quote }}
+    {{- end }}
+  allowed_commands: |
+    {{- range .Values.allowlist.commands }}
+    - {{ . | quote }}
+    {{- end }}
+  # PodExec 대상 namespace allowlist. 미지정 시 빈 list → 모든 exec deny. wildcard "*" = 전부 허용.
+  allowed_exec_namespaces: |
+    {{- range .Values.allowlist.execNamespaces }}
+    - {{ . | quote }}
+    {{- end }}
+{{- end }}

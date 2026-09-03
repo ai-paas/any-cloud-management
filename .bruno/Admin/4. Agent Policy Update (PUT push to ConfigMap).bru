@@ -1,0 +1,135 @@
+meta {
+  name: 4. Agent Policy Update (PUT push to ConfigMap)
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/v1/admin/clusters/{{cluster_name}}/agent-policy
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+body:json {
+  {
+    "allowedNamespaces": ["*"],
+    "allowedCommands": [
+      "LIST_PODS",
+      "GET_LOG",
+      "GET_CLUSTER_INFO",
+      "INSTALL_ADDON",
+      "UNINSTALL_ADDON",
+      "LIST_RESOURCES",
+      "LIST_HELM_RELEASES",
+      "DELETE_RESOURCE",
+      "GET_RESOURCE",
+      "APPLY_MANIFEST",
+      "INSTALL_OBSERVABILITY_STACK",
+      "QUERY_METRICS",
+      "LIST_METRIC_TARGETS",
+      "LIST_ALERTS",
+      "GET_DASHBOARD_URL",
+      "GENERATE_KUBECONFIG",
+      "CREATE_NODE_DEBUG_POD",
+      "LIST_RESOURCE_KINDS",
+      "RESOLVE_RESOURCE",
+      "GET_AGENT_CONFIG",
+      "APPLY_AGENT_CONFIG"
+    ],
+    "allowedCharts": [
+      "prometheus-community/kube-prometheus-stack:45.0.0-65.0.0",
+      "ingress-nginx/ingress-nginx:4.8.0-4.15.1",
+      "jetstack/cert-manager:v1.12.0-v1.16.0",
+      "nvidia/dcgm-exporter:3.0.0-4.0.0",
+      "chart-museum-external/ingress-nginx:1.0.0-9.9.9"
+    ],
+    "allowedExecNamespaces": [],
+    "resourcePolicy": {
+      "mode": "allow_all_discovered",
+      "deny": [
+        { "kind": "secrets" }
+      ],
+      "allow": []
+    },
+    "force": false
+  }
+}
+
+
+
+docs {
+  Agent allowlist + resource_policy 변경 — agent 가 자기 ConfigMap (aipaas-agent-allowlist) 을
+  K8s API 로 update. backend 에는 DB 저장 X (ConfigMap = source of truth). audit_log 기록.
+
+  request body:
+    allowedNamespaces      : 허용 namespace. ["*"] 면 모든 ns.
+    allowedCommands        : 허용 command 목록.
+    allowedCharts          : Helm chart rule list (format: "repo/name:min-max").
+    allowedExecNamespaces  : PodExec 전용 (옵션, 빈 array 가능).
+    resourcePolicy         : { mode, deny[], allow[] } 구조 (옵션, null 이면 legacy).
+    force                  : true 면 HIGH severity warning 도 무시 (긴급용).
+
+  응답:
+    200 OK     — { clusterName, appliedResourceVersion, warnings[], highestSeverity, note }
+    422        — Policy validator 가 HIGH severity warning 발견 + force=false. 응답 body 의
+                 warnings 확인 후 정책 수정 또는 force=true 로 재요청.
+    503        — Cluster agent 비활성.
+
+  확인:
+    적용 후 GET /v1/admin/agent/policy/preview?cluster={cluster_name} 으로 새 snapshot 확인.
+    lastReloadAt 이 PUT 직후 시각이면 agent watch reload 정상 동작.
+
+  Helm upgrade 회피:
+    chart 의 ConfigMap 에 helm.sh/resource-policy: keep annotation 추가됨 — Helm upgrade 가
+    backend 의 PUT 변경분을 덮어쓰지 않음.
+}
+
+tests {
+  test("상태 코드 200 (정상) / 422 (HIGH warning + force=false)", function() {
+    expect([200, 422, 503]).to.include(res.getStatus());
+  });
+
+  test("응답 schema 확인 (200 일 때)", function() {
+    if (res.getStatus() === 200) {
+      const data = res.getBody().data;
+      expect(data).to.have.property("clusterName");
+      expect(data).to.have.property("appliedResourceVersion");
+      expect(data).to.have.property("warnings");
+      expect(data).to.have.property("highestSeverity");
+    }
+  });
+
+  test("422 시 warnings 배열에 HIGH 가 있어야 함", function() {
+    if (res.getStatus() === 422) {
+      const data = res.getBody().data;
+      expect(data.code).to.equal("POLICY_VALIDATION_FAILED");
+      expect(data.highestSeverity).to.equal("HIGH");
+    }
+  });
+
+  test("H-54 — 422 시 recoveryHints 노출 (각 HIGH warning 별 복구 방법)", function() {
+    if (res.getStatus() === 422) {
+      const data = res.getBody().data;
+      expect(data).to.have.property("recoveryHints");
+      expect(data.recoveryHints).to.be.an("object");
+      // MISSING_MANAGEMENT_COMMANDS 가 있으면 kubectl patch 언급
+      if (data.recoveryHints.MISSING_MANAGEMENT_COMMANDS) {
+        expect(data.recoveryHints.MISSING_MANAGEMENT_COMMANDS).to.match(/kubectl patch/);
+      }
+    }
+  });
+
+  test("H-47.3 — helm_repositories sync 결과 노출 (200 일 때)", function() {
+    if (res.getStatus() === 200) {
+      const data = res.getBody().data;
+      // appliedResourceVersion 이 있으면 broadcast 가 작동했고 helm_repositories 도 ConfigMap 에
+      // 반영됨. 상세 sync 결과는 agent 의 응답 (helm_repos_synced/removed) 가 별도 backend log 로 가시화.
+      expect(data.appliedResourceVersion).to.be.a("string").that.is.not.empty;
+    }
+  });
+}

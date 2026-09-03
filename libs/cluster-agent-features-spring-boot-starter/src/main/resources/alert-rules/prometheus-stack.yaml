@@ -1,0 +1,68 @@
+# Health of the observability stack itself — Prometheus / Alertmanager.
+# 본 rule set 이 발화하면 보통 다른 모든 alert 가 신뢰 불가 → severity=critical 우대.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: anycloud-prometheus-stack
+  namespace: ${NAMESPACE}
+  labels:
+    release: ${RELEASE}
+    source: anycloud-default
+    rule-set: prometheus-stack
+spec:
+  groups:
+    - name: anycloud.prometheus-stack
+      rules:
+        - alert: PrometheusTargetDown
+          expr: up == 0
+          for: 10m
+          labels:
+            severity: warning
+            source: anycloud-default
+          annotations:
+            summary: "Scrape target down — {{ $labels.job }} / {{ $labels.instance }}"
+            description: "Prometheus has been unable to scrape {{ $labels.job }}/{{ $labels.instance }} for 10 min."
+
+        - alert: PrometheusRuleEvaluationFailures
+          expr: |
+            increase(prometheus_rule_evaluation_failures_total[5m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+            source: anycloud-default
+          annotations:
+            summary: "Prometheus rule evaluation failures — {{ $labels.instance }}"
+            description: "{{ $labels.instance }} reports {{ printf \"%.0f\" $value }} rule evaluation failures in last 5 min — check rule syntax."
+
+        - alert: PrometheusNotIngestingSamples
+          expr: |
+            rate(prometheus_tsdb_head_samples_appended_total[5m]) == 0
+            and on (job, instance) prometheus_build_info{} > 0
+          for: 10m
+          labels:
+            severity: critical
+            source: anycloud-default
+          annotations:
+            summary: "Prometheus ingesting 0 samples — {{ $labels.instance }}"
+            description: "No samples appended for 10 min — all scrapes failing or storage full."
+
+        - alert: AlertmanagerFailedReload
+          expr: alertmanager_config_last_reload_successful == 0
+          for: 10m
+          labels:
+            severity: critical
+            source: anycloud-default
+          annotations:
+            summary: "Alertmanager config reload failed — {{ $labels.instance }}"
+            description: "Alertmanager {{ $labels.instance }} failed to reload its config — alerts may not route correctly."
+
+        - alert: AlertmanagerNotificationFailing
+          expr: |
+            rate(alertmanager_notifications_failed_total[5m]) > 0
+          for: 10m
+          labels:
+            severity: warning
+            source: anycloud-default
+          annotations:
+            summary: "Alertmanager notifications failing — receiver {{ $labels.integration }}"
+            description: "{{ $labels.instance }} reports failing notifications to {{ $labels.integration }} for 10 min."

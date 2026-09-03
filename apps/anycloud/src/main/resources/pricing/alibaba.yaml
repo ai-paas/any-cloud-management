@@ -1,0 +1,39 @@
+# Alibaba Cloud (Aliyun) on-demand pricing.
+#
+# 출처: cn-hangzhou region pay-as-you-go (https://www.alibabacloud.com/product/ecs/pricing).
+# 미국 region (us-west-1) 은 ~10% 비싼 편. 본 catalog 는 USD 환산 (RMB → USD ~0.14 환율, 2026-05).
+provider: alibaba
+currency: USD
+region: cn-hangzhou
+spotDiscount: 0.7         # SpotAsPriceGo 평균 70% 할인 (RMB 기준)
+updatedAt: "2026-05-24"
+notes: |
+  Prices reflect cn-hangzhou pay-as-you-go list price as of 2026-05-24, USD-
+  converted from RMB at ~0.14. Spot prices via SpotAsPriceGo follow Alibaba's
+  market mechanism — actual discount varies by capacity/time.
+  Other regions (us-west / sg / eu-central) vary ±10-30%.
+
+instanceTypes:
+  # ecs.t6 (burstable, dev/CI)
+  ecs.t6-c1m1.large:    { hourly: 0.0143, vcpu: 2,  memoryGb: 2 }
+  ecs.t6-c1m2.large:    { hourly: 0.0186, vcpu: 2,  memoryGb: 4 }
+  ecs.t6-c1m4.large:    { hourly: 0.0286, vcpu: 2,  memoryGb: 8 }
+  # ecs.g7 (general-purpose, latest Intel Ice Lake)
+  ecs.g7.large:         { hourly: 0.0857, vcpu: 2,  memoryGb: 8 }
+  ecs.g7.xlarge:        { hourly: 0.1714, vcpu: 4,  memoryGb: 16 }
+  ecs.g7.2xlarge:       { hourly: 0.3429, vcpu: 8,  memoryGb: 32 }
+  ecs.g7.4xlarge:       { hourly: 0.6857, vcpu: 16, memoryGb: 64 }
+  # ecs.c7 (compute-optimized)
+  ecs.c7.large:         { hourly: 0.0757, vcpu: 2,  memoryGb: 4 }
+  ecs.c7.xlarge:        { hourly: 0.1514, vcpu: 4,  memoryGb: 8 }
+  ecs.c7.2xlarge:       { hourly: 0.3029, vcpu: 8,  memoryGb: 16 }
+  # ecs.r7 (memory-optimized)
+  ecs.r7.large:         { hourly: 0.1129, vcpu: 2,  memoryGb: 16 }
+  ecs.r7.xlarge:        { hourly: 0.2257, vcpu: 4,  memoryGb: 32 }
+  # ecs.gn6i (GPU — T4)
+  ecs.gn6i-c4g1.xlarge: { hourly: 0.469,  vcpu: 4,  memoryGb: 15, gpu: 1 }
+  ecs.gn6i-c8g1.2xlarge: { hourly: 0.671, vcpu: 8,  memoryGb: 31, gpu: 1 }
+  # ecs.gn7i (A10) — gpu-medium alias
+  ecs.gn7i-c8g1.2xlarge: { hourly: 1.50,  vcpu: 8,   memoryGb: 30,  gpu: 1 }
+  # ecs.ebmgn7e (A100) — gpu-large alias
+  ecs.ebmgn7e.32xlarge:  { hourly: 30.00, vcpu: 128, memoryGb: 1024, gpu: 8 }

@@ -1,0 +1,37 @@
+meta {
+  name: 4. K8s Nodes List (cluster-scoped)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/namespaces/-/nodes?pageSize=50
+  body: none
+  auth: none
+}
+
+params:query {
+  pageSize: 50
+}
+
+headers {
+  content-type: application/json
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Paged 응답 확인", function() {
+    const body = res.getBody();
+    expect(body.data).to.have.property("items");
+    expect(body.data).to.have.property("continueToken");
+    expect(body.data.resourceType).to.equal("nodes");
+  });
+}
+
+docs {
+  Cluster-scoped kind 는 namespaces path 의 값을 무시한다. K8s 컨벤션 `-` 를 권장.
+  `_all` 또는 임의의 namespace 이름이 와도 동일하게 동작한다.
+}

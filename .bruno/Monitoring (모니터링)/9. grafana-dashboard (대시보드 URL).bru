@@ -1,0 +1,39 @@
+meta {
+  name: 9. grafana-dashboard (대시보드 URL)
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/observability/dashboard
+  body: none
+  auth: none
+}
+
+params:query {
+  ~namespace: monitoring
+  ~serviceName: kube-prometheus-stack-grafana
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  cluster-agent 가 K8s Ingress / LoadBalancer 를 탐색해 Grafana 외부 접근 URL 반환.
+  
+  optional:
+    namespace    : default "monitoring"
+    serviceName  : default "kube-prometheus-stack-grafana"
+  
+  응답: {url, ingress_host, port}. 노출되지 않은 경우 FAILED + error_code=GRAFANA_NOT_EXPOSED.
+  
+  활용: UI 에서 "Grafana 열기" 버튼 — 노출 안 되어 있으면 안내 메시지.
+}

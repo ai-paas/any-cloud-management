@@ -1,0 +1,61 @@
+meta {
+  name: 7. Agent Policy Merge Patch (RFC 7396)
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/v1/admin/clusters/{{cluster_name}}/agent-policy
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/merge-patch+json
+  User-Agent: bruno/3.3.0
+}
+
+body:json {
+  {
+    "allowedNamespaces": ["monitoring"],
+    "resourcePolicy": null,
+    "force": false
+  }
+}
+
+
+
+docs {
+  RFC 7396 표준 JSON Merge Patch — Content-Type: application/merge-patch+json 으로 트리거.
+
+  legacy PATCH (application/json) 와 차이:
+    - field 생략: 두 모드 모두 현재 값 유지
+    - field 명시 + 값 있음: 두 모드 모두 새 값 사용
+    - field 명시 + 값 null:
+        legacy → 현재 값 유지 (안전 default)
+        RFC 7396 → 그 필드 비우기 (표준 의미)
+
+  비우기 의미:
+    - 4개 list 필드 (allowedNamespaces 등): 빈 array []
+    - resourcePolicy: null (legacy 동작으로 revert)
+
+  본 예시: allowedNamespaces 는 ["monitoring"] 으로 교체, resourcePolicy 는 null 명시 → 정책 비활성화.
+  다른 필드 (commands, charts, execNamespaces) 는 보내지 않음 → 현재 값 유지.
+
+  활용:
+    - 표준 준수 client (HTTP 라이브러리, kubectl 등) 가 자연스럽게 동작
+    - 명시적 "정책 클리어" 가능 (legacy 에서는 불가했음)
+}
+
+tests {
+  test("상태 코드 200 / 422 / 503", function() {
+    expect([200, 422, 503]).to.include(res.getStatus());
+  });
+
+  test("200 시 method=MERGE_PATCH", function() {
+    if (res.getStatus() === 200) {
+      const data = res.getBody().data;
+      expect(data.method).to.equal("MERGE_PATCH");
+    }
+  });
+}

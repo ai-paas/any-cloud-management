@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-gpu-overview
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  gpu-overview.json: |
+    {
+      "title": "GPU Overview",
+      "timezone": "browser",
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "GPU Utilization (%)",
+          "targets": [
+            {
+              "expr": "avg by (instance, gpu) (DCGM_FI_DEV_GPU_UTIL)",
+              "legendFormat": "{{instance}} gpu{{gpu}}"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "GPU Memory Used (MiB)",
+          "targets": [
+            {
+              "expr": "avg by (instance, gpu) (DCGM_FI_DEV_FB_USED)",
+              "legendFormat": "{{instance}} gpu{{gpu}}"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "GPU Temperature (C)",
+          "targets": [
+            {
+              "expr": "avg by (instance, gpu) (DCGM_FI_DEV_GPU_TEMP)",
+              "legendFormat": "{{instance}} gpu{{gpu}}"
+            }
+          ]
+        }
+      ],
+      "schemaVersion": 39,
+      "version": 1
+    }
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: dcgm-exporter
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  namespaceSelector:
+    matchNames:
+      - gpu-operator
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dcgm-exporter
+  endpoints:
+    - port: metrics
+      interval: 30s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: gpu-health-rules
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: gpu.rules
+      rules:
+        - alert: GpuUtilizationTooHigh
+          expr: avg by (instance) (DCGM_FI_DEV_GPU_UTIL) > 95
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: GPU utilization is too high
+            description: "Instance {{ $labels.instance }} has sustained GPU utilization above 95 percent."
+        - alert: GpuMemoryUsageTooHigh
+          expr: (avg by (instance, gpu) (DCGM_FI_DEV_FB_USED) / avg by (instance, gpu) (DCGM_FI_DEV_FB_TOTAL)) * 100 > 90
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: GPU memory usage is too high
+            description: "Instance {{ $labels.instance }} GPU {{ $labels.gpu }} has memory usage above 90 percent."

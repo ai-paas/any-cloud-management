@@ -1,0 +1,56 @@
+meta {
+  name: 9. Chart Uninstall (헬름 릴리즈 제거)
+  type: http
+  seq: 11
+}
+
+delete {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/helm-releases/{{release_name}}?namespace={{namespace}}&keepHistory=false&wait=false
+  body: none
+  auth: none
+}
+
+params:query {
+  namespace: {{namespace}}
+  keepHistory: false
+  wait: false
+}
+
+headers {
+  Idempotency-Key: {{$randomUUID}}
+  User-Agent: bruno/3.3.0
+}
+
+vars:pre-request {
+  release_name: nginx-test-release
+  namespace: default
+}
+
+tests {
+  test("status 202 (LRO accepted)", function() {
+    expect(res.getStatus()).to.equal(202);
+  });
+  
+  test("Operation 응답 + Location", function() {
+    expect(res.getBody().data.type).to.equal("UNINSTALL_HELM_RELEASE");
+    expect(res.getHeader("Location")).to.match(/^\/v1\/operations\/op-/);
+  });
+  
+  test("links.resource 가 helm-release 경로 가리킴", function() {
+    const links = res.getBody().links;
+    expect(links.resource).to.match(/\/v1\/clusters\/.+\/helm-releases\/.+/);
+  });
+}
+
+docs {
+  Helm release uninstall — LRO 패턴 (202 + Operation).
+  
+  Query params:
+    namespace   (선택, default "default")  — release 가 있는 namespace
+    keepHistory (default false)            — true 면 helm 이 revision 이력 보존 (--keep-history)
+    wait        (default false)            — true 면 모든 K8s 자원이 사라질 때까지 대기 (--wait)
+  
+  완료 추적: Location 헤더의 /v1/operations/{id} 를 polling 하거나 SSE.
+  
+  Idempotency-Key 헤더로 재전송 안전. 동일 key 24h 내 재요청은 cache 결과 반환.
+}

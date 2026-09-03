@@ -1,0 +1,36 @@
+# Persistent volume health.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: anycloud-storage
+  namespace: ${NAMESPACE}
+  labels:
+    release: ${RELEASE}
+    source: anycloud-default
+    rule-set: storage
+spec:
+  groups:
+    - name: anycloud.storage
+      rules:
+        - alert: PersistentVolumeFillingUp
+          expr: |
+            (kubelet_volume_stats_available_bytes / kubelet_volume_stats_capacity_bytes) * 100 < 15
+            and
+            kubelet_volume_stats_used_bytes > 0
+          for: 15m
+          labels:
+            severity: warning
+            source: anycloud-default
+          annotations:
+            summary: "PV < 15% free — {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }}"
+            description: "PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} has {{ printf \"%.1f\" $value }}% free."
+
+        - alert: PersistentVolumeErrors
+          expr: kube_persistentvolume_status_phase{phase=~"Failed|Pending"} == 1
+          for: 5m
+          labels:
+            severity: critical
+            source: anycloud-default
+          annotations:
+            summary: "PersistentVolume error — {{ $labels.persistentvolume }}"
+            description: "PV {{ $labels.persistentvolume }} is in {{ $labels.phase }} phase for 5 min."

@@ -1,0 +1,25 @@
+meta {
+  name: 8. K8s CRD List (cluster-scoped)
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/namespaces/-/customresourcedefinitions?pageSize=50
+  body: none
+  auth: none
+}
+
+params:query {
+  pageSize: 50
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Cluster-scoped: namespaces path 값은 무시. 권장 `-`.
+}

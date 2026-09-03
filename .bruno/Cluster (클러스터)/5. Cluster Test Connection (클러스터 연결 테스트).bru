@@ -1,0 +1,45 @@
+meta {
+  name: 5. Cluster Test Connection (클러스터 연결 테스트)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/connectivity-checks
+  body: none
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+  User-Agent: bruno/3.3.0
+}
+
+
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("연결 결과 envelope 확인", function() {
+    const data = res.getBody();
+    expect(data).to.have.property("success");
+    expect(data).to.have.property("data");
+    expect(data.data).to.have.property("reachable");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+docs {
+  Registered cluster (kubeconfig/CA/token 등록형) 의 API 서버 연결을 점검합니다.
+  내부적으로 kubeconfig 로 GET /version 시도 — 성공 시 reachable=true.
+  
+  VM 기반 (source=vm) 클러스터는 본 endpoint 대신 cluster status / agent registration token
+  으로 검증합니다.
+}

@@ -1,0 +1,71 @@
+meta {
+  name: 2c. GCP Cluster Create (GCP 클러스터 생성)
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/v1/vms
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+}
+
+body:json {
+  {
+    "vmGroupName": "{{provision_cluster_name}}",
+    "provider": "GCP",
+    "description": "GCP Compute Engine 기반 Kubernetes 클러스터",
+    "environment": "{{provision_environment}}",
+    "region": "{{provision_region}}",
+    "credentialId": "{{credential_id}}",
+    "config": {
+      "anycloud-k8s:gcpProject": "{{gcp_project}}",
+      "anycloud-k8s:masterInstanceType": "{{master_vm_spec}}",
+      "anycloud-k8s:workerInstanceType": "{{worker_vm_spec}}",
+      "anycloud-k8s:workerCount": "{{worker_count}}",
+      "anycloud-k8s:kubernetesVersion": "{{kubernetes_version}}",
+      "anycloud-k8s:vpcCidr": "{{vpc_cidr}}",
+      "anycloud-k8s:podCidr": "{{pod_cidr}}",
+      "anycloud-k8s:serviceCidr": "{{service_cidr}}",
+      "anycloud-k8s:enableIngress": "{{enable_ingress}}",
+      "anycloud-k8s:enableGpuOperator": "{{enable_gpu_operator}}"
+    }
+  }
+}
+
+script:post-response {
+  if (res.body && res.body.data && res.body.data.id) {
+    bru.setEnvVar('last_operation_id', res.body.data.id);
+  }
+}
+
+tests {
+  test("상태 코드 202", function() {
+    expect(res.getStatus()).to.equal(202);
+  });
+}
+
+docs {
+  ## GCP Compute Engine 기반 cluster 생성
+
+  ### Required env vars (local-gcp-provisioning.bru)
+  - `provision_provider: GCP`
+  - `provision_region`: e.g. `us-central1`, `asia-northeast3`
+  - `credential_id`: GCP credential UUID
+  - **`gcp_project`** (GCP 전용 필수): GCP project ID
+  - `master_vm_spec` / `worker_vm_spec`: e.g. `e2-standard-4`, `n2-standard-4`
+
+  ### GCP 만의 config
+  - `anycloud-k8s:gcpProject` (필수) — VM 이 배포될 project
+
+  ### 실행
+  ```bash
+  bru run "VM Cluster (VM 클러스터)/2c. GCP Cluster Create (GCP 클러스터 생성).bru" \
+      --env local-gcp-provisioning
+  ```
+}

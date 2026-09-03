@@ -1,0 +1,35 @@
+meta {
+  name: 1. Catalog (카탈로그 목록)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/addons
+  body: none
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+tests {
+  test("상태 코드 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("addon catalog 응답 형식", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("data");
+    expect(Array.isArray(body.data)).to.equal(true);
+  });
+}
+
+docs {
+  Addon catalog — frontend 가 cluster 생성/관리 dialog 의 checkbox 렌더에 사용.
+  각 entry 의 id 가 POST addons 시 사용할 catalogId.
+
+  N-4 (2026-06-08) Phase B catalog-driven install.
+}

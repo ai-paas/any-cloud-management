@@ -1,0 +1,18 @@
+# Sample binding — ops-team OIDC group → edit ClusterRole.
+# 운영팀은 cluster 자원 mutating 권한 — pod 삭제 / scale / secret read 가능.
+# admin level 권한 필요시 ClusterRole 을 admin 또는 cluster-admin 으로 교체.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: oidc-ops-team-edit
+  labels:
+    app.kubernetes.io/managed-by: manual
+    aipaas.io/oidc-group-binding: ops-team
+subjects:
+  - kind: Group
+    name: ops-team
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: edit
+  apiGroup: rbac.authorization.k8s.io

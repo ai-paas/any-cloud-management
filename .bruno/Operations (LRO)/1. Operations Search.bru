@@ -1,0 +1,42 @@
+meta {
+  name: 1. Operations Search
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/operations?state=RUNNING&pageSize=20
+  body: none
+  auth: none
+}
+
+script:post-response {
+  // Operations LRO collection 의 후속 step (Get / Cancel / Events SSE) 가 last_operation_id
+  // env var 에 의존. 첫 단계인 Search 가 자동 seed.
+  // 1) state=RUNNING 결과가 있으면 그 첫 번째 op id 사용
+  // 2) 비어있으면 state 필터 없이 가장 최근 op 로 fallback — 신규 DB 가 아닌 한 1건 이상 존재.
+  const items = (res.body && res.body.data && res.body.data.items) || [];
+  if (items.length > 0) {
+    bru.setEnvVar('last_operation_id', items[0].id);
+  } else {
+    try {
+      const baseUrl = bru.getEnvVar('baseUrl');
+      const r = await axios.get(baseUrl + '/v1/operations?pageSize=1');
+      const fb = r.data && r.data.data && r.data.data.items && r.data.data.items[0];
+      if (fb && fb.id) bru.setEnvVar('last_operation_id', fb.id);
+    } catch (e) {
+      // best-effort — 실패 시 후속 step 가 기존 placeholder 사용 (manual seed 필요)
+    }
+  }
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Paged 응답 확인", function() {
+    const body = res.getBody();
+    expect(body.data).to.have.property("items");
+  });
+}

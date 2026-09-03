@@ -1,0 +1,69 @@
+# Node hardware health — node_exporter metrics.
+# anycloud-default. release label 은 install 시 치환 (${RELEASE}).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: anycloud-node
+  namespace: ${NAMESPACE}
+  labels:
+    release: ${RELEASE}
+    source: anycloud-default
+    rule-set: node
+spec:
+  groups:
+    - name: anycloud.node
+      rules:
+        - alert: NodeHighCpuUsage
+          expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+          for: 10m
+          labels:
+            severity: warning
+            source: anycloud-default
+          annotations:
+            summary: "High CPU on {{ $labels.instance }}"
+            description: "Node {{ $labels.instance }} CPU at {{ printf \"%.1f\" $value }}% for 10 min (threshold: 85%)."
+
+        - alert: NodeHighMemoryUsage
+          expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+          for: 10m
+          labels:
+            severity: warning
+            source: anycloud-default
+          annotations:
+            summary: "High memory on {{ $labels.instance }}"
+            description: "Memory usage {{ printf \"%.1f\" $value }}% on {{ $labels.instance }} for 10 min (threshold: 90%)."
+
+        - alert: NodeFilesystemAlmostOutOfSpace
+          expr: |
+            (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} /
+              node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"}) * 100 < 15
+          for: 15m
+          labels:
+            severity: warning
+            source: anycloud-default
+          annotations:
+            summary: "Filesystem < 15% free on {{ $labels.instance }}"
+            description: "Mountpoint {{ $labels.mountpoint }} on {{ $labels.instance }} has {{ printf \"%.1f\" $value }}% free space."
+
+        - alert: NodeFilesystemPredictedFull4h
+          expr: |
+            predict_linear(node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}[6h], 4*3600) < 0
+            and
+            node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} > 0
+          for: 30m
+          labels:
+            severity: critical
+            source: anycloud-default
+          annotations:
+            summary: "Filesystem fill predicted in 4h — {{ $labels.instance }}"
+            description: "Based on the last 6h trend, {{ $labels.mountpoint }} on {{ $labels.instance }} is predicted to fill within 4 hours."
+
+        - alert: NodeDown
+          expr: up{job=~".*node-exporter.*"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            source: anycloud-default
+          annotations:
+            summary: "Node exporter scrape failing — {{ $labels.instance }}"
+            description: "node-exporter on {{ $labels.instance }} has been unreachable for 5 min — either the node is down or the exporter is failing."

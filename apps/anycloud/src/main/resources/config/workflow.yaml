@@ -1,0 +1,117 @@
+# anycloud — workflow 계열 설정.
+#   async                 : 도메인별 ThreadPoolTaskExecutor (CallerRunsPolicy backpressure)
+#   vm-cluster-workflow   : RabbitMQ 기반 VM cluster provisioning workflow
+#   pulumi                : Pulumi CLI 실행 환경 + secrets/backend + CSP 자격증명 env passthrough
+
+# 도메인별 비동기 풀. 각 풀은 ThreadPoolTaskExecutor 로 등록되며 큐 가득 시 CallerRunsPolicy 로 backpressure.
+async:
+  helm:
+    core-size: ${ASYNC_HELM_CORE:5}
+    max-size: ${ASYNC_HELM_MAX:10}
+    queue-capacity: ${ASYNC_HELM_QUEUE:50}
+    thread-name-prefix: helm-
+  kubernetes:
+    core-size: ${ASYNC_K8S_CORE:4}
+    max-size: ${ASYNC_K8S_MAX:8}
+    queue-capacity: ${ASYNC_K8S_QUEUE:100}
+    thread-name-prefix: k8s-
+  provisioning:
+    core-size: ${ASYNC_PROVISIONING_CORE:3}
+    max-size: ${ASYNC_PROVISIONING_MAX:6}
+    queue-capacity: ${ASYNC_PROVISIONING_QUEUE:30}
+    thread-name-prefix: pulumi-
+  bootstrap:
+    core-size: ${ASYNC_BOOTSTRAP_CORE:3}
+    max-size: ${ASYNC_BOOTSTRAP_MAX:6}
+    queue-capacity: ${ASYNC_BOOTSTRAP_QUEUE:30}
+    thread-name-prefix: bootstrap-
+
+vm-cluster-workflow:
+  enabled: ${VM_CLUSTER_WORKFLOW_ENABLED:false}
+  worker-enabled: ${VM_CLUSTER_WORKFLOW_WORKER_ENABLED:false}
+  exchange: ${VM_CLUSTER_WORKFLOW_EXCHANGE:vm-cluster.workflow}
+  dead-letter-exchange: ${VM_CLUSTER_WORKFLOW_DEAD_LETTER_EXCHANGE:vm-cluster.workflow.dlx}
+  dead-letter-queue: ${VM_CLUSTER_WORKFLOW_DEAD_LETTER_QUEUE:vm-cluster.workflow.dlq}
+  provision-queue: ${VM_CLUSTER_WORKFLOW_PROVISION_QUEUE:vm-cluster.provision}
+  bootstrap-queue: ${VM_CLUSTER_WORKFLOW_BOOTSTRAP_QUEUE:vm-cluster.bootstrap}
+  verify-queue: ${VM_CLUSTER_WORKFLOW_VERIFY_QUEUE:vm-cluster.verify}
+  destroy-queue: ${VM_CLUSTER_WORKFLOW_DESTROY_QUEUE:vm-cluster.destroy}
+  provision-routing-key: ${VM_CLUSTER_WORKFLOW_PROVISION_ROUTING_KEY:vm-cluster.provision}
+  bootstrap-routing-key: ${VM_CLUSTER_WORKFLOW_BOOTSTRAP_ROUTING_KEY:vm-cluster.bootstrap}
+  verify-routing-key: ${VM_CLUSTER_WORKFLOW_VERIFY_ROUTING_KEY:vm-cluster.verify}
+  destroy-routing-key: ${VM_CLUSTER_WORKFLOW_DESTROY_ROUTING_KEY:vm-cluster.destroy}
+  dead-letter-routing-key: ${VM_CLUSTER_WORKFLOW_DEAD_LETTER_ROUTING_KEY:vm-cluster.dead-letter}
+  max-attempts: ${VM_CLUSTER_WORKFLOW_MAX_ATTEMPTS:3}
+  initial-interval-ms: ${VM_CLUSTER_WORKFLOW_INITIAL_INTERVAL_MS:1000}
+  multiplier: ${VM_CLUSTER_WORKFLOW_MULTIPLIER:2.0}
+  max-interval-ms: ${VM_CLUSTER_WORKFLOW_MAX_INTERVAL_MS:10000}
+  # PROVISION 부분 실패 시 자동 pulumi destroy 로 정리. 기본 false — 명시적 enable 필요.
+  auto-cleanup-on-provision-failure: ${VM_CLUSTER_WORKFLOW_AUTO_CLEANUP:false}
+
+# Cluster addon (kube-prometheus-stack, velero, cert-manager 등)
+# install/uninstall background workflow. RabbitMQ direct exchange + per-stage queue + DLQ.
+addon-workflow:
+  enabled: ${ADDON_WORKFLOW_ENABLED:true}
+  worker-enabled: ${ADDON_WORKFLOW_WORKER_ENABLED:true}
+  exchange: ${ADDON_WORKFLOW_EXCHANGE:addon.workflow}
+  dead-letter-exchange: ${ADDON_WORKFLOW_DEAD_LETTER_EXCHANGE:addon.workflow.dlx}
+  dead-letter-queue: ${ADDON_WORKFLOW_DEAD_LETTER_QUEUE:addon.workflow.dlq}
+  install-queue: ${ADDON_WORKFLOW_INSTALL_QUEUE:addon.install}
+  uninstall-queue: ${ADDON_WORKFLOW_UNINSTALL_QUEUE:addon.uninstall}
+  install-routing-key: ${ADDON_WORKFLOW_INSTALL_ROUTING_KEY:addon.install}
+  uninstall-routing-key: ${ADDON_WORKFLOW_UNINSTALL_ROUTING_KEY:addon.uninstall}
+  dead-letter-routing-key: ${ADDON_WORKFLOW_DEAD_LETTER_ROUTING_KEY:addon.dead-letter}
+  max-attempts: ${ADDON_WORKFLOW_MAX_ATTEMPTS:3}
+  initial-interval-ms: ${ADDON_WORKFLOW_INITIAL_INTERVAL_MS:5000}
+  multiplier: ${ADDON_WORKFLOW_MULTIPLIER:2.0}
+  max-interval-ms: ${ADDON_WORKFLOW_MAX_INTERVAL_MS:60000}
+
+# Addon state-change webhook. URL blank=비활성 (default).
+addon-webhook:
+  url: ${ADDON_WEBHOOK_URL:}
+  timeout: ${ADDON_WEBHOOK_TIMEOUT:5s}
+  on-succeeded: ${ADDON_WEBHOOK_ON_SUCCEEDED:true}
+  on-failed: ${ADDON_WEBHOOK_ON_FAILED:true}
+
+pulumi:
+  enabled: ${PULUMI_ENABLED:false}
+  runtime-dir: ${PULUMI_RUNTIME_DIR:runtime/pulumi}
+  stack-prefix: ${PULUMI_STACK_PREFIX:anycloud}
+  passphrase: ${PULUMI_PASSPHRASE:}
+  ssh-user: ${PULUMI_SSH_USER:ubuntu}
+  # Self-hosted state backend (RustFS / MinIO / Ceph 등 S3 호환). 비어 있으면 Pulumi 기본.
+  backend-url: ${PULUMI_BACKEND_URL:}
+  # Secrets provider. self-hosted: "passphrase" 또는 "hashivault://<host>/<key>"
+  secrets-provider: ${PULUMI_SECRETS_PROVIDER:}
+  environment:
+    PULUMI_ACCESS_TOKEN: ${PULUMI_ACCESS_TOKEN:}
+    # OpenBao (Vault 호환) — secrets-provider 가 hashivault://... 일 때 사용
+    VAULT_ADDR: ${VAULT_ADDR:}
+    VAULT_TOKEN: ${VAULT_TOKEN:}
+    VAULT_NAMESPACE: ${VAULT_NAMESPACE:}
+    AWS_REGION: ${AWS_REGION:}
+    AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:}
+    AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:}
+    GOOGLE_CREDENTIALS: ${GOOGLE_CREDENTIALS:}
+    GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:}
+    ARM_CLIENT_ID: ${ARM_CLIENT_ID:}
+    ARM_CLIENT_SECRET: ${ARM_CLIENT_SECRET:}
+    ARM_SUBSCRIPTION_ID: ${ARM_SUBSCRIPTION_ID:}
+    ARM_TENANT_ID: ${ARM_TENANT_ID:}
+    ALICLOUD_ACCESS_KEY: ${ALICLOUD_ACCESS_KEY:}
+    ALICLOUD_SECRET_KEY: ${ALICLOUD_SECRET_KEY:}
+    OS_AUTH_URL: ${OS_AUTH_URL:}
+    OS_USERNAME: ${OS_USERNAME:}
+    OS_PASSWORD: ${OS_PASSWORD:}
+    OS_PROJECT_NAME: ${OS_PROJECT_NAME:}
+    OS_TENANT_NAME: ${OS_TENANT_NAME:}
+    OS_REGION_NAME: ${OS_REGION_NAME:}
+    TF_VAR_tenancy_ocid: ${TF_VAR_tenancy_ocid:}
+    TF_VAR_user_ocid: ${TF_VAR_user_ocid:}
+    TF_VAR_fingerprint: ${TF_VAR_fingerprint:}
+    TF_VAR_region: ${TF_VAR_region:}
+    TF_VAR_private_key: ${TF_VAR_private_key:}
+    TF_VAR_private_key_path: ${TF_VAR_private_key_path:}
+    TF_VAR_private_key_password: ${TF_VAR_private_key_password:}
+    DIGITALOCEAN_TOKEN: ${DIGITALOCEAN_TOKEN:}
+    DIGITALOCEAN_ACCESS_TOKEN: ${DIGITALOCEAN_ACCESS_TOKEN:}

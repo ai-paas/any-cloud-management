@@ -1,0 +1,32 @@
+meta {
+  name: 3. Dead Letter Replay
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/v1/workflow/dead-letter-messages/{{log_id}}/operations
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+}
+
+body:json {
+  {
+    "type": "replay"
+  }
+}
+
+vars:pre-request {
+  log_id: <DLQ message id>
+}
+
+tests {
+  test("status 202", function() {
+    expect(res.getStatus()).to.equal(202);
+  });
+}

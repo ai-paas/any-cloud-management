@@ -1,0 +1,30 @@
+vars {
+  baseUrl: http://localhost:8888
+  cluster_name: openstack-kubernetes-001
+  provision_cluster_name: demo-openstack-01
+  provision_provider: OpenStack
+  provision_environment: dev
+  provision_region: regionOne
+  credential_id:
+  vm_credential_id:
+  vm_credential_name: openstack-manual-01
+  vm_options_provider: OpenStack
+  vm_options_region: regionOne
+  vm_options_keyword: ubuntu
+  master_vm_spec: m1.large
+  worker_vm_spec: m1.large
+  worker_count: 2
+  kubernetes_version: 1.31
+  vpc_cidr: 10.90.0.0/24
+  pod_cidr: 192.168.0.0/16
+  service_cidr: 10.96.0.0/12
+  enable_ingress: true
+  enable_gpu_operator: false
+  gcp_project:
+  azure_resource_group:
+  openstack_image_name: ubuntu-24.04
+  openstack_flavor_name: m1.large
+  openstack_external_network_id:
+  openstack_floating_ip_pool: public
+  oci_compartment_id:
+}

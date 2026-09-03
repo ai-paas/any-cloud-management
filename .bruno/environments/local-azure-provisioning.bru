@@ -1,0 +1,30 @@
+vars {
+  baseUrl: http://localhost:8888
+  cluster_name: azure-kubernetes-001
+  provision_cluster_name: demo-azure-01
+  provision_provider: Azure
+  provision_environment: dev
+  provision_region: koreacentral
+  credential_id:
+  vm_credential_id:
+  vm_credential_name: azure-manual-01
+  vm_options_provider: Azure
+  vm_options_region: koreacentral
+  vm_options_keyword: ubuntu
+  master_vm_spec: Standard_D4s_v5
+  worker_vm_spec: Standard_D4s_v5
+  worker_count: 2
+  kubernetes_version: 1.31
+  vpc_cidr: 10.62.0.0/16
+  pod_cidr: 192.168.0.0/16
+  service_cidr: 10.96.0.0/12
+  enable_ingress: true
+  enable_gpu_operator: false
+  gcp_project:
+  azure_resource_group: anycloud-rg-dev
+  openstack_image_name:
+  openstack_flavor_name:
+  openstack_external_network_id:
+  openstack_floating_ip_pool:
+  oci_compartment_id:
+}

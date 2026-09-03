@@ -1,25 +1,23 @@
 meta {
-  name: Chart Status (차트 배포 상태 확인)
+  name: 6. Chart Status (차트 배포 상태 확인)
   type: http
-  seq: 6
+  seq: 8
 }
 
 get {
-  url: {{baseUrl}}/charts/{{repo_name}}/{{chart_name}}/status?releaseName={{release_name}}&clusterId={{cluster_id}}
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/helm-releases/{{release_name}}?namespace={{namespace}}
   body: none
   auth: none
 }
 
 headers {
   content-type: application/json
-  User-Agent: bruno/1.11.0
+  User-Agent: bruno/3.3.0
 }
 
 vars:pre-request {
-  repo_name: chart-museum-external
-  chart_name: nginx
   release_name: nginx-test-release
-  cluster_id: cluster-001
+  namespace: default
 }
 
 tests {
@@ -29,12 +27,7 @@ tests {
   
   test("배포 상태 확인", function() {
     const data = res.getBody();
-    expect(data).to.not.be.undefined;
-    expect(data.data).to.not.be.undefined;
-    
-    if (data.data) {
-      expect(data.data).to.have.property('status');
-      console.log("Release Status:", data.data.status);
-    }
+    expect(data.success).to.equal(true);
+    expect(data.data).to.have.property('status');
   });
 }

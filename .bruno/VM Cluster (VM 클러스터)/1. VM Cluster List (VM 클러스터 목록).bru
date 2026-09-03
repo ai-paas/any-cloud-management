@@ -1,0 +1,29 @@
+meta {
+  name: 1. VM Cluster List (VM 클러스터 목록)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/vms
+  body: none
+  auth: none
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("PagedData with VmClusterListItemResponse items", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("success");
+    expect(body.data).to.have.property("items");
+    if (Array.isArray(body.data.items) && body.data.items.length > 0) {
+      const first = body.data.items[0];
+      expect(first).to.have.property("clusterName");
+      expect(first).to.have.property("status");
+      expect(first).to.have.property("clusterProvider");
+    }
+  });
+}

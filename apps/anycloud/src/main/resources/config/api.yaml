@@ -1,0 +1,43 @@
+# anycloud — API 계열 (HTTP 레이어 + integration) 설정.
+#   vm-options : VM Options API 의 페이지네이션 default/max
+#   anycloud   : 호스트 도메인별 운영 옵션 (idempotency / helm CLI / operation cleanup)
+#   webhook    : 외부 포털 push 통합 (event-driven)
+
+vm-options:
+  default-limit: 50
+  max-limit: 200
+
+# 호스트 (anycloud) 의 도메인별 운영 옵션 — 단일 top-level 키로 통합.
+anycloud:
+  # Idempotency-Key 24h cache 의 만료 row 주기 삭제.
+  idempotency:
+    cleanup:
+      cron: ${IDEMPOTENCY_CLEANUP_CRON:0 0 * * * *}
+
+  # Helm CLI 호출 timeout. exec-timeout 은 일반 명령 (list/status/history),
+  # operation-timeout 은 install/upgrade/rollback/uninstall 의 --timeout 인자.
+  # 느린 CSP / 대형 chart 에선 operation-timeout 을 늘릴 것 (예: 15m).
+  helm:
+    binary: ${HELM_BINARY:helm}
+    exec-timeout: ${HELM_EXEC_TIMEOUT:60s}
+    operation-timeout: ${HELM_OPERATION_TIMEOUT:5m}
+    long-exec-timeout: ${HELM_LONG_EXEC_TIMEOUT:10m}
+
+  # operation 테이블 위생 — SUCCEEDED/FAILED/CANCELLED 오래된 행 정기 삭제.
+  # ShedLock 으로 multi-replica 안전. RUNNING/PENDING 은 절대 안 지움.
+  operation:
+    cleanup:
+      enabled: ${ANYCLOUD_OPERATION_CLEANUP_ENABLED:true}
+      retention-days: ${ANYCLOUD_OPERATION_CLEANUP_DAYS:30}
+      cron: ${ANYCLOUD_OPERATION_CLEANUP_CRON:0 30 3 * * *}     # 매일 03:30
+
+# 외부 포털 등에 클러스터 상태 변화를 push 하는 webhook. event-driven 통합용.
+# 비활성 기본. 활성 시 urls 와 (선택) signing-secret 을 채울 것.
+webhook:
+  enabled: ${WEBHOOK_ENABLED:false}
+  urls: ${WEBHOOK_URLS:}            # 콤마 구분 URL 목록 (예: https://portal/anycloud/events)
+  events: ${WEBHOOK_EVENTS:}        # 비어 있으면 모든 이벤트 전송
+  signing-secret: ${WEBHOOK_SECRET:}
+  timeout-ms: ${WEBHOOK_TIMEOUT_MS:5000}
+  max-attempts: ${WEBHOOK_MAX_ATTEMPTS:3}
+  initial-interval-ms: ${WEBHOOK_INITIAL_INTERVAL_MS:500}

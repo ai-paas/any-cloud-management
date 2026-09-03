@@ -1,0 +1,543 @@
+# AUTO-GENERATED — DO NOT EDIT. Source: apps/agent/deploy/helm/cluster-agent/
+# Regenerate: make agent-manifest-snapshot
+# Backend 의 자동 install 은 본 파일을 안 읽음 (AgentChartRenderer 가 chart 를 직접 렌더).
+#
+---
+# Source: cluster-agent/templates/rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: aipaas-agent-core
+  namespace: aipaas-system
+  labels:
+    helm.sh/chart: cluster-agent-0.1.0
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/instance: cluster-agent
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: agent
+---
+# Source: cluster-agent/templates/rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: aipaas-agent-installer
+  namespace: aipaas-system
+  labels:
+    helm.sh/chart: cluster-agent-0.1.0
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/instance: cluster-agent
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: agent
+---
+# Source: cluster-agent/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aipaas-agent-allowlist
+  namespace: aipaas-system
+  labels:
+    helm.sh/chart: cluster-agent-0.1.0
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/instance: cluster-agent
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: agent
+  annotations:
+    # APPLY_AGENT_CONFIG (proto enum 26) handler 가 본 ConfigMap 의 data 를 K8s API 로 직접 patch.
+    # 그 결과 backend 의 PUT /v1/admin/clusters/{c}/agent-policy 가 operator-owned 영역이 됨.
+    # 본 annotation 은 `helm upgrade` 가 ConfigMap 을 덮어쓰지 않도록 보호 — 즉 "install-once,
+    # 이후 operator/backend 가 소유" semantics. 삭제 시에도 (`helm uninstall`) 본 CM 은 보존.
+    "helm.sh/resource-policy": "keep"
+data:
+  # 모든 항목 quote 처리 — wildcard "*" 가 YAML alias 로 오해되는 것 방지. 일반 문자열도
+  # 안전 (chart-version range 의 "0.1.0-0.2.0" 같은 dash 포함 케이스).
+  allowed_charts: |
+    - "*/*:0.0.0-99.99.99"
+  allowed_namespaces: |
+    - "*"
+  allowed_commands: |
+    - "LIST_PODS"
+    - "GET_LOG"
+    - "GET_CLUSTER_INFO"
+    - "INSTALL_ADDON"
+    - "UPGRADE_ADDON"
+    - "UNINSTALL_ADDON"
+    - "LIST_RESOURCES"
+    - "LIST_HELM_RELEASES"
+    - "DELETE_RESOURCE"
+    - "GET_RESOURCE"
+    - "APPLY_MANIFEST"
+    - "INSTALL_OBSERVABILITY_STACK"
+    - "QUERY_METRICS"
+    - "LIST_METRIC_TARGETS"
+    - "LIST_ALERTS"
+    - "GET_DASHBOARD_URL"
+    - "GENERATE_KUBECONFIG"
+    - "CREATE_NODE_DEBUG_POD"
+    - "APPLY_AGENT_CONFIG"
+    - "ENSURE_AGENT_CONFIG_ANNOTATIONS"
+    - "GET_HELM_RELEASE_STATUS"
+    - "LIST_HELM_RELEASE_RESOURCES"
+    - "EXEC_POD"
+    - "GENERATE_CSR_TOKEN"
+    - "GET_AGENT_CONFIG"
+    - "GET_AGENT_HEALTH"
+    - "LIST_HELM_RELEASE_HISTORY"
+    - "LIST_RESOURCE_KINDS"
+    - "RESOLVE_RESOURCE"
+  # PodExec 대상 namespace allowlist. 미지정 시 빈 list → 모든 exec deny. wildcard "*" = 전부 허용.
+  # compliance 환경에서는 narrowing 권장 (예: ["default", "monitoring", "aipaas-system"]).
+  allowed_exec_namespaces: |
+    - "*"
+
+---
+# Source: cluster-agent/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: aipaas-agent-core
+  labels:
+    helm.sh/chart: cluster-agent-0.1.0
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/instance: cluster-agent
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: agent
+rules:
+# generic K8s resource explorer 가 third-party CRD 까지 cover 하도록 wildcard read 부여.
+# 명시 group (core/apps/networking/storage 등) 만으로는 crossplane/cert-manager/velero/kyverno
+# 등의 CRD instance LIST 가 403 으로 막혀 backend 가 AGENT_INACTIVE 로 잘못 분류 됨.
+#
+# 트레이드오프 (사용자 승인 — Wildcard read 모든 CRD cover 선택):
+#  - secrets 도 read 가능: agent 가 LIST_RESOURCES 로 secret value (base64) 를 backend 응답에
+#    그대로 전달. mTLS / kubeconfig / oauth client secret 등 노출. UI 의 secret 탐색이 필요한
+#    환경에서는 의도된 동작. compliance 환경에서는 본 rule 을 narrow 하거나 backend 단에서
+#    resourceType=="secrets" 응답을 redact 하는 추가 처리 필요.
+#  - get/list/watch 만 — mutating verb 부재. APPLY_MANIFEST / DELETE_RESOURCE 는 별도 installer SA.
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+# pods/log + pods/status — subresource 는 wildcard 가 cover 안 함. 명시 유지.
+- apiGroups: [""]
+  resources: ["pods/log", "pods/status"]
+  verbs: ["get"]
+# pods/exec — kubectl exec 등가. WebSocket terminal 진입 시 K8s API server 가 SubjectAccessReview
+# 로 SA 의 create on pods/exec 권한 확인. 미부여 시 forbidden 으로 EXEC_FAILED 반환.
+# single-pod 모드에서는 installer SA 가 본 ClusterRole 도 자동 바인딩되므로 (aipaas-agent-installer-core-read)
+# 양쪽 모두 cover. allowed_exec_namespaces (agent 측 allowlist) 와 별개 — K8s RBAC + agent allowlist 둘 다 필수.
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["create"]
+# metrics.k8s.io — verbs 가 list 만 — wildcard 와 동일하므로 사실상 redundant 이나 가시성 위해 유지.
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["nodes", "pods"]
+  verbs: ["get", "list"]
+# K8s Impersonation 권한.
+#
+# backend 가 CommandRequest.impersonate_user 를 채워 보내면 agent 가 rest.Config.Impersonate 로
+# K8s API 에 user identity 를 전달. K8s 가 그 verb 를 허용하려면 agent SA 에 impersonate 권한 필요.
+#
+# 사실상 super-admin 권한 (K8s 의 모든 user 흉내 가능) — gateway 인증을 신뢰의 root 로 명시.
+# backend 의 security.auth.enabled toggle 이 OFF 면 backend 가 impersonate_user 를 채우지 않아
+# 본 권한 사용 안 됨 (admin-equivalent 그대로). toggle ON 환경 (gateway 가 user 검증 후 헤더 전파)
+# 에서만 동작. 미사용 환경에서도 권한 부여 자체는 무해 — invoke 안 하면 0 비용.
+- apiGroups: [""]
+  resources: ["users", "groups", "serviceaccounts"]
+  verbs: ["impersonate"]
+# UserExtra (X-Remote-Extra-* 헤더 등가). K8s authentication.k8s.io 의 UserExtra 권한.
+# 거의 사용 안 되나 OIDC custom claim → K8s extras 매핑 시 필요.
+- apiGroups: ["authentication.k8s.io"]
+  resources: ["userextras/*"]
+  verbs: ["impersonate"]
+---
+# Source: cluster-agent/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: aipaas-agent-installer
+  labels:
+    helm.sh/chart: cluster-agent-0.1.0
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/instance: cluster-agent
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: agent
+rules:
+- apiGroups: [""]
+  resources: ["secrets", "configmaps", "serviceaccounts", "services", "endpoints"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list", "watch", "create"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+  verbs: ["*"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["*"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses", "networkpolicies"]
+  verbs: ["*"]
+- apiGroups: ["policy"]
+  resources: ["poddisruptionbudgets"]
+  verbs: ["*"]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# allowEscalation=true (default, 운영 검증 전 호환).
+# - escalate: ClusterRole 의 모든 rule 을 부여하기 위해 자신이 그 권한을 보유해야 한다는 규칙 면제.
+# - bind: ClusterRoleBinding 으로 임의의 ClusterRole 을 임의의 subject 에 바인딩.
+# - webhook 전권: prometheus-operator / cert-manager 의 mutating/validating webhook 등록.
+# 이 권한들이 있으면 cert-manager / kube-prometheus-stack / velero / ingress-nginx 등
+# 자체 RBAC 동봉 chart 의 install 이 single rule 로 cover. 보안 contract: agent installer SA
+# = effective cluster-admin.
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "clusterroles"]
+  verbs: ["escalate", "bind"]
+- apiGroups: ["admissionregistration.k8s.io"]
+  resources: ["mutatingwebhookconfigurations", "validatingwebhookconfigurations"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apiextensions.k8s.io"]
+  resources: ["customresourcedefinitions"]
+  verbs: ["get", "list", "watch", "create", "patch"]
+- apiGroups: ["monitoring.coreos.com"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["cert-manager.io"]
+  resources: ["*"]
+  verbs: ["*"]
+# kube-prometheus-stack 차트가 만드는 cluster-scoped 자원 cover.
+# autoscaling: kube-prometheus-stack 의 HorizontalPodAutoscaler.
+# scheduling: PriorityClass (일부 chart 가 생성).
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["scheduling.k8s.io"]
+  resources: ["priorityclasses"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+# Source: cluster-agent/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: aipaas-agent-core
+  labels:
+    helm.sh/chart: cluster-agent-0.1.0
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/instance: cluster-agent
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: aipaas-agent-core
+subjects:
+- kind: ServiceAccount
+  name: aipaas-agent-core
+  namespace: aipaas-system
+---
+# Source: cluster-agent/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: aipaas-agent-installer
+  labels:
+    helm.sh/chart: cluster-agent-0.1.0
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/instance: cluster-agent
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: aipaas-agent-installer
+subjects:
+- kind: ServiceAccount
+  name: aipaas-agent-installer
+  namespace: aipaas-system
+---
+# Source: cluster-agent/templates/rbac.yaml
+# 단일 pod 모드 — installer SA 로 helm install + read 모두 수행.
+# installer ClusterRole 은 mutating 권한만 — read-only 자원 (nodes, PVs, StorageClasses,
+# CRDs 등) 은 core ClusterRole 에 정의됨. installer SA 를 core ClusterRole 에도 추가
+# 바인딩해서 read coverage 확보.
+# split 모드 (deployment.mode=split) 에서는 본 binding 생성 안 함 — core pod 가 별도 SA 보유.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: aipaas-agent-installer-core-read
+  labels:
+    helm.sh/chart: cluster-agent-0.1.0
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/instance: cluster-agent
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: aipaas-agent-core
+subjects:
+- kind: ServiceAccount
+  name: aipaas-agent-installer
+  namespace: aipaas-system
+
+---
+# Source: cluster-agent/templates/rbac.yaml
+# Leader election — Lease 권한 (replicas > 1 시 필요).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: aipaas-agent-core-leader-election
+  namespace: aipaas-system
+  labels:
+    helm.sh/chart: cluster-agent-0.1.0
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/instance: cluster-agent
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: agent
+rules:
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "create", "update", "patch", "list", "watch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+---
+# Source: cluster-agent/templates/rbac.yaml
+# Identity token Secret writer — agent 가 60일 opaque identity_token 을 K8s Secret 에 영구
+# 저장. pod restart (kubectl rollout restart) 이후에도 같은 token 으로 backend 인증 가능 →
+# 10분 TTL REGISTRATION_TOKEN 없이 재시작 안정. mTLS cert Secret 과 동일 Namespace-scope Role +
+# resourceNames 로 1개 Secret 만 좁힘 (security narrow scope).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: aipaas-agent-core-identity-writer
+  namespace: aipaas-system
+  labels:
+    helm.sh/chart: cluster-agent-0.1.0
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/instance: cluster-agent
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: agent
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["cluster-agent-identity"]
+  verbs: ["get", "update", "patch"]
+# create 는 resourceNames 와 함께 쓸 수 없음 (K8s RBAC 제약 — create 시점엔 name 검증 못 함).
+# 별도 rule 로 list 전체 namespace 안에서 secrets create 허용. 실제 어떤 이름으로든 create 가
+# 가능하지만, 운영자 의도 (cluster-agent-identity) 외 사용은 코드에서 막힘.
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["create"]
+---
+# Source: cluster-agent/templates/rbac.yaml
+# AllowList writer — APPLY_AGENT_CONFIG (proto enum 26) handler 가 자기 ConfigMap 을 patch
+# 할 수 있게 한정 권한 부여. ClusterRole 이 아닌 Role 사용 — agent namespace 안의 단일
+# ConfigMap (resourceNames 로 정확히 한 개 지정) 에만 작용. RBAC 폭발 회피.
+#
+# 비활성화: --set allowlist.applyAgentConfigEnabled=false 로 Role/RoleBinding 미생성.
+# 그러면 APPLY_AGENT_CONFIG 호출 시 dispatcher 가 FORBIDDEN 반환 → operator 는 kubectl edit 만 가능.
+#
+# Sprig 의 `default` 는 false 도 "empty" 로 취급해 default 값을 채워버리므로 (Go template 의
+# truthiness 룰) 명시적 `hasKey` + ne false 패턴 사용. nil 이면 default=true, false 면 그대로 false.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: aipaas-agent-core-allowlist-writer
+  namespace: aipaas-system
+  labels:
+    helm.sh/chart: cluster-agent-0.1.0
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/instance: cluster-agent
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: agent
+rules:
+# reconciler 제거 — configmap watch + update 만 (APPLY_AGENT_CONFIG 처리용).
+# events / create 권한 폐기.
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["aipaas-agent-allowlist"]
+  verbs: ["get", "watch", "update", "patch"]
+---
+# Source: cluster-agent/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: aipaas-agent-core-leader-election
+  namespace: aipaas-system
+  labels:
+    helm.sh/chart: cluster-agent-0.1.0
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/instance: cluster-agent
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: aipaas-agent-core-leader-election
+subjects:
+- kind: ServiceAccount
+  name: aipaas-agent-core
+  namespace: aipaas-system
+---
+# Source: cluster-agent/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: aipaas-agent-core-identity-writer
+  namespace: aipaas-system
+  labels:
+    helm.sh/chart: cluster-agent-0.1.0
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/instance: cluster-agent
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: aipaas-agent-core-identity-writer
+subjects:
+- kind: ServiceAccount
+  name: aipaas-agent-core
+  namespace: aipaas-system
+---
+# Source: cluster-agent/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: aipaas-agent-core-allowlist-writer
+  namespace: aipaas-system
+  labels:
+    helm.sh/chart: cluster-agent-0.1.0
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/instance: cluster-agent
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: aipaas-agent-core-allowlist-writer
+subjects:
+- kind: ServiceAccount
+  name: aipaas-agent-core
+  namespace: aipaas-system
+---
+# Source: cluster-agent/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-agent
+  namespace: aipaas-system
+  labels:
+    helm.sh/chart: cluster-agent-0.1.0
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/instance: cluster-agent
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: agent
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cluster-agent
+      app.kubernetes.io/instance: cluster-agent
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cluster-agent
+        app.kubernetes.io/instance: cluster-agent
+        app.kubernetes.io/component: agent
+      annotations:
+        "anycloud.aipaas/backend-grpc-addr": "host.docker.internal:9090"
+    spec:
+      serviceAccountName: aipaas-agent-installer
+      automountServiceAccountToken: true
+      securityContext:
+        fsGroup: 65534
+        runAsNonRoot: true
+        runAsUser: 65534
+      containers:
+      - name: agent
+        image: "aipaas/cluster-agent:dev"
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: AGENT_MODE
+          value: "core"
+        - name: BACKEND_GRPC_ADDR
+          value: "host.docker.internal:9090"
+        - name: REGISTRATION_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: aipaas-agent-bootstrap
+              key: registration-token
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: AGENT_INSTANCE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+        - name: AGENT_LEADER_ELECTION
+          value: "false"
+        - name: AGENT_NAMESPACE
+          value: "aipaas-system"
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        resources:
+          limits:
+            cpu: 500m
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 128Mi
+---
+# Source: cluster-agent/templates/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: aipaas-agent-bootstrap
+  namespace: aipaas-system
+  labels:
+    helm.sh/chart: cluster-agent-0.1.0
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/instance: cluster-agent
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: agent
+  annotations:
+    # Helm hook — 재설치 시 token 회전 보장. install/upgrade 마다 새로 적용.
+    "helm.sh/hook": "pre-install,pre-upgrade"
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": "before-hook-creation"
+type: Opaque
+stringData:
+  registration-token: "REPLACE_WITH_REAL_JWT"
+

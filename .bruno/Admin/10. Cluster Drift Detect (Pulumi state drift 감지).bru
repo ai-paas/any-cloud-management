@@ -1,0 +1,42 @@
+meta {
+  name: 10. Cluster Drift Detect (Pulumi state drift 감지)
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/clusters/{{provision_cluster_name}}/drift
+  body: none
+  auth: none
+}
+
+headers {
+  User-Agent: bruno/3.3.0
+}
+
+settings {
+  timeout: 120000
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("drift response shape", function() {
+    const body = res.getBody();
+    expect(body.data).to.have.property("drifted");
+    expect(body.data).to.have.property("changeSummary");
+  });
+}
+
+docs {
+  # Cluster Drift Detect (III-48)
+
+  `pulumi preview --refresh --json` — 실제 CSP 상태를 읽어 Pulumi state/프로그램과 비교.
+
+  - read-only — state 도 CSP 자원도 변경하지 않는다.
+  - `drifted: true` 면 운영자가 콘솔에서 자원을 직접 변경/삭제했거나 미적용 변경이 있는 것.
+  - 복구: `POST /v1/admin/clusters/{name}/refresh-state` 로 state 동기화 후 재확인.
+  - CSP API 호출로 수십 초 걸릴 수 있다.
+}

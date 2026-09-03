@@ -1,18 +1,18 @@
 meta {
-  name: Chart List (차트 목록)
+  name: 1. Chart List (차트 목록)
   type: http
   seq: 1
 }
 
 get {
-  url: {{baseUrl}}/charts/{{repo_name}}
+  url: {{baseUrl}}/v1/helm-repos/{{repo_name}}/charts
   body: none
   auth: none
 }
 
 headers {
   content-type: application/json
-  User-Agent: bruno/1.11.0
+  User-Agent: bruno/3.3.0
 }
 
 vars:pre-request {
@@ -26,6 +26,8 @@ tests {
   
   test("Response Data 확인", function() {
     const data = res.getBody();
+    expect(data.success).to.equal(true);
+    expect(data.status).to.equal(200);
     expect(data).to.not.be.undefined;
     expect(data.data).to.not.be.undefined;
   });

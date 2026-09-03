@@ -1,0 +1,83 @@
+// node-agent gRPC API — etcd / PKI backup 전용.
+//
+// 배포되는 K8s 컴포넌트의 이름은 `backup-agent` 입니다 (Velero v1.10+ 의 velero-node-agent
+// 와의 resource name collision 회피). 모든 K8s 노드에 DaemonSet 으로 배포되며, hostPath +
+// privileged 권한으로 control-plane 노드의 etcd snapshot / PKI tar 작업을 수행합니다.
+//
+// 책임 분리:
+//   - backup-agent : 자기 노드의 host filesystem 접근 (etcdctl, tar). 다른 노드 모름.
+//   - cluster-agent       : 어떤 노드에서 backup 할지 결정. 결과 chunk 를 buffer 로 backend 전달.
+
+syntax = "proto3";
+
+package nodeagent.v1;
+
+option go_package = "anycloud/agent/internal/gen/nodeagent/v1;nodeagentv1";
+
+// NodeAgent — 단일 노드 위에서 동작. 각 노드의 hostPort 또는 podIP 로 cluster-agent 가 연결합니다.
+service NodeAgent {
+  // Health — node-agent 가 살아있는지 확인합니다. cluster-agent 가 RPC 전 ping 합니다.
+  rpc Health(HealthRequest) returns (HealthResponse);
+
+  // BackupEtcd — `etcdctl snapshot save` 실행 후 결과 file 을 chunk 별로 server-streaming 합니다.
+  // 마지막 chunk 의 metadata 필드에 etcd 버전을 표기하며 total_sha256 으로 무결성을 검증합니다.
+  // 본 노드가 control-plane 이 아니면 PERMISSION_DENIED 를 반환합니다.
+  rpc BackupEtcd(BackupEtcdRequest) returns (stream BackupChunk);
+
+  // BackupPki — `/etc/kubernetes/pki` 를 tar+gzip 으로 묶어 streaming 합니다. 모든 노드에서
+  // 동작하지만 control-plane 만 의미 있는 PKI 를 보유하므로 caller 가 노드 선택을 책임집니다.
+  rpc BackupPki(BackupPkiRequest) returns (stream BackupChunk);
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  // node-agent 가 동작 중인 호스트의 K8s node 이름입니다.
+  string node_name = 1;
+  // 현재 노드의 kubelet 버전입니다.
+  string kubelet_version = 2;
+  // kubeadm binary 가 PATH 에 있는지 여부입니다.
+  bool kubeadm_available = 3;
+}
+
+message BackupEtcdRequest {
+  // etcd endpoint URL 입니다. 기본 `https://127.0.0.1:2379` — node-agent 가 hostNetwork 라 master
+  // 위에서 직접 접근 가능합니다.
+  string endpoint = 1;
+  // TLS auth — kubeadm 기본 경로:
+  //   ca:     /etc/kubernetes/pki/etcd/ca.crt
+  //   cert:   /etc/kubernetes/pki/etcd/server.crt (또는 healthcheck-client.crt)
+  //   key:    /etc/kubernetes/pki/etcd/server.key
+  string ca_cert_path = 2;
+  string client_cert_path = 3;
+  string client_key_path = 4;
+  // server-streaming chunk 크기 (bytes) 입니다. 0 이면 default 1MB. gRPC max msg size 보다 작아야
+  // 합니다.
+  int32 chunk_size = 5;
+}
+
+message BackupPkiRequest {
+  // 포함할 sub-path (relative to /etc/kubernetes/pki) 입니다. 비어있으면 전체 디렉토리.
+  // 예: ["ca.crt", "ca.key", "sa.key", "sa.pub"] — root CA + SA 키만.
+  repeated string include_paths = 1;
+  // chunk 크기입니다. 0 이면 default 1MB.
+  int32 chunk_size = 2;
+}
+
+// BackupChunk — server-streaming 의 한 조각입니다. 마지막 chunk 에 무결성 metadata 가 포함됩니다.
+message BackupChunk {
+  // 1-based 순서입니다. caller 가 누락을 검증합니다.
+  int32 sequence = 1;
+  // 본 chunk 의 raw 데이터입니다.
+  bytes payload = 2;
+  // true 면 본 chunk 가 stream 의 마지막입니다 — caller 는 더 받지 않습니다.
+  bool is_last = 3;
+  // (last chunk 만 유효) 전체 stream 의 SHA-256 hex digest 입니다. 무결성 검증용.
+  string total_sha256 = 4;
+  // (last chunk 만 유효) 전체 size in bytes 입니다.
+  int64 total_size = 5;
+  // (last chunk 만 유효) 추가 metadata — etcd 버전 / file count 등.
+  // BACKUP_ETCD: "etcd_version=3.5.10"
+  // BACKUP_PKI:  "file_count=42,total_uncompressed=3145728"
+  string metadata = 6;
+}

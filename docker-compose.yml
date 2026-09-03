@@ -1,40 +1,254 @@
+# =============================================================================
+# Anycloud production-like compose — image pull only, no local build.
+#
+# 2026-05-26 (H-42): docker hub 에 publish 된 backend / agent / pulumi 이미지 사용.
+# 클론 없이 환경변수만 채우면 한 줄로 동작 — 데모 / 외부 평가 / 운영 환경.
+#
+# 사용:
+#   set -a; source .env.prod; set +a    # 또는 직접 export
+#   docker compose up -d
+#
+# Dev (source 가 있는 사람) 은 docker-compose.dev.yml 사용 — `make dev-up`.
+#
+# Required secrets (${VAR:?required} 게이트):
+#   DB_PASS, DB_ROOT_PASS
+#   RABBITMQ_PASS
+#   RUSTFS_ROOT_PASSWORD
+#   OPENBAO_DEV_ROOT_TOKEN
+#   PULUMI_PASSPHRASE
+#   ANYCLOUD_AGENT_JWT_SECRET
+#   CSP_CREDENTIAL_ENCRYPTION_KEY
+#   ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT
+#   ANYCLOUD_AGENT_HELM_REPO_URL
+#
+# 비-secret 변수 (DB_USER, RUSTFS_REGION, PULUMI_STACK_PREFIX 등) 는 default 보유:
+#   - container path 류  → Dockerfile.pulumi 의 ENV
+#   - 코드 합리적 default → config/*.yaml 의 ${X:default}
+#   - service wiring     → 본 파일의 ${X:-default}
+#
+# Image tag override (선택):
+#   ANYCLOUD_BACKEND_IMAGE_TAG=v0.0.1   # default: latest
+# =============================================================================
 services:
-  anycloud-backend:
-    container_name: anycloud-backend
-    build:
-      context: .
-      dockerfile: Dockerfile
-    environment:
-      DATABASE_HOST: anycloud-db
-      DATABASE_PORT: 3306
-      DATABASE_NAME: anycloud
-      DATABASE_USERID: anycloud
-      DATABASE_USERPASS: anycloud
-      THANOS_URL: https://localhost:9000
-    ports:
-      - "8888:8888"
-    #    volumes:
-    #      - ./log:/log/spring
-    depends_on:
-      - anycloud-db
-
-  anycloud-db:
-    image: 'linuxserver/mariadb:10.11.3'
-    container_name: anycloud-db
+  # --- MariaDB --------------------------------------------------------------
+  mariadb:
+    image: linuxserver/mariadb:10.11.3
+    container_name: anycloud-mariadb
     security_opt:
       - no-new-privileges:true
-    logging:
-      driver: json-file
     environment:
-      MYSQL_ROOT_PASSWORD: yourP@ssW0rds
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS:?DB_ROOT_PASS must be set (use openssl rand -hex 24)}
       MYSQL_DATABASE: anycloud
-      MYSQL_USER: anycloud
-      MYSQL_PASSWORD: anycloud
+      MYSQL_USER: ${DB_USER:-anycloud}
+      MYSQL_PASSWORD: ${DB_PASS:?DB_PASS must be set (use openssl rand -hex 24)}
       PUID: 1001
       PGID: 1001
-      TZ: Asia/Seoul
-    #    ports:
-    #      - "3306:3306"
+      TZ: ${TZ:-Asia/Seoul}
     volumes:
-      - './db_data:/config'
-      - '/etc/localtime:/etc/localtime:ro'
+      - mariadb-data:/config
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 --silent || exit 1"]
+      interval: 5s
+      timeout: 3s
+      start_period: 20s
+      retries: 10
+    deploy:
+      resources:
+        limits: { memory: 1G }
+
+  # --- RabbitMQ -------------------------------------------------------------
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: anycloud-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-anycloud}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:?RABBITMQ_PASS must be set}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+
+  # --- RustFS (Pulumi state backend, S3-compatible) -------------------------
+  rustfs:
+    image: rustfs/rustfs:1.0.0-alpha.99
+    container_name: anycloud-rustfs
+    environment:
+      RUSTFS_ROOT_USER: ${RUSTFS_ROOT_USER:-anycloud}
+      RUSTFS_ROOT_PASSWORD: ${RUSTFS_ROOT_PASSWORD:?RUSTFS_ROOT_PASSWORD must be set (use openssl rand -hex 32)}
+      RUSTFS_REGION: ${RUSTFS_REGION:-us-east-1}
+    volumes:
+      - rustfs-data:/data
+    healthcheck:
+      # RustFS 1.0.0-alpha.99 — MinIO /minio/health/live 미구현. S3 API root 의 200/403/400
+      # 응답을 healthy 로 인정 (binary LISTEN 의 evidence).
+      test:
+        - CMD-SHELL
+        - "wget -qSO /dev/null http://localhost:9000/ 2>&1 | grep -qE 'HTTP/.* (200|403|400)' || exit 1"
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  # --- OpenBao (Vault OSS fork) ---------------------------------------------
+  openbao:
+    image: openbao/openbao:latest
+    container_name: anycloud-openbao
+    cap_add:
+      - IPC_LOCK
+    environment:
+      BAO_DEV_ROOT_TOKEN_ID: ${OPENBAO_DEV_ROOT_TOKEN:?OPENBAO_DEV_ROOT_TOKEN must be set}
+      BAO_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    command: ["server", "-dev"]
+    healthcheck:
+      # OpenBao CLI default 는 HTTPS — dev/-dev mode 는 HTTP. BAO_ADDR override.
+      test: ["CMD-SHELL", "BAO_ADDR=http://127.0.0.1:8200 bao status"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  # --- Bucket bootstrap ------------------------------------------------------
+  pulumi-backend-bootstrap:
+    image: amazon/aws-cli:2.17.0
+    container_name: anycloud-pulumi-bootstrap
+    depends_on:
+      rustfs:
+        condition: service_healthy
+      openbao:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: ${RUSTFS_ROOT_USER:-anycloud}
+      AWS_SECRET_ACCESS_KEY: ${RUSTFS_ROOT_PASSWORD}
+      AWS_REGION: ${RUSTFS_REGION:-us-east-1}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        aws --endpoint-url http://rustfs:9000 s3api create-bucket --bucket pulumi-state 2>/dev/null || true
+        echo "rustfs bucket pulumi-state ready"
+    restart: "no"
+
+  # --- Backend (pull from Docker Hub) ---------------------------------------
+  anycloud-backend:
+    image: ${ANYCLOUD_BACKEND_IMAGE:-ghcr.io/aipaas/anycloud-backend}:${ANYCLOUD_BACKEND_IMAGE_TAG:-latest}
+    container_name: anycloud-backend
+    ports:
+      - "8888:8888"   # REST + Swagger
+      - "9090:9090"   # gRPC inbound (agents)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      pulumi-backend-bootstrap:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "wget -qO- --tries=1 --timeout=2 http://localhost:8888/actuator/health/readiness || exit 1"
+      interval: 10s
+      timeout: 3s
+      start_period: 90s
+      retries: 5
+    environment:
+      APP_ROLE: backend
+      SPRING_PROFILES_ACTIVE: docker
+      JAVA_OPTS: ${JAVA_OPTS:--XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp}
+      # --- Service wiring (compose-only) ---
+      DATABASE_HOST: mariadb
+      DATABASE_NAME: anycloud
+      DATABASE_USERID: ${DB_USER:-anycloud}
+      DATABASE_USERPASS: ${DB_PASS}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-anycloud}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS}
+      AWS_ACCESS_KEY_ID: ${RUSTFS_ROOT_USER:-anycloud}
+      AWS_SECRET_ACCESS_KEY: ${RUSTFS_ROOT_PASSWORD}
+      AWS_REGION: ${RUSTFS_REGION:-us-east-1}
+      VAULT_ADDR: ${VAULT_ADDR:-http://openbao:8200}
+      VAULT_TOKEN: ${VAULT_TOKEN:-${OPENBAO_DEV_ROOT_TOKEN}}
+      PULUMI_BACKEND_URL: ${PULUMI_BACKEND_URL:-s3://pulumi-state?endpoint=http://rustfs:9000&s3ForcePathStyle=true&disableSSL=true}
+      # --- yaml default override (compose 에서 명시적 enable) ---
+      PULUMI_ENABLED: "true"
+      VM_CLUSTER_WORKFLOW_ENABLED: "true"
+      # --- Required secrets (fail-fast gate) ---
+      PULUMI_PASSPHRASE: ${PULUMI_PASSPHRASE:?PULUMI_PASSPHRASE must be set}
+      ANYCLOUD_AGENT_JWT_SECRET: ${ANYCLOUD_AGENT_JWT_SECRET:?ANYCLOUD_AGENT_JWT_SECRET must be set}
+      CSP_CREDENTIAL_ENCRYPTION_KEY: ${CSP_CREDENTIAL_ENCRYPTION_KEY:?CSP_CREDENTIAL_ENCRYPTION_KEY must be set}
+      ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT: ${ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT:?ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT must be set (e.g. anycloud.example.com:9090)}
+      ANYCLOUD_AGENT_HELM_REPO_URL: ${ANYCLOUD_AGENT_HELM_REPO_URL:?ANYCLOUD_AGENT_HELM_REPO_URL must be set}
+      # Cluster 등록 응답의 kubectl apply 명령에 박히는 base URL. 미설정 시 HTTP 요청 host 자동 사용.
+      ANYCLOUD_PUBLIC_URL: ${ANYCLOUD_PUBLIC_URL:-}
+    volumes:
+      - pulumi-home:/app/.pulumi
+      - pulumi-runtime:/app/runtime
+    deploy:
+      resources:
+        limits: { memory: 4G, cpus: '2.0' }
+        reservations: { memory: 2G, cpus: '1.0' }
+
+  # --- Worker (pull from Docker Hub, same image, APP_ROLE=worker) -----------
+  anycloud-bootstrap-worker:
+    image: ${ANYCLOUD_BACKEND_IMAGE:-ghcr.io/aipaas/anycloud-backend}:${ANYCLOUD_BACKEND_IMAGE_TAG:-latest}
+    container_name: anycloud-bootstrap-worker
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      pulumi-backend-bootstrap:
+        condition: service_completed_successfully
+      anycloud-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "java"]
+      interval: 15s
+      timeout: 3s
+      start_period: 90s
+      retries: 5
+    environment:
+      APP_ROLE: worker
+      SPRING_PROFILES_ACTIVE: docker
+      JAVA_OPTS: ${JAVA_OPTS:--XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError}
+      # --- Service wiring ---
+      DATABASE_HOST: mariadb
+      DATABASE_NAME: anycloud
+      DATABASE_USERID: ${DB_USER:-anycloud}
+      DATABASE_USERPASS: ${DB_PASS}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-anycloud}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS}
+      AWS_ACCESS_KEY_ID: ${RUSTFS_ROOT_USER:-anycloud}
+      AWS_SECRET_ACCESS_KEY: ${RUSTFS_ROOT_PASSWORD}
+      AWS_REGION: ${RUSTFS_REGION:-us-east-1}
+      VAULT_ADDR: ${VAULT_ADDR:-http://openbao:8200}
+      VAULT_TOKEN: ${VAULT_TOKEN:-${OPENBAO_DEV_ROOT_TOKEN}}
+      PULUMI_BACKEND_URL: ${PULUMI_BACKEND_URL:-s3://pulumi-state?endpoint=http://rustfs:9000&s3ForcePathStyle=true&disableSSL=true}
+      # --- yaml default override ---
+      PULUMI_ENABLED: "true"
+      VM_CLUSTER_WORKFLOW_ENABLED: "true"
+      VM_CLUSTER_WORKFLOW_WORKER_ENABLED: "true"
+      # --- Required secrets ---
+      PULUMI_PASSPHRASE: ${PULUMI_PASSPHRASE}
+      ANYCLOUD_AGENT_JWT_SECRET: ${ANYCLOUD_AGENT_JWT_SECRET}
+      CSP_CREDENTIAL_ENCRYPTION_KEY: ${CSP_CREDENTIAL_ENCRYPTION_KEY}
+    volumes:
+      - pulumi-home:/app/.pulumi
+      - pulumi-runtime:/app/runtime
+    deploy:
+      resources:
+        limits: { memory: 4G, cpus: '2.0' }
+        reservations: { memory: 2G, cpus: '1.0' }
+
+volumes:
+  mariadb-data:
+  rabbitmq-data:
+  rustfs-data:
+  pulumi-home:
+  pulumi-runtime:

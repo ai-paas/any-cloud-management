@@ -1,0 +1,43 @@
+meta {
+  name: 13. Resource Scale (스케일)
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/namespaces/{{namespace}}/{{resource_kind}}/{{resource_name}}/scale?replicas={{replicas}}
+  body: none
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+  User-Agent: bruno/3.3.0
+}
+
+vars:pre-request {
+  namespace: default
+  resource_kind: deployments
+  resource_name: podinfo
+  replicas: 3
+}
+
+docs {
+  지원 kind: deployments, replicasets, statefulsets.
+  replicas: 0..1000.
+  get → spec.replicas 변경 → server-side apply.
+}
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("성공 envelope 확인", function() {
+    const data = res.getBody();
+    expect(data.success).to.equal(true);
+    expect(data.status).to.equal(200);
+    expect(data.data).to.not.be.undefined;
+  });
+}

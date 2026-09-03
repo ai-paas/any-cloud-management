@@ -1,0 +1,14 @@
+# Build output
+/agent
+/bin/
+
+# Test coverage
+*.out
+coverage.html
+
+# Generated proto (buf generate target — regenerated from ../proto/)
+/internal/gen/
+
+# IDE
+.idea/
+.vscode/

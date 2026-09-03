@@ -1,0 +1,17 @@
+apiVersion: v2
+name: backup-agent
+description: anycloud backup-agent DaemonSet — runs etcdctl snapshot + PKI tar on each K8s node. Driven by the cluster-agent's BACKUP_ETCD / BACKUP_PKI RPCs.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - anycloud
+  - backup
+  - etcd
+  - pki
+  - daemonset
+home: https://github.com/innogrid/any-cloud-management
+sources:
+  - https://github.com/innogrid/any-cloud-management
+maintainers:
+  - name: anycloud

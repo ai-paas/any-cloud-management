@@ -1,0 +1,34 @@
+meta {
+  name: 4. VM Cluster Register Retry (클러스터 연결 재등록)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters/{{provision_cluster_name}}/operations
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+}
+
+body:json {
+  {
+    "type": "retryRegistration"
+  }
+}
+
+tests {
+  test("status is 202 (async operation)", function() {
+    expect(res.getStatus()).to.equal(202);
+  });
+
+  test("Operation 응답 확인", function() {
+    const body = res.getBody();
+    expect(body.data).to.have.property("id");
+    expect(body.data.type).to.equal("RETRY_REGISTRATION");
+  });
+}

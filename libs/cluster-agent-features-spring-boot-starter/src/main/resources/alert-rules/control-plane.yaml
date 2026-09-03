@@ -1,0 +1,36 @@
+# Kubernetes control-plane health.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: anycloud-control-plane
+  namespace: ${NAMESPACE}
+  labels:
+    release: ${RELEASE}
+    source: anycloud-default
+    rule-set: control-plane
+spec:
+  groups:
+    - name: anycloud.control-plane
+      rules:
+        - alert: KubeAPIServerDown
+          expr: absent(up{job="apiserver"} == 1) or sum(up{job="apiserver"}) == 0
+          for: 5m
+          labels:
+            severity: critical
+            source: anycloud-default
+          annotations:
+            summary: "kube-apiserver unreachable"
+            description: "No apiserver target is up for 5 min — cluster control plane is down or unmonitored."
+
+        - alert: KubeAPIServerHighLatency
+          expr: |
+            histogram_quantile(0.99,
+              sum by (le, verb) (rate(apiserver_request_duration_seconds_bucket{verb!~"WATCH|CONNECT"}[5m]))
+            ) > 1
+          for: 15m
+          labels:
+            severity: warning
+            source: anycloud-default
+          annotations:
+            summary: "kube-apiserver p99 latency > 1s — verb {{ $labels.verb }}"
+            description: "p99 latency for {{ $labels.verb }} requests is {{ printf \"%.2f\" $value }}s over the last 5 min."

@@ -1,0 +1,21 @@
+meta {
+  name: 7. K8s StorageClasses List (cluster-scoped)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/namespaces/-/storageclasses?pageSize=50
+  body: none
+  auth: none
+}
+
+docs {
+  Cluster-scoped: namespaces path 값은 무시. 권장 `-`.
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

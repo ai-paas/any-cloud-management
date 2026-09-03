@@ -1,0 +1,163 @@
+{
+  "title": "anycloud — CSP resilience",
+  "description": "CSP API resilience metrics — validateLive latency by provider, CircuitBreaker state, Pulumi step latency. III-44 monitoring sprint.",
+  "schemaVersion": 38,
+  "version": 1,
+  "timezone": "browser",
+  "tags": ["anycloud", "csp", "resilience"],
+  "time": { "from": "now-30m", "to": "now" },
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "provider",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(anycloud_csp_validate_live_seconds_count, provider)",
+        "multi": true,
+        "includeAll": true,
+        "current": { "selected": false, "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "validateLive p50 / p95 / p99 by provider",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le, provider) (rate(anycloud_csp_validate_live_seconds_bucket{provider=~\"$provider\"}[5m])))",
+          "legendFormat": "p50 {{provider}}", "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, provider) (rate(anycloud_csp_validate_live_seconds_bucket{provider=~\"$provider\"}[5m])))",
+          "legendFormat": "p95 {{provider}}", "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le, provider) (rate(anycloud_csp_validate_live_seconds_bucket{provider=~\"$provider\"}[5m])))",
+          "legendFormat": "p99 {{provider}}", "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 10 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "validateLive failure rate by provider (5m window)",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (provider) (rate(anycloud_csp_validate_live_seconds_count{outcome=\"failure\"}[5m])) / sum by (provider) (rate(anycloud_csp_validate_live_seconds_count[5m]))",
+          "legendFormat": "{{provider}}", "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "max": 1, "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.05 },
+              { "color": "red", "value": 0.5 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "CircuitBreaker state (csp-api)",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 9 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "0=CLOSED, 1=OPEN, 2=HALF_OPEN, 3=DISABLED, 4=METRICS_ONLY, 5=FORCED_OPEN. csp-api OPEN 빈도가 SLO 위반 신호.",
+      "targets": [
+        {
+          "expr": "resilience4j_circuitbreaker_state{name=\"csp-api\"}",
+          "legendFormat": "{{state}}", "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "CB failure rate (csp-api)",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 9 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "resilience4j_circuitbreaker_failure_rate{name=\"csp-api\"}",
+          "legendFormat": "failure_rate", "refId": "A"
+        },
+        {
+          "expr": "resilience4j_circuitbreaker_slow_call_rate{name=\"csp-api\"}",
+          "legendFormat": "slow_call_rate", "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "max": 100, "min": 0 }
+      }
+    },
+    {
+      "id": 5,
+      "title": "CB calls — successful vs failed (rate /min)",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (kind) (rate(resilience4j_circuitbreaker_calls_total{name=\"csp-api\"}[1m]))",
+          "legendFormat": "{{kind}}", "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Operation start rate by type",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 23 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (type) (rate(anycloud_operation_started_total[5m]))",
+          "legendFormat": "{{type}}", "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Pulumi command call rate (csp-api Bulkhead)",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 23 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "resilience4j_bulkhead_available_concurrent_calls{name=\"pulumi\"}",
+          "legendFormat": "available_slots", "refId": "A"
+        },
+        {
+          "expr": "resilience4j_bulkhead_max_allowed_concurrent_calls{name=\"pulumi\"}",
+          "legendFormat": "max_slots", "refId": "B"
+        }
+      ]
+    }
+  ]
+}

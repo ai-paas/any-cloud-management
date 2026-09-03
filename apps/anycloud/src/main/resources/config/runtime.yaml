@@ -1,0 +1,115 @@
+# anycloud — runtime infra 설정.
+#   spring          : RabbitMQ + Flyway (DB schema 관리)
+#   csp-credential  : CSP credential 암호화 키
+#   cluster.cert    : 등록된 cluster 의 인증서 만료 모니터링 cron
+#   resilience4j    : K8s API / Pulumi CLI 격리 (circuit breaker / retry / bulkhead)
+#   security        : 백엔드 자체 토큰 인증 toggle (gateway 뒤면 disabled)
+
+spring:
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:guest}
+    password: ${SPRING_RABBITMQ_PASSWORD:guest}
+  # Kafka / Redis 모두 제거됨. 메시징 = RabbitMQ (workflow). 영속 = MariaDB (jti dedup 포함).
+  # Flyway 가 schema 책임. JPA 의 ddl-auto 는 환경별 profile yaml (application-dev/docker.yaml) 에서 관리.
+  flyway:
+    enabled: ${SPRING_FLYWAY_ENABLED:true}
+    baseline-on-migrate: true          # 기존 DB(수동 SQL 적용 환경) 호환
+    baseline-version: 0
+    locations: classpath:db/migration
+    table: flyway_schema_history
+    validate-on-migrate: true
+    out-of-order: false
+
+csp-credential:
+  encryption-key: ${CSP_CREDENTIAL_ENCRYPTION_KEY:}
+
+# 등록된 ClusterEntity 의 인증서 만료 잔여일을 Prometheus metric 으로 송출 (Day-2 §5).
+# 매일 02:00 UTC 기본. 시간대/빈도는 환경별 override.
+cluster:
+  cert:
+    expiry-check:
+      cron: ${CLUSTER_CERT_EXPIRY_CRON:0 0 2 * * *}
+
+# 백엔드 자체 토큰 인증 토글. gateway 가 인증을 담당하면 enabled=false 로 둔다.
+# enabled=true 시 token 이 비어 있으면 부팅 실패 (fail-fast).
+security:
+  auth:
+    enabled: ${SECURITY_AUTH_ENABLED:false}
+    header: ${SECURITY_AUTH_HEADER:Authorization}
+    scheme: ${SECURITY_AUTH_SCHEME:Bearer}
+    token: ${SECURITY_AUTH_TOKEN:}
+    public-paths:
+      - /actuator/health
+      - /actuator/info
+      - /actuator/prometheus
+      - /docs/**
+      - /docs
+      - /swagger-ui/**
+      - /swagger-ui.html
+      - /v3/api-docs/**
+      # 정적 페이지 — 토큰은 페이지 안에서 사용자가 입력 후 API 호출 시 검증.
+      - /
+      - /index.html
+      - /test-console/**
+      - /favicon.ico
+
+# Resilience4j — 외부 시스템(K8s API, Pulumi CLI) 격리.
+# 메트릭은 자동으로 Micrometer 에 등록되어 Prometheus 노출:
+#   resilience4j.circuitbreaker.* / .retry.* / .bulkhead.*
+resilience4j:
+  circuitbreaker:
+    instances:
+      # K8s API 호출용. failure-rate 50% 이상에서 30초 OPEN → 그 사이 호출은 즉시 실패.
+      kubernetes:
+        register-health-indicator: true
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 20
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - io.fabric8.kubernetes.client.KubernetesClientException
+          - java.net.SocketTimeoutException
+          - java.net.ConnectException
+      # CSP provider API (AWS/Azure/GCP/...). 외부 API 장애가 backend 전체 가용성을 깎지 않도록 격리.
+      # provider 별로 별도 instance 사용 가능 (예: csp-aws, csp-azure) — 현재는 공통 csp-api 로 시작.
+      csp-api:
+        register-health-indicator: true
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 20
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        # SDK / HTTP / IAM error 등 record. 너무 좁히면 전부 통과해서 fail-fast 효과 약함.
+        record-exceptions:
+          - software.amazon.awssdk.core.exception.SdkException
+          - java.net.SocketTimeoutException
+          - java.net.ConnectException
+          - org.springframework.web.client.RestClientException
+  retry:
+    instances:
+      # K8s API: 일시 실패(네트워크 hiccup) 에 대해 지수 backoff 로 최대 3회 재시도.
+      # idempotent GET 만 적용 — mutation 호출에는 사용 금지.
+      kubernetes:
+        max-attempts: 3
+        wait-duration: 500ms
+        exponential-backoff-multiplier: 2.0
+        retry-exceptions:
+          - io.fabric8.kubernetes.client.KubernetesClientException
+          - java.net.SocketTimeoutException
+          - java.net.ConnectException
+  bulkhead:
+    instances:
+      # Pulumi CLI: 동시에 N 개 이상의 무거운 pulumi up/destroy 가 돌면 머신 자원이 빠르게 고갈.
+      # 큐잉 방식 bulkhead 로 동시 실행 상한.
+      # III-48: 5 → 2. pulumi up/preview 마다 go build (rosetta 에뮬레이션 시 1.5GB+) 가 떠서
+      # 동시 3개부터 compile OOM kill 실증. 2개 초과는 max-wait-duration 동안 큐잉.
+      pulumi:
+        max-concurrent-calls: 2
+        max-wait-duration: 60s

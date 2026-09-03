@@ -1,6 +1,20 @@
 .gradle
 build/
 db_data/
+
+# Auto-copied chart bundle (Gradle copyAgentChartResources task).
+# Source of truth: apps/agent/deploy/helm/cluster-agent/
+apps/anycloud/src/main/resources/agent-chart/
+
+# Local secrets — never commit. Use .env.sample as template.
+.env
+.env.local
+.env.*.local
+secrets/
+
+# Local-only test compose — personal experimentation. Recommended: make dev-up
+docker-compose.test.yml
+
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
@@ -64,3 +78,20 @@ bin/
 
 ### etc ###
 .uuid
+
+### Pulumi pre-built program binary — Docker build 시점 생성, host 빌드 시 무시 ###
+infra/pulumi/anycloud-pulumi
+
+### Editor / tool scratch directories — local only ###
+.claude/
+.understand-anything/
+
+### Editor / tool backup artifacts (yq, sed -i'.bak', IDE) ###
+*-orig
+*.bak
+*.swp
+*~
+
+# Local-only contributor guides — not version controlled.
+AGENTS.md
+CLAUDE.md

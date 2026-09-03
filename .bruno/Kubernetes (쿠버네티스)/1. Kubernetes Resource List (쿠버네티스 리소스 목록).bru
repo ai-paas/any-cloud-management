@@ -1,23 +1,27 @@
 meta {
-  name: Kubernetes Resource List (쿠버네티스 리소스 목록)
+  name: 1. Kubernetes Resource List (쿠버네티스 리소스 목록)
   type: http
   seq: 1
 }
 
 get {
-  url: {{baseUrl}}/kubernetes/pods?clusterName=local-kubernetes-001&namespace=default
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/namespaces/{{namespace}}/{{resource_kind}}?pageSize=100
   body: none
   auth: none
 }
 
 params:query {
-  clusterName: local-kubernetes-001
-  namespace: default
+  pageSize: 100
 }
 
 headers {
   content-type: application/json
-  User-Agent: bruno/1.11.0
+  User-Agent: bruno/3.3.0
+}
+
+vars:pre-request {
+  namespace: default
+  resource_kind: pods
 }
 
 tests {
@@ -25,9 +29,10 @@ tests {
     expect(res.getStatus()).to.equal(200);
   });
   
-  test("Response Data 확인", function() {
+  test("Paged 응답 envelope 확인", function() {
     const data = res.getBody();
-    // console.log("   ✓ data length", Object.keys(data).length);
-    expect(data).to.not.be.undefined;
+    expect(data.success).to.equal(true);
+    expect(data.data).to.have.property("items");
+    expect(data.data).to.have.property("continueToken");
   });
 }

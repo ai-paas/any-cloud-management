@@ -1,0 +1,52 @@
+meta {
+  name: 3. Add (addon 추가)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/addons
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+body:json {
+  {
+    "type": "MONITORING",
+    "catalogId": "kube-prometheus-stack",
+    "chartVersion": "86.2.0",
+    "enabled": true
+  }
+}
+
+script:post-response {
+  if (res.body && res.body.data && res.body.data.id) {
+    bru.setEnvVar("addon_id", res.body.data.id);
+  }
+}
+
+tests {
+  test("상태 코드 202", function() {
+    expect(res.getStatus()).to.equal(202);
+  });
+  
+  test("addon row 응답", function() {
+    const data = res.getBody().data;
+    expect(data).to.have.property("id");
+    expect(data).to.have.property("state");
+  });
+}
+
+docs {
+  Addon 추가 — PENDING 으로 저장. cluster 가 ACTIVE 이면 즉시 enqueue (ENQUEUED state),
+  아니면 cluster ACTIVE 전환 listener (N-10) 가 enqueue.
+  
+  두 모드:
+  - catalog 기반: catalogId 만 지정 (catalog 의 default 사용). chartVersion 등 override 가능.
+  - custom: catalogId null, chartRepo/chartName/chartVersion 명시.
+}

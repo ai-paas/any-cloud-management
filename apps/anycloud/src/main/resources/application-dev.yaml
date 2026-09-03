@@ -1,0 +1,54 @@
+# Local 개발 환경 (gradle bootRun, start-dev.sh) — SPRING_PROFILES_ACTIVE=dev.
+#
+# 기존 apps/anycloud/.../application.properties 의 대체. 운영/컨테이너 환경에는 영향 없음.
+# DB 자격증명은 의도적으로 평문 (dev-only) — 실제 비밀 X.
+
+spring:
+  # DevTools — IDE 가 build → 자동 restart (1-2초). LiveReload 도 활성 (port 35729).
+  # production / docker profile 은 영향 없음 (developmentOnly 의존성).
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mariadb://127.0.0.1:3306/anycloud
+    username: root
+    password: dev-only-root-do-not-use-in-prod
+    # dev profile 의 HikariCP. 단일 개발자 환경 — pool 작게.
+    # 운영 (application-docker.yaml) 은 30 default. local 에서 너무 크면 MariaDB max_connections
+    # 부족 경고가 떠 노이즈.
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      max-lifetime: 1800000
+      idle-timeout: 600000
+      connection-timeout: 30000
+      leak-detection-threshold: 60000
+      pool-name: anycloud-hikari-dev
+  jpa:
+    open-in-view: false
+    # dev 는 schema 변경을 즉시 반영. 운영은 validate (application-docker.yaml).
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+
+# dev profile 에서는 Pulumi 와 VM cluster workflow 를 default ON.
+# 운영 (application-docker.yaml / 환경변수) 은 여전히 false default 유지 — 명시적 enable 필요.
+# Local 에 pulumi binary 가 없으면 ProcessBuilder exec 단계에서 "Cannot run program 'pulumi'"
+# 로 별도 실패. 그 때는 `brew install pulumi/tap/pulumi` 또는 Dockerfile.pulumi 이미지 사용.
+pulumi:
+  enabled: ${PULUMI_ENABLED:true}
+  passphrase: ${PULUMI_PASSPHRASE:dev-passphrase}
+
+vm-cluster-workflow:
+  enabled: ${VM_CLUSTER_WORKFLOW_ENABLED:true}
+  # worker-enabled 는 별도 process (bootstrap-worker) 에서만 true. backend 는 false 유지.
+  worker-enabled: ${VM_CLUSTER_WORKFLOW_WORKER_ENABLED:false}
+
+# dev profile 에서는 external public seed 명시 ON. docker (운영) profile 은
+# application-docker.yaml override 로 default false (air-gapped 안전). 운영자가 명시 활성화 필요.
+helm-repo:
+  auto-seed:
+    enabled: ${ANYCLOUD_HELM_REPO_AUTO_SEED:true}

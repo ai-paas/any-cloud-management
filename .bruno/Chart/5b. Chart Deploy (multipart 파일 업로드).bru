@@ -1,0 +1,86 @@
+meta {
+  name: 5b. Chart Deploy (multipart 파일 업로드)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/helm-releases
+  body: multipartForm
+  auth: none
+}
+
+headers {
+  Idempotency-Key: {{$randomUUID}}
+  User-Agent: bruno/3.3.0
+}
+
+body:multipartForm {
+  releaseName: {{release_name}}
+  chart: {{repo_name}}/{{chart_name}}
+  version: {{version}}
+  namespace: {{namespace}}
+  valuesFile: @file({{values_file_path}})
+}
+
+vars:pre-request {
+  repo_name: chartmuseum-dev
+  chart_name: ingress-nginx
+  release_name: nginx-test-release
+  cluster_name: imported-cluster-001
+  namespace: default
+  version:
+  values_file_path: /tmp/values.yaml
+}
+
+docs {
+  Helm release 설치 (multipart/form-data — 진짜 "파일 업로드" 방식).
+
+  언제 이거 사용 :
+    - values.yaml 이 큰 케이스 (수백 줄, 복잡한 nested 구조)
+    - 진짜 YAML 문법 (anchor &/alias *, multi-line | / >, comment) 보존 필요
+    - 5. Chart Deploy (values 객체 JSON) 의 escape 가 부담스러울 때
+
+  endpoint :
+    POST /v1/clusters/{c}/helm-releases   (Content-Type: multipart/form-data)
+    consumes 가 5. Deploy 와 같은 URL 이지만 Spring 이 Content-Type 으로 분기.
+
+  파라미터 :
+    releaseName  (RequestParam, 필수)   — K8s name pattern
+    chart        (RequestParam, 필수)   — "<repo>/<chart>" 형식
+    version      (RequestParam, 옵션)   — 빈 값이면 latest
+    namespace    (RequestParam, 옵션)   — default "default"
+    valuesFile   (RequestParam, 옵션)   — values.yaml multipart file. 미제공 시 chart default values
+
+  values_file_path 변수 :
+    환경변수로 setting (예: /tmp/my-values.yaml). 절대 경로 권장.
+    파일 미존재 시 Bruno 가 multipart 전송 단계에서 에러.
+
+  backend 응답 :
+    202 Accepted + Location: /v1/operations/{id}    (operation post-response script 로 환경 promotion)
+
+  비교 :
+    | 변형               | escape 부담  | YAML 문법 보존  | 사용 빈도   |
+    |--------------------|--------------|------------------|--------------|
+    | 5. values 객체     | 없음          | 부분 (anchor X)   | 일상 운영    |
+    | 5-1. No Values     | 없음          | -                 | 빠른 smoke   |
+    | 5c. multipart 파일 | 없음          | 100%              | 큰 values    |
+}
+
+script:post-response {
+  // helm install operation id 를 다음 .bru 들이 polling/cancel 등에 쓰도록 promotion.
+  if (res && res.body && res.body.data && res.body.data.id) {
+    bru.setEnvVar('last_operation_id', res.body.data.id);
+  }
+}
+
+tests {
+  test("status 202 (LRO)", function() {
+    expect(res.getStatus()).to.equal(202);
+  });
+
+  test("Operation 응답 + Location", function() {
+    expect(res.getBody().data.type).to.equal("INSTALL_HELM_RELEASE");
+    expect(res.getHeader("Location")).to.match(/^\/v1\/operations\/op-/);
+  });
+}

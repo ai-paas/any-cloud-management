@@ -1,0 +1,47 @@
+meta {
+  name: 5a. Chart Deploy No Values File (차트 배포 - 파일 없음)
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/helm-releases
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+  User-Agent: bruno/3.3.0
+}
+
+body:json {
+  {
+    "releaseName": "{{release_name}}",
+    "chart": "{{repo_name}}/{{chart_name}}",
+    "version": "{{version}}",
+    "namespace": "{{namespace}}"
+  }
+}
+
+vars:pre-request {
+  repo_name: chart-museum-external
+  chart_name: nginx
+  release_name: nginx-no-values-test
+  namespace: default
+  version: 4.15.1
+}
+
+tests {
+  test("상태 코드 202 (LRO)", function() {
+    expect(res.getStatus()).to.equal(202);
+  });
+  
+  test("Operation 응답 확인", function() {
+    const data = res.getBody();
+    expect(data.success).to.equal(true);
+    expect(data.data).to.have.property('id');
+    expect(data.data.type).to.equal('INSTALL_HELM_RELEASE');
+  });
+}

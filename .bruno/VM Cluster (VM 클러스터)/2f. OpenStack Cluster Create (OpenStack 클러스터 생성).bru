@@ -1,0 +1,79 @@
+meta {
+  name: 2f. OpenStack Cluster Create (OpenStack 클러스터 생성)
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{baseUrl}}/v1/vms
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+}
+
+body:json {
+  {
+    "vmGroupName": "{{provision_cluster_name}}",
+    "provider": "OPENSTACK",
+    "description": "OpenStack Nova 기반 Kubernetes 클러스터",
+    "environment": "{{provision_environment}}",
+    "region": "{{provision_region}}",
+    "credentialId": "{{credential_id}}",
+    "config": {
+      "anycloud-k8s:openstackImageName": "{{openstack_image_name}}",
+      "anycloud-k8s:openstackFlavorName": "{{openstack_flavor_name}}",
+      "anycloud-k8s:openstackExternalNetworkId": "{{openstack_external_network_id}}",
+      "anycloud-k8s:openstackFloatingIpPool": "{{openstack_floating_ip_pool}}",
+      "anycloud-k8s:workerCount": "{{worker_count}}",
+      "anycloud-k8s:kubernetesVersion": "{{kubernetes_version}}",
+      "anycloud-k8s:vpcCidr": "{{vpc_cidr}}",
+      "anycloud-k8s:podCidr": "{{pod_cidr}}",
+      "anycloud-k8s:serviceCidr": "{{service_cidr}}",
+      "anycloud-k8s:enableIngress": "{{enable_ingress}}",
+      "anycloud-k8s:enableGpuOperator": "{{enable_gpu_operator}}"
+    }
+  }
+}
+
+script:post-response {
+  if (res.body && res.body.data && res.body.data.id) {
+    bru.setEnvVar('last_operation_id', res.body.data.id);
+  }
+}
+
+tests {
+  test("상태 코드 202", function() {
+    expect(res.getStatus()).to.equal(202);
+  });
+}
+
+docs {
+  ## OpenStack 기반 cluster 생성
+
+  ### Required env vars (local-openstack-provisioning.bru)
+  - `provision_provider: OPENSTACK`
+  - `provision_region`: OpenStack region (예: `RegionOne`)
+  - `credential_id`: OpenStack credential UUID
+  - **`openstack_image_name`** (필수): Glance image name (예: `ubuntu-24.04`)
+  - **`openstack_flavor_name`** (필수): Nova flavor (예: `m1.large`)
+  - **`openstack_external_network_id`** (필수): floating IP 발급될 external network UUID
+  - **`openstack_floating_ip_pool`** (필수): floating IP pool name
+
+  ### OpenStack 의 차이점
+  - `master_vm_spec` / `worker_vm_spec` 무시 — `openstack_flavor_name` 한 가지 flavor 만 사용
+  - region 별 image / flavor 가 다양 — `VM Options` 로 사전 조회 권장:
+    ```bash
+    bru run "VM Options (VM 옵션)/4. VM Images (OS 이미지 목록).bru" \
+        --env local-openstack-provisioning
+    ```
+
+  ### 실행
+  ```bash
+  bru run "VM Cluster (VM 클러스터)/2f. OpenStack Cluster Create (OpenStack 클러스터 생성).bru" \
+      --env local-openstack-provisioning
+  ```
+}

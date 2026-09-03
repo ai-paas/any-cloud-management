@@ -1,0 +1,49 @@
+# AWS on-demand pricing.
+#
+# 출처: us-east-1 on-demand 공식 (https://aws.amazon.com/ec2/pricing/on-demand/).
+# 본 catalog 는 정적 — 변동성 큰 가격은 정확도 보장 어려움. 분기별 수동 검토 권장.
+# 다른 region 은 5-30% 변동 가능 — accuracyNote 로 사용자에게 명시.
+provider: aws
+currency: USD
+region: us-east-1
+spotDiscount: 0.65        # 평균 spot 할인율 65% (workload 별로 50-80% 변동)
+updatedAt: "2026-05-23"
+notes: |
+  Prices reflect us-east-1 on-demand list price as of 2026-05-23.
+  Other regions vary ±5-30%. Spot prices fluctuate hourly; the 0.65 discount
+  is a workload-agnostic average. EBS / data transfer / EIP costs NOT included.
+
+instanceTypes:
+  # T-series (burstable, dev/CI)
+  t3.micro:    { hourly: 0.0104, vcpu: 2,  memoryGb: 1 }
+  t3.small:    { hourly: 0.0208, vcpu: 2,  memoryGb: 2 }
+  t3.medium:   { hourly: 0.0416, vcpu: 2,  memoryGb: 4 }
+  t3.large:    { hourly: 0.0832, vcpu: 2,  memoryGb: 8 }
+  t3.xlarge:   { hourly: 0.1664, vcpu: 4,  memoryGb: 16 }
+  t3.2xlarge:  { hourly: 0.3328, vcpu: 8,  memoryGb: 32 }
+  # M-series (general purpose)
+  m5.large:    { hourly: 0.096,  vcpu: 2,  memoryGb: 8 }
+  m5.xlarge:   { hourly: 0.192,  vcpu: 4,  memoryGb: 16 }
+  m5.2xlarge:  { hourly: 0.384,  vcpu: 8,  memoryGb: 32 }
+  m5.4xlarge:  { hourly: 0.768,  vcpu: 16, memoryGb: 64 }
+  m5.8xlarge:  { hourly: 1.536,  vcpu: 32, memoryGb: 128 }
+  # C-series (compute optimized)
+  c5.large:    { hourly: 0.085,  vcpu: 2,  memoryGb: 4 }
+  c5.xlarge:   { hourly: 0.17,   vcpu: 4,  memoryGb: 8 }
+  c5.2xlarge:  { hourly: 0.34,   vcpu: 8,  memoryGb: 16 }
+  c5.4xlarge:  { hourly: 0.68,   vcpu: 16, memoryGb: 32 }
+  # R-series (memory optimized)
+  r5.large:    { hourly: 0.126,  vcpu: 2,  memoryGb: 16 }
+  r5.xlarge:   { hourly: 0.252,  vcpu: 4,  memoryGb: 32 }
+  r5.2xlarge:  { hourly: 0.504,  vcpu: 8,  memoryGb: 64 }
+  # G4dn (GPU — T4)
+  g4dn.xlarge:  { hourly: 0.526, vcpu: 4,  memoryGb: 16, gpu: 1 }
+  g4dn.2xlarge: { hourly: 0.752, vcpu: 8,  memoryGb: 32, gpu: 1 }
+  g4dn.4xlarge: { hourly: 1.204, vcpu: 16, memoryGb: 64, gpu: 1 }
+  # G5 (GPU — A10G) — gpu-medium alias
+  g5.xlarge:    { hourly: 1.006, vcpu: 4,   memoryGb: 16,  gpu: 1 }
+  g5.2xlarge:   { hourly: 1.212, vcpu: 8,   memoryGb: 32,  gpu: 1 }
+  # P4d (GPU — A100 8x) — gpu-large alias
+  p4d.24xlarge: { hourly: 32.77, vcpu: 96,  memoryGb: 1152, gpu: 8 }
+  # P5 (GPU — H100 8x) — gpu-h100 alias
+  p5.48xlarge:  { hourly: 98.32, vcpu: 192, memoryGb: 2048, gpu: 8 }

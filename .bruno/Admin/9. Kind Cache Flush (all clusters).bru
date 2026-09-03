@@ -1,0 +1,37 @@
+meta {
+  name: 9. Kind Cache Flush (all clusters)
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/kind-cache/flush
+  body: none
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+docs {
+  KindResolver cache 를 전체 cluster 에 대해 무효화한다. global drift 복구 / boot-time 정리 용도.
+
+  K-1 (2026-06-08) — 일반 운영에서는 사용 빈도 매우 낮음. cluster 단위 flush 가 디폴트.
+  resource data 는 캐시 대상 아님 — 사용자 영향 없음.
+
+  blast radius: 다음 호출들마다 cluster × kind 단위 cache miss → agent RESOLVE_RESOURCE 1회씩.
+  cluster N개, 사용 kind M개라면 최대 N×M 추가 호출 (1회씩, 이후 재캐시).
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("scope=all", function() {
+    const data = res.getBody().data;
+    expect(data.scope).to.equal("all");
+  });
+}

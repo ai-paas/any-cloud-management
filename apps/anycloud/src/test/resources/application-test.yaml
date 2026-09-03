@@ -1,0 +1,76 @@
+# 테스트 전용 설정. 외부 의존(Pulumi/RabbitMQ/RustFS/OpenBao) 은 가능한 비활성화하고,
+# 통합 테스트가 필요로 하는 경우 Testcontainers 가 dynamic property 로 override 한다.
+
+spring:
+  # H2 / Testcontainers MariaDB 사용 — JPA validate 대신 update 로 schema 자동 생성 (Flyway off).
+  flyway:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MariaDBDialect
+        format_sql: true
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false  # 통합 테스트에서 명시적으로 켤 때만 작동
+  # Cluster Agent infra — 외부 broker 없이 context 부팅 가능해야 함.
+  # Kafka / Redis dependency 는 제거됨 (D1/D2). MariaDB jti dedup 사용.
+
+vm-cluster-workflow:
+  enabled: false
+  worker-enabled: false
+
+pulumi:
+  enabled: false
+  binary-path: /tmp/pulumi-not-available
+  project-dir: /tmp/pulumi-not-available
+  backup:
+    enabled: false
+
+security:
+  auth:
+    enabled: false
+
+cluster:
+  cert:
+    expiry-check:
+      cron: "-"  # disabled
+
+# Cluster Agent — test profile 에서 gRPC server / agent JWT 설정.
+agent:
+  jwt:
+    secret: test-secret-32-bytes-min-padding-padding-padding-padding-padding
+    issuer: anycloud-bootstrap
+    audience: cluster-agent-registration
+    ttl-seconds: 600
+  identity:
+    ttl-days: 60
+  grpc:
+    port: 0   # random free port (test)
+
+# Cluster Agent starter properties. test 환경은 session 없어 isActiveFor=false 자동 → 별도 off 불필요.
+cluster-agent:
+  routing:
+    enabled: false   # 명시적으로도 off (starter 기본 true 와 분리).
+  exec:
+    # pod exec WebSocket endpoint off. ServletServerContainerFactoryBean 은 실제 embedded
+    # servlet container 의 jakarta.websocket.server.ServerContainer 를 요구하는데,
+    # @SpringBootTest 기본값인 MOCK web environment 에는 없어서 context 부팅이 실패한다.
+    # 통합 테스트 목적(context/Flyway/repository)에 exec 경로는 불필요.
+    # 실제로 띄우려면 webEnvironment = RANDOM_PORT 가 대안이지만 테스트가 느려진다.
+    enabled: false
+
+# net.devh gRPC server — test profile 은 port=0 (random) 으로 bind 충돌 회피.
+grpc:
+  server:
+    port: 0
+    security:
+      enabled: false
+
+logging:
+  level:
+    com.aipaas.anycloud: DEBUG
+    org.springframework: WARN

@@ -1,0 +1,43 @@
+meta {
+  name: 6. promql-aggregate (전체 클러스터)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/v1/observability/aggregate?promql={{promql}}
+  body: none
+  auth: none
+}
+
+params:query {
+  promql: {{promql}}
+  ~perClusterTimeoutSeconds: 5
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+vars:pre-request {
+  promql: sum(up)
+}
+
+docs {
+  전체 등록된 cluster 대상 PromQL fan-out — backend 가 ClusterCatalog 의 모든 ACTIVE 클러스터에
+  병렬로 동일 쿼리를 던지고 cluster_name 별로 묶어 반환.
+
+  required:
+    promql                    : 모든 클러스터에서 동일하게 실행할 쿼리
+  optional:
+    perClusterTimeoutSeconds  : 클러스터당 timeout. default 5s.
+
+  활용: "지금 모든 클러스터의 CPU 사용량 합계", "fleet-wide alert 카운트" 등.
+}
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

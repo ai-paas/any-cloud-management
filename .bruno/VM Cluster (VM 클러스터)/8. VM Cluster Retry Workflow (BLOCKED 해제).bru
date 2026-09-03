@@ -1,0 +1,33 @@
+meta {
+  name: 8. VM Cluster Retry Workflow (BLOCKED 해제)
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters/{{provision_cluster_name}}/operations
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+}
+
+body:json {
+  {
+    "type": "retryWorkflow"
+  }
+}
+
+tests {
+  test("status is 202 (async LRO)", function() {
+    expect(res.getStatus()).to.equal(202);
+  });
+
+  test("Operation 응답 확인", function() {
+    const body = res.getBody();
+    expect(body.data.type).to.equal("RETRY_WORKFLOW");
+  });
+}

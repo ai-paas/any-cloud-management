@@ -1,0 +1,42 @@
+meta {
+  name: 9b. Chart Uninstall (history 보존 + wait)
+  type: http
+  seq: 12
+}
+
+delete {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/helm-releases/{{release_name}}?namespace={{namespace}}&keepHistory=true&wait=true
+  body: none
+  auth: none
+}
+
+params:query {
+  namespace: {{namespace}}
+  keepHistory: true
+  wait: true
+}
+
+headers {
+  Idempotency-Key: {{$randomUUID}}
+  User-Agent: bruno/3.3.0
+}
+
+vars:pre-request {
+  release_name: nginx-test-release
+  namespace: default
+}
+
+tests {
+  test("status 202", function() {
+    expect(res.getStatus()).to.equal(202);
+  });
+  
+  test("type=UNINSTALL_HELM_RELEASE", function() {
+    expect(res.getBody().data.type).to.equal("UNINSTALL_HELM_RELEASE");
+  });
+}
+
+docs {
+  - keepHistory=true: helm 의 revision 이력 보존 → status=uninstalled (재설치 시 revision N+1 로 이어감)
+  - wait=true: 모든 K8s 자원 (Pod/Service/PVC 등) 이 실제로 사라질 때까지 helm 이 대기 (--timeout 5m)
+}

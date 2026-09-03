@@ -1,0 +1,37 @@
+meta {
+  name: 6. VM Cluster Scale (워커 수 조절 - PATCH)
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/v1/clusters/{{provision_cluster_name}}
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+}
+
+body:json {
+  {
+    "spec": {
+      "workerCount": 5
+    }
+  }
+}
+
+tests {
+  test("status is 202 (async LRO)", function() {
+    expect(res.getStatus()).to.equal(202);
+  });
+
+  test("Operation 응답 확인", function() {
+    const body = res.getBody();
+    expect(body.data.type).to.equal("SCALE_CLUSTER");
+    expect(body.data.progress).to.have.property("totalSteps");
+    expect(body.data.progress.totalSteps).to.equal(2);
+  });
+}

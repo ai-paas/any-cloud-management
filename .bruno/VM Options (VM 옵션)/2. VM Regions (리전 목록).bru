@@ -1,0 +1,23 @@
+meta {
+  name: 2. VM Regions (리전 목록)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/v1/providers/{{vm_options_provider}}/regions?credentialId={{vm_credential_id}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("regions response uses success envelope", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("success");
+    expect(body).to.have.property("data");
+  });
+}

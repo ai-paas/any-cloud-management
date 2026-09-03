@@ -1,0 +1,27 @@
+meta {
+  name: 2. List (cluster addons 목록)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/addons
+  body: none
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+tests {
+  test("상태 코드 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Cluster 별 addon 목록 + 각 row 의 state/lastError/lastOperationId.
+  lastOperationId 가 set 인 row 는 OperationEventsController SSE 로 progress 구독 가능.
+}

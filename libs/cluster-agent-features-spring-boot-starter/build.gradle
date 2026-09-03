@@ -1,0 +1,128 @@
+// Cluster Agent Features Spring Boot Starter
+//
+// Layer 2 통합 starter — Layer 1 (cluster-agent-spring-boot-starter) 의 reverse-tunnel +
+// 명령 dispatch 위에 RBAC / Backup / Observability 3 feature 를 한 artifact 으로 묶음.
+//
+// 책임:
+//   - RBAC      : OIDC group → K8s ClusterRoleBinding orchestration (binding-templates.yaml)
+//                 Caffeine TTL cache fleet view + informer push event 로 stale window 0 에 근접
+//   - Backup    : Velero / etcd snapshot / PKI backup. velero-policies/ catalog
+//   - Observability : PromQL passthrough + alert rule (alert-rules/) + Grafana dashboard
+//
+// 한 starter 로 묶은 이유:
+//   - 3 feature 가 모두 cluster-agent (Layer 1) 의존 — 분리 시 transitive 3중 pull
+//   - 단일 consumer (anycloud + reference example) 환경에서 starter 별도화의 abstraction tax 0
+//   - 통합 후에도 sub-package (rbac/, backup/, observability/) 는 보존 — 향후 분리 다시 가능
+//
+// 호스트가 채울 SPI (선택):
+//   RBAC          : BindingTemplateCatalog, BindingAuditSink
+//   Backup        : BackupHistoryWriter
+//   Observability : ClusterCatalog, ClusterCapabilitiesSink
+
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'com.diffplug.spotless'
+}
+
+group = 'io.aipaas.cluster'
+// publish-starters.yml workflow 가 tag push 시 -PstarterVersion 주입. local dev fallback 'SNAPSHOT'.
+version = findProperty('starterVersion') ?: '0.1.0-SNAPSHOT'
+
+bootJar { enabled = false }
+jar { enabled = true }
+
+spotless {
+    enforceCheck false
+    ratchetFrom 'origin/main'
+    java {
+        target 'src/**/*.java'
+        palantirJavaFormat('2.50.0')
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+dependencies {
+    api project(':cluster-agent-spring-boot-starter')
+
+    api 'org.springframework.boot:spring-boot-starter:3.2.5'
+    api 'org.springframework.boot:spring-boot-starter-validation:3.2.5'
+
+    // YAML 파서 — RBAC 의 binding-templates.yaml.
+    api "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${rootProject.ext.jacksonVersion}"
+
+    // SnakeYAML — Backup 의 velero-policies, Observability 의 alert-rules catalog 로드.
+    implementation 'org.yaml:snakeyaml:2.3'
+
+    // Caffeine — RBAC 의 SimpleBindingFleetView TTL cache.
+    api 'com.github.ben-manes.caffeine:caffeine:3.1.8'
+
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:3.2.5'
+
+    compileOnly "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test:3.2.5'
+    testCompileOnly "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+}
+
+test {
+    useJUnitPlatform()
+    maxHeapSize = '768m'
+}
+
+publishing {
+    publications {
+        starter(MavenPublication) {
+            from components.java
+            artifactId = 'cluster-agent-features-spring-boot-starter'
+
+            pom {
+                name = 'Cluster Agent Features Spring Boot Starter'
+                description = 'Layer 2 starter bundling RBAC (OIDC group → K8s ClusterRoleBinding), ' +
+                    'Backup (Velero / etcd snapshot / PKI), and Observability (PromQL passthrough + ' +
+                    'alert-rules / Grafana dashboards) features atop cluster-agent-spring-boot-starter. ' +
+                    'Hosts add this dependency and optionally override SPI (BindingTemplateCatalog, ' +
+                    'BackupHistoryWriter, ClusterCatalog).'
+                url = 'https://github.com/aipaas/any-cloud-management'
+
+                licenses {
+                    license {
+                        name = 'Apache License, Version 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                        distribution = 'repo'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = 'aipaas'
+                        name = 'AIPaaS Team'
+                        email = 'aipaas@innogrid.com'
+                    }
+                }
+
+                scm {
+                    url = 'https://github.com/aipaas/any-cloud-management'
+                    connection = 'scm:git:https://github.com/aipaas/any-cloud-management.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/aipaas/any-cloud-management.git'
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = 'GitHubPackages'
+            url = uri("https://maven.pkg.github.com/${System.getenv('GITHUB_REPOSITORY') ?: 'aipaas/any-cloud-management'}")
+            credentials {
+                username = System.getenv('GITHUB_ACTOR') ?: ''
+                password = System.getenv('GITHUB_TOKEN') ?: ''
+            }
+        }
+        mavenLocal()
+    }
+}

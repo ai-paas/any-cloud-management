@@ -1,2 +1,14 @@
 rootProject.name = 'anycloud'
+
 include 'anycloud'
+project(':anycloud').projectDir = file('apps/anycloud')
+
+include 'cluster-agent-spring-boot-starter'
+project(':cluster-agent-spring-boot-starter').projectDir = file('libs/cluster-agent-spring-boot-starter')
+
+include 'cluster-agent-features-spring-boot-starter'
+project(':cluster-agent-features-spring-boot-starter').projectDir = file('libs/cluster-agent-features-spring-boot-starter')
+
+include 'cluster-provisioning-spring-boot-starter'
+project(':cluster-provisioning-spring-boot-starter').projectDir = file('libs/cluster-provisioning-spring-boot-starter')
+

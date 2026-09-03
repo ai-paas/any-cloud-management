@@ -1,32 +1,52 @@
 meta {
-  name: Helm repo List (헬름저장소 목록)
+  name: 1. HelmRepo List (헬름저장소 목록)
   type: http
   seq: 1
 }
 
 get {
-  url: {{baseUrl}}/helm-repos
+  url: {{baseUrl}}/v1/helm-repos
   body: none
   auth: none
 }
 
 headers {
   content-type: application/json
-  User-Agent: bruno/1.11.0
+  User-Agent: bruno/3.3.0
 }
 
 script:post-response {
-  bru.setEnvVar("helmRepo-name", res.body[0].name);
+  // 응답 envelope: { success, data: { items: HelmRepoDto[] } }
+  // 첫 번째 repo name 을 helmRepo_name 환경변수로 promote → 3/4 번 요청에서 재사용.
+  const items = res.body && res.body.data && Array.isArray(res.body.data.items) ? res.body.data.items : [];
+  if (res.body && res.body.success && items.length > 0) {
+    bru.setEnvVar("helmRepo_name", items[0].name);
+  }
 }
 
 tests {
   test("상태 코드 200 확인", function() {
     expect(res.getStatus()).to.equal(200);
   });
-  
-  test("Response Data 확인", function() {
+
+  test("성공 envelope 확인", function() {
     const data = res.getBody();
-    // console.log("   ✓ data length", Object.keys(data).length);
-    expect(data).to.not.be.undefined;
+    expect(data.success).to.equal(true);
+    expect(data.status).to.equal(200);
+    expect(data.data).to.be.an('object');
+    expect(data.data.items).to.be.an('array');
+  });
+
+  // 2026-05-27 (H-46): autoAllowlist 필드는 Phase G / V27 migration 에서 제거됨.
+  // backend DTO 가 더 이상 노출하지 않으므로 assertion 도 제거.
+
+  test("H-47.1 — source / tags 필드 노출", function() {
+    const items = res.getBody().data.items;
+    if (items.length > 0) {
+      const item = items[0];
+      expect(item).to.have.property("source");
+      expect(["INTERNAL", "EXTERNAL"]).to.include(item.source);
+      // tags 는 null 가능 (사용자 미입력)
+    }
   });
 }

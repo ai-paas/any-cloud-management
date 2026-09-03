@@ -1,0 +1,34 @@
+meta {
+  name: 3. VM Cluster Status (클러스터 생성 상태 조회)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{provision_cluster_name}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("UnifiedClusterDto schema 확인", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("success");
+    expect(body.data).to.have.property("clusterName");
+    expect(body.data).to.have.property("status");
+    expect(body.data).to.have.property("source");
+  });
+
+  test("HATEOAS-lite links 확인", function() {
+    const body = res.getBody();
+    expect(body.links).to.have.property("self");
+    expect(body.links).to.have.property("operations");
+    expect(body.links).to.have.property("helmReleases");
+    expect(body.links).to.have.property("namespaces");
+    expect(body.links).to.have.property("events");
+  });
+}

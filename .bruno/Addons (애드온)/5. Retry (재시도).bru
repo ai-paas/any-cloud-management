@@ -1,0 +1,33 @@
+meta {
+  name: 5. Retry (재시도)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/addons/{{addon_id}}:retry
+  body: none
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+vars:pre-request {
+  addon_id: addon-xxxxx
+}
+
+tests {
+  test("상태 코드 202", function() {
+    expect(res.getStatus()).to.equal(202);
+  });
+}
+
+docs {
+  FAILED state 에서만 가능. ENQUEUED 로 전환 + install queue.
+  PENDING / SUCCEEDED / INSTALLING 등 다른 state 는 400.
+  
+  응답의 operation id 로 SSE GET /v1/operations/{id}/events 구독해 progress 추적.
+}

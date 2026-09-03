@@ -1,0 +1,70 @@
+meta {
+  name: 10. K8s Resolve Kind (단일 해결)
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/resolve?input={{input}}
+  body: none
+  auth: none
+}
+
+params:query {
+  input: {{input}}
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+vars:pre-request {
+  input: pvc
+}
+
+docs {
+  사용자 입력 (단축이름 'pvc' / plural 'pods' / Kind 'Pod') 을 RESTMapper 로 정규화.
+
+  query param:
+    input  : 정규화할 텍스트 (required, 1..128 char)
+       예) pvc → PersistentVolumeClaim/v1/namespaced=true
+           sc → StorageClass/storage.k8s.io v1 cluster-scoped
+           pods → Pod/v1
+           customresourcedefinitions → CustomResourceDefinition/apiextensions.k8s.io v1
+
+  응답:
+    200 OK: { plural, singular, kind, group, version, namespaced, shortNames }
+    404 Not Found: { success:false, code:"UNSUPPORTED_KIND", suggestions:[...] }
+       suggestions 는 Levenshtein 거리 ≤ 3 의 top-3 후보. 빈 list 가능.
+
+  활용:
+    - UI type-ahead — 사용자 입력 debounce → 즉시 정규화 결과 표시
+    - Form pre-validation — submit 전 cluster 가 해당 kind 지원하는지 확인
+    - 에러 메시지 보강 — 오타 시 suggestions 활용
+}
+
+tests {
+  test("상태 코드 200 (정상 input)", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("응답 schema 확인", function() {
+    const data = res.getBody();
+    expect(data.success).to.equal(true);
+    expect(data.data).to.have.property("plural");
+    expect(data.data).to.have.property("kind");
+    expect(data.data).to.have.property("namespaced");
+  });
+
+  test("pvc → persistentvolumeclaims plural 변환", function() {
+    if (res.getStatus() === 200) {
+      // input=pvc 일 때만 의미
+      const data = res.getBody().data;
+      if (bru.getVar("input") === "pvc") {
+        expect(data.plural).to.equal("persistentvolumeclaims");
+        expect(data.namespaced).to.equal(true);
+      }
+    }
+  });
+}

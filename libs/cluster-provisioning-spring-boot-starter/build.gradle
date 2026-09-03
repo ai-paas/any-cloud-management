@@ -1,0 +1,148 @@
+// Cluster Provisioning Spring Boot Starter
+//
+// VM Kubernetes cluster 의 multi-cloud provisioning 을 Pulumi Automation Java SDK 로 위임하는 starter.
+// in-JVM Pulumi engine — Pulumi binary 는 필요하지만 Go runtime 의존 0.
+//
+// 책임:
+//   - Pulumi stack lifecycle (up/preview/destroy/refresh) — LocalWorkspace + WorkspaceStack
+//   - Engine event stream — EngineEvent → ProvisionEvent (Reactor multicast)
+//   - Multi-cloud provider abstraction — AWS/GCP/Azure/OCI/OpenStack/DigitalOcean/Alibaba (7개)
+//   - 표준 output schema + jakarta validation
+//
+// 호스트가 구현할 SPI: ExecutionConfig (pulumi binary path / state backend URL / passphrase).
+//
+// 호스트가 책임지는 영역 (starter 밖):
+//   - ClusterEntity / OperationEntity 영속화
+//   - REST controller / SSE endpoint (starter 는 service bean 만)
+//   - CSP credential 저장 정책
+
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'com.diffplug.spotless'
+}
+group = 'io.aipaas.cluster'
+// publish-starters.yml workflow 가 tag push 시 -PstarterVersion 주입. local dev fallback 'SNAPSHOT'.
+version = findProperty('starterVersion') ?: '0.1.0-SNAPSHOT'
+
+bootJar { enabled = false }
+jar { enabled = true }
+
+spotless {
+    enforceCheck false
+    ratchetFrom 'origin/main'
+    java {
+        target 'src/**/*.java'
+        palantirJavaFormat('2.50.0')
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+dependencies {
+    // Spring Boot core
+    api 'org.springframework.boot:spring-boot-starter:3.2.5'
+    api 'org.springframework.boot:spring-boot-starter-validation:3.2.5'
+
+    // Jackson — Pulumi engine event raw payload parsing.
+    api "com.fasterxml.jackson.core:jackson-databind:${rootProject.ext.jacksonVersion}"
+
+    // Pulumi Java SDK — in-JVM IaC engine. Automation API + 7개 CSP provider.
+    api "com.pulumi:pulumi:${rootProject.ext.pulumiSdkVersion}"
+    api "com.pulumi:aws:${rootProject.ext.pulumiAwsVersion}"
+    api "com.pulumi:gcp:${rootProject.ext.pulumiGcpVersion}"
+    api "com.pulumi:azure-native:${rootProject.ext.pulumiAzureNativeVersion}"
+    api "com.pulumi:oci:${rootProject.ext.pulumiOciVersion}"
+    api "com.pulumi:alicloud:${rootProject.ext.pulumiAlicloudVersion}"
+    api "com.pulumi:digitalocean:${rootProject.ext.pulumiDigitaloceanVersion}"
+    api "com.pulumi:openstack:${rootProject.ext.pulumiOpenstackVersion}"
+    api "com.pulumi:tls:${rootProject.ext.pulumiTlsVersion}"
+
+    // Reactor for ProvisionEventBus (multicast Sinks.Many).
+    api "io.projectreactor:reactor-core:${rootProject.ext.reactorVersion}"
+
+    // Micrometer (Counter / Timer) for engine event observability.
+    api "io.micrometer:micrometer-core:${rootProject.ext.micrometerVersion}"
+
+    // resilience4j @Bulkhead — compileOnly: AOP aspect 는 host (resilience4j-spring-boot3) 가 런타임 제공.
+    compileOnly "io.github.resilience4j:resilience4j-annotations:${rootProject.ext.resilience4jVersion}"
+
+    // @Transactional(NOT_SUPPORTED) on AutomationProvisioningService — 장시간 Pulumi 호출 동안 caller
+    // DB connection 점유 회피. compileOnly: TransactionInterceptor 는 host 의 tx manager 가 런타임 제공.
+    compileOnly 'org.springframework:spring-tx:6.1.6'
+
+    // configuration metadata processor — IDE 가 application.yaml 자동완성.
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:3.2.5'
+
+    // Lombok
+    compileOnly "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+
+    // Test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test:3.2.5'
+    testCompileOnly "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// ============= Publishing =============
+
+publishing {
+    publications {
+        starter(MavenPublication) {
+            from components.java
+            artifactId = 'cluster-provisioning-spring-boot-starter'
+
+            pom {
+                name = 'Cluster Provisioning Spring Boot Starter'
+                description = 'Spring Boot starter for multi-cloud VM Kubernetes provisioning via ' +
+                    'Pulumi Automation Java SDK (in-JVM, no Go runtime). 7 CSP providers + ' +
+                    'standard output schema. SPI port: ExecutionConfig.'
+                url = 'https://github.com/aipaas/any-cloud-management'
+
+                licenses {
+                    license {
+                        name = 'Apache License, Version 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                        distribution = 'repo'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = 'aipaas'
+                        name = 'AIPaaS Team'
+                        email = 'aipaas@innogrid.com'
+                    }
+                }
+
+                scm {
+                    url = 'https://github.com/aipaas/any-cloud-management'
+                    connection = 'scm:git:https://github.com/aipaas/any-cloud-management.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/aipaas/any-cloud-management.git'
+                }
+            }
+        }
+    }
+
+    repositories {
+        def remoteUrl = findProperty('publishUrl')
+        if (remoteUrl) {
+            maven {
+                name = 'remote'
+                url = remoteUrl
+                allowInsecureProtocol = remoteUrl.toString().startsWith('http://')
+                if (findProperty('publishUsername') && findProperty('publishPassword')) {
+                    credentials {
+                        username = findProperty('publishUsername')
+                        password = findProperty('publishPassword')
+                    }
+                }
+            }
+        }
+    }
+}

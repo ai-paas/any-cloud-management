@@ -1,0 +1,115 @@
+{{/*
+Identity Secret cleanup pre-install/pre-upgrade hook.
+
+cluster-agent-identity Secret 은 agent runtime 이 발급받은 opaque identity_token 을 60일간 보관.
+`helm.sh/resource-policy: keep` 으로 chart 삭제에도 보존 — pod restart 시 같은 token 재사용 위해
+의도된 동작. 그러나 backend 에서 cluster (와 cluster_agent row) 가 삭제된 후 동일 cluster name
+으로 재install 하면 backend DB 의 hash 가 새로 발급되는데 Secret 의 옛 token 은 그대로 남아
+auth mismatch 발생.
+
+본 hook 은 매 install/upgrade 직전에 Secret 을 삭제 — fresh registrationToken 으로 새 identity
+발급 강제. cluster 재생성 시나리오의 안전망. 정상 helm upgrade (token 갱신 없이 image 등만 변경)
+시에는 cleanup 후 agent 가 REGISTRATION_TOKEN env 로 재발급하므로 60일 cycle 영향 없음.
+
+비활성: `--set identity.cleanupHook.enabled=false`. 운영에서 token 유지하고 싶을 때.
+*/}}
+{{- if .Values.identity.cleanupHook.enabled }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "cluster-agent.fullname" . }}-identity-cleaner
+  namespace: {{ .Values.agent.namespace }}
+  labels:
+    {{- include "cluster-agent.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": "pre-install,pre-upgrade"
+    "helm.sh/hook-weight": "-15"
+    "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "cluster-agent.fullname" . }}-identity-cleaner
+  namespace: {{ .Values.agent.namespace }}
+  labels:
+    {{- include "cluster-agent.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": "pre-install,pre-upgrade"
+    "helm.sh/hook-weight": "-15"
+    "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["cluster-agent-identity"]
+  verbs: ["get", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "cluster-agent.fullname" . }}-identity-cleaner
+  namespace: {{ .Values.agent.namespace }}
+  labels:
+    {{- include "cluster-agent.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": "pre-install,pre-upgrade"
+    "helm.sh/hook-weight": "-15"
+    "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "cluster-agent.fullname" . }}-identity-cleaner
+subjects:
+- kind: ServiceAccount
+  name: {{ include "cluster-agent.fullname" . }}-identity-cleaner
+  namespace: {{ .Values.agent.namespace }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "cluster-agent.fullname" . }}-identity-cleanup
+  namespace: {{ .Values.agent.namespace }}
+  labels:
+    {{- include "cluster-agent.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": "pre-install,pre-upgrade"
+    "helm.sh/hook-weight": "-10"
+    "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 60
+  template:
+    metadata:
+      labels:
+        {{- include "cluster-agent.labels" . | nindent 8 }}
+        app.kubernetes.io/component: identity-cleaner
+    spec:
+      serviceAccountName: {{ include "cluster-agent.fullname" . }}-identity-cleaner
+      restartPolicy: Never
+      containers:
+      - name: cleaner
+        image: {{ .Values.identity.cleanupHook.image | default "rancher/kubectl:v1.31.0" }}
+        imagePullPolicy: IfNotPresent
+        command: ["kubectl"]
+        args:
+        - "delete"
+        - "secret"
+        - "cluster-agent-identity"
+        - "-n"
+        - "{{ .Values.agent.namespace }}"
+        - "--ignore-not-found=true"
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "32Mi"
+          limits:
+            cpu: "100m"
+            memory: "64Mi"
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop: ["ALL"]
+{{- end }}
