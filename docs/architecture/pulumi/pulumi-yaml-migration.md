@@ -87,6 +87,31 @@ LocalWorkspace.createOrSelectStack(stackName, workDir, workspaceOpts)
 
 **stack 상태는 workDir이 아니라 백엔드(S3/RustFS)에 있습니다.** workDir을 지워도 상태는 남습니다.
 
+### 런타임 요구사항은 바뀌지 않습니다
+
+Pulumi CLI 와 provider 플러그인은 **전환 전후 모두 필수**입니다. Java SDK 는 타입 바인딩일 뿐이고
+실제 리소스 CRUD 는 원래부터 플러그인(Go 바이너리)이 했습니다. Automation API 도 inline 이든 local
+이든 항상 CLI 프로세스를 띄웁니다.
+
+| 구성 요소 | 타입 SDK (현재) | YAML (전환 후) |
+|---|---|---|
+| Pulumi CLI | 필수 | 필수 |
+| provider 플러그인 | 필수 | 필수 |
+| Java SDK jar 732MB | 앱에 포함 | **제거** |
+
+`Dockerfile.pulumi` 가 이미 둘 다 이미지에 넣습니다 — CLI 는 `get.pulumi.com` 에서 받고, 플러그인
+8종은 `pulumi plugin install` 로 미리 받아 `PULUMI_PLUGIN_CACHE_DIR=/opt/pulumi-plugins` 에
+캐싱합니다. **런타임 다운로드가 없으므로 네트워크가 제한된 환경에서도 동작합니다.**
+
+### 플러그인 버전의 단일 출처
+
+SDK 를 제거하면 `build.gradle` 의 `pulumiAwsVersion` 계열 변수가 사라집니다. 그런데 플러그인 버전은
+여전히 필요하고, 지금은 `Dockerfile.pulumi:71-78` 에 하드코딩되어 두 곳이 수동으로 맞춰져 있습니다.
+
+전환 후에는 `Dockerfile.pulumi` 가 단독 출처가 됩니다. 플러그인은 런타임 아티팩트이지 컴파일
+의존성이 아니므로 자연스럽습니다. 다만 SDK 제거 단계에서 **`build.gradle` 의 버전 변수를 지우기
+전에 Dockerfile 쪽이 같은 값을 갖고 있는지 확인**해야 합니다.
+
 ## 4. YAML 생성 방식
 
 **Java가 문자열을 조립하지 않고 `Map`/`List` 트리를 만들어 SnakeYAML로 직렬화합니다.** 문자열 조립은
@@ -206,7 +231,6 @@ OpenStack을 먼저 하는 이유는 두 가지입니다. 리소스 정의가 �
 | 타입 안전성 상실 | 속성 오타가 컴파일이 아니라 `up` 시점에 드러남 | 워크플로우가 이미 `preview`를 거친다. preflight에서 실패하도록 배치 |
 | 리소스 누락 | 조용히 덜 만들어짐 | preview 그래프 비교로 잡는다 |
 | secret 처리 실수 | `sshPrivateKeyPem`이 평문으로 상태에 저장 | `fn::secret` 적용을 출력 단위 테스트로 고정 |
-| 플러그인 다운로드 | 첫 실행이 느려지고 네트워크가 필요 | 컨테이너 이미지 빌드 시 `pulumi plugin install` 프리워밍 검토 |
 | CSP별 미묘한 차이 | 특정 CSP만 깨짐 | 순차 이관 — 한 번에 하나씩만 위험에 노출 |
 
 `fn::invoke`로 바뀌는 AMI 조회(AWS)와 이미지 조회(GCP, Alibaba, OCI)가 특히 주의 대상입니다. 인자
