@@ -65,7 +65,9 @@ public class VmOptionsSelectionValidator {
             log.warn(
                     "VM spec validation skipped — listSpecs returned empty (provider={}, region={}, value={}). "
                             + "Likely CSP API unavailable; deferring to Pulumi launch.",
-                    provider, region, value);
+                    provider,
+                    region,
+                    value);
             return;
         }
         boolean exists = candidates.stream().anyMatch(item -> value.equalsIgnoreCase(item.getName()));
@@ -88,7 +90,9 @@ public class VmOptionsSelectionValidator {
             log.warn(
                     "OS image validation skipped — listImages returned empty (provider={}, region={}, value={}). "
                             + "Likely CSP API unavailable; deferring to Pulumi launch.",
-                    provider, region, value);
+                    provider,
+                    region,
+                    value);
             return;
         }
         boolean exists = candidates.stream().anyMatch(item -> value.equalsIgnoreCase(item.getName()));

@@ -15,8 +15,7 @@ class CostEstimatorTest {
     @Test
     void catalogLoadsAllSevenProviders() {
         assertThat(catalog.supportedProviders())
-                .containsExactlyInAnyOrder(
-                        "aws", "gcp", "azure", "alibaba", "oci", "digitalocean", "openstack");
+                .containsExactlyInAnyOrder("aws", "gcp", "azure", "alibaba", "oci", "digitalocean", "openstack");
     }
 
     @Test

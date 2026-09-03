@@ -68,8 +68,7 @@ public class VmClusterScaleStepService {
         try {
             ResolvedCspCredential credential = cspCredentialService.resolveForProvision(
                     vmCluster.getClusterProvider(), vmCluster.getCredentialId());
-            ProvisioningRequest baseRequest =
-                    vmClusterPayloadService.restoreProvisioningRequest(vmCluster, credential);
+            ProvisioningRequest baseRequest = vmClusterPayloadService.restoreProvisioningRequest(vmCluster, credential);
             if (baseRequest == null) {
                 throw new PermanentProvisioningFailure(
                         "Failed to restore ProvisioningRequest for scale (cluster=" + clusterName + ")",

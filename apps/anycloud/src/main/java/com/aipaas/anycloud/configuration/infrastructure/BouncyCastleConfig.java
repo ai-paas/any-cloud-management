@@ -19,8 +19,7 @@ public class BouncyCastleConfig {
         }
 
         if (log.isDebugEnabled()) {
-            Arrays.stream(Security.getProviders())
-                    .forEach(p -> log.debug("Security Provider loaded: {}", p.getName()));
+            Arrays.stream(Security.getProviders()).forEach(p -> log.debug("Security Provider loaded: {}", p.getName()));
         }
     }
 }

@@ -49,10 +49,7 @@ public class HelmCommandExecutor {
     public String executeAndCheck(List<String> args, String kubeconfigPath) {
         String helmBinary = "helm";
         CommandExecutionResult lookup = CommandExecutionSupport.execute(
-                List.of("/bin/sh", "-c", "command -v helm >/dev/null 2>&1"),
-                null,
-                Map.of(),
-                Duration.ofSeconds(5));
+                List.of("/bin/sh", "-c", "command -v helm >/dev/null 2>&1"), null, Map.of(), Duration.ofSeconds(5));
         if (!lookup.isSuccess()) {
             Path cached = bundledHelmPath;
             if (cached == null || !Files.isExecutable(cached)) {
@@ -61,8 +58,9 @@ public class HelmCommandExecutor {
                     if (cached == null || !Files.isExecutable(cached)) {
                         Resource resource = new ClassPathResource(BUNDLED_HELM_RESOURCE);
                         if (!resource.exists()) {
-                            throw new IllegalStateException("Helm binary not found on PATH and bundled resource missing: "
-                                    + BUNDLED_HELM_RESOURCE);
+                            throw new IllegalStateException(
+                                    "Helm binary not found on PATH and bundled resource missing: "
+                                            + BUNDLED_HELM_RESOURCE);
                         }
                         try (InputStream in = resource.getInputStream()) {
                             cached = Files.createTempFile("anycloud-bundled-helm-", "");
@@ -76,7 +74,8 @@ public class HelmCommandExecutor {
                                     BUNDLED_HELM_RESOURCE,
                                     cached);
                         } catch (IOException e) {
-                            throw new IllegalStateException("Failed to extract bundled Helm binary: " + e.getMessage(), e);
+                            throw new IllegalStateException(
+                                    "Failed to extract bundled Helm binary: " + e.getMessage(), e);
                         }
                     }
                 }

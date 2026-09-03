@@ -40,12 +40,7 @@ public class AdminAgentListController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
         AdminAgentListResponse body = queryService.query(
-                parseStatuses(status),
-                parseList(clusterName),
-                versionPrefix,
-                lastSeenOlderThanSec,
-                page,
-                size);
+                parseStatuses(status), parseList(clusterName), versionPrefix, lastSeenOlderThanSec, page, size);
         return ResponseEntity.ok(ApiSuccessResponse.of(HttpStatus.OK.value(), "Admin agents loaded", body));
     }
 

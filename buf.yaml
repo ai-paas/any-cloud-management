@@ -18,6 +18,21 @@ lint:
     - STANDARD
   except:
     - PACKAGE_VERSION_SUFFIX     # 우리는 agent/v1 디렉토리로 versioning.
+    # 아래 6개는 agent <-> backend 가 이미 구현을 마친 기존 계약의 명명 규칙 위반이다.
+    # 전부 스타일/배치 규칙이라 wire format 과 무관하지만, 지금 고치면 손해가 크다:
+    #   - SERVICE_SUFFIX 는 gRPC full method name (pkg.Service/Method) 을 바꾼다 -> 배포된
+    #     agent 와 즉시 wire mismatch. 이 job 이 막으려는 바로 그 사고다.
+    #   - ENUM_VALUE_PREFIX 39건은 generated Java 상수명을 전부 바꾼다 (CommandType 35 entries).
+    #   - PACKAGE_DIRECTORY_MATCH 는 .proto 파일 이동 -> import path / descriptor path 변경.
+    #     generated Java 패키지는 java_package 옵션이 따로 정하므로 실익도 없다.
+    # wire 호환성을 실제로 지키는 것은 아래 breaking 섹션이며 그쪽은 그대로 강제한다.
+    # 신규 proto 를 별도 package 로 추가할 때는 이 규칙들을 지키는 것을 권장.
+    - ENUM_VALUE_PREFIX
+    - SERVICE_SUFFIX
+    - PACKAGE_DIRECTORY_MATCH
+    - RPC_REQUEST_STANDARD_NAME
+    - RPC_RESPONSE_STANDARD_NAME
+    - RPC_REQUEST_RESPONSE_UNIQUE
 breaking:
   use:
     - WIRE_JSON

@@ -12,15 +12,7 @@ public record VmClusterSpec(
         @Schema(
                         description = "CSP provider",
                         example = "aws",
-                        allowableValues = {
-                            "aws",
-                            "gcp",
-                            "azure",
-                            "alibaba",
-                            "oci",
-                            "digitalocean",
-                            "openstack"
-                        })
+                        allowableValues = {"aws", "gcp", "azure", "alibaba", "oci", "digitalocean", "openstack"})
                 @NotBlank
                 String provider,
         @Schema(description = "region", example = "ap-northeast-2") @NotBlank String region,

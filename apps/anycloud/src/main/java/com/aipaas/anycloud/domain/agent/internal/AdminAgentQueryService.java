@@ -35,23 +35,14 @@ public class AdminAgentQueryService {
         int safeSize = Math.min(Math.max(size, 1), MAX_SIZE);
         int safePage = Math.max(page, 0);
         LocalDateTime now = LocalDateTime.now();
-        var spec = AdminAgentSpecs.combine(
-                statuses, clusterNames, versionPrefix, lastSeenOlderThanSec, now);
+        var spec = AdminAgentSpecs.combine(statuses, clusterNames, versionPrefix, lastSeenOlderThanSec, now);
         Page<ClusterAgentEntity> result = repository.findAll(
                 spec,
-                PageRequest.of(
-                        safePage,
-                        safeSize,
-                        Sort.by(Sort.Direction.ASC, "clusterName", "agentInstanceId")));
-        List<AdminAgentListResponse.Item> items = result.getContent().stream()
-                .map(e -> toItem(e, now))
-                .toList();
+                PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.ASC, "clusterName", "agentInstanceId")));
+        List<AdminAgentListResponse.Item> items =
+                result.getContent().stream().map(e -> toItem(e, now)).toList();
         return new AdminAgentListResponse(
-                items,
-                (int) result.getTotalElements(),
-                result.getNumber(),
-                result.getSize(),
-                result.getTotalPages());
+                items, (int) result.getTotalElements(), result.getNumber(), result.getSize(), result.getTotalPages());
     }
 
     private AdminAgentListResponse.Item toItem(ClusterAgentEntity e, LocalDateTime now) {

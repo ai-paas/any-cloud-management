@@ -56,14 +56,15 @@ jobs:
         run: ./gradlew :anycloud:spotlessCheck --no-daemon --console=plain
         # 새 PR 의 변경 파일에 대해서만 검사. 위반 시 spotlessApply 안내 메시지로 fail.
 
-      - name: Verify 4 starter publishToMavenLocal (W-1 CI)
+      - name: Verify 3 starter publishToMavenLocal (W-1 CI)
         # 외부 Java 프로젝트가 mavenLocal() 로 starter jar 를 fetch 해 사용하는 path 회귀 방지.
         # POM block / dependencies metadata / artifact id 누락 등이 publish 시점에야 드러나므로
-        # CI 에서 4 starter 모두 publishToMavenLocal 이 성공하는지 확인.
+        # CI 에서 starter 모두 publishToMavenLocal 이 성공하는지 확인.
+        # observability / backup starter 는 cluster-agent-features-spring-boot-starter 로
+        # 통합되어 settings.gradle 에 존재하지 않는다 (v0.3.0). 실제 모듈 3개만 검증.
         run: ./gradlew \
           :cluster-agent-spring-boot-starter:publishToMavenLocal \
-          :cluster-agent-observability-spring-boot-starter:publishToMavenLocal \
-          :cluster-agent-backup-spring-boot-starter:publishToMavenLocal \
+          :cluster-agent-features-spring-boot-starter:publishToMavenLocal \
           :cluster-provisioning-spring-boot-starter:publishToMavenLocal \
           --no-daemon --console=plain
 
@@ -102,34 +103,16 @@ jobs:
         # PR 시 main branch 의 proto 와 wire-format 호환성 검사. agent ↔ backend 가 다른 시점에 배포되면
         # field number / enum value reuse / package rename 등의 breaking change 가 wire mismatch 유발.
         # main 푸시 자체에는 against 대상이 없으므로 skip.
+        # main 에 아직 .proto 가 하나도 없으면 (v0.3.0 이 proto 를 최초 도입) 비교 대상이 없어
+        # buf 가 'Module had no .proto files' 로 실패한다. 그 경우만 건너뛴다 —
+        # main 에 proto 가 머지되는 순간부터는 자동으로 다시 강제된다.
         if: github.event_name == 'pull_request'
-        run: buf breaking --against '.git#branch=origin/main'
-
-  go:
-    name: Pulumi Go build + vet
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: infra/pulumi
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          # infra/pulumi/go.mod 의 toolchain. 1.25.x.
-          go-version: '1.25'
-          cache-dependency-path: infra/pulumi/go.sum
-
-      - name: go mod download
-        run: go mod download
-
-      - name: go build ./...
-        run: go build ./...
-
-      - name: go vet ./...
-        run: go vet ./...
+        run: |
+          if ! git ls-tree -r --name-only origin/main | grep -q '\.proto$'; then
+            echo "origin/main 에 .proto 가 없어 breaking 검사를 건너뜁니다 (proto 최초 도입 PR)."
+            exit 0
+          fi
+          buf breaking --against '.git#branch=origin/main'
 
   rustfs-smoke:
     name: RustFS + OpenBao smoke

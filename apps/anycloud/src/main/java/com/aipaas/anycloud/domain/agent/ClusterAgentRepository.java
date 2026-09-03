@@ -12,8 +12,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ClusterAgentRepository
-        extends JpaRepository<ClusterAgentEntity, String>,
-                JpaSpecificationExecutor<ClusterAgentEntity> {
+        extends JpaRepository<ClusterAgentEntity, String>, JpaSpecificationExecutor<ClusterAgentEntity> {
 
     /** Runtime stream 인증 시 token hash 로 lookup. revoked_at 별도 체크. */
     Optional<ClusterAgentEntity> findByIdentityTokenHash(String identityTokenHash);

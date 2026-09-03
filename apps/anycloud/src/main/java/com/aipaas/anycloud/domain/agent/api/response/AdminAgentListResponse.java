@@ -11,12 +11,7 @@ import java.util.List;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(description = "Admin agents fleet list")
-public record AdminAgentListResponse(
-        List<Item> items,
-        int total,
-        int page,
-        int size,
-        int totalPages) {
+public record AdminAgentListResponse(List<Item> items, int total, int page, int size, int totalPages) {
 
     /**
      * Fleet item — 단일 agent row. HA replica 는 agentInstanceId 로 구분.

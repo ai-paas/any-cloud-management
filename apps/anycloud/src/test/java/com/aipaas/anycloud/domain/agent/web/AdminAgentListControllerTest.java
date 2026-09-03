@@ -42,14 +42,7 @@ class AdminAgentListControllerTest extends AbstractUnitTest {
         when(queryService.query(any(), any(), any(), any(), anyInt(), anyInt()))
                 .thenReturn(new AdminAgentListResponse(
                         List.of(new AdminAgentListResponse.Item(
-                                "agt-1",
-                                "aws-prod-01",
-                                "pod-1",
-                                "ACTIVE",
-                                "0.3.0",
-                                LocalDateTime.now(),
-                                12L,
-                                null)),
+                                "agt-1", "aws-prod-01", "pod-1", "ACTIVE", "0.3.0", LocalDateTime.now(), 12L, null)),
                         1,
                         0,
                         50,
@@ -87,7 +80,6 @@ class AdminAgentListControllerTest extends AbstractUnitTest {
                 .thenReturn(new AdminAgentListResponse(List.of(), 0, 0, 50, 0));
 
         // ACTIVE 만 valid, BOGUS 는 skip — controller 가 400 던지지 않고 그대로 진행
-        mvc.perform(get("/v1/admin/agents").param("status", "ACTIVE,BOGUS"))
-                .andExpect(status().isOk());
+        mvc.perform(get("/v1/admin/agents").param("status", "ACTIVE,BOGUS")).andExpect(status().isOk());
     }
 }

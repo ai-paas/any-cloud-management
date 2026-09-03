@@ -13,8 +13,7 @@ class AdminAgentSpecsTest {
 
     @Test
     void allFiltersNull_yieldsNoOpSpec() {
-        Specification<ClusterAgentEntity> spec =
-                AdminAgentSpecs.combine(null, null, null, null, null);
+        Specification<ClusterAgentEntity> spec = AdminAgentSpecs.combine(null, null, null, null, null);
         assertThat(spec).isNotNull();
     }
 
@@ -34,22 +33,19 @@ class AdminAgentSpecsTest {
 
     @Test
     void versionPrefix_buildsLikeSpec() {
-        Specification<ClusterAgentEntity> spec =
-                AdminAgentSpecs.combine(null, null, "0.3", null, null);
+        Specification<ClusterAgentEntity> spec = AdminAgentSpecs.combine(null, null, "0.3", null, null);
         assertThat(spec).isNotNull();
     }
 
     @Test
     void lastSeenOlderThanSec_buildsTimeBoundary() {
-        Specification<ClusterAgentEntity> spec =
-                AdminAgentSpecs.combine(null, null, null, 3600L, LocalDateTime.now());
+        Specification<ClusterAgentEntity> spec = AdminAgentSpecs.combine(null, null, null, 3600L, LocalDateTime.now());
         assertThat(spec).isNotNull();
     }
 
     @Test
     void emptyAndBlankFilters_skipBuild() {
-        Specification<ClusterAgentEntity> spec =
-                AdminAgentSpecs.combine(List.of(), List.of(), "  ", null, null);
+        Specification<ClusterAgentEntity> spec = AdminAgentSpecs.combine(List.of(), List.of(), "  ", null, null);
         assertThat(spec).isNotNull();
     }
 }

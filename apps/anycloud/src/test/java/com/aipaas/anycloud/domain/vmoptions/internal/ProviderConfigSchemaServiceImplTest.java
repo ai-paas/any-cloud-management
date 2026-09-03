@@ -116,8 +116,7 @@ class ProviderConfigSchemaServiceImplTest extends AbstractUnitTest {
     void allProviders_returnAtLeastCommonKeysCount() {
         // 모든 provider 에 cross-cutting 키 11개 (master/worker spec, master/worker count,
         // k8s version, pod/service cidr, joinToken, 3 boolean flags) 있음을 보장.
-        for (String provider :
-                List.of("AWS", "GCP", "Azure", "Alibaba", "OpenStack", "OCI", "DigitalOcean")) {
+        for (String provider : List.of("AWS", "GCP", "Azure", "Alibaba", "OpenStack", "OCI", "DigitalOcean")) {
             assertThat(service.getSchema(provider)).as(provider).hasSizeGreaterThanOrEqualTo(11);
         }
     }

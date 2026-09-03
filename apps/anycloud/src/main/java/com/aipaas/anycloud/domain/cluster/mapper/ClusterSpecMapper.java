@@ -38,8 +38,7 @@ public final class ClusterSpecMapper {
      * 누락 방어. client 가 명시 true 보냈으면 그대로 유지, instance type 이 GPU 인데 false 보냈으면 true
      * 로 override.
      */
-    private static Boolean deriveHasGpu(
-            String provider, Map<String, String> config, Boolean clientValue) {
+    private static Boolean deriveHasGpu(String provider, Map<String, String> config, Boolean clientValue) {
         if (config == null) return clientValue;
         String master = config.get("anycloud-k8s:masterInstanceType");
         String worker = config.get("anycloud-k8s:workerInstanceType");
