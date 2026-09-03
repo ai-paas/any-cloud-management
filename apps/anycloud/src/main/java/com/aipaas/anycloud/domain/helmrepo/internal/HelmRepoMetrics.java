@@ -1,6 +1,5 @@
 package com.aipaas.anycloud.domain.helmrepo.internal;
 
-import com.aipaas.anycloud.domain.helmrepo.HelmRepoEntity;
 import com.aipaas.anycloud.domain.helmrepo.HelmRepoRepository;
 import com.aipaas.anycloud.domain.helmrepo.model.HelmRepoSource;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -9,7 +8,6 @@ import io.micrometer.core.instrument.MultiGauge.Row;
 import io.micrometer.core.instrument.Tags;
 import jakarta.annotation.PostConstruct;
 import java.util.EnumMap;
-import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,14 +46,15 @@ public class HelmRepoMetrics {
     @Scheduled(fixedDelay = 30_000, initialDelay = 30_000)
     public void refresh() {
         try {
-            List<HelmRepoEntity> all = helmRepoRepository.findAll();
+            // 30초마다 도는 스케줄이라 전체 row 를 읽어 개수만 세면 repo 수에 비례해 비용이 는다.
+            // DB 에서 group by 로 집계한다.
             Map<HelmRepoSource, Long> bySource = new EnumMap<>(HelmRepoSource.class);
             for (HelmRepoSource s : HelmRepoSource.values()) {
                 bySource.put(s, 0L);
             }
-            for (HelmRepoEntity e : all) {
-                HelmRepoSource s = e.getSource() == null ? HelmRepoSource.EXTERNAL : e.getSource();
-                bySource.merge(s, 1L, Long::sum);
+            for (Object[] row : helmRepoRepository.countGroupedBySource()) {
+                HelmRepoSource s = row[0] == null ? HelmRepoSource.EXTERNAL : (HelmRepoSource) row[0];
+                bySource.merge(s, ((Number) row[1]).longValue(), Long::sum);
             }
             java.util.List<Row<?>> rows = new java.util.ArrayList<>();
             for (Map.Entry<HelmRepoSource, Long> en : bySource.entrySet()) {
