@@ -414,8 +414,8 @@ public class GlobalExceptionHandler {
     protected ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException e) {
         log.warn("Entity not found: {}", e.getMessage());
         final ErrorResponse response = ErrorResponse.of(ErrorCode.ENTITY_NOT_FOUND, e.getMessage());
-        // 의미적으로 "리소스 부재" 이므로 404. ClusterNotFoundException / HelmRepositoryNotFoundException 등도 동일.
-        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+        // statusOf 로 통일한다. 하드코딩하면 ErrorCode 의 status 와 어긋나 body 만 다른 값을 갖는다.
+        return new ResponseEntity<>(response, ErrorResponseFormatter.statusOf(ErrorCode.ENTITY_NOT_FOUND));
     }
 
     /**

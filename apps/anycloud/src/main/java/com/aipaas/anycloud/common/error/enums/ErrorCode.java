@@ -21,7 +21,9 @@ public enum ErrorCode {
     INTERNAL_SERVER_ERROR(500, "서버에 문제가 발생했습니다."),
     RUNTIME_EXCEPTION(400, "잘못된 요청입니다."),
     INVALID_INPUT_VALUE(400, "유효하지 않는 입력 값입니다."),
-    ENTITY_NOT_FOUND(400, "데이터를 찾을 수 없습니다."),
+    // 이름 그대로 "리소스 부재" 다. 400 이면 GlobalExceptionHandler 가 404 를 하드코딩하는 경로와
+    // body 의 status 가 어긋나고(HTTP 404 + body 400), CustomException 경로는 400 을 그대로 낸다.
+    ENTITY_NOT_FOUND(404, "데이터를 찾을 수 없습니다."),
     METHOD_NOT_ALLOWED(405, "허용되지 않는 메소드입니다."),
     INVALID_TYPE_VALUE(400, "유효하지 않은 유형 값입니다."),
     NOT_FOUND(404, "찾을 수 없습니다."),
