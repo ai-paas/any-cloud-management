@@ -22,7 +22,7 @@ public class VmClusterVerifyStepServiceImpl implements VmClusterVerifyStepServic
     private final VmClusterWorkflowSupportService workflowSupportService;
     private final io.aipaas.cluster.provisioning.api.ProvisioningService provisioningService;
     private final com.aipaas.anycloud.domain.provisioning.remote.VmClusterRemoteAccessService remoteAccessService;
-    private final com.aipaas.anycloud.domain.provisioning.convergence.ClusterComponentObserver componentObserver;
+    private final com.aipaas.anycloud.domain.provisioning.convergence.ClusterConvergenceService convergenceService;
 
     @Override
     public void execute(String vmClusterId, String clusterName) {
@@ -63,12 +63,17 @@ public class VmClusterVerifyStepServiceImpl implements VmClusterVerifyStepServic
                         "refreshClusterStatus best-effort failed for {} (agent 미설치 가능): {}", clusterName, e.toString());
             }
 
-            // 이 단계에서는 관측만 한다. 상태 전이는 DEGRADED 도입 이후에 붙인다 — 현재 실패율을
-            // 모르는 채 켜면 정상으로 보이던 클러스터가 한꺼번에 바뀐다.
-            componentObserver.observe(vmCluster);
-
-            workflowSupportService.markReady(vmCluster);
-            log.info("VM cluster workflow completed for cluster {}", clusterName);
+            // 수렴은 여기서 판정한다 — READY 를 결정하는 곳이 VERIFY 이고, agent 설치가
+            // BOOTSTRAP 끝에서 일어나 그 단계에서는 probe 가 항상 이르다.
+            if (convergenceService.convergeWithinBudget(vmCluster)) {
+                workflowSupportService.markReady(vmCluster);
+                log.info("VM cluster workflow completed for cluster {}", clusterName);
+            } else {
+                workflowSupportService.markDegraded(vmCluster);
+                log.info(
+                        "VM cluster {} 는 요청한 구성 요소가 아직 준비되지 않아 DEGRADED — 조정 루프가 이어받습니다",
+                        clusterName);
+            }
         } catch (Exception e) {
             workflowSupportService.failWithDiagnostics(vmCluster, clusterName, e);
             throw new VmClusterStepExecutionException("VERIFY step failed for " + clusterName, e);

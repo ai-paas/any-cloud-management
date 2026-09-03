@@ -189,6 +189,16 @@ GPU operator 가 뜨기를 15분 기다리면 그동안 consumer 하나가 통�
 `READY` 와 `DEGRADED` 클러스터를 대상으로 `REQUIRED` 컴포넌트를 probe 합니다. 기본 주기는 5분이며
 `anycloud.vm-cluster.convergence.interval-ms` 로 조정합니다.
 
+### 설정
+
+| 키 | 기본값 | 뜻 |
+|---|---|---|
+| `anycloud.vm-cluster.component.agent.requirement` | `REQUIRED` | agent 미연결을 DEGRADED 사유로 볼지 |
+| `anycloud.vm-cluster.convergence.interval-ms` | `300000` | 조정 루프 주기 |
+| `anycloud.vm-cluster.convergence.initial-delay-ms` | `60000` | 기동 후 첫 조정까지 대기 |
+| `anycloud.vm-cluster.convergence.verify-max-attempts` | `3` | VERIFY 수렴 루프 최대 시도 |
+| `anycloud.vm-cluster.convergence.verify-interval` | `PT1M` | 수렴 루프 시도 간격 |
+
 | probe 결과 | 현재 상태 | 동작 |
 |---|---|---|
 | 전부 `READY` | `DEGRADED` | `READY` 로 전이 |
