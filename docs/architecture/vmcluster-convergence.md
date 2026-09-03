@@ -52,8 +52,7 @@ public interface ClusterComponent {
 
 | 컴포넌트 | 필요 조건 | apply | probe |
 |---|---|---|---|
-| `GPU_DRIVER` | `enableGpuOperator` | SSH `ubuntu-drivers install --gpgpu` | GPU 노드에서 `nvidia-smi -L` 이 장치를 나열 |
-| `GPU_OPERATOR` | `enableGpuOperator` | helm `nvidia/gpu-operator` | 노드 allocatable `nvidia.com/gpu` 합계 > 0 |
+| `GPU_OPERATOR` | `enableGpuOperator` | helm `nvidia/gpu-operator` (`driver.enabled=true`) | 노드 allocatable `nvidia.com/gpu` 합계 > 0 |
 | `INGRESS` | `enableIngress` | 기존 `ingressInstallCommand` | ingress controller deployment 가 available |
 | `AGENT` | agent 기능 활성 | manifest `kubectl apply` | agent gRPC 연결이 ACTIVE |
 
@@ -77,56 +76,35 @@ API 로 그대로 노출되므로 자격증명을 담지 않습니다.
 **kubeadm** 은 제외합니다. 실패하면 클러스터가 존재하지 않는 것이므로 지금처럼 `FAILED` 로 가는 것이
 맞습니다. 수렴 대상은 "클러스터는 살아있는데 요청한 사양에 못 미치는" 경우입니다.
 
+**GPU 드라이버**도 별도 컴포넌트로 두지 않습니다. GPU operator 가 `driver.enabled=true` 로 컨테이너
+드라이버를 직접 관리하기 때문입니다. 호스트에 드라이버를 따로 설치하면 driver 파드의 init 컨테이너가
+이를 감지해 파드를 종료시키며, NVIDIA 는 둘 중 하나만 쓰라고 명시합니다. 또 컨테이너 드라이버 구성에서는
+호스트에 `nvidia-smi` 가 없어 호스트 기준 probe 자체가 성립하지 않습니다.
+
 **addon** (`MONITORING`, `VELERO`, `CERT_MANAGER` 등)도 제외합니다. `AddonInstaller` 와
 `AddonState` 로 이미 별도 추적되고 있어 모델을 이중으로 만들 필요가 없습니다. 다만 조정 루프가
 `FAILED` 상태의 addon 을 재큐잉하는 것까지는 이 설계에 포함합니다.
 
-## 3. 등급과 자동 복구 정책
+## 3. 등급
 
-컴포넌트마다 두 가지 속성을 둡니다.
+컴포넌트마다 `requirement` 를 둡니다 — `REQUIRED`, `BEST_EFFORT`, `NOT_APPLICABLE` 중 하나이며
+`READY` 판정에 반영할지를 정합니다.
 
-| 속성 | 값 | 결정하는 것 |
-|---|---|---|
-| `requirement` | `REQUIRED` / `BEST_EFFORT` / `NOT_APPLICABLE` | `READY` 판정에 반영할지 |
-| `autoRepair` | `true` / `false` | 조정 루프가 스스로 `apply` 를 다시 호출할지 |
-
-### requirement
-
-전부 `READY` 의 전제조건으로 만들면 개발 환경이 깨집니다. `VmClusterAgentInstaller` javadoc 이
-지적하듯 agent 가 ACTIVE 로 전환되려면 백엔드 gRPC 엔드포인트가 CSP VM 에서 도달 가능해야 하는데,
-개발 기본값(`host.docker.internal`)은 그렇지 않습니다.
+전부 `READY` 의 전제조건으로 만들면 개발 환경이 깨집니다. agent 가 ACTIVE 로 전환되려면 백엔드 gRPC
+엔드포인트가 CSP VM 에서 도달 가능해야 하는데, 개발 기본값(`host.docker.internal`)은 그렇지 않습니다.
 
 | 컴포넌트 | 기본 requirement | 근거 |
 |---|---|---|
-| `GPU_DRIVER` | GPU 요청 시 `REQUIRED` | 운영자가 명시적으로 요청한 사양입니다. |
-| `GPU_OPERATOR` | GPU 요청 시 `REQUIRED` | 같습니다. |
+| `GPU_OPERATOR` | GPU 요청 시 `REQUIRED` | 운영자가 명시적으로 요청한 사양입니다. |
 | `INGRESS` | `enableIngress` 시 `REQUIRED` | 같습니다. |
 | `AGENT` | `REQUIRED` (개발 프로파일에서 `BEST_EFFORT`) | 도달성이 환경에 의존합니다. |
 
-agent 등급은 `anycloud.vm-cluster.component.agent.requirement` 로 정합니다. 지금처럼 코드에
-하드코딩된 best-effort 는 운영에서 되돌릴 방법이 없습니다.
+agent 등급은 `anycloud.vm-cluster.component.agent.requirement` 로 정합니다. 코드에 하드코딩된
+best-effort 는 운영에서 되돌릴 방법이 없습니다.
 
-### autoRepair
-
-| 컴포넌트 | autoRepair | 근거 |
-|---|---|---|
-| `GPU_OPERATOR` | `true` | helm upgrade --install 은 멱등이고 클러스터 내부 리소스만 건드립니다. |
-| `INGRESS` | `true` | 같습니다. |
-| `AGENT` | `true` | manifest 재적용은 멱등입니다. |
-| `GPU_DRIVER` | **`false`** | 아래 참조 |
-
-`GPU_DRIVER` 만 자동 복구에서 제외합니다. `ubuntu-drivers install --gpgpu` 는 커널 모듈을 올리고
-경우에 따라 노드 재부팅을 요구합니다. 워크로드가 이미 돌고 있는 노드에서 이를 자동으로 재실행하는 것이
-안전하다고 확신할 수 없습니다.
-
-따라서 `GPU_DRIVER` 는 이렇게 동작합니다.
-
-- **수렴 루프**(클러스터 생성 직후, 워크로드 없음)에서는 apply 합니다.
-- **조정 루프**에서는 probe 만 하고, 미충족이면 `DEGRADED` 를 유지한 채 드러냅니다.
-- 재적용은 운영자가 `POST /v1/vm-clusters/{id}/components/{type}/repair` 로 명시 요청합니다.
-
-`autoRepair` 를 컴포넌트별 속성으로 둔 것은 이 판단이 바뀔 수 있기 때문입니다. CSP 별 드라이버 설치
-거동이 확인되면 설정만 바꾸면 됩니다.
+세 컴포넌트 모두 `apply` 가 멱등한 `kubectl apply` 또는 `helm upgrade --install` 이고 호스트를
+건드리지 않아, 조정 루프가 자동으로 재적용해도 안전합니다. 자동 복구를 끄는 스위치는 두지 않습니다 —
+쓸 컴포넌트가 없습니다.
 
 ## 4. 상태 모델
 
@@ -202,8 +180,8 @@ GPU operator 가 뜨기를 15분 기다리면 그동안 consumer 하나가 통�
 | probe 결과 | 현재 상태 | 동작 |
 |---|---|---|
 | 전부 `READY` | `DEGRADED` | `READY` 로 전이 |
-| 일부 `NOT_READY` | `READY` | `DEGRADED` 로 전이 후 `autoRepair` 대상만 재적용 |
-| 일부 `NOT_READY` | `DEGRADED` | 백오프가 지난 `autoRepair` 대상만 재적용 |
+| 일부 `NOT_READY` | `READY` | `DEGRADED` 로 전이 후 재적용 |
+| 일부 `NOT_READY` | `DEGRADED` | 백오프가 지난 대상만 재적용 |
 | `UNKNOWN` 포함 | 무관 | 기록만 하고 상태 전이 없음 |
 
 `FleetUpgradeOrchestratorImpl.drive()` 와 동일한 형태를 사용합니다. 다중 replica 에서 리더 하나만
@@ -237,7 +215,6 @@ CREATE TABLE vm_cluster_component (
     vm_cluster_id   VARCHAR(64)  NOT NULL,
     component_type  VARCHAR(32)  NOT NULL,
     requirement     VARCHAR(16)  NOT NULL,
-    auto_repair     BOOLEAN      NOT NULL DEFAULT TRUE,
     health          VARCHAR(16)  NOT NULL,
     attempts        INT          NOT NULL DEFAULT 0,
     next_attempt_at DATETIME(6)  NULL,
@@ -270,7 +247,7 @@ desired state 는 이미 `vm_cluster.request_config` 에 JSON 으로 영속화�
   "provisioningStatus": "DEGRADED",
   "components": [
     {
-      "type": "GPU_DRIVER",
+      "type": "INGRESS",
       "requirement": "REQUIRED",
       "health": "READY",
       "lastProbedAt": "2026-09-03T10:15:00Z"
@@ -291,7 +268,7 @@ desired state 는 이미 `vm_cluster.request_config` 에 JSON 으로 영속화�
 
 | 메서드 | 경로 | 용도 |
 |---|---|---|
-| `POST` | `/v1/vm-clusters/{id}/components/{type}/repair` | `autoRepair=false` 컴포넌트의 재적용을 명시 요청합니다. 백오프를 초기화합니다. |
+| `POST` | `/v1/vm-clusters/{id}/components/{type}/repair` | 백오프를 무시하고 즉시 재적용을 요청합니다. |
 
 ## 9. 함께 정리하는 결함
 
@@ -327,7 +304,6 @@ desired state 는 이미 `vm_cluster.request_config` 에 JSON 으로 영속화�
 | 조정 루프 | 컴포넌트 health 를 조작하고 `drive()` 1회 실행 후 상태를 확인합니다. |
 | 수렴 시간 제한 | 항상 `NOT_READY` 인 컴포넌트로 BOOTSTRAP 이 3분 안에 `DEGRADED` 를 반환하는지 확인합니다. |
 | `UNKNOWN` 처리 | probe 가 예외를 던질 때 상태 전이가 일어나지 않는지 확인합니다. |
-| autoRepair=false | 조정 루프가 `GPU_DRIVER` 에 apply 를 호출하지 않는지 확인합니다. |
 
 ## 12. 이 설계에서 다루지 않는 것
 

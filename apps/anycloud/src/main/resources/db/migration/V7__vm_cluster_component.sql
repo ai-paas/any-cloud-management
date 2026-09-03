@@ -5,7 +5,6 @@ CREATE TABLE `vm_cluster_component` (
   `vm_cluster_id`   varchar(36) NOT NULL,
   `component_type`  varchar(32) NOT NULL,
   `requirement`     varchar(16) NOT NULL,
-  `auto_repair`     tinyint(1)  NOT NULL DEFAULT 1,
   `health`          varchar(16) NOT NULL,
   `attempts`        int(11)     NOT NULL DEFAULT 0,
   `next_attempt_at` datetime(6) DEFAULT NULL,

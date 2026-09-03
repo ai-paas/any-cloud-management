@@ -75,4 +75,28 @@ class IngressComponentTest {
         assertThat(component.probe(new VmClusterEntity(), Map.of()).health())
                 .isEqualTo(ComponentHealth.UNKNOWN);
     }
+
+    @Test
+    void apply_appliesManifestWithoutBlockingWait() {
+        org.mockito.ArgumentCaptor<String> captured = org.mockito.ArgumentCaptor.forClass(String.class);
+        when(remoteAccess.runOnMaster(any(), any(), captured.capture(), any(Duration.class)))
+                .thenReturn("");
+
+        component.apply(new VmClusterEntity(), Map.of());
+
+        String script = captured.getValue();
+        assertThat(script).contains("ingress-nginx");
+        assertThat(script).doesNotContain("kubectl wait");
+        assertThat(script).doesNotContain("|| true");
+    }
+
+    @Test
+    void apply_propagatesFailure() {
+        when(remoteAccess.runOnMaster(any(), any(), anyString(), any(Duration.class)))
+                .thenThrow(new IllegalStateException("apply failed"));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> component.apply(new VmClusterEntity(), Map.of()))
+                .hasMessageContaining("apply failed");
+    }
 }

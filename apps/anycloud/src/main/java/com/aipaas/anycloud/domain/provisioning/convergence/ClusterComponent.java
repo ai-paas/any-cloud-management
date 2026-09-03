@@ -23,5 +23,13 @@ public interface ClusterComponent {
      * <p>구현체는 예외를 던지지 않는다 — transport 실패는 {@link ComponentProbe#unknown} 으로
      * 표현한다. 조정 루프가 컴포넌트 하나 때문에 중단되면 안 된다.
      */
+    /**
+     * 멱등 적용. 이미 적용된 상태면 아무 일도 하지 않는다.
+     *
+     * <p>probe 와 달리 실패를 예외로 알린다 — 호출자가 시도 횟수와 사유를 기록해야 한다.
+     * 완료 대기는 하지 않는다. 준비 여부는 {@link #probe} 가 판정한다.
+     */
+    void apply(VmClusterEntity cluster, Map<String, Object> outputs);
+
     ComponentProbe probe(VmClusterEntity cluster, Map<String, Object> outputs);
 }

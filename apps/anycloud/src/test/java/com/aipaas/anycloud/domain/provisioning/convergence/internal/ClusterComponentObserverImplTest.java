@@ -59,7 +59,7 @@ class ClusterComponentObserverImplTest {
     @Test
     void observe_skipsNotApplicableComponents() {
         ClusterComponent skipped =
-                stubComponent(ComponentType.GPU_DRIVER, Requirement.NOT_APPLICABLE, ComponentProbe.ready());
+                stubComponent(ComponentType.GPU_OPERATOR, Requirement.NOT_APPLICABLE, ComponentProbe.ready());
 
         assertThat(observer(List.of(skipped)).observe(cluster())).isEmpty();
         verify(skipped, never()).probe(any(), any());

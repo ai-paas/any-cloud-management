@@ -64,7 +64,6 @@ class VmClusterComponentRepositoryIntegrationTest extends AbstractIntegrationTes
         VmClusterComponentEntity saved =
                 repository.saveAndFlush(newComponent(newClusterId("conv-02"), ComponentType.AGENT));
         assertThat(saved.getAttempts()).isZero();
-        assertThat(saved.getAutoRepair()).isTrue();
         assertThat(saved.getCreatedAt()).isNotNull();
         assertThat(saved.getUpdatedAt()).isNotNull();
     }
@@ -72,7 +71,7 @@ class VmClusterComponentRepositoryIntegrationTest extends AbstractIntegrationTes
     @Test
     void findByVmClusterId_returnsAllComponents() {
         String clusterId = newClusterId("conv-03");
-        repository.save(newComponent(clusterId, ComponentType.GPU_DRIVER));
+        repository.save(newComponent(clusterId, ComponentType.GPU_OPERATOR));
         repository.saveAndFlush(newComponent(clusterId, ComponentType.GPU_OPERATOR));
         assertThat(repository.findByVmClusterId(clusterId)).hasSize(2);
     }
@@ -90,7 +89,7 @@ class VmClusterComponentRepositoryIntegrationTest extends AbstractIntegrationTes
     @Test
     void lastErrorAcceptsLongText() {
         // CSP stderr 는 수 KB 다. varchar 로 잘리면 진단이 불가능해진다.
-        VmClusterComponentEntity entity = newComponent(newClusterId("conv-05"), ComponentType.GPU_DRIVER);
+        VmClusterComponentEntity entity = newComponent(newClusterId("conv-05"), ComponentType.GPU_OPERATOR);
         entity.setLastError("x".repeat(4000));
         entity.setLastProbedAt(ZonedDateTime.now());
         assertThat(repository.saveAndFlush(entity).getLastError()).hasSize(4000);

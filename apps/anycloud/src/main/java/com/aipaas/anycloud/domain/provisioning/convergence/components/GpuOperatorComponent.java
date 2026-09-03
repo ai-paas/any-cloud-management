@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 public class GpuOperatorComponent implements ClusterComponent {
 
     private static final Duration PROBE_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration APPLY_TIMEOUT = Duration.ofMinutes(5);
 
     /** jsonpath 의 키 이름에 점이 있어 escape 가 필요하다. */
     private static final String ALLOCATABLE_GPU_COMMAND =
@@ -54,6 +55,32 @@ public class GpuOperatorComponent implements ClusterComponent {
         return totalAllocatableGpu(raw) > 0
                 ? ComponentProbe.ready()
                 : ComponentProbe.notReady("no node reports allocatable nvidia.com/gpu");
+    }
+
+    /**
+     * helm chart 설치만 하고 준비 대기는 하지 않는다.
+     *
+     * <p>{@code driver.enabled=true} 로 operator 가 컨테이너 드라이버를 관리한다. 호스트에 드라이버를
+     * 따로 깔면 driver 파드의 init 컨테이너가 이를 감지해 파드를 종료시키며, NVIDIA 가 금지하는 조합이다.
+     *
+     * <p>기존 셸 경로에는 {@code kubectl wait --timeout=15m} 이 있었는데, 이 코드는 RabbitMQ
+     * consumer 스레드에서 돌아 consumer 하나를 15분 묶었다. 준비 확인은 probe 가 맡는다.
+     */
+    @Override
+    public void apply(VmClusterEntity cluster, Map<String, Object> outputs) {
+        String script = String.join(
+                " && ",
+                "command -v helm >/dev/null 2>&1 || "
+                        + "curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash",
+                "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl get namespace gpu-operator >/dev/null 2>&1 || "
+                        + "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl create namespace gpu-operator",
+                "helm repo add nvidia https://helm.ngc.nvidia.com/nvidia >/dev/null 2>&1; "
+                        + "helm repo update >/dev/null 2>&1",
+                "sudo KUBECONFIG=/etc/kubernetes/admin.conf helm upgrade --install gpu-operator "
+                        + "nvidia/gpu-operator --namespace gpu-operator "
+                        + "--set driver.enabled=true --set toolkit.enabled=true "
+                        + "--set dcgmExporter.serviceMonitor.enabled=true");
+        remoteAccess.runOnMaster(cluster, outputs, script, APPLY_TIMEOUT);
     }
 
     /** GPU 없는 노드는 키가 없어 빈 토큰으로 나온다. 숫자가 아닌 토큰은 0 으로 센다. */

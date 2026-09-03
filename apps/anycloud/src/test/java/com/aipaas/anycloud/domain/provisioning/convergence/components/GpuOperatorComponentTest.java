@@ -91,4 +91,34 @@ class GpuOperatorComponentTest {
         assertThat(result.health()).isEqualTo(ComponentHealth.UNKNOWN);
         assertThat(result.detail()).contains("ssh connect timeout");
     }
+
+    @Test
+    void apply_installsChartWithoutBlockingWait() {
+        org.mockito.ArgumentCaptor<String> captured = org.mockito.ArgumentCaptor.forClass(String.class);
+        when(remoteAccess.runOnMaster(any(), any(), captured.capture(), any(Duration.class)))
+                .thenReturn("");
+
+        component.apply(new VmClusterEntity(), Map.of());
+
+        String script = captured.getValue();
+        assertThat(script).contains("helm upgrade --install gpu-operator nvidia/gpu-operator");
+        assertThat(script).contains("kubectl create namespace gpu-operator");
+        // operator 가 드라이버를 관리한다. 호스트 설치와 병행하면 driver 파드가 종료된다.
+        assertThat(script).contains("driver.enabled=true");
+        assertThat(script).doesNotContain("ubuntu-drivers");
+        // kubectl wait 는 consumer 스레드를 15분 묶는다. 준비 확인은 probe 가 한다.
+        assertThat(script).doesNotContain("kubectl wait");
+        // 실패를 삼키면 apply 가 성공을 잘못 보고한다.
+        assertThat(script).doesNotContain("|| true");
+    }
+
+    @Test
+    void apply_propagatesFailure() {
+        when(remoteAccess.runOnMaster(any(), any(), anyString(), any(Duration.class)))
+                .thenThrow(new IllegalStateException("helm exit 1"));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> component.apply(new VmClusterEntity(), Map.of()))
+                .hasMessageContaining("helm exit 1");
+    }
 }

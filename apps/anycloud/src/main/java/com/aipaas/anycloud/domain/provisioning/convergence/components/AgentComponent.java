@@ -1,5 +1,6 @@
 package com.aipaas.anycloud.domain.provisioning.convergence.components;
 
+import com.aipaas.anycloud.domain.agent.bootstrap.AgentApiManagedInstaller;
 import com.aipaas.anycloud.domain.cluster.ClusterService;
 import com.aipaas.anycloud.domain.cluster.model.ClusterStatus;
 import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
@@ -8,6 +9,10 @@ import com.aipaas.anycloud.domain.provisioning.convergence.ComponentProbe;
 import com.aipaas.anycloud.domain.provisioning.convergence.ComponentType;
 import com.aipaas.anycloud.domain.provisioning.convergence.Requirement;
 import com.aipaas.anycloud.domain.provisioning.model.VmClusterInternalRequestSnapshot;
+import com.aipaas.anycloud.domain.provisioning.remote.VmClusterRemoteAccessService;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Base64;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -22,14 +27,42 @@ import org.springframework.stereotype.Component;
 @Component
 public class AgentComponent implements ClusterComponent {
 
+    private static final Duration APPLY_TIMEOUT = Duration.ofMinutes(3);
+
     private final ClusterService clusterService;
+    private final AgentApiManagedInstaller agentApiManagedInstaller;
+    private final VmClusterRemoteAccessService remoteAccess;
     private final Requirement configuredRequirement;
 
     public AgentComponent(
             ClusterService clusterService,
+            AgentApiManagedInstaller agentApiManagedInstaller,
+            VmClusterRemoteAccessService remoteAccess,
             @Value("${anycloud.vm-cluster.component.agent.requirement:REQUIRED}") Requirement configuredRequirement) {
         this.clusterService = clusterService;
+        this.agentApiManagedInstaller = agentApiManagedInstaller;
+        this.remoteAccess = remoteAccess;
         this.configuredRequirement = configuredRequirement;
+    }
+
+    /**
+     * {@code VmClusterAgentInstaller} 에서 옮겨온 SSH 설치 경로.
+     *
+     * <p>AGENT transport 는 agent 가 아직 없어 쓸 수 없고, fabric8 경로는 kubeconfig 자격 저장이
+     * 제거된 뒤로 동작하지 않는다. SSH 가 유일하게 보장된 transport 다.
+     */
+    @Override
+    public void apply(VmClusterEntity cluster, Map<String, Object> outputs) {
+        var bootstrap = agentApiManagedInstaller.prepareBootstrap(cluster.getClusterName());
+        String manifest = agentApiManagedInstaller.renderManifest(cluster.getClusterName(), bootstrap.token());
+        // manifest 의 따옴표와 개행이 SSH 인자 quoting 을 깨므로 base64 로 감싼다.
+        String encoded = Base64.getEncoder().encodeToString(manifest.getBytes(StandardCharsets.UTF_8));
+        remoteAccess.runOnMaster(
+                cluster,
+                outputs,
+                "echo '" + encoded + "' | base64 -d | "
+                        + "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl apply -f -",
+                APPLY_TIMEOUT);
     }
 
     @Override

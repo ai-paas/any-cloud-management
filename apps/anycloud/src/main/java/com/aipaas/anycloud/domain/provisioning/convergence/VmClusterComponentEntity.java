@@ -49,10 +49,6 @@ public class VmClusterComponentEntity implements Serializable {
     @Column(name = "requirement", nullable = false, length = 16)
     private Requirement requirement;
 
-    /** false 면 조정 루프가 apply 를 호출하지 않는다. 노드 재부팅을 유발할 수 있는 컴포넌트용. */
-    @Column(name = "auto_repair", nullable = false)
-    private Boolean autoRepair;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "health", nullable = false, length = 16)
     private ComponentHealth health;
@@ -89,9 +85,6 @@ public class VmClusterComponentEntity implements Serializable {
         }
         if (attempts == null) {
             attempts = 0;
-        }
-        if (autoRepair == null) {
-            autoRepair = Boolean.TRUE;
         }
         ZonedDateTime now = ZonedDateTime.now();
         createdAt = now;

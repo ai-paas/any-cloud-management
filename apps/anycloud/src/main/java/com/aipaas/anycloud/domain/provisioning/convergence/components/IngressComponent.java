@@ -18,6 +18,11 @@ import org.springframework.stereotype.Component;
 public class IngressComponent implements ClusterComponent {
 
     private static final Duration PROBE_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration APPLY_TIMEOUT = Duration.ofMinutes(5);
+
+    private static final String MANIFEST_URL =
+            "https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/"
+                    + "deploy/static/provider/cloud/deploy.yaml";
 
     private static final String READY_REPLICAS_COMMAND =
             "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl get deployment "
@@ -47,6 +52,16 @@ public class IngressComponent implements ClusterComponent {
         return isDeploymentAvailable(raw)
                 ? ComponentProbe.ready()
                 : ComponentProbe.notReady("ingress-nginx-controller 에 ready replica 가 없습니다");
+    }
+
+    /** manifest 적용만 하고 대기하지 않는다. 준비 확인은 probe 가 한다. */
+    @Override
+    public void apply(VmClusterEntity cluster, Map<String, Object> outputs) {
+        remoteAccess.runOnMaster(
+                cluster,
+                outputs,
+                "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl apply -f " + MANIFEST_URL,
+                APPLY_TIMEOUT);
     }
 
     /** deployment 가 없으면 jsonpath 결과가 빈 문자열이다. */
