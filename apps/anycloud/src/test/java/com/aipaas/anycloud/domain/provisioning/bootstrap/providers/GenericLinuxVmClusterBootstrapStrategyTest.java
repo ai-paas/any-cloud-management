@@ -19,8 +19,9 @@ class GenericLinuxVmClusterBootstrapStrategyTest {
     @Test
     void addonInstall_noLongerInstallsGpu() {
         // GPU 는 GPU_OPERATOR 컴포넌트가 소유한다. 셸에 남기면 실패가 다시 || true 로 사라진다.
-        String script = strategy.buildAddonInstallCommand(
-                VmClusterInternalRequestSnapshot.builder().enableGpuOperator(true).build());
+        String script = strategy.buildAddonInstallCommand(VmClusterInternalRequestSnapshot.builder()
+                .enableGpuOperator(true)
+                .build());
         assertThat(script).doesNotContain("gpu-operator");
         assertThat(script).doesNotContain("ubuntu-drivers");
     }

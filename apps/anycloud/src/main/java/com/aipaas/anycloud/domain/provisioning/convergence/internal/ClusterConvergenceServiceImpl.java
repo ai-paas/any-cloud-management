@@ -43,11 +43,7 @@ public class ClusterConvergenceServiceImpl implements ClusterConvergenceService 
                 verdict = ClusterConvergenceOrchestratorImpl.evaluate(
                         ClusterConvergenceOrchestratorImpl.collectSignals(observer, addonInspector, vmCluster));
             } catch (Exception e) {
-                log.warn(
-                        "수렴 관측 실패 cluster={} attempt={}: {}",
-                        vmCluster.getClusterName(),
-                        attempt,
-                        e.toString());
+                log.warn("수렴 관측 실패 cluster={} attempt={}: {}", vmCluster.getClusterName(), attempt, e.toString());
                 return false;
             }
             if (verdict == ConvergenceVerdict.SATISFIED) {

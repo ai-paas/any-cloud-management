@@ -70,9 +70,7 @@ public class VmClusterVerifyStepServiceImpl implements VmClusterVerifyStepServic
                 log.info("VM cluster workflow completed for cluster {}", clusterName);
             } else {
                 workflowSupportService.markDegraded(vmCluster);
-                log.info(
-                        "VM cluster {} 는 요청한 구성 요소가 아직 준비되지 않아 DEGRADED — 조정 루프가 이어받습니다",
-                        clusterName);
+                log.info("VM cluster {} 는 요청한 구성 요소가 아직 준비되지 않아 DEGRADED — 조정 루프가 이어받습니다", clusterName);
             }
         } catch (Exception e) {
             workflowSupportService.failWithDiagnostics(vmCluster, clusterName, e);

@@ -108,8 +108,7 @@ class RequestedAddonInspectorImplTest {
     void operatorAddedAddon_isNotIncluded() {
         // 클러스터 생성 요청의 일부가 아니므로 미설치가 DEGRADED 사유가 되면 안 된다.
         request(false, false);
-        when(addonRepository.findByClusterId("cluster-001"))
-                .thenReturn(List.of(addon("velero", AddonState.FAILED)));
+        when(addonRepository.findByClusterId("cluster-001")).thenReturn(List.of(addon("velero", AddonState.FAILED)));
 
         assertThat(inspector.inspect(cluster())).isEmpty();
     }

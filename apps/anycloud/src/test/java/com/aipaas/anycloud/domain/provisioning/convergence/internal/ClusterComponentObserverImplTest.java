@@ -49,7 +49,8 @@ class ClusterComponentObserverImplTest {
     }
 
     private ClusterComponentObserverImpl observer(List<ClusterComponent> components) {
-        when(snapshotService.read(anyString())).thenReturn(VmClusterInternalRequestSnapshot.builder().build());
+        when(snapshotService.read(anyString()))
+                .thenReturn(VmClusterInternalRequestSnapshot.builder().build());
         when(provisioningService.stackOutputs(anyString(), anyBoolean(), any())).thenReturn(Map.of());
         when(repository.findByVmClusterIdAndComponentType(anyString(), any())).thenReturn(Optional.empty());
         when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -67,8 +68,8 @@ class ClusterComponentObserverImplTest {
 
     @Test
     void observe_probesApplicableComponentsAndPersists() {
-        ClusterComponent probed = stubComponent(
-                ComponentType.AGENT, Requirement.REQUIRED, ComponentProbe.notReady("no allocatable gpu"));
+        ClusterComponent probed =
+                stubComponent(ComponentType.AGENT, Requirement.REQUIRED, ComponentProbe.notReady("no allocatable gpu"));
 
         var result = observer(List.of(probed)).observe(cluster());
 
@@ -80,13 +81,12 @@ class ClusterComponentObserverImplTest {
 
     @Test
     void observe_clearsLastErrorWhenReady() {
-        ClusterComponent healthy =
-                stubComponent(ComponentType.AGENT, Requirement.REQUIRED, ComponentProbe.ready());
+        ClusterComponent healthy = stubComponent(ComponentType.AGENT, Requirement.REQUIRED, ComponentProbe.ready());
         VmClusterComponentEntity existing = new VmClusterComponentEntity();
         existing.setLastError("직전 실패 사유");
-        when(repository.findByVmClusterIdAndComponentType(anyString(), any()))
-                .thenReturn(Optional.of(existing));
-        when(snapshotService.read(anyString())).thenReturn(VmClusterInternalRequestSnapshot.builder().build());
+        when(repository.findByVmClusterIdAndComponentType(anyString(), any())).thenReturn(Optional.of(existing));
+        when(snapshotService.read(anyString()))
+                .thenReturn(VmClusterInternalRequestSnapshot.builder().build());
         when(provisioningService.stackOutputs(anyString(), anyBoolean(), any())).thenReturn(Map.of());
         when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 

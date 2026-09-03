@@ -6,9 +6,9 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.aipaas.anycloud.domain.agent.bootstrap.AgentApiManagedInstaller;
 import com.aipaas.anycloud.domain.cluster.ClusterEntity;
 import com.aipaas.anycloud.domain.cluster.ClusterService;
-import com.aipaas.anycloud.domain.agent.bootstrap.AgentApiManagedInstaller;
 import com.aipaas.anycloud.domain.cluster.model.BootstrapInfo;
 import com.aipaas.anycloud.domain.cluster.model.ClusterStatus;
 import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
@@ -50,7 +50,8 @@ class AgentComponentTest {
     @Test
     void requirement_comesFromConfiguration() {
         // agent 도달성은 배포 환경에 의존한다. 코드에 박으면 운영에서 되돌릴 수 없다.
-        VmClusterInternalRequestSnapshot spec = VmClusterInternalRequestSnapshot.builder().build();
+        VmClusterInternalRequestSnapshot spec =
+                VmClusterInternalRequestSnapshot.builder().build();
         assertThat(component(Requirement.BEST_EFFORT).requirementFor(spec)).isEqualTo(Requirement.BEST_EFFORT);
         assertThat(component(Requirement.REQUIRED).requirementFor(spec)).isEqualTo(Requirement.REQUIRED);
     }

@@ -78,7 +78,8 @@ public class AgentComponent implements ClusterComponent {
     @Override
     public ComponentProbe probe(VmClusterEntity cluster, Map<String, Object> outputs) {
         try {
-            ClusterStatus status = clusterService.getClusterEntity(cluster.getClusterName()).getStatus();
+            ClusterStatus status =
+                    clusterService.getClusterEntity(cluster.getClusterName()).getStatus();
             return status == ClusterStatus.ACTIVE
                     ? ComponentProbe.ready()
                     : ComponentProbe.notReady("agent 미연결 (cluster status=" + status + ")");

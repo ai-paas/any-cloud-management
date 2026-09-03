@@ -122,10 +122,6 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
                 + "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.2/manifests/calico.yaml";
     }
 
-
-
-
-
     /**
      * Snapshot 의 joinToken — 없으면 fail-fast. 과거엔 공유 하드코딩 token
      * ({@code abcdef.0123456789abcdef}) 으로 silent fallback 했으나, 모든 cluster 가 같은 token 을

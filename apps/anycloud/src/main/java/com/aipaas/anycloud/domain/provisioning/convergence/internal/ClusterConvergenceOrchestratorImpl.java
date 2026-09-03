@@ -74,8 +74,9 @@ public class ClusterConvergenceOrchestratorImpl implements ClusterConvergenceOrc
     /** 구성 요소 관측과 요청 addon 상태를 한 묶음으로. 어느 쪽 실패든 같은 무게로 본다. */
     static List<ConvergenceSignal> collectSignals(
             ClusterComponentObserver observer, RequestedAddonInspector inspector, VmClusterEntity vmCluster) {
-        List<ConvergenceSignal> signals = new java.util.ArrayList<>(
-                observer.observe(vmCluster).stream().map(ComponentObservation::toSignal).toList());
+        List<ConvergenceSignal> signals = new java.util.ArrayList<>(observer.observe(vmCluster).stream()
+                .map(ComponentObservation::toSignal)
+                .toList());
         signals.addAll(inspector.inspect(vmCluster));
         return signals;
     }

@@ -10,7 +10,6 @@ import com.aipaas.anycloud.domain.provisioning.convergence.ConvergenceSignal;
 import com.aipaas.anycloud.domain.provisioning.convergence.RequestedAddonInspector;
 import com.aipaas.anycloud.domain.provisioning.convergence.RequestedAddons;
 import com.aipaas.anycloud.domain.provisioning.convergence.Requirement;
-import com.aipaas.anycloud.domain.provisioning.model.VmClusterInternalRequestSnapshot;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -44,8 +43,8 @@ public class RequestedAddonInspectorImpl implements RequestedAddonInspector {
         if (clusterId == null || clusterId.isBlank()) {
             return List.of();
         }
-        Set<String> requested =
-                RequestedAddons.catalogEntries(snapshotService.read(vmCluster.getRequestConfig())).keySet();
+        Set<String> requested = RequestedAddons.catalogEntries(snapshotService.read(vmCluster.getRequestConfig()))
+                .keySet();
         if (requested.isEmpty()) {
             return List.of();
         }
@@ -89,5 +88,4 @@ public class RequestedAddonInspectorImpl implements RequestedAddonInspector {
                 ComponentHealth.NOT_READY,
                 addon.getLastError() != null ? addon.getLastError() : "addon state=" + state);
     }
-
 }

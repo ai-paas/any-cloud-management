@@ -15,7 +15,8 @@ class ComponentBackoffTest {
     private final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
 
     private long minutesFromNow(int attempts) {
-        return Duration.between(NOW, ComponentBackoff.nextAttemptAt(attempts, clock).toInstant())
+        return Duration.between(
+                        NOW, ComponentBackoff.nextAttemptAt(attempts, clock).toInstant())
                 .toMinutes();
     }
 

@@ -12,9 +12,9 @@ import com.aipaas.anycloud.domain.provisioning.VmClusterRepository;
 import com.aipaas.anycloud.domain.provisioning.convergence.ClusterComponentObserver;
 import com.aipaas.anycloud.domain.provisioning.convergence.ComponentHealth;
 import com.aipaas.anycloud.domain.provisioning.convergence.ComponentObservation;
+import com.aipaas.anycloud.domain.provisioning.convergence.ComponentType;
 import com.aipaas.anycloud.domain.provisioning.convergence.ConvergenceSignal;
 import com.aipaas.anycloud.domain.provisioning.convergence.RequestedAddonInspector;
-import com.aipaas.anycloud.domain.provisioning.convergence.ComponentType;
 import com.aipaas.anycloud.domain.provisioning.convergence.Requirement;
 import com.aipaas.anycloud.domain.provisioning.model.VmClusterStatus;
 import java.util.List;
@@ -86,8 +86,7 @@ class ClusterConvergenceOrchestratorImplTest {
 
     @Test
     void evaluate_satisfiedWhenNothingApplicable() {
-        assertThat(ClusterConvergenceOrchestratorImpl.evaluate(List.of()))
-                .isEqualTo(ConvergenceVerdict.SATISFIED);
+        assertThat(ClusterConvergenceOrchestratorImpl.evaluate(List.of())).isEqualTo(ConvergenceVerdict.SATISFIED);
     }
 
     @Test

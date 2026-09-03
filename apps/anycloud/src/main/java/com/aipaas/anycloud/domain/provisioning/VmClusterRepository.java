@@ -14,7 +14,6 @@ public interface VmClusterRepository
     List<VmClusterEntity> findByProvisioningStatusIn(
             java.util.Collection<com.aipaas.anycloud.domain.provisioning.model.VmClusterStatus> statuses);
 
-
     Optional<VmClusterEntity> findFirstByClusterNameOrderByCreatedAtDesc(String clusterName);
 
     List<VmClusterEntity> findAllByOrderByCreatedAtDesc();

@@ -36,10 +36,7 @@ public class ClusterComponentObserverImpl implements ClusterComponentObserver {
         try {
             outputs = provisioningService.stackOutputs(vmCluster.getStackName(), true, Map.of());
         } catch (Exception e) {
-            log.warn(
-                    "컴포넌트 관측 생략 cluster={} — stack outputs 조회 실패: {}",
-                    vmCluster.getClusterName(),
-                    e.toString());
+            log.warn("컴포넌트 관측 생략 cluster={} — stack outputs 조회 실패: {}", vmCluster.getClusterName(), e.toString());
             return List.of();
         }
         VmClusterInternalRequestSnapshot spec = snapshotService.read(vmCluster.getRequestConfig());
@@ -52,8 +49,7 @@ public class ClusterComponentObserverImpl implements ClusterComponentObserver {
             }
             ComponentProbe probe = safeProbe(component, vmCluster, outputs);
             persist(vmCluster, component, requirement, probe);
-            observations.add(
-                    new ComponentObservation(component.type(), requirement, probe.health(), probe.detail()));
+            observations.add(new ComponentObservation(component.type(), requirement, probe.health(), probe.detail()));
         }
         return observations;
     }
