@@ -1,5 +1,5 @@
 # Build stage
-FROM eclipse-temurin:21-jdk AS builder
+FROM eclipse-temurin:25-jdk AS builder
 
 # Metadata
 LABEL structBase.authors="https://github.com/taking/java-spring-base-structure"
@@ -46,7 +46,7 @@ RUN --mount=type=cache,target=/root/.gradle \
     ./gradlew bootJar --no-daemon --info
 
 # Runtime stage
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 
 # Install Helm
 COPY infra/helm/helm-v3.19.0-linux-amd64.tar.gz /tmp/
