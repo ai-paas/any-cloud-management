@@ -31,6 +31,14 @@ processResources {
     dependsOn 'copyAgentChartResources'
 }
 
+// spotless 의 target 이 src/** 라서 copyAgentChartResources 의 출력 디렉토리
+// (src/main/resources/agent-chart) 와 겹친다. 두 태스크를 한 번에 실행하면
+// (예: ./gradlew build spotlessCheck) Gradle 이 암묵적 의존성으로 판단해 실패한다.
+// CI 는 step 을 나눠 실행해 걸리지 않지만 로컬 검증에서 막히므로 순서를 명시한다.
+tasks.matching { it.name.startsWith('spotless') }.configureEach {
+    mustRunAfter 'copyAgentChartResources'
+}
+
 // ----------------------------------------------------------------------------
 // bootRun working directory = repo root.
 //

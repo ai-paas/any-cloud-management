@@ -6,7 +6,12 @@ import com.aipaas.anycloud.testsupport.AbstractIntegrationTest;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.TestPropertySource;
 
 /**
  * Flyway migration 전체 적용 회귀 방지.
@@ -14,7 +19,34 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * <p>특히 V33 (backup_history) 의 FK constraint 가 cluster table 의 collation 과 매칭되는지 검증
  * (errno 150 charset/collation 불일치 회귀 방지).
  */
+@TestPropertySource(
+        properties = {
+            // test profile 은 기본적으로 Flyway off + ddl-auto=create-drop 이다 (엔티티에서 스키마 생성).
+            // 이 테스트만은 Flyway 가 실제로 돌아야 검증 대상이 생기므로 반대로 뒤집는다.
+            "spring.flyway.enabled=true",
+            "spring.flyway.clean-disabled=false",
+            "spring.jpa.hibernate.ddl-auto=none"
+        })
+@Import(FlywayMigrationIntegrationTest.CleanMigrateConfig.class)
 class FlywayMigrationIntegrationTest extends AbstractIntegrationTest {
+
+    /**
+     * MariaDB 컨테이너는 같은 JVM 의 모든 통합 테스트가 공유한다. 다른 context 가 먼저 떠서
+     * ddl-auto=create-drop 으로 테이블을 만들어 두면, Flyway 는 schema history 없는 비어 있지
+     * 않은 스키마를 만나 migrate 를 거부한다. 테스트 실행 순서는 보장되지 않으므로 순서에
+     * 기대지 않고 clean 후 migrate 한다.
+     */
+    @TestConfiguration
+    static class CleanMigrateConfig {
+
+        @Bean
+        FlywayMigrationStrategy cleanBeforeMigrate() {
+            return flyway -> {
+                flyway.clean();
+                flyway.migrate();
+            };
+        }
+    }
 
     @Autowired
     private DataSource dataSource;
