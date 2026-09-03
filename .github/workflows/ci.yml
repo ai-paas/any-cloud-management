@@ -124,6 +124,17 @@ jobs:
     # 셀프호스팅 Pulumi state backend (RustFS) + secrets provider (OpenBao) 가
     # docker-compose.dev.yml 정의대로 부팅하고, Pulumi CLI 가 login 까지 성공하는지
     # 회귀 검증. 라이선스(MinIO AGPLv3 회피, Vault BSL 회피) 결정의 핵심 의존성 보호.
+    #
+    # 자격증명은 job 레벨에 한 번만 둔다. compose 는 RUSTFS_ROOT_* 를, 검증 step 은
+    # AWS_* 를 읽는데 두 곳에 따로 적어두면 어긋나도 조용히 SignatureDoesNotMatch 로만
+    # 드러난다 (실제로 그렇게 실패했다).
+    env:
+      RUSTFS_ROOT_USER: anycloud
+      RUSTFS_ROOT_PASSWORD: anycloud-secret
+      RUSTFS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: anycloud
+      AWS_SECRET_ACCESS_KEY: anycloud-secret
+      AWS_REGION: us-east-1
     steps:
       - uses: actions/checkout@v4
 
@@ -140,10 +151,6 @@ jobs:
             rustfs openbao pulumi-backend-bootstrap
 
       - name: Verify rustfs bucket via aws-cli
-        env:
-          AWS_ACCESS_KEY_ID: anycloud
-          AWS_SECRET_ACCESS_KEY: anycloud-secret
-          AWS_REGION: us-east-1
         run: |
           docker run --rm --network host \
             -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_REGION \
@@ -167,16 +174,24 @@ jobs:
 
       - name: pulumi login against RustFS backend
         env:
-          AWS_ACCESS_KEY_ID: anycloud
-          AWS_SECRET_ACCESS_KEY: anycloud-secret
-          AWS_REGION: us-east-1
           PULUMI_BACKEND_URL: s3://pulumi-state?endpoint=http://127.0.0.1:9000&s3ForcePathStyle=true&disableSSL=true
           PULUMI_CONFIG_PASSPHRASE: ci-smoke
         run: |
           pulumi login "${PULUMI_BACKEND_URL}"
           pulumi whoami
-          # 빈 백엔드여도 'pulumi stack ls' 자체는 성공해야 함.
+
+          # stack 명령은 project 컨텍스트를 요구한다. Pulumi Java 로 옮기면서 project 는
+          # Automation API 가 런타임에 만들고 저장소에는 Pulumi.yaml 이 없으므로,
+          # 임시 project 를 만들어 backend 를 실제로 읽고 쓴다. login 만으로는
+          # 자격증명이 맞는지까지는 확인되지 않는다.
+          workdir="$(mktemp -d)"
+          cd "$workdir"
+          printf 'name: ci-smoke\nruntime: nodejs\ndescription: CI backend smoke\n' > Pulumi.yaml
+
           pulumi stack ls --json | jq .
+          pulumi stack init smoke
+          pulumi stack ls --json | jq -e 'map(.name) | index("smoke") != null'
+          pulumi stack rm smoke --yes
 
       - name: Compose logs on failure
         if: failure()
