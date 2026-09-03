@@ -3,6 +3,7 @@ package com.aipaas.anycloud.domain.provisioning;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.aipaas.anycloud.domain.provisioning.model.VmClusterStatus;
+import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowStep;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -151,5 +152,69 @@ class VmClusterStatusTransitionTest {
         assertThat(VmClusterStatus.PROVISIONING.isInProgress()).isTrue();
         assertThat(VmClusterStatus.READY.isInProgress()).isFalse();
         assertThat(VmClusterStatus.READY.isTerminal()).isFalse();
+    }
+
+    @Test
+    void verifying_canDegradeWhenRequiredComponentsMissing() {
+        assertThat(VmClusterStatus.VERIFYING.canTransitionTo(VmClusterStatus.DEGRADED))
+                .isTrue();
+    }
+
+    @Test
+    void degraded_canRecoverToReady() {
+        // 조정 루프가 수렴시키면 운영자 개입 없이 READY 로 돌아온다.
+        assertThat(VmClusterStatus.DEGRADED.canTransitionTo(VmClusterStatus.READY))
+                .isTrue();
+    }
+
+    @Test
+    void ready_canDegradeOnDrift() {
+        assertThat(VmClusterStatus.READY.canTransitionTo(VmClusterStatus.DEGRADED))
+                .isTrue();
+    }
+
+    @Test
+    void degraded_canFailOrDelete() {
+        assertThat(VmClusterStatus.DEGRADED.canTransitionTo(VmClusterStatus.FAILED))
+                .isTrue();
+        assertThat(VmClusterStatus.DEGRADED.canTransitionTo(VmClusterStatus.DELETING))
+                .isTrue();
+    }
+
+    @Test
+    void degraded_cannotJumpBackIntoProvisioning() {
+        // day-2 ops 는 READY 에서만 시작한다. DEGRADED 에서 스케일하면 수렴 상태를 잃는다.
+        assertThat(VmClusterStatus.DEGRADED.canTransitionTo(VmClusterStatus.PROVISIONING))
+                .isFalse();
+        assertThat(VmClusterStatus.DEGRADED.canTransitionTo(VmClusterStatus.SCALING))
+                .isFalse();
+    }
+
+    @Test
+    void degraded_isNeitherTerminalNorBlockedNorInProgress() {
+        // 자동 진행 중이 아니라 수렴 대기다. isInProgress 에 넣으면 중복 워크플로우 가드가 오작동한다.
+        assertThat(VmClusterStatus.DEGRADED.isTerminal()).isFalse();
+        assertThat(VmClusterStatus.DEGRADED.isBlocked()).isFalse();
+        assertThat(VmClusterStatus.DEGRADED.isInProgress()).isFalse();
+    }
+
+    @Test
+    void degraded_hasDetailMessage() {
+        assertThat(VmClusterStatus.DEGRADED.detailMessage()).isNotBlank();
+    }
+
+    @Test
+    void degraded_doesNotBlockVerifyReentry() {
+        // 재시도가 목적인 상태라 VERIFY 재진입을 막으면 안 된다.
+        assertThat(VmClusterWorkflowStep.VERIFY.isStaleForStatus(VmClusterStatus.DEGRADED))
+                .isFalse();
+    }
+
+    @Test
+    void degraded_blocksProvisionAndBootstrapReentry() {
+        assertThat(VmClusterWorkflowStep.PROVISION.isStaleForStatus(VmClusterStatus.DEGRADED))
+                .isTrue();
+        assertThat(VmClusterWorkflowStep.BOOTSTRAP.isStaleForStatus(VmClusterStatus.DEGRADED))
+                .isTrue();
     }
 }
