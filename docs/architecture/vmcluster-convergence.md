@@ -43,7 +43,7 @@ public interface ClusterComponent {
     void apply(VmClusterEntity cluster, Map<String, Object> outputs);
 
     /** 실제로 동작 중인지 (observed state). apply 없이 단독 호출 가능해야 합니다. */
-    ComponentHealth probe(VmClusterEntity cluster, Map<String, Object> outputs);
+    ComponentProbe probe(VmClusterEntity cluster, Map<String, Object> outputs);
 }
 ```
 
@@ -56,6 +56,9 @@ public interface ClusterComponent {
 | `GPU_OPERATOR` | `enableGpuOperator` | helm `nvidia/gpu-operator` | 노드 allocatable `nvidia.com/gpu` 합계 > 0 |
 | `INGRESS` | `enableIngress` | 기존 `ingressInstallCommand` | ingress controller deployment 가 available |
 | `AGENT` | agent 기능 활성 | manifest `kubectl apply` | agent gRPC 연결이 ACTIVE |
+
+`ComponentProbe` 는 `ComponentHealth` 와 사유 문자열을 담습니다. 사유는 `last_error` 로 저장되고
+API 로 그대로 노출되므로 자격증명을 담지 않습니다.
 
 `ComponentHealth` 는 세 값입니다.
 
@@ -167,10 +170,13 @@ stateDiagram-v2
 
 ## 5. 두 개의 루프
 
-### 수렴 루프 (BOOTSTRAP 단계 내부, 시간 제한 있음)
+### 수렴 루프 (VERIFY 단계 내부, 시간 제한 있음)
 
 `REQUIRED` 컴포넌트를 apply 한 뒤 probe 하고, 미충족이면 짧은 백오프로 재시도합니다.
 **3회, 총 3분을 넘기지 않습니다.**
+
+VERIFY 에 두는 이유는 READY 를 결정하는 곳이 VERIFY 이고, agent 설치가 BOOTSTRAP 끝에서
+일어나 같은 단계에서 probe 하면 항상 이르기 때문입니다.
 
 여기서 오래 붙잡지 않는 것이 중요합니다. 이 코드는 RabbitMQ consumer 스레드 위에서 실행되므로
 GPU operator 가 뜨기를 15분 기다리면 그동안 consumer 하나가 통째로 묶입니다. 현재 SSH 스크립트의
@@ -181,7 +187,7 @@ GPU operator 가 뜨기를 15분 기다리면 그동안 consumer 하나가 통�
 ### 조정 루프 (`@Scheduled` + ShedLock)
 
 `READY` 와 `DEGRADED` 클러스터를 대상으로 `REQUIRED` 컴포넌트를 probe 합니다. 기본 주기는 5분이며
-`anycloud.vm-cluster.convergence.interval` 로 조정합니다.
+`anycloud.vm-cluster.convergence.interval-ms` 로 조정합니다.
 
 | probe 결과 | 현재 상태 | 동작 |
 |---|---|---|
