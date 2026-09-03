@@ -28,7 +28,7 @@ script:post-response {
   if (res && res.body && res.body.data) {
     const d = res.body.data;
     if (d.registrationToken) bru.setVar('agent_registration_token', d.registrationToken);
-    if (d.controlPlaneEndpoint) bru.setEnvVar('agent_control_plane_endpoint', d.controlPlaneEndpoint);
+    if (d.controlPlaneEndpoint) bru.setVar('agent_control_plane_endpoint', d.controlPlaneEndpoint);
     if (d.expiresAt) bru.setVar('agent_token_expires_at', d.expiresAt);
   }
 }
