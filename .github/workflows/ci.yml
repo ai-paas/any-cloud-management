@@ -98,6 +98,9 @@ jobs:
         with:
           # 정확한 version pin — major upgrade 시 lint rule / breaking rule 변경 가능성.
           version: 1.45.0
+          # 토큰 없이 받으면 익명 rate limit 에 걸려 "API rate limit exceeded" 로 실패한다.
+          # 실제로 PR CI 에서 발생했다.
+          github_token: ${{ github.token }}
 
       - name: buf lint
         run: buf lint
@@ -145,6 +148,7 @@ jobs:
         uses: bufbuild/buf-setup-action@v1
         with:
           version: 1.45.0
+          github_token: ${{ github.token }}
 
       - name: buf generate (agent Go stubs)
         working-directory: .
