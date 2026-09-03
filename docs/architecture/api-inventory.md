@@ -59,6 +59,7 @@ Pulumi 로 만들어진 CSP VM 인프라. K8s cluster registration 과 lifecycle
 | GET | `/v1/vms/{name}/state-history` | workflow state transition 이력 | `VmController` |
 | GET | `/v1/vms/{name}/nodes` | VM 노드 목록 (role/publicIp/privateIp) | `VmController` |
 | POST | `/v1/vms/{name}/ssh-key?format=json\|pem` | VM SSH private key 발급 | `VmController` |
+| POST | `/v1/vms/{name}/components/{type}/repair` | 구성 요소 즉시 재적용 (백오프 무시) | `VmController` |
 | GET | `/v1/vms/{name}/kubeconfig` | kubeconfig YAML (단기 SA token) | `VmController` |
 
 `vm_cluster.cluster_id` (FK → `cluster.id`, `ON DELETE SET NULL`) 로 1:1 link.
