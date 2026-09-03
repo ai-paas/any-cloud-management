@@ -22,6 +22,7 @@ public class VmClusterVerifyStepServiceImpl implements VmClusterVerifyStepServic
     private final VmClusterWorkflowSupportService workflowSupportService;
     private final io.aipaas.cluster.provisioning.api.ProvisioningService provisioningService;
     private final com.aipaas.anycloud.domain.provisioning.remote.VmClusterRemoteAccessService remoteAccessService;
+    private final com.aipaas.anycloud.domain.provisioning.convergence.ClusterComponentObserver componentObserver;
 
     @Override
     public void execute(String vmClusterId, String clusterName) {
@@ -61,6 +62,10 @@ public class VmClusterVerifyStepServiceImpl implements VmClusterVerifyStepServic
                 log.warn(
                         "refreshClusterStatus best-effort failed for {} (agent 미설치 가능): {}", clusterName, e.toString());
             }
+
+            // 이 단계에서는 관측만 한다. 상태 전이는 DEGRADED 도입 이후에 붙인다 — 현재 실패율을
+            // 모르는 채 켜면 정상으로 보이던 클러스터가 한꺼번에 바뀐다.
+            componentObserver.observe(vmCluster);
 
             workflowSupportService.markReady(vmCluster);
             log.info("VM cluster workflow completed for cluster {}", clusterName);
