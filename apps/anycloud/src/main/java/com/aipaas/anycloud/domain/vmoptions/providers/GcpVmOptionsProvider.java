@@ -318,9 +318,12 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
         if (!StringUtils.hasText(owner)) {
             return DEFAULT_IMAGE_PROJECTS;
         }
+        // owner 는 요청 파라미터다. 검증 없이 두면 project id 자리에 ../ 를 넣어
+        // 의도하지 않은 GCP API 경로로 (access token 을 붙인 채) 요청이 나간다.
         return List.of(owner.split(",")).stream()
                 .map(String::trim)
                 .filter(StringUtils::hasText)
+                .map(project -> requireValidPathSegment("owner", project))
                 .toList();
     }
 

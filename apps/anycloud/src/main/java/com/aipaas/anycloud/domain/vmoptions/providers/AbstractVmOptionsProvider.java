@@ -167,6 +167,79 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
                 getProvider().getCanonicalName() + " VM options discovery is not implemented yet");
     }
 
+    // ---- SSRF 방어 ----------------------------------------------
+
+    /**
+     * CSP region id 허용 문자. 소문자, 숫자, 하이픈만.
+     *
+     * <p>{@code .} {@code /} {@code :} {@code @} 를 막는 것이 핵심이다. region 을 host 에
+     * 끼워 넣는 provider 가 있어서(예: {@code https://ecs.<region>.aliyuncs.com/}) 이 문자들이
+     * 통과하면 host 자체가 바뀐다. {@code x@attacker.com/} 이면 host 가 {@code attacker.com}
+     * 이 되고, 서명과 access key 가 실린 요청이 공격자 서버로 나간다.
+     */
+    private static final java.util.regex.Pattern REGION_ID =
+            java.util.regex.Pattern.compile("^[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?$");
+
+    /**
+     * region id 를 URL 에 넣기 전에 검증한다. blank 는 통과시킨다 — 호출부가 blank 를
+     * "지정 안 함"으로 처리해 기본 endpoint 나 기본 region 으로 분기하기 때문이다.
+     *
+     * @throws CustomException 형식에 맞지 않는 경우
+     */
+    protected String requireValidRegionId(String regionId) {
+        if (!StringUtils.hasText(regionId)) {
+            return regionId;
+        }
+        String normalized = regionId.toLowerCase(Locale.ROOT);
+        if (!REGION_ID.matcher(normalized).matches()) {
+            throw new CustomException(
+                    ErrorCode.INVALID_INPUT_VALUE, "region", regionId, "region id 는 소문자, 숫자, 하이픈만 사용할 수 있습니다");
+        }
+        return normalized;
+    }
+
+    /**
+     * URL path 에 끼워 넣을 식별자(GCP project id 등) 를 검증한다.
+     *
+     * <p>host 는 고정이라 host 탈취는 안 되지만, {@code ../} 를 넣으면 의도한 것과 다른 API
+     * 경로로 요청이 나간다. 그 요청에는 access token 이 붙어 있다.
+     *
+     * @throws CustomException 형식에 맞지 않는 경우
+     */
+    protected String requireValidPathSegment(String name, String value) {
+        if (!StringUtils.hasText(value)) {
+            return value;
+        }
+        if (!REGION_ID.matcher(value.toLowerCase(Locale.ROOT)).matches()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, name, value, name + " 은 소문자, 숫자, 하이픈만 사용할 수 있습니다");
+        }
+        return value;
+    }
+
+    /**
+     * 응답 본문에서 받은 URL(pagination link 등) 이 기대한 host 인지 확인한다.
+     *
+     * <p>이 URL 로 다시 요청할 때 access token 이 함께 붙으므로, host 를 확인하지 않으면
+     * 응답을 조작할 수 있는 상대에게 token 을 넘겨주는 경로가 된다.
+     *
+     * @return host 가 일치하면 {@code url}, 아니면 {@code null} (호출부가 페이징 중단)
+     */
+    protected String sameHostOrNull(String url, String expectedHost) {
+        if (!StringUtils.hasText(url)) {
+            return null;
+        }
+        try {
+            String host = java.net.URI.create(url).getHost();
+            if (expectedHost.equalsIgnoreCase(host)) {
+                return url;
+            }
+            LOG.warn("예상과 다른 host 의 link 를 무시: expected={}, actual={}", expectedHost, host);
+        } catch (IllegalArgumentException e) {
+            LOG.warn("파싱할 수 없는 link 를 무시: {}", e.getMessage());
+        }
+        return null;
+    }
+
     // ---- 공통 필터 / fallback helper -----------------------------
 
     /**

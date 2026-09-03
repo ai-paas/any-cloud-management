@@ -34,6 +34,7 @@ import org.springframework.web.client.RestTemplate;
 @RequiredArgsConstructor
 public class AzureVmOptionsProvider extends AbstractVmOptionsProvider {
 
+    private static final String ARM_HOST = "management.azure.com";
     private static final String ARM_SCOPE = "https://management.azure.com/.default";
     private static final String RESOURCE_SKUS_API_VERSION = "2021-07-01";
     private static final String VM_IMAGES_API_VERSION = "2024-11-01";
@@ -178,7 +179,7 @@ public class AzureVmOptionsProvider extends AbstractVmOptionsProvider {
         String url = "https://management.azure.com/subscriptions/" + subscriptionId()
                 + "/providers/Microsoft.Compute/skus?api-version=" + RESOURCE_SKUS_API_VERSION;
         if (StringUtils.hasText(regionFilter)) {
-            url += "&$filter=" + encode("location eq '" + regionFilter + "'");
+            url += "&$filter=" + encode("location eq '" + requireValidRegionId(regionFilter) + "'");
         }
 
         while (StringUtils.hasText(url)) {
@@ -189,14 +190,17 @@ public class AzureVmOptionsProvider extends AbstractVmOptionsProvider {
             if (body.value() != null) {
                 items.addAll(body.value());
             }
-            url = body.nextLink();
+            // nextLink 는 응답 본문에서 온다. 이 URL 로 다시 요청할 때 exchange() 가
+            // ARM access token 을 Bearer 로 붙이므로, host 를 확인하지 않으면 응답을
+            // 조작할 수 있는 상대에게 token 을 넘기는 경로가 된다.
+            url = sameHostOrNull(body.nextLink(), ARM_HOST);
         }
         return items;
     }
 
     private List<AzureRecords.VmImageVersion> listImageVersions(String region, AzureImageReference ref) {
         String url = "https://management.azure.com/subscriptions/" + subscriptionId()
-                + "/providers/Microsoft.Compute/locations/" + region
+                + "/providers/Microsoft.Compute/locations/" + requireValidRegionId(region)
                 + "/publishers/" + ref.publisher()
                 + "/artifacttypes/vmimage/offers/" + ref.offer()
                 + "/skus/" + ref.sku()

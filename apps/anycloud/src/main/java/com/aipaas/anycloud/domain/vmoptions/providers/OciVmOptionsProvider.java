@@ -314,12 +314,14 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
         }
     }
 
+    // region 이 host 에 들어간다. 검증 없이 넣으면 host 가 통째로 바뀌고,
+    // buildHeaders() 가 만든 요청 서명이 그대로 따라 나간다.
     private String identityBaseUrl(String region) {
-        return "https://identity." + region + ".oraclecloud.com";
+        return "https://identity." + requireValidRegionId(region) + ".oraclecloud.com";
     }
 
     private String computeBaseUrl(String region) {
-        return "https://iaas." + region + ".oraclecloud.com";
+        return "https://iaas." + requireValidRegionId(region) + ".oraclecloud.com";
     }
 
     private String resolveRegion(String region) {
