@@ -76,6 +76,24 @@ class OpenStackVmOptionsProviderTest extends AbstractUnitTest {
     }
 
     @Test
+    void imagesUrl_doesNotDoubleVersionSegment() {
+        // Pulumi 쪽 override 는 /v2/ 가 있어야 동작해 같은 값이 여기로도 들어온다.
+        assertThat(OpenStackVmOptionsProvider.imagesUrl("https://proxy:9292/v2/"))
+                .isEqualTo("https://proxy:9292/v2/images");
+        assertThat(OpenStackVmOptionsProvider.imagesUrl("https://proxy:9292/v2"))
+                .isEqualTo("https://proxy:9292/v2/images");
+    }
+
+    @Test
+    void imagesUrl_addsVersionForCatalogStyleBase() {
+        // 카탈로그가 주는 glance 주소에는 버전이 없다.
+        assertThat(OpenStackVmOptionsProvider.imagesUrl("https://192.168.10.10:9292"))
+                .isEqualTo("https://192.168.10.10:9292/v2/images");
+        assertThat(OpenStackVmOptionsProvider.imagesUrl("https://192.168.10.10:9292/"))
+                .isEqualTo("https://192.168.10.10:9292/v2/images");
+    }
+
+    @Test
     void endpointOverrides_parsedAndLowercased() {
         Map<String, String> overrides = withCreds(
                 Map.of("OS_ENDPOINT_OVERRIDES", "{\"Compute\":\"https://proxy:8774/v2.1/\"}"),

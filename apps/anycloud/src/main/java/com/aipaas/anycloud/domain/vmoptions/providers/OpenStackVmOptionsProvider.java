@@ -109,7 +109,7 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
         OpenStackSession session = authenticate();
         String resolvedRegion = resolveRegion(region, session);
         ResponseEntity<String> response =
-                exchange(session.imageEndpoint(resolvedRegion) + "/v2/images", session.token(), HttpMethod.GET, null);
+                exchange(imagesUrl(session.imageEndpoint(resolvedRegion)), session.token(), HttpMethod.GET, null);
         OpenStackRecords.ImagesResponse body = parseBody(response.getBody(), OpenStackRecords.ImagesResponse.class);
         List<OpenStackRecords.Image> images = body.images() == null ? List.of() : body.images();
         List<VmOptionImage> results = new ArrayList<>();
@@ -199,6 +199,16 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
                         ? List.of()
                         : authBody.token().catalog();
         return new OpenStackSession(token, interfaceName, preferredRegion, catalog, endpointOverrides());
+    }
+
+    /**
+     * Glance 는 카탈로그가 버전 없는 base 를 주지만, Pulumi 쪽 endpointOverrides 는 {@code /v2/}
+     * 까지 있어야 동작한다. 같은 자격증명 값이 양쪽을 만족해야 해 여기서 중복을 흡수한다.
+     */
+    static String imagesUrl(String imageEndpoint) {
+        String base =
+                imageEndpoint.endsWith("/") ? imageEndpoint.substring(0, imageEndpoint.length() - 1) : imageEndpoint;
+        return base.endsWith("/v2") ? base + "/images" : base + "/v2/images";
     }
 
     /** 깨진 override 로 preflight 를 통째로 실패시키지 않는다 — 카탈로그로 물러난다. */
