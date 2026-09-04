@@ -278,8 +278,8 @@ public class VmClusterWorkflowSupportServiceImpl implements VmClusterWorkflowSup
     private static int percentForStep(VmClusterWorkflowStep step) {
         if (step == null) return 0;
         return switch (step) {
-            case PROVISION -> 33;
-            case BOOTSTRAP -> 66;
+            case PROVISION -> 5;
+            case BOOTSTRAP -> 33;
             case VERIFY -> 90;
             case DESTROY -> 50;
         };

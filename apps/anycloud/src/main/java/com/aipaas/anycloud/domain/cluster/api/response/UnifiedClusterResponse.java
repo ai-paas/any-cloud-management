@@ -93,8 +93,8 @@ public record UnifiedClusterResponse(
                                 "BOOTSTRAP_MASTER_INIT",
                                 "BOOTSTRAP_EXTRA_MASTER_JOIN",
                                 "BOOTSTRAP_WORKER_JOIN",
-                                "BOOTSTRAP_NODES_READY",
-                                "BOOTSTRAP_ADDONS"
+                                "BOOTSTRAP_ADDONS",
+                                "BOOTSTRAP_NODES_READY"
                             },
                             example = "BOOTSTRAP_MASTER_INIT")
                     String subStep,
