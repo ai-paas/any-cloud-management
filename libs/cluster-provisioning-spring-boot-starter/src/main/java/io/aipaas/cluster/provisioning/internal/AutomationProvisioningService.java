@@ -14,15 +14,15 @@ import com.pulumi.automation.UpOptions;
 import com.pulumi.automation.UpResult;
 import com.pulumi.automation.UpdateResult;
 import com.pulumi.automation.WorkspaceStack;
-import io.aipaas.cluster.provisioning.api.exception.ProvisioningExecutionException;
-import io.aipaas.cluster.provisioning.api.ProvisioningResult;
-import io.aipaas.cluster.provisioning.api.ProvisioningRequest;
-import io.aipaas.cluster.provisioning.program.yaml.YamlEmitters;
-import java.nio.file.Path;
 import io.aipaas.cluster.provisioning.api.ExecutionConfig;
 import io.aipaas.cluster.provisioning.api.ProvisioningPreview;
+import io.aipaas.cluster.provisioning.api.ProvisioningRequest;
+import io.aipaas.cluster.provisioning.api.ProvisioningResult;
 import io.aipaas.cluster.provisioning.api.ProvisioningService;
+import io.aipaas.cluster.provisioning.api.exception.ProvisioningExecutionException;
 import io.aipaas.cluster.provisioning.program.ProvisionerOrchestrator;
+import io.aipaas.cluster.provisioning.program.yaml.YamlEmitters;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -311,7 +311,6 @@ public class AutomationProvisioningService implements ProvisioningService {
         stack.setAllConfig(allConfig);
     }
 
-
     /**
      * 스택을 연다. YAML emitter 가 있는 provider 는 local workDir 프로그램을, 나머지는 기존 inline
      * 프로그램을 쓴다. 한 번에 하나씩만 위험에 노출한다.
@@ -319,10 +318,7 @@ public class AutomationProvisioningService implements ProvisioningService {
      * <p>{@code workDirHolder} 에 생성된 임시 디렉토리를 담아 caller 가 finally 에서 지운다.
      */
     private WorkspaceStack openStack(
-            String stackName,
-            ProvisioningRequest request,
-            LocalWorkspaceOptions workspaceOpts,
-            Path[] workDirHolder)
+            String stackName, ProvisioningRequest request, LocalWorkspaceOptions workspaceOpts, Path[] workDirHolder)
             throws AutomationException {
         if (YamlEmitters.supports(request.getProvider())) {
             Path workDir = YamlWorkspaceFactory.create(YamlProgramAssembler.assemble(request));

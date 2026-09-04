@@ -40,7 +40,8 @@ class YamlProgramAssemblerTest {
     @Test
     @SuppressWarnings("unchecked")
     void assembleProducesYamlRuntimeProgram() {
-        Map<String, Object> doc = new Yaml().load(YamlProgramAssembler.assemble(request("openstack")).toYaml());
+        Map<String, Object> doc = new Yaml()
+                .load(YamlProgramAssembler.assemble(request("openstack")).toYaml());
 
         assertThat(doc.get("runtime")).isEqualTo("yaml");
         assertThat(doc.get("name")).isEqualTo("anycloud-k8s");
@@ -52,7 +53,8 @@ class YamlProgramAssemblerTest {
     void requestFieldsReachTheSpec() {
         // provider/name/environment/region 은 config map 이 아니라 request 필드로 온다.
         // applyConfig 와 같은 소스를 봐야 스택 config 와 프로그램이 어긋나지 않는다.
-        Map<String, Object> doc = new Yaml().load(YamlProgramAssembler.assemble(request("openstack")).toYaml());
+        Map<String, Object> doc = new Yaml()
+                .load(YamlProgramAssembler.assemble(request("openstack")).toYaml());
         Map<String, Object> outputs = (Map<String, Object>) doc.get("outputs");
 
         assertThat(outputs.get("provider")).isEqualTo("openstack");
@@ -71,7 +73,8 @@ class YamlProgramAssemblerTest {
     @SuppressWarnings("unchecked")
     void emptyProgramNeedsNoResources() {
         // outputs 조회와 destroy 는 리소스 정의가 필요 없다.
-        Map<String, Object> doc = new Yaml().load(YamlProgramAssembler.emptyProgram().toYaml());
+        Map<String, Object> doc =
+                new Yaml().load(YamlProgramAssembler.emptyProgram().toYaml());
 
         assertThat(doc.get("runtime")).isEqualTo("yaml");
         assertThat((Map<String, Object>) doc.get("resources")).isEmpty();

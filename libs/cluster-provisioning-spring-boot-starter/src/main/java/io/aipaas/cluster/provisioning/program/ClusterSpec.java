@@ -1,10 +1,10 @@
 package io.aipaas.cluster.provisioning.program;
 
-import com.pulumi.Context;
 import com.pulumi.Config;
+import com.pulumi.Context;
 import java.util.Collections;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -276,33 +276,128 @@ public record ClusterSpec(
             this.rootDiskSizeGb = src.rootDiskSizeGb;
         }
 
-        public Builder provider(String v) { this.provider = v; return this; }
-        public Builder name(String v) { this.name = v; return this; }
-        public Builder environment(String v) { this.environment = v; return this; }
-        public Builder vpcCidr(String v) { this.vpcCidr = v; return this; }
-        public Builder subnetCidrs(List<String> v) { this.subnetCidrs = v; return this; }
-        public Builder sshUser(String v) { this.sshUser = v; return this; }
-        public Builder masterInstanceType(String v) { this.masterInstanceType = v; return this; }
-        public Builder workerInstanceType(String v) { this.workerInstanceType = v; return this; }
-        public Builder masterCount(int v) { this.masterCount = v; return this; }
-        public Builder workerCount(int v) { this.workerCount = v; return this; }
-        public Builder kubernetesVersion(String v) { this.kubernetesVersion = v; return this; }
-        public Builder podCidr(String v) { this.podCidr = v; return this; }
-        public Builder serviceCidr(String v) { this.serviceCidr = v; return this; }
-        public Builder joinToken(String v) { this.joinToken = v; return this; }
-        public Builder database(DatabaseSpec v) { this.database = v; return this; }
-        public Builder rootDiskSizeGb(int v) { this.rootDiskSizeGb = v; return this; }
-        public Builder openstackImageName(String v) { this.openstackImageName = v; return this; }
-        public Builder openstackFlavorName(String v) { this.openstackFlavorName = v; return this; }
-        public Builder azureResourceGroup(String v) { this.azureResourceGroup = v; return this; }
+        public Builder provider(String v) {
+            this.provider = v;
+            return this;
+        }
+
+        public Builder name(String v) {
+            this.name = v;
+            return this;
+        }
+
+        public Builder environment(String v) {
+            this.environment = v;
+            return this;
+        }
+
+        public Builder vpcCidr(String v) {
+            this.vpcCidr = v;
+            return this;
+        }
+
+        public Builder subnetCidrs(List<String> v) {
+            this.subnetCidrs = v;
+            return this;
+        }
+
+        public Builder sshUser(String v) {
+            this.sshUser = v;
+            return this;
+        }
+
+        public Builder masterInstanceType(String v) {
+            this.masterInstanceType = v;
+            return this;
+        }
+
+        public Builder workerInstanceType(String v) {
+            this.workerInstanceType = v;
+            return this;
+        }
+
+        public Builder masterCount(int v) {
+            this.masterCount = v;
+            return this;
+        }
+
+        public Builder workerCount(int v) {
+            this.workerCount = v;
+            return this;
+        }
+
+        public Builder kubernetesVersion(String v) {
+            this.kubernetesVersion = v;
+            return this;
+        }
+
+        public Builder podCidr(String v) {
+            this.podCidr = v;
+            return this;
+        }
+
+        public Builder serviceCidr(String v) {
+            this.serviceCidr = v;
+            return this;
+        }
+
+        public Builder joinToken(String v) {
+            this.joinToken = v;
+            return this;
+        }
+
+        public Builder database(DatabaseSpec v) {
+            this.database = v;
+            return this;
+        }
+
+        public Builder rootDiskSizeGb(int v) {
+            this.rootDiskSizeGb = v;
+            return this;
+        }
+
+        public Builder openstackImageName(String v) {
+            this.openstackImageName = v;
+            return this;
+        }
+
+        public Builder openstackFlavorName(String v) {
+            this.openstackFlavorName = v;
+            return this;
+        }
+
+        public Builder azureResourceGroup(String v) {
+            this.azureResourceGroup = v;
+            return this;
+        }
 
         public ClusterSpec build() {
             return new ClusterSpec(
-                    provider, name, environment, region, gcpProject, azureResourceGroup, ociCompartmentId,
-                    vpcCidr, subnetCidrs, sshUser, masterInstanceType, workerInstanceType,
-                    masterCount, workerCount, kubernetesVersion, podCidr, serviceCidr, joinToken,
-                    openstackImageName, openstackFlavorName,
-                    openstackExternalNetworkId, openstackFloatingIpPool, database, useSpot, osImage,
+                    provider,
+                    name,
+                    environment,
+                    region,
+                    gcpProject,
+                    azureResourceGroup,
+                    ociCompartmentId,
+                    vpcCidr,
+                    subnetCidrs,
+                    sshUser,
+                    masterInstanceType,
+                    workerInstanceType,
+                    masterCount,
+                    workerCount,
+                    kubernetesVersion,
+                    podCidr,
+                    serviceCidr,
+                    joinToken,
+                    openstackImageName,
+                    openstackFlavorName,
+                    openstackExternalNetworkId,
+                    openstackFloatingIpPool,
+                    database,
+                    useSpot,
+                    osImage,
                     rootDiskSizeGb);
         }
     }

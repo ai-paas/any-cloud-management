@@ -56,10 +56,10 @@ class YamlRefTest {
     @SuppressWarnings("unchecked")
     void invokeWithReturnFieldSelectsSingleValue() {
         // return 을 주면 객체 전체가 아니라 한 필드만 받는다.
-        Map<String, Object> invoke =
-                YamlRef.invoke("openstack:images/getImage:getImage", Map.of("name", "u"), "id");
+        Map<String, Object> invoke = YamlRef.invoke("openstack:images/getImage:getImage", Map.of("name", "u"), "id");
 
-        assertThat(((Map<String, Object>) invoke.get("fn::invoke")).get("return")).isEqualTo("id");
+        assertThat(((Map<String, Object>) invoke.get("fn::invoke")).get("return"))
+                .isEqualTo("id");
     }
 
     @Test

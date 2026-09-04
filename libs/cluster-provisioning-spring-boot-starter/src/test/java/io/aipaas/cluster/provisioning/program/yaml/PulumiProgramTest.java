@@ -18,7 +18,8 @@ class PulumiProgramTest {
     @Test
     void declaresYamlRuntime() {
         // runtime 이 yaml 이어야 CLI 가 Pulumi.yaml 을 프로그램으로 해석한다.
-        Map<String, Object> doc = parse(PulumiProgram.builder("anycloud-k8s").build().toYaml());
+        Map<String, Object> doc =
+                parse(PulumiProgram.builder("anycloud-k8s").build().toYaml());
 
         assertThat(doc.get("name")).isEqualTo("anycloud-k8s");
         assertThat(doc.get("runtime")).isEqualTo("yaml");
@@ -27,7 +28,8 @@ class PulumiProgramTest {
     @Test
     void emptyProgramHasEmptyResources() {
         // destroy 는 리소스 정의가 필요 없다. resources 키 자체가 없으면 CLI 가 거부한다.
-        Map<String, Object> doc = parse(PulumiProgram.builder("anycloud-k8s").build().toYaml());
+        Map<String, Object> doc =
+                parse(PulumiProgram.builder("anycloud-k8s").build().toYaml());
 
         assertThat(doc).containsKey("resources");
         assertThat((Map<?, ?>) doc.get("resources")).isEmpty();
@@ -111,8 +113,8 @@ class PulumiProgramTest {
         String yaml =
                 PulumiProgram.builder("p").resource("sg", "t", nested).build().toYaml();
 
-        Map<String, Object> sg = (Map<String, Object>)
-                ((Map<String, Object>) parse(yaml).get("resources")).get("sg");
+        Map<String, Object> sg =
+                (Map<String, Object>) ((Map<String, Object>) parse(yaml).get("resources")).get("sg");
         List<Map<String, Object>> rules =
                 (List<Map<String, Object>>) ((Map<String, Object>) sg.get("properties")).get("rules");
 

@@ -22,8 +22,8 @@ public final class YamlEmitters {
         ProviderYamlEmitter emitter = EMITTERS.stream()
                 .filter(candidate -> candidate.name().equals(canonical))
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException(
-                        "YAML emitter 가 없는 provider: " + canonical + " — inline 경로를 쓴다"));
+                .orElseThrow(() ->
+                        new IllegalStateException("YAML emitter 가 없는 provider: " + canonical + " — inline 경로를 쓴다"));
         StandardOutputs.apply(builder, spec, emitter.emit(builder, spec));
     }
 }

@@ -50,7 +50,6 @@ tasks.withType(Javadoc).configureEach {
 
 // Spotless: anycloud 와 동일 정책.
 spotless {
-    enforceCheck false
     ratchetFrom 'origin/main'
     java {
         target 'src/**/*.java'

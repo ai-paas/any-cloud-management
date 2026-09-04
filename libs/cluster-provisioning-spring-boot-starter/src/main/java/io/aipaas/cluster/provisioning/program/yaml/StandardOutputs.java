@@ -43,11 +43,7 @@ public final class StandardOutputs {
 
     /** 출력 조립에 필요한 리소스 참조 묶음. */
     public record NodeRefs(
-            String sshKeyResource,
-            String vpcResource,
-            String vpcProperty,
-            NodeRef master,
-            List<NodeRef> workers) {}
+            String sshKeyResource, String vpcResource, String vpcProperty, NodeRef master, List<NodeRef> workers) {}
 
     public static void apply(PulumiProgram.Builder builder, ClusterSpec spec, NodeRefs refs) {
         String masterPublicIp = refs.master().publicIp();

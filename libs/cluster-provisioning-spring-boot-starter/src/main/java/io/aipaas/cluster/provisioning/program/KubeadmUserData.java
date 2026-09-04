@@ -1,7 +1,5 @@
 package io.aipaas.cluster.provisioning.program;
 
-import io.aipaas.cluster.provisioning.program.ClusterSpec;
-
 /**
  * kubeadm 기반 k8s 노드 bootstrap 의 cloud-init 스크립트 생성. Go {@code infra/pulumi/pkg/userdata/kubeadm.go}
  * 등가물. Java text block + format() — 16-bit Go fmt 대체.
@@ -30,7 +28,8 @@ public final class KubeadmUserData {
         return NODE_TEMPLATE.formatted(additionalPackages, k8sVersion, k8sVersion, role);
     }
 
-    private static final String NODE_TEMPLATE = """
+    private static final String NODE_TEMPLATE =
+            """
             #!/bin/bash
             set -euxo pipefail
 

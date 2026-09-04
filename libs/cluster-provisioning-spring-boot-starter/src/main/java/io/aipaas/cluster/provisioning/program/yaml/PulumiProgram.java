@@ -49,8 +49,7 @@ public final class PulumiProgram {
             return resource(name, type, properties, Map.of());
         }
 
-        public Builder resource(
-                String name, String type, Map<String, Object> properties, Map<String, Object> options) {
+        public Builder resource(String name, String type, Map<String, Object> properties, Map<String, Object> options) {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("type", type);
             entry.put("properties", new LinkedHashMap<>(properties));

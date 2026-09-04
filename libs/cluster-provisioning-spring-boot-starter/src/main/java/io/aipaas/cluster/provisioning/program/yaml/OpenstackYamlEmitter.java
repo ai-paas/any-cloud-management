@@ -66,7 +66,8 @@ final class OpenstackYamlEmitter implements ProviderYamlEmitter {
     }
 
     private void emitNetwork(PulumiProgram.Builder b, ClusterSpec spec) {
-        b.resource("net", T_NETWORK, Map.of("name", spec.name() + "-net", "adminStateUp", true, "region", spec.region()));
+        b.resource(
+                "net", T_NETWORK, Map.of("name", spec.name() + "-net", "adminStateUp", true, "region", spec.region()));
         b.resource(
                 "subnet",
                 T_SUBNET,
@@ -97,9 +98,12 @@ final class OpenstackYamlEmitter implements ProviderYamlEmitter {
                 "secgroup",
                 T_SECGROUP,
                 Map.of(
-                        "name", spec.name() + "-sg",
-                        "description", "anycloud kubeadm cluster",
-                        "region", spec.region()));
+                        "name",
+                        spec.name() + "-sg",
+                        "description",
+                        "anycloud kubeadm cluster",
+                        "region",
+                        spec.region()));
         rule(b, spec, "ssh", "tcp", K8sConstants.PORT_SSH, K8sConstants.PORT_SSH, "0.0.0.0/0");
         rule(
                 b,
@@ -136,8 +140,7 @@ final class OpenstackYamlEmitter implements ProviderYamlEmitter {
         return from <= 1 && to >= 65535;
     }
 
-    private StandardOutputs.NodeRef emitNode(
-            PulumiProgram.Builder b, ClusterSpec spec, String node, String userData) {
+    private StandardOutputs.NodeRef emitNode(PulumiProgram.Builder b, ClusterSpec spec, String node, String userData) {
         Map<String, Object> port = new LinkedHashMap<>();
         port.put("name", spec.name() + "-" + node + "-port");
         port.put("networkId", YamlRef.of("net", "id"));
@@ -159,9 +162,7 @@ final class OpenstackYamlEmitter implements ProviderYamlEmitter {
         b.resource(node, T_INSTANCE, instance);
 
         b.resource(
-                "fip-" + node,
-                T_FLOATING_IP,
-                Map.of("pool", spec.openstackFloatingIpPool(), "region", spec.region()));
+                "fip-" + node, T_FLOATING_IP, Map.of("pool", spec.openstackFloatingIpPool(), "region", spec.region()));
         // 스키마의 FloatingIpAssociate 는 portId 만 받는다 — instanceId 라는 속성은 없다.
         b.resource(
                 "fipassoc-" + node,
