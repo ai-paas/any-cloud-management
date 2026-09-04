@@ -88,6 +88,12 @@
 - `VERIFYING`
 - `READY`
 
+GPU 나 ingress 를 요청했다면 `VERIFYING` 다음이 `DEGRADED` 일 수 있습니다. 실패가 아니라 구성 요소
+수렴을 기다리는 상태이며, 조정 루프가 5분마다 재시도해 갖춰지면 `READY` 로 올라갑니다. 사유는
+`GET /v1/vms/{name}` 의 `components` 와 `requestedAddons` 에서 확인합니다.
+
+addon 은 agent 가 연결된 뒤에 설치되므로, agent dial-in 전까지는 `UNKNOWN`(등록 대기)이 정상입니다.
+
 삭제 시:
 
 - `DELETING`

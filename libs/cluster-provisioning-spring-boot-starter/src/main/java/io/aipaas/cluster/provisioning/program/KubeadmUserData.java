@@ -1,7 +1,5 @@
 package io.aipaas.cluster.provisioning.program;
 
-import io.aipaas.cluster.provisioning.program.ClusterSpec;
-
 /**
  * kubeadm 기반 k8s 노드 bootstrap 의 cloud-init 스크립트 생성. Go {@code infra/pulumi/pkg/userdata/kubeadm.go}
  * 등가물. Java text block + format() — 16-bit Go fmt 대체.
@@ -30,7 +28,8 @@ public final class KubeadmUserData {
         return NODE_TEMPLATE.formatted(additionalPackages, k8sVersion, k8sVersion, role);
     }
 
-    private static final String NODE_TEMPLATE = """
+    private static final String NODE_TEMPLATE =
+            """
             #!/bin/bash
             set -euxo pipefail
 
@@ -72,6 +71,15 @@ public final class KubeadmUserData {
             sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
             systemctl restart containerd
             systemctl enable containerd
+
+            # NVIDIA GPU operator 의 driver 컨테이너는 nouveau 와 공존할 수 없다. 부팅 시점에
+            # 처리해야 재부팅 비용이 없다. GPU 없는 노드에서는 로드되지 않아 무해하다.
+            cat <<'EOF' >/etc/modprobe.d/blacklist-nouveau.conf
+            blacklist nouveau
+            options nouveau modeset=0
+            EOF
+            update-initramfs -u
+            if lsmod | grep -q '^nouveau '; then modprobe -r nouveau; fi
 
             mkdir -p /opt/anycloud
             echo "%s-prepared" >/opt/anycloud/bootstrap-role

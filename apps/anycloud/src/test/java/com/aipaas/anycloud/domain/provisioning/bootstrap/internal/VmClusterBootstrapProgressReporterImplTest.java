@@ -25,7 +25,10 @@ import org.mockito.Mockito;
  * UX #3 — bootstrap sub-step progress reporting 회귀 보호.
  *
  * <p>BOOTSTRAP step 안에서 6개 sub-step 시작 시점마다 percent 35→64 범위로 갱신.
- * 사용자 "stuck at 66%" 인식 완화.
+ * 사용자 "stuck at 33%" 인식 완화.
+ *
+ * <p>호출 순서 기준 검증은 VmClusterBootstrapProgressOrderTest 가 맡는다 — 여기서는
+ * 선언 순서만 보므로 호출 순서가 어긋난 결함을 잡지 못한다.
  */
 class VmClusterBootstrapProgressReporterImplTest extends AbstractUnitTest {
 
@@ -84,13 +87,12 @@ class VmClusterBootstrapProgressReporterImplTest extends AbstractUnitTest {
 
     @Test
     void subStepPercents_areMonotonicAndWithinBootstrapRange() {
-        // PROVISION=33, BOOTSTRAP=66 (post), VERIFY=90 사이.
-        // Bootstrap sub-step percent 는 33 초과, 66 이하여야 함 (단조 증가).
+        // PROVISION=5, BOOTSTRAP=33, VERIFY=90. sub-step 은 33 초과 90 미만.
         int last = 33;
         for (BootstrapSubStep step : BootstrapSubStep.values()) {
             int p = step.percent();
-            assert p > 33 : step + " percent must be > 33 (PROVISION)";
-            assert p < 66 : step + " percent must be < 66 (BOOTSTRAP completion)";
+            assert p > 33 : step + " percent must be > 33 (BOOTSTRAP entry)";
+            assert p < 90 : step + " percent must be < 90 (VERIFY)";
             assert p > last : step + " percent must increase (was " + last + ", got " + p + ")";
             last = p;
         }

@@ -12,6 +12,7 @@ VmCluster lifecycle 의 명시적 state graph + transition validation 입니다.
 | `BOOTSTRAPPING` | Bootstrap worker 가 kubeadm 구성을 진행 중입니다. | in-progress |
 | `VERIFYING` | 클러스터 연결 + 등록 검증 중입니다. | in-progress |
 | `READY` | 사용 가능 상태입니다. | steady |
+| `DEGRADED` | Kubernetes API 는 정상이나 REQUIRED 구성 요소 일부가 미충족입니다. 조정 루프가 계속 시도합니다. | steady |
 | `FAILED` | 자동 진행 중 오류가 발생했습니다 — operator 재시도 / 진단이 가능합니다. | terminal-recoverable |
 | `BLOCKED` | 재시도 임계 초과 상태입니다 — operator 명시 개입이 필요합니다. | manual-only |
 | `DELETING` | Pulumi destroy 진행 중입니다. | in-progress |
@@ -26,6 +27,9 @@ stateDiagram-v2
     [*] --> REQUESTED: create
     REQUESTED --> PROVISIONING: workflow start
     PROVISIONING --> BOOTSTRAPPING: provision ok
+    VERIFYING --> DEGRADED: REQUIRED 구성 요소 미충족
+    DEGRADED --> READY: 조정 루프 수렴
+    READY --> DEGRADED: 드리프트 감지
     BOOTSTRAPPING --> VERIFYING: bootstrap ok
     VERIFYING --> READY: verify ok
 
@@ -121,15 +125,15 @@ vmCluster.transitionTo(VmClusterStatus.READY, "workflow.ready");
 
 ## 7. 회귀 보호
 
-- `VmClusterStatusTransitionTest` — graph 의 valid / invalid case 10개 회귀 보호입니다.
+- `VmClusterStatusTransitionTest` — graph 의 valid / invalid case 10개 회귀 보호
 - `VmClusterWorkflowStep.isStaleForStatus` — workflow message guard 와 graph 일관성을 보장합니다 (별도 enum).
 
 ## 8. 변경 절차
 
 새 transition 추가 (또는 기존 제거) 시 다음을 수행합니다.
-1. `VmClusterStatus.ALLOWED_TRANSITIONS` static block 수정입니다.
-2. `VmClusterStatusTransitionTest` 에 test case 추가입니다.
-3. 본 문서의 matrix + diagram 업데이트입니다.
+1. `VmClusterStatus.ALLOWED_TRANSITIONS` static block 수정
+2. `VmClusterStatusTransitionTest` 에 test case 추가
+3. 본 문서의 matrix + diagram 업데이트
 
 ## 9. Limitations
 

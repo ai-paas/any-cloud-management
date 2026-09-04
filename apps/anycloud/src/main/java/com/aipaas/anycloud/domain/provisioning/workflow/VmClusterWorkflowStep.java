@@ -28,10 +28,12 @@ public enum VmClusterWorkflowStep {
             case PROVISION -> status == VmClusterStatus.BOOTSTRAPPING
                     || status == VmClusterStatus.VERIFYING
                     || status == VmClusterStatus.READY
+                    || status == VmClusterStatus.DEGRADED
                     || status == VmClusterStatus.DELETING
                     || status == VmClusterStatus.DELETED;
             case BOOTSTRAP -> status == VmClusterStatus.VERIFYING
                     || status == VmClusterStatus.READY
+                    || status == VmClusterStatus.DEGRADED
                     || status == VmClusterStatus.DELETING
                     || status == VmClusterStatus.DELETED;
             case VERIFY -> status == VmClusterStatus.READY

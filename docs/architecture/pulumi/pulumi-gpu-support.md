@@ -18,7 +18,7 @@ GPU 워크로드 환경을 구성합니다. 운영자는 옵션 하나만 켜면
 ```yaml
 config:
   workerInstanceType: g5.xlarge        # provider 별 default (운영자 명시 시 보존)
-  enableGpuOperator: "true"            # NVIDIA GPU operator chart 자동 설치
+  enableGpuOperator: "true"            # nvidia-gpu-operator addon 자동 등록
   # GCP 전용
   workerAcceleratorType: nvidia-tesla-t4
   workerAcceleratorCount: "1"
@@ -38,19 +38,27 @@ config:
 | `alibaba` | `ecs.gn6i-c4g1.xlarge` | T4 x1 |
 | `digitalocean` / `openstack` / `proxmox` | (운영자 명시 필요) | — |
 
-## Pulumi 측 구현 책임
+## 계층별 책임
 
-`infra/pulumi/pkg/model.ClusterSpec.EnableGpuOperator` 가 true 이면 Pulumi 가 다음을 처리합니다.
+`enableGpuOperator` 는 Pulumi 가 읽지 않습니다. Pulumi 의 범위는 VM 과 네트워크까지이고, GPU 는
+Kubernetes 계층 관심사입니다.
 
-1. 워커 노드 프로비저닝입니다 (`WorkerInstanceType` 사용).
-2. `kubeadm` cluster bootstrap 완료 후 `nvidia/gpu-operator` Helm chart 설치입니다.
-   - NVIDIA driver (DaemonSet) 입니다.
-   - NVIDIA Container Toolkit (containerd runtime config) 입니다.
-   - NVIDIA device plugin (`nvidia.com/gpu` resource 노출) 입니다.
-3. (옵션) node label `nvidia.com/gpu.present=true` 자동 추가입니다.
+| 계층 | 담당 | 하는 일 |
+|---|---|---|
+| Pulumi | provisioner | GPU instance type 으로 워커 노드 생성 |
+| cloud-init | `KubeadmUserData` | nouveau 블랙리스트 — driver 컨테이너가 nouveau 와 공존할 수 없습니다 |
+| addon | `nvidia-gpu-operator` | driver DaemonSet, Container Toolkit, device plugin, GPU Feature Discovery |
+| addon | `dcgm-exporter` | GPU 메트릭 노출 |
 
-GPU operator 가 설치되면 cluster-agent 의 `CountGpuNodes` 가 노드를 감지하여 → backend
-`has_gpu_nodes=true` 가 backfill 됩니다 → 다음 monitoring auto-install 시 `dcgm-exporter` 도 자동 설치됩니다.
+GPU operator 는 `driver.enabled=true` 로 **컨테이너 드라이버를 직접 관리합니다.** 호스트에 드라이버를
+따로 설치하면 driver 파드의 init 컨테이너가 이를 감지해 파드를 종료시키며, NVIDIA 는 둘 중 하나만
+쓰라고 명시합니다.
+
+addon 설치는 agent gRPC 를 타므로 **agent 가 연결된 뒤에** 일어납니다. 요청한 addon 이 실패하면
+클러스터가 `DEGRADED` 가 되고 조정 루프가 재시도합니다. 자세한 것은
+[vmcluster-convergence.md](../vmcluster-convergence.md) 를 참고하세요.
+
+`dcgmExporter` 는 operator 쪽에서 꺼 둡니다 — 별도 `dcgm-exporter` addon 과 중복되기 때문입니다.
 
 ## 사용자 시나리오 (운영자 한 번의 호출)
 
@@ -72,19 +80,19 @@ curl -X POST https://anycloud/v1/clusters -H 'Content-Type: application/json' -d
 
 내부 흐름은 다음과 같습니다.
 1. `GpuFlavorMapper.applyGpuDefaults` → `workerInstanceType=g5.xlarge` + `enableGpuOperator=true` 자동 주입입니다.
-2. Pulumi `ml-prod-01` stack up 입니다.
-   - 4 x `g5.xlarge` 워커 노드 프로비저닝입니다.
-   - kubeadm cluster 구성입니다.
-   - `nvidia/gpu-operator` 자동 설치 → driver + runtime 준비입니다.
-   - kubeconfig 반환입니다.
-3. Agent 자동 설치 → ACTIVE 전환입니다.
+2. Pulumi `ml-prod-01` stack up
+   - 4 x `g5.xlarge` 워커 노드 프로비저닝
+   - kubeadm cluster 구성
+   - `nvidia/gpu-operator` 자동 설치 → driver + runtime 준비
+   - kubeconfig 반환
+3. Agent 자동 설치 → ACTIVE 전환
 4. Agent 가 5분 내 GPU 노드를 감지하여 → heartbeat 로 `gpu_node_count=4` 를 보고합니다.
 5. Backend 가 `cluster.has_gpu_nodes=true` 를 갱신합니다.
 6. `MonitoringAutoInstaller` 가 자동 동작합니다.
-   - `kube-prometheus-stack` 설치입니다.
+   - `kube-prometheus-stack` 설치
    - `dcgm-exporter` 설치입니다 (GPU 메트릭 노출).
    - Grafana `AIPaaS Cluster Overview` + `AIPaaS GPU Overview` dashboard import 입니다.
-7. 운영자가 frontend 에서 Grafana 접속 → GPU 사용률이 즉시 보입니다.
+7. 운영자가 frontend 에서 Grafana 접속 → GPU 사용률이 즉시 보
 
 운영자 추가 개입은 **0회** 입니다.
 
@@ -118,7 +126,7 @@ curl -X POST https://anycloud/v1/clusters -H 'Content-Type: application/json' -d
 }
 ```
 
-Pulumi 가 instance 만 띄웁니다. 운영자가 별도로 driver 를 설치합니다 (cloud-init / Ansible / 기타).
+instance 만 생성되고 addon 은 등록되지 않습니다. 운영자가 driver 를 직접 준비해야 합니다.
 
 ### GPU 노드 개수 multi
 
@@ -138,7 +146,7 @@ if spec.EnableGpuOperator {
 }
 ```
 
-`infra/pulumi/pkg/providers/<provider>/provision.go` 의 worker bootstrap 단계에
+provider 별 `*Provisioner` 의 worker bootstrap 단계에
 `gpu-operator` 설치 step 추가가 필요합니다 (해당 작업은 Pulumi 영역이며 — 본 문서는 backend 계약만 명시합니다).
 
 ## 트러블슈팅
@@ -147,5 +155,5 @@ if spec.EnableGpuOperator {
 |---|---|---|
 | `dcgm-exporter` Pod 가 GPU 노드 없는 cluster 에 안 뜸 | nodeSelector 미일치 | node label `nvidia.com/gpu.present=true` 확인 (gpu-operator 가 부여) |
 | `has_gpu_nodes=false` 인데 GPU 노드 있음 | agent 의 5분 캐시 미갱신 | agent pod 재시작 또는 `PATCH /v1/clusters/{c}/capabilities` 수동 |
-| Pulumi `workerInstanceType=g5.xlarge` 인데 GPU 사용 불가 | `enableGpuOperator=false` 또는 미설치 | config 확인 후 stack `pulumi up` 재실행 |
+| `workerInstanceType=g5.xlarge` 인데 GPU 사용 불가 | `enableGpuOperator=false` 이거나 addon 설치 실패 | `GET /v1/vms/{name}` 의 `requestedAddons` 에서 사유 확인 |
 | Grafana GPU dashboard 메트릭 비어있음 | `dcgm-exporter` 미설치 또는 service monitor 누락 | `kubectl -n monitoring get pods` 확인 |

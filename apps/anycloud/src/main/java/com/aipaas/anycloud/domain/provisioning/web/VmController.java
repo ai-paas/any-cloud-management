@@ -76,6 +76,8 @@ public class VmController {
     private final VmClusterSshAccessService vmClusterSshAccessService;
     private final KubeconfigExportService kubeconfigExportService;
     private final KubeconfigIdentityResolver kubeconfigIdentityResolver;
+    private final com.aipaas.anycloud.domain.provisioning.convergence.internal.ClusterComponentRepairFacade
+            componentRepairFacade;
 
     // =============== Collection ===============
 
@@ -198,6 +200,25 @@ public class VmController {
     }
 
     // =============== Sub-resources ===============
+
+    @PostMapping("/{vmName}/components/{componentType}/repair")
+    @Operation(
+            summary = "구성 요소 재적용",
+            description = "백오프를 무시하고 즉시 재적용합니다. 조정 루프가 다음 시도까지 기다리는 동안 " + "원인을 고친 뒤 바로 확인할 때 사용합니다.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "재적용 실행"),
+        @ApiResponse(responseCode = "400", description = "알 수 없는 구성 요소"),
+        @ApiResponse(responseCode = "404", description = "VM not found")
+    })
+    public ResponseEntity<ApiSuccessResponse<Void>> repairComponent(
+            @PathVariable @NotBlank @Pattern(regexp = VM_NAME_PATTERN) @Size(max = VM_NAME_MAX) String vmName,
+            @PathVariable @NotBlank String componentType) {
+        componentRepairFacade.repairByClusterName(
+                vmName,
+                com.aipaas.anycloud.domain.provisioning.convergence.ComponentType.valueOf(
+                        componentType.toUpperCase(java.util.Locale.ROOT)));
+        return ResponseEntity.ok(ApiSuccessResponse.of(HttpStatus.OK.value(), "component repair triggered", null));
+    }
 
     @PostMapping("/{vmName}/operations")
     @Operation(

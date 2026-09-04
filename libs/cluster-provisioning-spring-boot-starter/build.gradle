@@ -29,7 +29,6 @@ bootJar { enabled = false }
 jar { enabled = true }
 
 spotless {
-    enforceCheck false
     ratchetFrom 'origin/main'
     java {
         target 'src/**/*.java'
@@ -58,6 +57,10 @@ dependencies {
     api "com.pulumi:digitalocean:${rootProject.ext.pulumiDigitaloceanVersion}"
     api "com.pulumi:openstack:${rootProject.ext.pulumiOpenstackVersion}"
     api "com.pulumi:tls:${rootProject.ext.pulumiTlsVersion}"
+
+    // YAML 프로그램 직렬화. Spring Boot 를 통해 transitive 로도 오지만, 외부 소비자가
+    // Boot 버전을 바꿀 때 조용히 깨지지 않도록 명시한다.
+    api 'org.yaml:snakeyaml:2.4'
 
     // Reactor for ProvisionEventBus (multicast Sinks.Many).
     api "io.projectreactor:reactor-core:${rootProject.ext.reactorVersion}"

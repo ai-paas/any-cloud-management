@@ -106,72 +106,20 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
         return "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl wait --for=condition=Ready node --all --timeout=10m";
     }
 
+    /**
+     * CNI 만 남긴다. GPU 와 ingress 는 컴포넌트가 소유한다 — 셸에서 설치하면 실패가 {@code || true}
+     * 로 사라지고, 재시도할 주체도 없다.
+     */
     @Override
     public String buildAddonInstallCommand(VmClusterInternalRequestSnapshot snapshot) {
         StringBuilder commands = new StringBuilder();
         append(commands, cniInstallCommand());
-
-        if (Boolean.TRUE.equals(snapshot.getEnableIngress())) {
-            append(commands, ingressInstallCommand(snapshot));
-            append(
-                    commands,
-                    "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl wait --namespace ingress-nginx "
-                            + "--for=condition=available deployment/ingress-nginx-controller --timeout=10m || true");
-        }
-
-        if (Boolean.TRUE.equals(snapshot.getEnableGpuOperator())) {
-            append(
-                    commands,
-                    "command -v helm >/dev/null 2>&1 || curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash");
-            append(
-                    commands,
-                    "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl get namespace gpu-operator >/dev/null 2>&1 || "
-                            + "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl create namespace gpu-operator");
-            append(commands, gpuPreparationCommand(snapshot));
-            append(commands, "helm repo add nvidia https://helm.ngc.nvidia.com/nvidia >/dev/null 2>&1 || true");
-            append(commands, "helm repo update >/dev/null 2>&1");
-            append(
-                    commands,
-                    "helm upgrade --install gpu-operator nvidia/gpu-operator --namespace gpu-operator "
-                            + "--set driver.enabled=true --set toolkit.enabled=true --set dcgmExporter.serviceMonitor.enabled=true");
-            append(
-                    commands,
-                    "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl wait --namespace gpu-operator "
-                            + "--for=condition=available deployment/gpu-operator --timeout=15m || true");
-        }
-
         return commands.toString();
     }
 
     protected String cniInstallCommand() {
         return "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl get daemonset calico-node -n kube-system >/dev/null 2>&1 || "
                 + "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.2/manifests/calico.yaml";
-    }
-
-    protected String ingressInstallCommand(VmClusterInternalRequestSnapshot snapshot) {
-        return "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl get deployment ingress-nginx-controller -n ingress-nginx >/dev/null 2>&1 || "
-                + "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl apply -f "
-                + shellWord(ingressManifestUrl(snapshot));
-    }
-
-    protected String ingressManifestUrl(VmClusterInternalRequestSnapshot snapshot) {
-        return "https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/deploy/static/provider/cloud/deploy.yaml";
-    }
-
-    protected String gpuPreparationCommand(VmClusterInternalRequestSnapshot snapshot) {
-        if (isUbuntuLike(snapshot)) {
-            return "sudo apt-get update && sudo apt-get install -y ubuntu-drivers-common && sudo ubuntu-drivers install --gpgpu || true";
-        }
-        return "echo 'Skipping automatic GPU driver install for non-Ubuntu image' >/tmp/anycloud-gpu-driver-skip.log";
-    }
-
-    protected boolean isUbuntuLike(VmClusterInternalRequestSnapshot snapshot) {
-        String osImage = snapshot.getOsImage();
-        if (osImage == null) {
-            return false;
-        }
-        String normalized = osImage.toLowerCase();
-        return normalized.contains("ubuntu") || normalized.contains("jammy") || normalized.contains("noble");
     }
 
     /**

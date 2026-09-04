@@ -3,7 +3,7 @@
 CSP 자격증명 (AWS / GCP / Azure / Alibaba / OCI / DigitalOcean / OpenStack / Proxmox) 호출
 실패의 분류와 응답 정책. 정책 위반은 (1) reconnaissance 정보 노출, (2) 무의미한 retry로 인한
 RabbitMQ DLQ 미도달 / 로그 폭주, (3) 운영자가 transient 와 permanent 를 구분 못 함 등 직접
-보안·신뢰성 사고로 이어진다.
+보안, 신뢰성 사고로 이어진다.
 
 ## 1. 분류 매트릭스
 

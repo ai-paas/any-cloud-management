@@ -1,52 +1,47 @@
 # Documentation Index
 
-`any-cloud-management` 의 모든 문서를 카테고리로 정리합니다. 운영자·개발자·신규 합류자가 필요한
+`any-cloud-management` 의 모든 문서를 카테고리로 정리합니다. 운영자, 개발자, 처음 온 사람이 필요한
 영역을 빠르게 찾을 수 있게 합니다.
 
 > **현재 상태 reference** = 본 docs/ 아래 카테고리 폴더 <br>
 > **변경 이력** = `git log` (또는 PR 본문)
 
-## v0.3.0 구조 변경 — 아직 반영되지 않은 문서
-
-v0.3.0 에서 아래 두 가지가 바뀌었고, 일부 문서가 이전 구조를 전제로 남아 있다.
+## v0.3.0 구조 변경
 
 | 변경 | 이전 | 현재 |
 |---|---|---|
 | Pulumi 구현 | `infra/pulumi/` (Go program, 별도 binary) | `libs/cluster-provisioning-spring-boot-starter` (Pulumi Java SDK, provider 별 `*Provisioner`) |
 | Layer 2 starter | `cluster-agent-observability-*`, `cluster-agent-backup-*` 별도 모듈 | `cluster-agent-features-spring-boot-starter` 로 통합 (`rbac` / `backup` / `observability` 서브패키지) |
 
-`infra/pulumi` 경로나 위 두 starter 를 모듈로 언급하는 문서는 **v0.3.0 이전 내용**이다.
-실제 구조는 [`architecture/overview.md`](./architecture/overview.md) 의 component 표와
-저장소의 `settings.gradle` 이 기준이다.
+문서는 모두 현재 구조를 기준으로 갱신했습니다. 이전 경로나 모듈명이 보이면
+"과거에 이랬다" 는 이력 서술입니다.
 
-해당 문서: `architecture/pulumi/*`, `architecture/starters/*`, `architecture/cluster-agent.md`,
-`architecture/feature-flows.md`, `operations/pulumi-e2e-testing.md`, `operations/test-coverage.md`
-
-## 신규 합류자 — 첫 30분 코스
+## 처음 오셨다면 — 30분 코스
 
 본 프로젝트는 **multi-CSP K8s 프로비저닝 + 운영 백엔드** 입니다. cluster-agent 가 K8s cluster
 안에서 운영을 수행하고, anycloud backend 가 reverse-tunnel gRPC 로 fleet 을 관리합니다.
 
 1. [`operations/quickstart.md`](./operations/quickstart.md) — local dev stack 5분 setup (Bruno + Swagger)
-2. [`architecture/overview.md`](./architecture/overview.md) — monorepo 의 component / package / 의존성 지도
+2. [`architecture/overview.md`](./architecture/overview.md) — monorepo 의 component, package, 의존 관계
 3. [`architecture/feature-flows.md`](./architecture/feature-flows.md) — cluster 등록 / 갱신 / 회수 end-to-end
-4. [`conventions/folder-structure.md`](./conventions/folder-structure.md) — 코드 둘러볼 때 길잡이 (feature-first `domain/{X}/`)
+4. [`conventions/folder-structure.md`](./conventions/folder-structure.md) — 코드를 둘러볼 때 참고 (feature-first `domain/{X}/`)
 5. (선택) [`architecture/cluster-agent.md`](./architecture/cluster-agent.md) — reverse-tunnel topology + 인증 model
 
 코드 setup + 컨벤션: 본 doc + [`docs/conventions/`](./conventions/) (도메인별 컨벤션).
 
 ## architecture/ — 시스템 설계
 
-거시 구성 + 컴포넌트 경계 + 데이터 흐름입니다.
+전체 구성, 컴포넌트 경계, 데이터 흐름을 다룹니다.
 
 ### Core
 
-- [overview.md](./architecture/overview.md) — monorepo 의 component / package / 의존성 지도
+- [overview.md](./architecture/overview.md) — monorepo 의 component, package, 의존 관계
 - [api-inventory.md](./architecture/api-inventory.md) — REST + gRPC endpoint 전체 목록
 - [feature-flows.md](./architecture/feature-flows.md) — 등록 / 갱신 / 회수 / 업그레이드 end-to-end flow
 - [k8s-access-paths.md](./architecture/k8s-access-paths.md) — backend ↔ K8s 접근 경로
 - [vmcluster-state-machine.md](./architecture/vmcluster-state-machine.md) — VM cluster lifecycle state machine
 - [vmcluster-workflow.md](./architecture/vmcluster-workflow.md) — VM cluster RabbitMQ workflow (provision → bootstrap → verify → ready)
+- [vmcluster-convergence.md](./architecture/vmcluster-convergence.md) — VM 생성 이후 계층(GPU, agent, ingress)의 재시도와 상태 수렴 설계
 - [frontend-integration.md](./architecture/frontend-integration.md) — frontend ↔ backend 통합 index (영역별 가이드는 [`frontend/`](./architecture/frontend/) — resources / terminal / monitoring / auth)
 - [dependency-rationalization.md](./architecture/dependency-rationalization.md) — 의존성 결정 (MariaDB + RabbitMQ stack)
 
@@ -62,10 +57,11 @@ v0.3.0 에서 아래 두 가지가 바뀌었고, 일부 문서가 이전 구조�
 - [pulumi-multicloud-k8s-blueprint.md](./architecture/pulumi/pulumi-multicloud-k8s-blueprint.md) — 멀티 CSP VM Kubernetes 프로비저닝 청사진
 - [pulumi-runtime-with-gateway.md](./architecture/pulumi/pulumi-runtime-with-gateway.md) — Gateway + Spring + Pulumi 운영 구조 / RustFS + OpenBao
 - [pulumi-gpu-support.md](./architecture/pulumi/pulumi-gpu-support.md) — Pulumi GPU node + DCGM exporter
+- [pulumi-yaml-migration.md](./architecture/pulumi/pulumi-yaml-migration.md) — 타입 SDK(732MB)를 생성 YAML로 교체하는 설계
 
 ### Starter Modules ([starters/](./architecture/starters/))
 
-- [overview.md](./architecture/starters/overview.md) — Layer 모델 + DB-free 가정 + state 책임 분리 매트릭스
+- [overview.md](./architecture/starters/overview.md) — Layer 모델 + DB-free 가정 + state 를 어느 쪽이 맡는지 정리한 표
 - [cluster-agent-starter.md](./architecture/starters/cluster-agent-starter.md) — **Layer 1** — Reverse-tunnel gRPC + PodExec WebSocket + Kube/Helm 서비스
 - [cluster-agent-features-starter.md](./architecture/starters/cluster-agent-features-starter.md) — **Layer 2 통합** — RBAC + Backup + Observability sub-feature 3개
   - [cluster-agent-rbac-starter.md](./architecture/starters/cluster-agent-rbac-starter.md) — RBAC sub-feature (OIDC → ClusterRoleBinding)
@@ -83,7 +79,7 @@ v0.3.0 에서 아래 두 가지가 바뀌었고, 일부 문서가 이전 구조�
 
 ## api/ — 외부 노출 API
 
-HTTP 엔드포인트 명세, 요청·응답 envelope 입니다.
+HTTP 엔드포인트 명세, 요청, 응답 envelope 입니다.
 
 - [v1-reference.md](./api/v1-reference.md) — 현재 v1 API 전체 reference (단일 source)
 - [vm-options.md](./api/vm-options.md) — `/v1/providers/*` (provider / region / spec / image)

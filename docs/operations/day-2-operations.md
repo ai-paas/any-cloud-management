@@ -17,7 +17,7 @@ state backend 는 RustFS (S3 호환), secrets 는 OpenBao (Vault 호환) 입니�
 워커 노드 수를 변경합니다 (예: 3 → 5 또는 5 → 3).
 
 **자동화 범위**
-- 자동: Pulumi config (`workerCount`) 갱신 → `pulumi up` 으로 VM 추가/삭제 생성·삭제
+- 자동: Pulumi config (`workerCount`) 갱신 → `pulumi up` 으로 VM 추가/삭제 생성, 삭제
 - 자동: 신규 VM 의 cloud-init 으로 kubeadm join 자동 수행
 - 수동: cluster-autoscaler 도입은 별건 (CSP cloud-provider 필요)
 
@@ -72,7 +72,7 @@ state backend 는 RustFS (S3 호환), secrets 는 OpenBao (Vault 호환) 입니�
 - 핵심 워크로드 정상 (Pod ready, Ingress 응답, GPU Pod 동작)
 
 **주의**
-- minor 두 단계 점프 금지입니다 (kubeadm 정책). 항상 X.Y → X.(Y+1) 입니다.
+- minor 두 단계 점프 금지입니다 (kubeadm 정책). 항상 X.Y → X.(Y+1)
 - N-2 deprecation 매트릭스를 확인해야 합니다 (특히 CRI/CNI 호환성).
 - master 1대 환경에서는 control-plane upgrade 중 짧은 downtime (1-2분) 이 발생합니다.
 - ETCD 백업을 권장합니다 (`etcdctl snapshot save` 후 진행).
@@ -134,7 +134,7 @@ Helm 으로 설치된 cluster add-on 의 마이너 업그레이드입니다.
 **주의**
 - CNI 업그레이드 중 Pod 네트워크가 일시 끊길 수 있습니다.
 - Ingress-nginx 의 controller pod 는 PDB 적용을 권장합니다.
-- 롤백: `helm rollback <release> <rev>` 입니다. 다만 CRD 변경이 있으면 자동 롤백 불가 (수동 정리) 입니다.
+- 롤백: `helm rollback <release> <rev>` 입니다. 다만 CRD 변경이 있으면 자동 롤백 불가 (수동 정리)
 
 ---
 
@@ -167,7 +167,7 @@ kubeadm 이 발급한 인증서를 만료 전에 갱신합니다.
 
 ## 6. Pulumi state 백업 & 복구 (RustFS)
 
-state backend 손상·삭제 시 복구할 수 있어야 합니다.
+state backend 손상, 삭제 시 복구할 수 있어야 합니다.
 
 **자동화 범위**
 - 수동: cron 으로 `mc mirror` 또는 RustFS replication
@@ -245,6 +245,45 @@ Pulumi up / Bootstrap 실패 시 깨끗하게 정리하고 재시도합니다.
 - `workflow_message_log` 에 PROCESSED 로 마무리되는 메시지 확인
 - 실제 K8s 클러스터 healthy
 
+### DEGRADED — 클러스터는 살아있는데 요청한 구성이 안 갖춰진 경우
+
+`READY` 는 "Kubernetes API 가 응답한다" 가 아니라 "요청한 사양대로 준비되었다" 를 뜻합니다. GPU 나
+ingress 를 요청했는데 아직 준비되지 않으면 `DEGRADED` 입니다.
+
+**FAILED 와 다릅니다.** VM 은 떠 있고 kubectl 도 됩니다. 워크플로우가 실패한 게 아니라 수렴을
+기다리는 상태라 `readyAt` 도 `failedAt` 도 채워지지 않습니다.
+
+**단계**
+
+1. 사유 확인 — `GET /v1/vms/{name}` 응답의 `components` 와 `requestedAddons` 를 봅니다.
+
+   | 필드 | 의미 |
+   |---|---|
+   | `health=NOT_READY` | 미충족이 확인됨. `lastError` 에 사유 |
+   | `health=UNKNOWN` | 확인 자체를 못 함 (SSH 불통, addon 설치 진행 중) |
+   | `attempts`, `nextAttemptAt` | 조정 루프의 재시도 회계 |
+
+2. 대개 기다리면 됩니다. 조정 루프가 5분마다 돌며 재적용하고, 수렴하면 자동으로 `READY` 가 됩니다.
+   addon 설치 직후라면 `UNKNOWN`(설치 진행 중)이 정상입니다.
+
+3. 원인을 고쳤다면 즉시 확인합니다 — 백오프는 최대 1시간까지 늘어나므로 기다리면 오래 걸립니다.
+
+   ```
+   POST /v1/vms/{name}/components/{type}/repair
+   ```
+
+   백오프와 시도 회계를 초기화하고 바로 재적용합니다. addon 은 기존 addon API 로 재시도합니다.
+
+4. `AGENT` 가 계속 `NOT_READY` 면 백엔드 gRPC endpoint 가 클러스터에서 도달 가능한지 확인합니다
+   (`ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT`). 개발 환경 기본값은 CSP VM 에서 도달 불가라
+   dev 프로파일이 `BEST_EFFORT` 로 낮춰 둡니다.
+
+**주의**
+
+- `DEGRADED` 는 자동 진행 상태가 아닙니다. 조정 루프가 계속 시도하되 워크플로우는 멈춰 있습니다.
+- 조정 루프는 `BLOCKED` 처럼 완전히 멈추지 않습니다. CSP 쿼터나 이미지 문제는 몇 시간 뒤 풀리는
+  경우가 있어 1시간 간격으로 계속 시도합니다.
+
 **주의**
 - 무한 재시도 방지: `workflow_retry_count` (이미 컬럼 있음) 임계 도달 시 manual intervention 필요로 분류됩니다.
 - 부분 인프라가 남으면 비용이 발생합니다. 14일 이내 정리 정책을 권장합니다.
@@ -286,7 +325,7 @@ dead-letter queue 적재 메시지를 검토 후 재처리하거나 폐기합니
 
 ## 10. 모니터링 / 알람 SLO
 
-백엔드와 클러스터 군의 운영 상태를 측정·알람합니다.
+백엔드와 클러스터 군의 운영 상태를 측정, 알람합니다.
 
 **자동화 범위**
 - 자동: kube-prometheus-stack 의 cluster 별 설치 — `cluster_addon` 테이블 + RabbitMQ async workflow.

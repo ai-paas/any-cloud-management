@@ -1,6 +1,6 @@
 # Test Coverage — 현황 / 우선순위 / 로드맵
 
-Jacoco INSTRUCTION 기준입니다. 측정 대상: `anycloud` + `cluster-agent-spring-boot-starter` + `cluster-agent-observability-spring-boot-starter` 입니다. 제외: 생성 코드 (proto stub `**/gen/agent/v1/**`, `com/aipaas/anycloud/agent/v1/**`), DTO (`**/dto/**`, `**/*Dto*`) 입니다.
+Jacoco INSTRUCTION 기준입니다. 측정 대상: `anycloud` + `cluster-agent-spring-boot-starter` + `cluster-agent-features-spring-boot-starter` 입니다. 제외: 생성 코드 (proto stub `**/gen/agent/v1/**`, `com/aipaas/anycloud/agent/v1/**`), DTO (`**/dto/**`, `**/*Dto*`) 입니다.
 
 ## 현황 (baseline)
 
@@ -8,7 +8,7 @@ Jacoco INSTRUCTION 기준입니다. 측정 대상: `anycloud` + `cluster-agent-s
 |--------|------------:|-------:|-----:|-------:|------:|
 | anycloud | **19.9%** | 15.3% | 19.6% | 19.9% | 29.1% |
 | cluster-agent-spring-boot-starter | **32.5%** | 23.9% | 30.8% | 30.9% | 44.8% |
-| cluster-agent-observability-spring-boot-starter | **56.8%** | 46.6% | 58.2% | 57.5% | 66.7% |
+| cluster-agent-features-spring-boot-starter | **56.8%** | 46.6% | 58.2% | 57.5% | 66.7% |
 
 운영 게이트: `jacocoTestCoverageVerification` — INSTRUCTION ≥ 18% (현재 anycloud 가 최저 — conservative baseline) 입니다. 매 sprint +5%p 상향, 목표는 70% 입니다.
 
@@ -18,12 +18,12 @@ Jacoco INSTRUCTION 기준입니다. 측정 대상: `anycloud` + `cluster-agent-s
 # 1. Report 생성 (HTML + XML)
 ./gradlew :anycloud:jacocoTestReport \
           :cluster-agent-spring-boot-starter:jacocoTestReport \
-          :cluster-agent-observability-spring-boot-starter:jacocoTestReport
+          :cluster-agent-features-spring-boot-starter:jacocoTestReport
 
 # 2. HTML 열기
 open apps/anycloud/build/reports/jacoco/test/html/index.html
 open libs/cluster-agent-spring-boot-starter/build/reports/jacoco/test/html/index.html
-open libs/cluster-agent-observability-spring-boot-starter/build/reports/jacoco/test/html/index.html
+open libs/cluster-agent-features-spring-boot-starter/build/reports/jacoco/test/html/index.html
 
 # 3. CI gate
 ./gradlew jacocoTestCoverageVerification
@@ -85,9 +85,9 @@ model/provisioning                       64.8%
 ## 회피 항목
 - `*Dto*`, `**/dto/**` — 단순 record/POJO 입니다. Lombok generated.
 - `**/gen/agent/v1/**`, `com/aipaas/anycloud/agent/v1/**` — protoc generated 입니다.
-- `UnifiedClusterServiceImpl` (1073 missed) — 제거 예정입니다.
+- `UnifiedClusterServiceImpl` (1073 missed) — 제거 예정
 
 ## 참고
-- 게이트 설정: 루트 `build.gradle`, `jacocoTestCoverageVerification` block 입니다.
+- 게이트 설정: 루트 `build.gradle`, `jacocoTestCoverageVerification` block
 - 제외 패턴 변경 시 `coverageExcludes` 를 수정합니다.
 - 모듈 추가 시 `configure(subprojects.findAll { ... })` 의 이름 list 에 추가합니다.

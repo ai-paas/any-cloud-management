@@ -48,6 +48,12 @@ public enum VmClusterStatus {
     BOOTSTRAPPING,
     VERIFYING,
     READY,
+    /**
+     * Kubernetes API 는 정상이나 REQUIRED 컴포넌트 일부가 미충족. 조정 루프가 계속 시도한다.
+     * FAILED 로 보내지 않는 이유는 VM 이 이미 떠서 과금되는데 워크플로우만 죽은 상태를 만들지
+     * 않기 위해서다.
+     */
+    DEGRADED,
     /** Day-2 ops — workerCount 변경 진행 중. */
     SCALING,
     /** Day-2 ops — Kubernetes version upgrade 진행 중. */
@@ -107,9 +113,11 @@ public enum VmClusterStatus {
         m.put(REQUESTED, EnumSet.of(PROVISIONING, FAILED, BLOCKED, DELETING));
         m.put(PROVISIONING, EnumSet.of(BOOTSTRAPPING, READY, FAILED, BLOCKED, DELETING));
         m.put(BOOTSTRAPPING, EnumSet.of(VERIFYING, FAILED, BLOCKED, DELETING));
-        m.put(VERIFYING, EnumSet.of(READY, FAILED, BLOCKED, DELETING));
+        m.put(VERIFYING, EnumSet.of(READY, DEGRADED, FAILED, BLOCKED, DELETING));
         // Steady state — day-2 ops 가 명시적 status 로 분기.
-        m.put(READY, EnumSet.of(SCALING, UPGRADING, FAILED, DELETING));
+        m.put(READY, EnumSet.of(SCALING, UPGRADING, DEGRADED, FAILED, DELETING));
+        // 수렴 대기 — 조정 루프가 READY 로 올리거나, 클러스터가 깨지면 FAILED.
+        m.put(DEGRADED, EnumSet.of(READY, FAILED, DELETING));
         // Day-2 ops — 완료 후 READY 복귀, 실패 시 FAILED. delete 도 어디서나 가능.
         m.put(SCALING, EnumSet.of(READY, FAILED, DELETING));
         m.put(UPGRADING, EnumSet.of(READY, FAILED, DELETING));
@@ -135,6 +143,7 @@ public enum VmClusterStatus {
             case BOOTSTRAPPING -> "Bootstrap worker가 kubeadm 구성을 진행 중입니다.";
             case VERIFYING -> "클러스터 연결과 등록 상태를 검증 중입니다.";
             case READY -> "VM 클러스터 생성과 등록이 완료되었습니다.";
+            case DEGRADED -> "클러스터는 사용 가능하나 요청한 구성 요소 일부가 준비되지 않았습니다.";
             case SCALING -> "워커 노드 수를 조정 중입니다.";
             case UPGRADING -> "Kubernetes 버전을 업그레이드 중입니다.";
             case FAILED -> "생성 또는 등록 중 오류가 발생했습니다.";

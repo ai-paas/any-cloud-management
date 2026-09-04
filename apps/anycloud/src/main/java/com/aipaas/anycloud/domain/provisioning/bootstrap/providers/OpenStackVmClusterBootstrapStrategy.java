@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Order(20)
-public class OpenStackVmClusterBootstrapStrategy extends PrivateLinuxVmClusterBootstrapStrategy {
+public class OpenStackVmClusterBootstrapStrategy extends GenericLinuxVmClusterBootstrapStrategy {
 
     @Override
     public boolean supports(String provider) {

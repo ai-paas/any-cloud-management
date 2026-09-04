@@ -1,72 +1,86 @@
-groups:
-  - name: gpu
-    rules:
-      - alert: GpuTemperatureHigh
-        expr: DCGM_FI_DEV_GPU_TEMP > 85
-        for: 5m
-        labels:
-          severity: warning
-          component: gpu
-        annotations:
-          summary: "GPU temperature high"
-          description: "GPU {{ $labels.gpu }} on {{ $labels.instance }} at {{ $value }}°C (threshold 85°C 5m)."
+# GPU health — dcgm-exporter metrics.
+# anycloud-default. release label 은 install 시 치환 (${RELEASE}).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: anycloud-gpu
+  namespace: ${NAMESPACE}
+  labels:
+    release: ${RELEASE}
+    source: anycloud-default
+    rule-set: gpu
+    # 이 라벨이 있으면 해당 capability 가 없는 cluster 에는 설치하지 않는다.
+    requires-capability: gpu
+spec:
+  groups:
+    - name: gpu
+      rules:
+        - alert: GpuTemperatureHigh
+          expr: DCGM_FI_DEV_GPU_TEMP > 85
+          for: 5m
+          labels:
+            severity: warning
+            component: gpu
+          annotations:
+            summary: "GPU temperature high"
+            description: "GPU {{ $labels.gpu }} on {{ $labels.instance }} at {{ $value }}°C (threshold 85°C 5m)."
 
-      - alert: GpuTemperatureCritical
-        expr: DCGM_FI_DEV_GPU_TEMP > 95
-        for: 2m
-        labels:
-          severity: critical
-          component: gpu
-        annotations:
-          summary: "GPU temperature critical"
-          description: "GPU {{ $labels.gpu }} on {{ $labels.instance }} at {{ $value }}°C — thermal throttling 또는 hardware risk."
+        - alert: GpuTemperatureCritical
+          expr: DCGM_FI_DEV_GPU_TEMP > 95
+          for: 2m
+          labels:
+            severity: critical
+            component: gpu
+          annotations:
+            summary: "GPU temperature critical"
+            description: "GPU {{ $labels.gpu }} on {{ $labels.instance }} at {{ $value }}°C — thermal throttling 또는 hardware risk."
 
-      - alert: GpuMemoryNearFull
-        expr: (DCGM_FI_DEV_FB_USED / (DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE)) > 0.95
-        for: 10m
-        labels:
-          severity: warning
-          component: gpu
-        annotations:
-          summary: "GPU memory near full"
-          description: "GPU {{ $labels.gpu }} on {{ $labels.instance }} memory > 95% (10m). OOM risk."
+        - alert: GpuMemoryNearFull
+          expr: (DCGM_FI_DEV_FB_USED / (DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE)) > 0.95
+          for: 10m
+          labels:
+            severity: warning
+            component: gpu
+          annotations:
+            summary: "GPU memory near full"
+            description: "GPU {{ $labels.gpu }} on {{ $labels.instance }} memory > 95% (10m). OOM risk."
 
-      - alert: GpuPowerHigh
-        expr: DCGM_FI_DEV_POWER_USAGE > 300
-        for: 15m
-        labels:
-          severity: info
-          component: gpu
-        annotations:
-          summary: "GPU power usage sustained high"
-          description: "GPU {{ $labels.gpu }} on {{ $labels.instance }} 평균 power > 300W (15m). Cost 모니터링."
+        - alert: GpuPowerHigh
+          expr: DCGM_FI_DEV_POWER_USAGE > 300
+          for: 15m
+          labels:
+            severity: info
+            component: gpu
+          annotations:
+            summary: "GPU power usage sustained high"
+            description: "GPU {{ $labels.gpu }} on {{ $labels.instance }} 평균 power > 300W (15m). Cost 모니터링."
 
-      - alert: GpuXidErrors
-        expr: increase(DCGM_FI_DEV_XID_ERRORS[5m]) > 0
-        for: 1m
-        labels:
-          severity: critical
-          component: gpu
-        annotations:
-          summary: "GPU XID error detected"
-          description: "GPU {{ $labels.gpu }} on {{ $labels.instance }} XID error — driver / hardware fault. dmesg 확인 필요."
+        - alert: GpuXidErrors
+          expr: increase(DCGM_FI_DEV_XID_ERRORS[5m]) > 0
+          for: 1m
+          labels:
+            severity: critical
+            component: gpu
+          annotations:
+            summary: "GPU XID error detected"
+            description: "GPU {{ $labels.gpu }} on {{ $labels.instance }} XID error — driver / hardware fault. dmesg 확인 필요."
 
-      - alert: GpuUtilizationLow
-        expr: avg_over_time(DCGM_FI_DEV_GPU_UTIL[30m]) < 5
-        for: 1h
-        labels:
-          severity: info
-          component: gpu
-        annotations:
-          summary: "GPU utilization low — cost optimization candidate"
-          description: "GPU {{ $labels.gpu }} on {{ $labels.instance }} 평균 utilization < 5% for 1h. Spot instance / 작은 type 으로 downgrade 검토."
+        - alert: GpuUtilizationLow
+          expr: avg_over_time(DCGM_FI_DEV_GPU_UTIL[30m]) < 5
+          for: 1h
+          labels:
+            severity: info
+            component: gpu
+          annotations:
+            summary: "GPU utilization low — cost optimization candidate"
+            description: "GPU {{ $labels.gpu }} on {{ $labels.instance }} 평균 utilization < 5% for 1h. Spot instance / 작은 type 으로 downgrade 검토."
 
-      - alert: GpuOperatorComponentDown
-        expr: up{job="nvidia-gpu-operator"} == 0
-        for: 5m
-        labels:
-          severity: critical
-          component: gpu
-        annotations:
-          summary: "NVIDIA GPU operator component down"
-          description: "GPU operator on {{ $labels.instance }} 의 component 가 응답 없음 — driver / runtime 영향 가능."
+        - alert: GpuOperatorComponentDown
+          expr: up{job="nvidia-gpu-operator"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            component: gpu
+          annotations:
+            summary: "NVIDIA GPU operator component down"
+            description: "GPU operator on {{ $labels.instance }} 의 component 가 응답 없음 — driver / runtime 영향 가능."

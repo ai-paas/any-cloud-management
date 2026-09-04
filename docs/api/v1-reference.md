@@ -170,6 +170,37 @@ RESTful 자원 모델 기반 API 입니다. 모든 endpoint 가 `/v1` prefix 를
 | POST   | `/v1/operations/{operationId}/cancel` | 취소 요청 (best-effort) |
 | GET    | `/v1/operations/{operationId}/events` | SSE — state/progress push |
 
+### VM 구성 요소 (`/v1/vms/{name}/components`)
+
+VM 생성 이후 계층 중 백엔드가 SSH 로 직접 설치하는 것들의 상태입니다. GPU operator 와 ingress 는
+여기가 아니라 addon 으로 다룹니다 — addon 설치는 agent 세션을 전제하므로 agent 만 SSH 가 필요합니다.
+
+| Method | Path | 설명 |
+|---|---|---|
+| POST | `/v1/vms/{name}/components/{type}/repair` | 백오프를 무시하고 즉시 재적용. 시도 회계를 초기화합니다 |
+
+`{type}` 은 현재 `AGENT` 하나입니다.
+
+조회는 별도 엔드포인트가 없습니다. `GET /v1/vms/{name}` 응답에 `components` 와 `requestedAddons`
+배열이 포함됩니다.
+
+```json
+{
+  "provisioningStatus": "DEGRADED",
+  "components": [
+    { "type": "AGENT", "requirement": "REQUIRED", "health": "NOT_READY",
+      "attempts": 4, "nextAttemptAt": "2026-09-04T10:22:00Z",
+      "lastError": "agent 미연결 (cluster status=AGENT_PENDING)" }
+  ],
+  "requestedAddons": [
+    { "catalogId": "nvidia-gpu-operator", "requirement": "REQUIRED",
+      "health": "NOT_READY", "detail": "helm install timed out" }
+  ]
+}
+```
+
+설계는 [vmcluster-convergence.md](../architecture/vmcluster-convergence.md) 를 참고하세요.
+
 ### Monitoring (cluster sub-resource)
 
 | Method | Path | 설명 |
@@ -317,7 +348,7 @@ POST /v1/clusters
 - `masterCount >= 2` 일 때 lead master 의 `kubeadm init` 에
   `--control-plane-endpoint=<leadIp>:6443` + `--upload-certs` 가 자동으로 추가됩니다.
 - Extra master 들은 `kubeadm join --control-plane --certificate-key` 로 join 합니다.
-- **PoC 한계**: control-plane endpoint 가 lead master IP 자체이며, VIP/LB 는 미적용입니다.
+- **PoC 한계**: control-plane endpoint 가 lead master IP 자체이며, VIP/LB 는 미적용
   lead master 장애 시 신규 join 이 불가능합니다 (기존 컴포넌트는 정상 동작합니다). 실제 HA 는 별도로 구성해야 합니다.
 - Strategy 별 지원: GenericLinux (모든 deb-like) + Proxmox provisioner 입니다. 그 외 7
   providers (AWS, GCP, Azure, OCI, Alibaba, DigitalOcean, OpenStack) 는 multi-master 를 지원하지 않습니다.

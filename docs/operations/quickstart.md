@@ -175,7 +175,7 @@ test-console 우상단 "Authorization" details 를 펼쳐서 토큰을 저장합
 
 ## 첫 endpoint 따라가기 — 권장 코드 walkthrough
 
-신규 합류자가 backend 의 controller → service → entity 흐름을 한 번 trace 하면
+처음 온 사람이 backend 의 controller → service → entity 흐름을 한 번 trace 하면
 이후 모든 도메인이 같은 패턴이라 빠르게 이해 가능. 권장 경로:
 
 **가장 단순한 single-domain endpoint** — `GET /v1/audit-logs?since=&until=...`

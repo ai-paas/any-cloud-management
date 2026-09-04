@@ -109,7 +109,7 @@ const list = JSON.parse(alerts.data.raw);     // Alertmanager v2 array
 ```
 
 UI 권장 사항은 다음과 같습니다.
-- Header bell 아이콘 + count badge (active alerts) 입니다.
+- Header bell 아이콘 + count badge (active alerts)
 - Click → 측면 drawer 로 list 를 표시합니다.
 - severity 별 색상 (critical=red, warning=orange, info=blue) 을 적용합니다.
 - `kubectl describe` 없이 backend 가 reachable 한 cluster 의 alert 만 표시합니다.
