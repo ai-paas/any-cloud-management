@@ -70,6 +70,9 @@ public final class CspCredentialPulumiConfigMapper {
                         put(out, "openstack:endpointType", env.get("OS_INTERFACE"));
                         put(out, "openstack:cacertFile", env.get("OS_CACERT"));
                         putBool(out, "openstack:insecure", env.get("OS_INSECURE"));
+                        // 사설망 배포는 Keystone 카탈로그가 외부에서 못 닿는 주소를 광고한다.
+                        // override 없이는 "dial tcp 192.168.10.10:9292: network is unreachable".
+                        putJsonObject(out, "openstack:endpointOverrides", env.get("OS_ENDPOINT_OVERRIDES"));
                     },
             "oci",
                     (env, out) -> {
@@ -128,6 +131,18 @@ public final class CspCredentialPulumiConfigMapper {
             "OS_REGION_NAME",
             "OS_USER_DOMAIN_NAME",
             "OS_PROJECT_DOMAIN_NAME",
+            "OS_USER_ID",
+            "OS_PROJECT_ID",
+            "OS_TENANT_ID",
+            "OS_TENANT_NAME",
+            "OS_USER_DOMAIN_ID",
+            "OS_PROJECT_DOMAIN_ID",
+            "OS_DOMAIN_NAME",
+            "OS_DOMAIN_ID",
+            "OS_INTERFACE",
+            "OS_CACERT",
+            "OS_INSECURE",
+            "OS_ENDPOINT_OVERRIDES",
             "OCI_TENANCY_OCID",
             "OCI_USER_OCID",
             "OCI_FINGERPRINT",
@@ -169,6 +184,28 @@ public final class CspCredentialPulumiConfigMapper {
         if (TRUTHY.contains(normalized)) out.put(key, "true");
         else if (FALSY.contains(normalized)) out.put(key, "false");
     }
+
+    /**
+     * map 타입 provider config 는 JSON 문자열로 넘긴다 — Pulumi 가 읽을 때 파싱한다.
+     *
+     * <p>깨진 값을 그대로 넘기면 provider 가 stack 전체를 거부하고, 그 시점 메시지로는 자격증명의
+     * 어느 항목이 문제인지 알 수 없다. 등록 시점에 거른다.
+     */
+    private static void putJsonObject(Map<String, String> out, String key, String value) {
+        if (value == null || value.isBlank()) return;
+        String json = value.trim();
+        try {
+            if (!JSON.readTree(json).isObject()) {
+                throw new IllegalArgumentException(key + " 는 JSON object 여야 한다: " + json);
+            }
+        } catch (com.fasterxml.jackson.core.JacksonException e) {
+            throw new IllegalArgumentException(key + " 가 올바른 JSON 이 아니다: " + json, e);
+        }
+        out.put(key, json);
+    }
+
+    private static final com.fasterxml.jackson.databind.ObjectMapper JSON =
+            new com.fasterxml.jackson.databind.ObjectMapper();
 
     private static final java.util.Set<String> TRUTHY = java.util.Set.of("true", "1", "yes", "on");
     private static final java.util.Set<String> FALSY = java.util.Set.of("false", "0", "no", "off");
