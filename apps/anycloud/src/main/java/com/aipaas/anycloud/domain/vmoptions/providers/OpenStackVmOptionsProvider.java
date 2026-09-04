@@ -7,6 +7,7 @@ import com.aipaas.anycloud.domain.vmoptions.api.VmOptionImage;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionProvider;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionRegion;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionSpec;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import java.util.ArrayList;
@@ -15,7 +16,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -26,6 +29,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
@@ -194,7 +198,24 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
                 authBody.token() == null || authBody.token().catalog() == null
                         ? List.of()
                         : authBody.token().catalog();
-        return new OpenStackSession(token, interfaceName, preferredRegion, catalog);
+        return new OpenStackSession(token, interfaceName, preferredRegion, catalog, endpointOverrides());
+    }
+
+    /** 깨진 override 로 preflight 를 통째로 실패시키지 않는다 — 카탈로그로 물러난다. */
+    Map<String, String> endpointOverrides() {
+        String raw = resolveCredential("OS_ENDPOINT_OVERRIDES");
+        if (!StringUtils.hasText(raw)) {
+            return Map.of();
+        }
+        try {
+            Map<String, String> parsed = objectMapper.readValue(raw, new TypeReference<Map<String, String>>() {});
+            Map<String, String> normalized = new java.util.HashMap<>();
+            parsed.forEach((service, url) -> normalized.put(service.toLowerCase(Locale.ROOT), url));
+            return normalized;
+        } catch (Exception e) {
+            log.warn("OS_ENDPOINT_OVERRIDES 파싱 실패 — 카탈로그 주소를 사용한다: {}", e.getMessage());
+            return Map.of();
+        }
     }
 
     private ResponseEntity<String> exchange(String url, String token, HttpMethod method, String body) {
@@ -206,7 +227,64 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
         // OpenStack 일부 deployment 가 response Content-Type 에 charset 미지정 → Spring 의 default 디코딩으로
         // 한글 / multi-byte 문자 mojibake 위험. byte[] → 명시 UTF-8 변환 (RestTemplateUtf8 javadoc 참조).
         return com.aipaas.anycloud.common.util.RestTemplateUtf8.exchangeAsUtf8String(
-                restTemplate, url, method, new HttpEntity<>(body, headers));
+                restTemplateFor(url), url, method, new HttpEntity<>(body, headers));
+    }
+
+    /**
+     * OS_INSECURE 일 때만 검증을 끈 client 를 쓴다.
+     *
+     * <p>{@code cspRestTemplate} 은 모든 CSP 가 공유하는 singleton 이라 여기서 검증을 끄면 AWS /
+     * Azure 호출까지 함께 꺼진다. 사설 CA 로 띄운 OpenStack 은 흔해 자격증명 단위로만 허용한다.
+     * https 가 아니면 분기 자체가 의미 없어 공유 client 를 그대로 쓴다.
+     */
+    RestTemplate restTemplateFor(String url) {
+        if (!insecureRequested() || url == null || !url.startsWith("https://")) {
+            return restTemplate;
+        }
+        RestTemplate local = insecureRestTemplate;
+        if (local == null) {
+            synchronized (this) {
+                local = insecureRestTemplate;
+                if (local == null) {
+                    // TLS context 구성은 비싸고 상태가 없어 한 번만 만든다.
+                    insecureRestTemplate = local = buildInsecureRestTemplate();
+                }
+            }
+        }
+        return local;
+    }
+
+    private volatile RestTemplate insecureRestTemplate;
+
+    private boolean insecureRequested() {
+        String value = resolveCredential("OS_INSECURE");
+        return value != null && INSECURE_TRUTHY.contains(value.trim().toLowerCase(Locale.ROOT));
+    }
+
+    private static final Set<String> INSECURE_TRUTHY = Set.of("true", "1", "yes", "on");
+
+    private static RestTemplate buildInsecureRestTemplate() {
+        try {
+            javax.net.ssl.SSLContext sslContext = org.apache.hc.core5.ssl.SSLContexts.custom()
+                    .loadTrustMaterial(null, (chain, authType) -> true)
+                    .build();
+            var tlsStrategy = org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder.create()
+                    .setSslContext(sslContext)
+                    .setHostnameVerifier(org.apache.hc.client5.http.ssl.NoopHostnameVerifier.INSTANCE)
+                    .buildClassic();
+            var connectionManager =
+                    org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder.create()
+                            .setTlsSocketStrategy(tlsStrategy)
+                            .build();
+            var httpClient = org.apache.hc.client5.http.impl.classic.HttpClients.custom()
+                    .setConnectionManager(connectionManager)
+                    .build();
+            return new RestTemplate(
+                    new org.springframework.http.client.HttpComponentsClientHttpRequestFactory(httpClient));
+        } catch (java.security.GeneralSecurityException e) {
+            throw new CustomException(
+                    ErrorCode.RUNTIME_EXCEPTION, "openstack", "OS_INSECURE", "TLS 검증 해제 client 생성 실패: " + e);
+        }
     }
 
     private <T> T parseBody(String body, Class<T> type) {
@@ -313,7 +391,11 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     private record OpenStackSession(
-            String token, String iface, String preferredRegion, List<OpenStackRecords.Service> serviceDirectory) {
+            String token,
+            String iface,
+            String preferredRegion,
+            List<OpenStackRecords.Service> serviceDirectory,
+            Map<String, String> endpointOverrides) {
 
         List<String> regions() {
             List<String> collected = serviceDirectory.stream()
@@ -340,6 +422,12 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
         }
 
         private String serviceEndpoint(String serviceType, String region) {
+            // 사설망 배포는 카탈로그가 외부에서 못 닿는 주소를 광고한다. Pulumi 쪽
+            // openstack:endpointOverrides 와 같은 자격증명 항목을 여기서도 본다.
+            String override = endpointOverrides.get(serviceType.toLowerCase(Locale.ROOT));
+            if (StringUtils.hasText(override)) {
+                return override.endsWith("/") ? override.substring(0, override.length() - 1) : override;
+            }
             return serviceDirectory.stream()
                     .filter(service -> serviceType.equalsIgnoreCase(service.type()))
                     .flatMap(service -> service.endpoints() == null
