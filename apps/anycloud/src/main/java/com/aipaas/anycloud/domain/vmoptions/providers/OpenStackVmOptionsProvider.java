@@ -270,6 +270,9 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
                     .build();
             var tlsStrategy = org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder.create()
                     .setSslContext(sslContext)
+                    // HttpClient 5.4+ 의 기본 정책 BUILTIN 은 JSSE 가 직접 검사해 아래 verifier 를
+                    // 무시한다. CLIENT 로 바꿔야 IP 로 접속하는 사설 인증서가 통과한다.
+                    .setHostVerificationPolicy(org.apache.hc.client5.http.ssl.HostnameVerificationPolicy.CLIENT)
                     .setHostnameVerifier(org.apache.hc.client5.http.ssl.NoopHostnameVerifier.INSTANCE)
                     .buildClassic();
             var connectionManager =
