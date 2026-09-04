@@ -115,32 +115,60 @@ class StandardOutputsTest {
         assertThat(outputs().get("masterPublicIp")).isInstanceOf(String.class);
     }
 
-    @Test
+    /** {@code fn::toJSON} 안쪽의 배열. 직렬화는 Pulumi 가 실행 시점에 한다. */
     @SuppressWarnings("unchecked")
-    void nodesIsRealArray() {
-        // JSON 문자열은 Pulumi Java SDK 회피책이었다. YAML 경로는 SDK 를 거치지 않으므로 불필요하고,
-        // 소비자(VmClusterNodeResolver)가 배열을 기대한다.
-        Object nodes = outputs().get("nodes");
+    private List<Map<String, Object>> nodeEntries() {
+        Map<String, Object> wrapper = (Map<String, Object>) outputs().get("nodes");
+        return (List<Map<String, Object>>) wrapper.get("fn::toJSON");
+    }
 
-        assertThat(nodes).isInstanceOf(List.class);
-        assertThat((List<Object>) nodes).hasSize(2);
+    @Test
+    void nodesCarryEveryNode() {
+        assertThat(nodeEntries()).hasSize(2);
     }
 
     @Test
     @SuppressWarnings("unchecked")
     void nodesFieldNamesMatchExistingContract() {
         // AbstractKubeadmProvisioner.nodeEntry 와 같은 키여야 한다.
-        List<Map<String, Object>> nodes = (List<Map<String, Object>>) outputs().get("nodes");
-
-        assertThat(nodes.get(0)).containsKeys("role", "instanceId", "privateIp", "publicIp", "publicDns", "ssh");
+        assertThat(nodeEntries().get(0))
+                .containsKeys("role", "instanceId", "privateIp", "publicIp", "publicDns", "ssh");
     }
 
     @Test
     @SuppressWarnings("unchecked")
     void nodesCarryMasterAndWorkerWithInterpolation() {
-        List<Map<String, Object>> nodes = (List<Map<String, Object>>) outputs().get("nodes");
+        assertThat(nodeEntries().get(0))
+                .containsEntry("role", "master")
+                .containsEntry("publicIp", "${fip-master.address}");
+        assertThat(nodeEntries().get(1))
+                .containsEntry("role", "worker")
+                .containsEntry("publicIp", "${fip-worker-1.address}");
+    }
 
-        assertThat(nodes.get(0)).containsEntry("role", "master").containsEntry("publicIp", "${fip-master.address}");
-        assertThat(nodes.get(1)).containsEntry("role", "worker").containsEntry("publicIp", "${fip-worker-1.address}");
+    @Test
+    void everyOutputIsScalarOrKnownFunction() {
+        // WorkspaceStack.up 이 내부에서 부르는 getStackOutputs 는 배열/객체 output 을 만나면
+        // gson 단계에서 죽는다. YAML 경로도 SDK 를 거치므로 예외가 아니다.
+        outputs().forEach((key, value) -> {
+            if (value == null) {
+                return; // gson 은 JSON null 을 그대로 받는다
+            }
+            if (value instanceof Map<?, ?> fn) {
+                assertThat(fn.keySet())
+                        .as("output %s 은 fn:: 함수 하나여야 한다", key)
+                        .allSatisfy(k -> assertThat(String.valueOf(k)).startsWith("fn::"));
+            } else {
+                assertThat(value).as("output %s", key).isInstanceOf(String.class);
+            }
+        });
+    }
+
+    @Test
+    void nodesIsWrappedInToJson() {
+        Map<?, ?> nodes = (Map<?, ?>) outputs().get("nodes");
+
+        assertThat(nodes).hasSize(1);
+        assertThat(nodes.containsKey("fn::toJSON")).isTrue();
     }
 }

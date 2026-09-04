@@ -67,7 +67,7 @@ public final class StandardOutputs {
                 .output("kubeconfigRemotePath", "/etc/kubernetes/admin.conf")
                 .output("masterSshCommand", YamlRef.secret(sshCommand(spec, masterPublicIp)))
                 .output("kubeconfigFetchCommand", YamlRef.secret(kubeconfigFetchCommand(spec, masterPublicIp)))
-                .output("nodes", nodes(spec, refs));
+                .output("nodes", YamlRef.toJson(nodes(spec, refs)));
     }
 
     private static String sshCommand(ClusterSpec spec, String publicIp) {
@@ -80,11 +80,9 @@ public final class StandardOutputs {
     }
 
     /**
-     * nodes 는 실제 배열이다.
-     *
-     * <p>JSON 문자열 형태는 Pulumi Java SDK 의 일부 역직렬화 경로가 배열 값을 못 다뤄 쓰던 회피책이다.
-     * YAML 경로는 SDK 를 거치지 않고 CLI 의 stack output 을 읽으므로 그 제약이 없다.
-     * 소비자({@code VmClusterNodeResolver})도 배열을 기대한다.
+     * 배열 그대로 내보내면 안 된다 — {@code WorkspaceStack.up} 이 내부에서 호출하는
+     * {@code getStackOutputs} 가 문자열을 기대해 gson 단계에서 죽는다. YAML 경로도 SDK 를 거친다.
+     * 소비자({@code VmClusterNodeResolver})는 배열과 JSON 문자열을 모두 받는다.
      */
     private static List<Map<String, Object>> nodes(ClusterSpec spec, NodeRefs refs) {
         List<Map<String, Object>> nodes = new ArrayList<>(1 + refs.workers().size());

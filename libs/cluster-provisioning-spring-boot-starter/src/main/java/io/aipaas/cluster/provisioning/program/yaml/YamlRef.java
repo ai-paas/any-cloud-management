@@ -37,6 +37,19 @@ public final class YamlRef {
         return String.format(template, args);
     }
 
+    /**
+     * 값을 JSON 문자열로 직렬화한다.
+     *
+     * <p>stack output 이 배열이나 객체면 Pulumi Java Automation SDK 의 {@code getStackOutputs}
+     * 가 문자열을 기대해 gson 단계에서 죽는다. {@code WorkspaceStack.up} 이 내부에서 이를
+     * 호출하므로 YAML 경로도 예외가 아니다.
+     */
+    public static Map<String, Object> toJson(Object value) {
+        Map<String, Object> wrapped = new LinkedHashMap<>(1);
+        wrapped.put("fn::toJSON", value);
+        return wrapped;
+    }
+
     /** {@code .asSecret()} 등가. 상태 파일과 stack output 양쪽에서 암호화된다. */
     public static Map<String, Object> secret(Object value) {
         Map<String, Object> wrapped = new LinkedHashMap<>(1);
