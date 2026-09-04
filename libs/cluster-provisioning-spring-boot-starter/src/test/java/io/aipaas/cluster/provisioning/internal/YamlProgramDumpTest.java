@@ -22,10 +22,10 @@ class YamlProgramDumpTest {
             return;
         }
         Map<String, String> config = new HashMap<>();
-        config.put("openstackExternalNetworkId", "00000000-0000-0000-0000-000000000000");
-        config.put("openstackFloatingIpPool", "public");
+        config.put("openstackExternalNetworkId", envOr("ANYCLOUD_OS_EXT_NET", "00000000-0000-0000-0000-000000000000"));
+        config.put("openstackFloatingIpPool", envOr("ANYCLOUD_OS_FIP_POOL", "public"));
         config.put("openstackImageName", "ubuntu-24.04");
-        config.put("openstackFlavorName", "m1.large");
+        config.put("openstackFlavorName", envOr("ANYCLOUD_OS_FLAVOR", "m1.large"));
         config.put("workerCount", "2");
         config.put("joinToken", "abcdef.0123456789abcdef");
 
@@ -38,5 +38,10 @@ class YamlProgramDumpTest {
 
         Files.writeString(
                 Path.of(target), YamlProgramAssembler.assemble(request).toYaml(), StandardCharsets.UTF_8);
+    }
+
+    private static String envOr(String key, String fallback) {
+        String value = System.getenv(key);
+        return value == null || value.isBlank() ? fallback : value;
     }
 }

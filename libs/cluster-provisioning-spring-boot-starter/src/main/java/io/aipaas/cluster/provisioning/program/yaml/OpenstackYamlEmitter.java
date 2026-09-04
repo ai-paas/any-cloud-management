@@ -121,11 +121,19 @@ final class OpenstackYamlEmitter implements ProviderYamlEmitter {
         props.put("direction", "ingress");
         props.put("ethertype", "IPv4");
         props.put("protocol", proto);
-        props.put("portRangeMin", from);
-        props.put("portRangeMax", to);
+        // OpenStack 은 1-65535 를 "전체 포트"(범위 없음)로 정규화해 저장한다. 명시하면 읽어온 값과
+        // 항상 달라 매 up 마다 replace 를 시도하고, delete 전에 create 해서 409 로 실패한다.
+        if (!isFullPortRange(from, to)) {
+            props.put("portRangeMin", from);
+            props.put("portRangeMax", to);
+        }
         props.put("remoteIpPrefix", cidr);
         props.put("region", spec.region());
         b.resource("sgrule-" + id, T_SECGROUP_RULE, props);
+    }
+
+    private static boolean isFullPortRange(int from, int to) {
+        return from <= 1 && to >= 65535;
     }
 
     private StandardOutputs.NodeRef emitNode(

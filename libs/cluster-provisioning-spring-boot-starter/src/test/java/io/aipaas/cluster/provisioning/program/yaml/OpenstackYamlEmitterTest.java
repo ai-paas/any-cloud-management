@@ -155,4 +155,26 @@ class OpenstackYamlEmitterTest {
 
         assertThat(dependsOn).containsExactly("${routerIface}");
     }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void fullRangeRulesOmitPortRange() {
+        // OpenStack 은 1-65535 를 "범위 없음" 으로 정규화한다. 명시하면 매 up 마다 replace 를
+        // 시도하고 delete 전에 create 해서 409 로 실패한다 — 두 번째 up 이 항상 깨진다.
+        Map<String, Object> res = resourcesOf(spec(1));
+
+        for (String id : List.of("sgrule-intra-tcp", "sgrule-intra-udp")) {
+            Map<String, Object> props = (Map<String, Object>) ((Map<String, Object>) res.get(id)).get("properties");
+            assertThat(props).as("%s", id).doesNotContainKeys("portRangeMin", "portRangeMax");
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void narrowRulesKeepPortRange() {
+        Map<String, Object> props =
+                (Map<String, Object>) ((Map<String, Object>) resourcesOf(spec(1)).get("sgrule-ssh")).get("properties");
+
+        assertThat(props).containsEntry("portRangeMin", 22).containsEntry("portRangeMax", 22);
+    }
 }
