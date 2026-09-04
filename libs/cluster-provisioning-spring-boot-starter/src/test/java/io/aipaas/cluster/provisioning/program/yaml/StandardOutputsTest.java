@@ -116,34 +116,31 @@ class StandardOutputsTest {
     }
 
     @Test
-    void nodesIsJsonStringNotArray() {
-        // Pulumi Java SDK 회피책으로 시작했지만 ProvisioningResultMapper 가 문자열을 전제한다.
-        // 계약 유지가 이번 전환의 성공 기준이라 형태를 바꾸지 않는다.
+    @SuppressWarnings("unchecked")
+    void nodesIsRealArray() {
+        // JSON 문자열은 Pulumi Java SDK 회피책이었다. YAML 경로는 SDK 를 거치지 않으므로 불필요하고,
+        // 소비자(VmClusterNodeResolver)가 배열을 기대한다.
         Object nodes = outputs().get("nodes");
 
-        assertThat(nodes).isInstanceOf(String.class);
-        assertThat((String) nodes).startsWith("[").endsWith("]");
+        assertThat(nodes).isInstanceOf(List.class);
+        assertThat((List<Object>) nodes).hasSize(2);
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void nodesFieldNamesMatchExistingContract() {
-        // AbstractKubeadmProvisioner.nodeEntry 와 같은 키여야 한다. host 가 아니다.
-        String nodes = (String) outputs().get("nodes");
+        // AbstractKubeadmProvisioner.nodeEntry 와 같은 키여야 한다.
+        List<Map<String, Object>> nodes = (List<Map<String, Object>>) outputs().get("nodes");
 
-        assertThat(nodes)
-                .contains("\"role\"")
-                .contains("\"instanceId\"")
-                .contains("\"privateIp\"")
-                .contains("\"publicIp\"")
-                .contains("\"publicDns\"")
-                .contains("\"ssh\"");
+        assertThat(nodes.get(0)).containsKeys("role", "instanceId", "privateIp", "publicIp", "publicDns", "ssh");
     }
 
     @Test
-    void nodesContainsMasterAndWorkers() {
-        String nodes = (String) outputs().get("nodes");
+    @SuppressWarnings("unchecked")
+    void nodesCarryMasterAndWorkerWithInterpolation() {
+        List<Map<String, Object>> nodes = (List<Map<String, Object>>) outputs().get("nodes");
 
-        assertThat(nodes).contains("\"master\"").contains("\"worker\"");
-        assertThat(nodes).contains("${fip-master.address}").contains("${fip-worker-1.address}");
+        assertThat(nodes.get(0)).containsEntry("role", "master").containsEntry("publicIp", "${fip-master.address}");
+        assertThat(nodes.get(1)).containsEntry("role", "worker").containsEntry("publicIp", "${fip-worker-1.address}");
     }
 }

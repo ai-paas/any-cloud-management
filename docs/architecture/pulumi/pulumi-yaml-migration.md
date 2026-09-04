@@ -143,14 +143,24 @@ program.put("outputs", outputs);
 YAML에는 반복문도 조건문도 없지만 문제가 되지 않습니다. 반복과 분기는 **YAML을 만드는 Java**가 하고,
 YAML은 그 결과가 펼쳐진 평면 그래프입니다.
 
-### `nodes` 출력의 특수 사정
+### `nodes` 출력은 배열로 바꿉니다
 
-현재 `nodes`는 배열이 아니라 **JSON 문자열**입니다. Pulumi Java SDK의 일부 역직렬화 경로가 배열 값을
-만나면 깨지기 때문입니다(`AbstractKubeadmProvisioner` 주석 참조).
+기존 provisioner 는 `nodes` 를 **JSON 문자열**로 export 했습니다. Pulumi Java SDK 의 일부 역직렬화
+경로가 배열 값을 만나면 깨지기 때문입니다.
 
-YAML 전환 후에는 그 제약이 사라집니다 — SDK를 거치지 않고 CLI의 `stack output --json`을 파싱합니다.
-다만 **이번 전환에서 형태를 바꾸지 않습니다.** `ProvisioningResultMapper`와 anycloud의
-`VmClusterNodeResolver`가 JSON 문자열을 전제하므로, 계약 변경은 별도 작업으로 둡니다.
+YAML 경로는 SDK 를 거치지 않고 CLI 의 `stack output` 을 읽으므로 그 제약이 없습니다. **실제 배열로
+내보냅니다.**
+
+계약 불변 원칙에 어긋나 보이지만 아닙니다. 소비자 두 곳이 이미 배열을 기대하거나 양쪽을 처리합니다.
+
+| 소비자 | 배열 | 문자열 |
+|---|---|---|
+| `ProvisioningResultMapper.nodesList` | 처리 | 처리 |
+| `VmClusterNodeResolver.readNodes` | 처리 | 처리 (2026-09-04 수정) |
+
+문자열만 처리하던 쪽은 없었고, `readNodes` 는 **배열만** 처리해서 문자열을 받으면 빈 목록을
+돌려줬습니다. `masterHost` 에는 폴백이 있었지만 worker join 목록과 HA `extraMasterHosts` 에는 없어
+**worker 가 kubeadm join 을 하지 않는 상태**였습니다. 실제 스택의 `stackOutputs` 로 확인했습니다.
 
 ## 5. 출력 계약 보존
 
@@ -163,7 +173,7 @@ YAML 전환 후에는 그 제약이 사라집니다 — SDK를 거치지 않고 
 | `apiServerUrl` | `https://${master.publicIp}:6443` 보간 |
 | `sshPrivateKeyPem`, `masterSshCommand`, `kubeconfigFetchCommand` | **secret** |
 | `kubeconfigRemotePath` | 정적 |
-| `nodes` | JSON 문자열 (위 참조) |
+| `nodes` | 배열 (위 참조) |
 | CSP별 extras (예: `dbEndpoint`) | provider별 추가 |
 
 anycloud 쪽에서 이 값을 읽는 곳은 `stackOutputs()` 호출 6곳과 `VmClusterNodeResolver`,
@@ -240,7 +250,6 @@ OpenStack을 먼저 하는 이유는 두 가지입니다. 리소스 정의가 �
 
 | 항목 | 이유 |
 |---|---|
-| `nodes` 출력을 JSON 문자열에서 배열로 | 소비자 계약 변경이라 별도 작업. YAML 전환의 성공 기준은 "계약 불변"이다 |
 | 다중 OS(Rocky 등) 지원 | `KubeadmUserData`는 Pulumi 타입과 무관해 이 전환과 독립이다 |
 | Cluster API 이전 | 프로비저닝 도메인 전체 재작성 규모 |
 | Gradle feature variants | YAML 전환이 성공하면 CSP별 아티팩트 분리가 불필요해진다 |

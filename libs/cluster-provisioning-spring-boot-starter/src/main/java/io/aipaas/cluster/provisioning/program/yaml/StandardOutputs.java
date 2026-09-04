@@ -2,7 +2,10 @@ package io.aipaas.cluster.provisioning.program.yaml;
 
 import io.aipaas.cluster.provisioning.program.ClusterSpec;
 import io.aipaas.cluster.provisioning.program.K8sConstants;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 표준 stack output 조립 — {@code AbstractKubeadmProvisioner.assembleOutputs} 의 YAML 등가물.
@@ -64,7 +67,7 @@ public final class StandardOutputs {
                 .output("kubeconfigRemotePath", "/etc/kubernetes/admin.conf")
                 .output("masterSshCommand", YamlRef.secret(sshCommand(spec, masterPublicIp)))
                 .output("kubeconfigFetchCommand", YamlRef.secret(kubeconfigFetchCommand(spec, masterPublicIp)))
-                .output("nodes", nodesJson(spec, refs));
+                .output("nodes", nodes(spec, refs));
     }
 
     private static String sshCommand(ClusterSpec spec, String publicIp) {
@@ -77,37 +80,31 @@ public final class StandardOutputs {
     }
 
     /**
-     * nodes 는 배열이 아니라 JSON 문자열이다. {@code ProvisioningResultMapper} 가 문자열을 전제하므로
-     * 형태를 바꾸지 않는다.
+     * nodes 는 실제 배열이다.
      *
-     * <p>보간({@code ${res.prop}})이 문자열 안에 들어가고 Pulumi 가 치환한다. 값이 IP 문자열뿐이라
-     * escape 가 필요한 문자가 나오지 않는다.
+     * <p>JSON 문자열 형태는 Pulumi Java SDK 의 일부 역직렬화 경로가 배열 값을 못 다뤄 쓰던 회피책이다.
+     * YAML 경로는 SDK 를 거치지 않고 CLI 의 stack output 을 읽으므로 그 제약이 없다.
+     * 소비자({@code VmClusterNodeResolver})도 배열을 기대한다.
      */
-    private static String nodesJson(ClusterSpec spec, NodeRefs refs) {
-        StringBuilder json = new StringBuilder("[");
-        appendNode(json, spec, "master", refs.master());
+    private static List<Map<String, Object>> nodes(ClusterSpec spec, NodeRefs refs) {
+        List<Map<String, Object>> nodes = new ArrayList<>(1 + refs.workers().size());
+        nodes.add(nodeEntry(spec, "master", refs.master()));
         for (NodeRef worker : refs.workers()) {
-            json.append(',');
-            appendNode(json, spec, "worker", worker);
+            nodes.add(nodeEntry(spec, "worker", worker));
         }
-        return json.append(']').toString();
+        return nodes;
     }
 
     /** 키 이름은 {@code AbstractKubeadmProvisioner.nodeEntry} 와 같아야 한다. */
-    private static void appendNode(StringBuilder json, ClusterSpec spec, String role, NodeRef ref) {
+    private static Map<String, Object> nodeEntry(ClusterSpec spec, String role, NodeRef ref) {
         String publicIp = ref.publicIp();
-        json.append("{\"role\":\"")
-                .append(role)
-                .append("\",\"instanceId\":\"")
-                .append(ref.instanceId())
-                .append("\",\"privateIp\":\"")
-                .append(ref.privateIp())
-                .append("\",\"publicIp\":\"")
-                .append(publicIp)
-                .append("\",\"publicDns\":\"")
-                .append(publicIp)
-                .append("\",\"ssh\":\"")
-                .append(sshCommand(spec, publicIp))
-                .append("\"}");
+        Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("role", role);
+        entry.put("instanceId", ref.instanceId());
+        entry.put("privateIp", ref.privateIp());
+        entry.put("publicIp", publicIp);
+        entry.put("publicDns", publicIp);
+        entry.put("ssh", sshCommand(spec, publicIp));
+        return entry;
     }
 }
