@@ -39,7 +39,8 @@ public final class Defaults {
             "digitalocean",
                     new ProviderDefaults("anycloud-digitalocean", "10.88.0.0/16", "s-2vcpu-4gb", "s-2vcpu-4gb", "root"),
             // Proxmox 는 인스턴스 타입이 없다. "코어-메모리MiB" 규약으로 받아 emitter 가 나눈다.
-            "proxmox", new ProviderDefaults("anycloud-proxmox", "10.94.0.0/24", "2-4096", "2-4096", "ubuntu"));
+            "proxmox", new ProviderDefaults("anycloud-proxmox", "10.94.0.0/24", "2-4096", "2-4096", "ubuntu"),
+            "ibm", new ProviderDefaults("anycloud-ibm", "10.98.0.0/16", "bx2-2x8", "bx2-2x8", "ubuntu"));
 
     public static ClusterSpec applyProviderDefaults(ClusterSpec raw) {
         String canonical = ProviderName.canonical(raw.provider());
@@ -103,6 +104,12 @@ public final class Defaults {
                                 os.externalNetworkId(),
                                 os.floatingIpPool()));
             }
+            case "ibm" -> {
+                ProviderSpec.Ibm ibm =
+                        raw.providerSpec() instanceof ProviderSpec.Ibm i ? i : new ProviderSpec.Ibm(null, null);
+                // zone 은 region 에서 유도할 수 없다. 계정마다 활성 zone 이 달라 추측하면 생성이 실패한다.
+                b.providerSpec(new ProviderSpec.Ibm(ibm.zone(), ibm.resourceGroup()));
+            }
             case "proxmox" -> {
                 ProviderSpec.Proxmox px = raw.providerSpec() instanceof ProviderSpec.Proxmox p
                         ? p
@@ -124,7 +131,7 @@ public final class Defaults {
             case "openstack" -> spec.providerSpec() instanceof ProviderSpec.Openstack os ? os.imageName() : null;
             case "gcp" -> "ubuntu-2404-lts";
             case "azure" -> "Canonical Ubuntu 24.04 LTS";
-            case "proxmox" -> spec.osImage();
+            case "proxmox", "ibm" -> spec.osImage();
             case "alibaba", "oci", "digitalocean" -> "Ubuntu 24.04";
             default -> "ubuntu-24.04";
         };

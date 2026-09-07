@@ -277,7 +277,7 @@ provisioner 7종을 그대로 옮기지 않고 **공통 골격 + CSP별 리소�
 | 4 | OCI, Azure emitter | `pulumi preview` 구조 검증 | 완료 |
 | 5 | `ProviderProvisioner` 계열 제거, `build.gradle`에서 SDK 제거 | 크기 실측, 전체 회귀 | 완료 |
 | 6 | Proxmox emitter | `pulumi preview` 구조 검증 | 완료 |
-| 7 | IBM emitter | 각 스택 실제 생성 | 미착수 |
+| 7 | IBM emitter | `pulumi preview` 구조 검증 | 완료 |
 
 5단계 결과는 bootJar 440.4MB → 187.7MB입니다. `tls` SDK도 함께 걷어냈습니다 — YAML은
 `tls:index/privateKey:PrivateKey`를 토큰으로 참조하고 CLI 플러그인이 해석하므로 Java 바인딩이
@@ -292,7 +292,18 @@ Proxmox 는 다른 CSP 와 모양이 다릅니다. 하이퍼바이저라 VPC, �
 타입 항목이 둘 있어 조회 순서에 따라 다른 쪽이 잡힙니다. `proxmoxve:index/VmLegacyDisk:VmLegacyDisk`
 처럼 전체 키로 조회해야 하고, 최종 확인은 `pulumi preview` 로 해야 합니다.
 
-IBM 은 동적 브리지 패키지라 설치 방식이 다릅니다. emitter 는 아직 없습니다.
+IBM 은 동적 브리지 패키지라 다른 provider 와 요구사항이 다릅니다. 네 가지가 모두 있어야 동작합니다.
+
+| 요구사항 | 이유 |
+|---|---|
+| Pulumi CLI 3.261.0 이상 | 3.160.0 은 YAML 프로젝트에서 `packages` 선언을 타입 해석에 연결하지 못한다 |
+| `gcompat` | OpenTofu provider 바이너리는 정적 Go 빌드가 아니라 glibc 를 동적 링크한다. Alpine 에서 `Dynamic loader not found` 로 죽는다 |
+| `packages` 선언 | 없으면 타입 해석이 `pulumiverse/pulumi-ibm` 을 찾다 404 로 죽는다 |
+| `sdks/ibm-2.5.0.yaml` | 프로그램 옆에 있어야 한다. `pulumi package add` 가 만든다 |
+
+`pulumi package add` 는 SDK 를 생성하는 명령이라 YAML 프로젝트에서도 스키마 파일을 남깁니다.
+이미지 빌드 때 한 번 실행해 `/opt/pulumi-packages/sdks` 에 두고, `YamlWorkspaceFactory` 가 호출마다
+workDir 로 복사합니다. OpenTofu provider 바이너리도 `dynamic_tf_plugins` 로 함께 캐시합니다.
 
 실제 스택 생성까지 확인한 것은 OpenStack뿐입니다. 나머지는 자격증명이 없어 `pulumi preview`가
 타입 토큰과 참조를 해석하는 지점까지만 확인했고, 속성 이름은 provider 스키마와 대조했습니다.

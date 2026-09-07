@@ -37,6 +37,14 @@ public sealed interface ProviderSpec {
             implements ProviderSpec {}
 
     /**
+     * IBM Cloud VPC.
+     *
+     * @param zone 인스턴스를 올릴 zone. region 만으로는 서브넷을 만들 수 없다 (예: kr-seo-1)
+     * @param resourceGroup 리소스를 담을 그룹 ID. 생략하면 계정 기본 그룹
+     */
+    record Ibm(String zone, String resourceGroup) implements ProviderSpec {}
+
+    /**
      * config map 에서 provider 에 맞는 spec 을 만든다. 인식하지 못하는 provider 는 {@code null}.
      *
      * @param lookup 키 하나를 읽는 함수. 호출자가 namespace 접두 처리를 소유한다.
@@ -54,6 +62,7 @@ public sealed interface ProviderSpec {
                     read(lookup, "flavorName"),
                     read(lookup, "externalNetworkId"),
                     read(lookup, "floatingIpPool"));
+            case "ibm" -> new Ibm(read(lookup, "zone"), read(lookup, "resourceGroup"));
             case "proxmox" -> new Proxmox(
                     read(lookup, "nodeName"),
                     read(lookup, "datastoreId"),

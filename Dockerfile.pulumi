@@ -42,11 +42,13 @@ RUN java -Djarmode=tools -jar apps/anycloud/build/libs/*-SNAPSHOT.jar \
 # CLI 스테이지 — pulumi, helm 바이너리만 받는다.
 FROM alpine:3.20 AS cli-fetch
 
-ARG PULUMI_VERSION=3.160.0
+ARG PULUMI_VERSION=3.261.0
 ARG HELM_VERSION=3.19.0
 ARG TARGETARCH
 
-RUN apk add --no-cache curl tar
+# gcompat — package add 가 OpenTofu provider 를 실행해 스키마를 뽑는다. 그 바이너리는
+# glibc 를 동적 링크한다.
+RUN apk add --no-cache curl tar gcompat libc6-compat
 
 # Pulumi / Helm release archive 는 arch 별로 분기. TARGETARCH (amd64|arm64) → release naming.
 RUN case "${TARGETARCH}" in \
@@ -99,15 +101,28 @@ RUN --mount=type=secret,id=github_token,required=false \
             resource "$name" "v$ver" $server || exit 1; \
     done
 
+# IBM 은 사전 컴파일된 플러그인이 없다. terraform-provider 베이스가 OpenTofu provider 를 런타임에
+# 붙이는 구조라, 프로그램 옆에 스키마 파일이 있어야 타입이 해석된다. 여기서 한 번 만들어 둔다.
+ARG IBM_PACKAGE="ibm-cloud/ibm"
+RUN mkdir -p /packages && cd /packages \
+    && printf 'name: seed\nruntime: yaml\nresources: {}\n' > Pulumi.yaml \
+    && PULUMI_HOME=/plugin-home /opt/pulumi/pulumi package add terraform-provider "${IBM_PACKAGE}" \
+    && rm -f Pulumi.yaml
+
 
 # Runtime stage.
 FROM eclipse-temurin:21-jre-alpine
 
+# gcompat — IBM 처럼 terraform-provider 로 브리지되는 provider 는 OpenTofu 레지스트리의
+# 바이너리를 그대로 실행한다. 그것들은 정적 Go 빌드가 아니라 glibc 를 동적 링크해서
+# musl 만으로는 "Dynamic loader not found" 로 죽는다.
 RUN apk add --no-cache \
        bash \
        ca-certificates \
        curl \
+       gcompat \
        git \
+       libc6-compat \
        openssh-client \
        tar \
        unzip
@@ -120,6 +135,9 @@ RUN addgroup -S anycloud && adduser -S -G anycloud -h /home/anycloud anycloud
 
 # --chown 으로 복사해야 한다. 뒤에서 chown -R 하면 1.8GB 를 복제한 레이어가 생긴다.
 COPY --from=plugin-fetch --chown=anycloud:anycloud /plugin-home/plugins/ /app/.pulumi/plugins/
+# terraform-provider 가 런타임에 받는 OpenTofu 바이너리도 캐시한다.
+COPY --from=plugin-fetch --chown=anycloud:anycloud /plugin-home/dynamic_tf_plugins/ /app/.pulumi/dynamic_tf_plugins/
+COPY --from=plugin-fetch --chown=anycloud:anycloud /packages/sdks/ /opt/pulumi-packages/sdks/
 
 WORKDIR /app
 

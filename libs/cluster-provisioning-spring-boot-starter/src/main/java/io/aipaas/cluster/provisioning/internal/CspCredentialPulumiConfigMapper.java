@@ -80,6 +80,11 @@ public final class CspCredentialPulumiConfigMapper {
                         if (tok == null || tok.isBlank()) tok = env.get("DIGITALOCEAN_ACCESS_TOKEN");
                         put(out, "digitalocean:token", tok);
                     },
+            "ibm",
+                    (env, out) -> {
+                        put(out, "ibm:ibmcloudApiKey", env.get("IBMCLOUD_API_KEY"));
+                        put(out, "ibm:region", env.get("IBMCLOUD_REGION"));
+                    },
             "proxmox",
                     (env, out) -> {
                         put(out, "proxmoxve:endpoint", env.get("PROXMOX_VE_ENDPOINT"));
@@ -121,6 +126,8 @@ public final class CspCredentialPulumiConfigMapper {
             "ARM_CLIENT_SECRET",
             "ARM_SUBSCRIPTION_ID",
             "ARM_TENANT_ID",
+            "IBMCLOUD_API_KEY",
+            "IBMCLOUD_REGION",
             "PROXMOX_VE_ENDPOINT",
             "PROXMOX_VE_USERNAME",
             "PROXMOX_VE_PASSWORD",

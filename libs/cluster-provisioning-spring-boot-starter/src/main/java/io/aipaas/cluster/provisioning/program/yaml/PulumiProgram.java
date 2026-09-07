@@ -1,6 +1,7 @@
 package io.aipaas.cluster.provisioning.program.yaml;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
@@ -39,6 +40,7 @@ public final class PulumiProgram {
 
         private final String projectName;
         private final PluginVersions pluginVersions = PluginVersions.fromEnvironment();
+        private final Map<String, Object> packages = new LinkedHashMap<>();
         private final Map<String, Object> variables = new LinkedHashMap<>();
         private final Map<String, Object> resources = new LinkedHashMap<>();
         private final Map<String, Object> outputs = new LinkedHashMap<>();
@@ -68,6 +70,20 @@ public final class PulumiProgram {
             return this;
         }
 
+        /**
+         * 사전 컴파일된 플러그인이 없는 provider 선언. {@code terraform-provider} 베이스가 런타임에
+         * OpenTofu provider 를 붙인다. 이 선언만으로는 부족하고 {@code sdks/} 스키마가 옆에 있어야
+         * 타입이 해석된다.
+         */
+        public Builder pkg(String name, String source, String version, List<String> parameters) {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("source", source);
+            entry.put("version", version);
+            entry.put("parameters", List.copyOf(parameters));
+            packages.put(name, entry);
+            return this;
+        }
+
         /** provider function 호출 결과처럼 리소스가 아닌 값. {@code ${name.field}} 로 참조한다. */
         public Builder variable(String name, Object value) {
             variables.put(name, value);
@@ -83,6 +99,9 @@ public final class PulumiProgram {
             Map<String, Object> doc = new LinkedHashMap<>();
             doc.put("name", projectName);
             doc.put("runtime", "yaml");
+            if (!packages.isEmpty()) {
+                doc.put("packages", packages);
+            }
             if (!variables.isEmpty()) {
                 doc.put("variables", variables);
             }

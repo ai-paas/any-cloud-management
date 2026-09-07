@@ -35,6 +35,7 @@ class YamlProgramDumpTest {
         config.put("providerSpec.resourceGroup", envOr("ANYCLOUD_AZURE_RG", "demo-rg"));
         config.put("osImage", envOr("ANYCLOUD_OS_IMAGE_ID", ""));
         config.put("providerSpec.nodeName", envOr("ANYCLOUD_PROXMOX_NODE", "pve"));
+        config.put("providerSpec.zone", envOr("ANYCLOUD_IBM_ZONE", "us-south-1"));
 
         ProvisioningRequest request = new ProvisioningRequest();
         request.setProvider(envOr("ANYCLOUD_DUMP_PROVIDER", "openstack"));

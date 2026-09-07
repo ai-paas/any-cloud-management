@@ -18,6 +18,7 @@
 | Provider | Credential ENV / MANUAL key | 필수 config |
 | --- | --- | --- |
 | OpenStack | `OS_AUTH_URL`, `OS_USERNAME`, `OS_PASSWORD`, `OS_PROJECT_NAME`, `OS_USER_DOMAIN_NAME`, `OS_PROJECT_DOMAIN_NAME`, `OS_REGION_NAME` | `anycloud-k8s:providerSpec.imageName`, `anycloud-k8s:providerSpec.flavorName`, 그리고 `anycloud-k8s:providerSpec.externalNetworkId` 또는 `anycloud-k8s:providerSpec.floatingIpPool` |
+| IBM | `IBMCLOUD_API_KEY`, `IBMCLOUD_REGION` | `anycloud-k8s:providerSpec.zone` |
 | Proxmox | `PROXMOX_VE_ENDPOINT`, 그리고 `PROXMOX_VE_API_TOKEN` 또는 `PROXMOX_VE_USERNAME`+`PROXMOX_VE_PASSWORD` | `anycloud-k8s:providerSpec.nodeName` |
 
 ## 운영 메모
@@ -26,6 +27,8 @@
 - `ENV` credential은 백엔드 컨테이너 환경변수를 그대로 참조합니다.
 - Bruno CLI 테스트 시에는 `VM_CREDENTIALS_JSON` 같은 `process.env` 패턴으로 민감값을 파일 밖에서 주입하는 방식을 권장합니다.
 - 실제 `Pulumi` 실행과 `delete/retry`는 같은 `credentialId`를 다시 사용합니다.
+- `IBM`의 `providerSpec.zone`은 region이 아니라 zone입니다(예: `us-south-1`). 계정마다 활성 zone이 달라 region에서 유도하지 않습니다.
+- `IBM`은 사전 컴파일된 Pulumi 플러그인이 없습니다. `terraform-provider` 베이스가 OpenTofu provider를 붙이므로 프로그램에 `packages` 선언과 `sdks/` 스키마가 함께 필요합니다. 이미지 빌드 때 만들어 두고 workDir로 복사합니다.
 - `Proxmox`의 `providerSpec.datastoreId`(기본 `local-lvm`), `providerSpec.snippetDatastoreId`(기본 `local`), `providerSpec.networkBridge`(기본 `vmbr0`)는 생략하면 기본값을 씁니다.
 - `Proxmox`는 인스턴스 타입이 없습니다. `masterInstanceType`을 `"코어-메모리MiB"` 형식(예: `4-8192`)으로 받습니다.
 - `Proxmox`는 API 토큰과 username/password가 배타적입니다. 둘 다 넘기면 provider가 거부합니다.
