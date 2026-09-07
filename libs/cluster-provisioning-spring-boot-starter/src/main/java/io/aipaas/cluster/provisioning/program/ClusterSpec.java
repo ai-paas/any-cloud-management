@@ -19,9 +19,6 @@ public record ClusterSpec(
         String name,
         String environment,
         String region,
-        String gcpProject,
-        String azureResourceGroup,
-        String ociCompartmentId,
         String vpcCidr,
         List<String> subnetCidrs,
         String sshUser,
@@ -33,10 +30,7 @@ public record ClusterSpec(
         String podCidr,
         String serviceCidr,
         String joinToken,
-        String openstackImageName,
-        String openstackFlavorName,
-        String openstackExternalNetworkId,
-        String openstackFloatingIpPool,
+        ProviderSpec providerSpec,
         DatabaseSpec database,
         boolean useSpot,
         String osImage,
@@ -50,9 +44,6 @@ public record ClusterSpec(
                 str(cfg, "name"),
                 str(cfg, "environment"),
                 str(cfg, "region"),
-                str(cfg, "gcpProject"),
-                str(cfg, "azureResourceGroup"),
-                str(cfg, "ociCompartmentId"),
                 str(cfg, "vpcCidr"),
                 strList(cfg, "subnetCidrs"),
                 str(cfg, "sshUser"),
@@ -64,10 +55,7 @@ public record ClusterSpec(
                 str(cfg, "podCidr"),
                 str(cfg, "serviceCidr"),
                 str(cfg, "joinToken"),
-                str(cfg, "openstackImageName"),
-                str(cfg, "openstackFlavorName"),
-                str(cfg, "openstackExternalNetworkId"),
-                str(cfg, "openstackFloatingIpPool"),
+                ProviderSpec.from(str(cfg, "provider"), key -> str(cfg, key)),
                 new DatabaseSpec(
                         boolVal(cfg, "dbEnabled"),
                         str(cfg, "dbName"),
@@ -104,9 +92,6 @@ public record ClusterSpec(
                 mapStr(cfg, "name"),
                 mapStr(cfg, "environment"),
                 mapStr(cfg, "region"),
-                mapStr(cfg, "gcpProject"),
-                mapStr(cfg, "azureResourceGroup"),
-                mapStr(cfg, "ociCompartmentId"),
                 mapStr(cfg, "vpcCidr"),
                 mapList(cfg, "subnetCidrs"),
                 mapStr(cfg, "sshUser"),
@@ -118,10 +103,7 @@ public record ClusterSpec(
                 mapStr(cfg, "podCidr"),
                 mapStr(cfg, "serviceCidr"),
                 mapStr(cfg, "joinToken"),
-                mapStr(cfg, "openstackImageName"),
-                mapStr(cfg, "openstackFlavorName"),
-                mapStr(cfg, "openstackExternalNetworkId"),
-                mapStr(cfg, "openstackFloatingIpPool"),
+                ProviderSpec.from(mapStr(cfg, "provider"), key -> mapStr(cfg, key)),
                 new DatabaseSpec(
                         mapBool(cfg, "dbEnabled"),
                         mapStr(cfg, "dbName"),
@@ -218,9 +200,6 @@ public record ClusterSpec(
         private String name;
         private String environment;
         private String region;
-        private String gcpProject;
-        private String azureResourceGroup;
-        private String ociCompartmentId;
         private String vpcCidr;
         private List<String> subnetCidrs;
         private String sshUser;
@@ -232,10 +211,7 @@ public record ClusterSpec(
         private String podCidr;
         private String serviceCidr;
         private String joinToken;
-        private String openstackImageName;
-        private String openstackFlavorName;
-        private String openstackExternalNetworkId;
-        private String openstackFloatingIpPool;
+        private ProviderSpec providerSpec;
         private DatabaseSpec database;
         private boolean useSpot;
         private String osImage;
@@ -246,9 +222,6 @@ public record ClusterSpec(
             this.name = src.name;
             this.environment = src.environment;
             this.region = src.region;
-            this.gcpProject = src.gcpProject;
-            this.azureResourceGroup = src.azureResourceGroup;
-            this.ociCompartmentId = src.ociCompartmentId;
             this.vpcCidr = src.vpcCidr;
             this.subnetCidrs = src.subnetCidrs;
             this.sshUser = src.sshUser;
@@ -260,10 +233,7 @@ public record ClusterSpec(
             this.podCidr = src.podCidr;
             this.serviceCidr = src.serviceCidr;
             this.joinToken = src.joinToken;
-            this.openstackImageName = src.openstackImageName;
-            this.openstackFlavorName = src.openstackFlavorName;
-            this.openstackExternalNetworkId = src.openstackExternalNetworkId;
-            this.openstackFloatingIpPool = src.openstackFloatingIpPool;
+            this.providerSpec = src.providerSpec;
             this.database = src.database;
             this.useSpot = src.useSpot;
             this.osImage = src.osImage;
@@ -335,6 +305,11 @@ public record ClusterSpec(
             return this;
         }
 
+        public Builder providerSpec(ProviderSpec v) {
+            this.providerSpec = v;
+            return this;
+        }
+
         public Builder joinToken(String v) {
             this.joinToken = v;
             return this;
@@ -350,30 +325,12 @@ public record ClusterSpec(
             return this;
         }
 
-        public Builder openstackImageName(String v) {
-            this.openstackImageName = v;
-            return this;
-        }
-
-        public Builder openstackFlavorName(String v) {
-            this.openstackFlavorName = v;
-            return this;
-        }
-
-        public Builder azureResourceGroup(String v) {
-            this.azureResourceGroup = v;
-            return this;
-        }
-
         public ClusterSpec build() {
             return new ClusterSpec(
                     provider,
                     name,
                     environment,
                     region,
-                    gcpProject,
-                    azureResourceGroup,
-                    ociCompartmentId,
                     vpcCidr,
                     subnetCidrs,
                     sshUser,
@@ -385,10 +342,7 @@ public record ClusterSpec(
                     podCidr,
                     serviceCidr,
                     joinToken,
-                    openstackImageName,
-                    openstackFlavorName,
-                    openstackExternalNetworkId,
-                    openstackFloatingIpPool,
+                    providerSpec,
                     database,
                     useSpot,
                     osImage,

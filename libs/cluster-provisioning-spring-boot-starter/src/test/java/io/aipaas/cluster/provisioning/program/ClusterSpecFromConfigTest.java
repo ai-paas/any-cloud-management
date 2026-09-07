@@ -32,8 +32,10 @@ class ClusterSpecFromConfigTest {
         // 설정은 부분적으로만 채워져 오고 Defaults 가 나머지를 메운다.
         ClusterSpec spec = ClusterSpec.from(baseConfig());
 
-        assertThat(spec.gcpProject()).isNull();
-        assertThat(spec.openstackImageName()).isNull();
+        assertThat(spec.providerSpec())
+                .isInstanceOf(ProviderSpec.Openstack.class)
+                .extracting(ps -> ((ProviderSpec.Openstack) ps).imageName())
+                .isNull();
     }
 
     @Test

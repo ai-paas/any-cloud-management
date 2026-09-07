@@ -37,6 +37,7 @@ import com.pulumi.tls.PrivateKey;
 import com.pulumi.tls.PrivateKeyArgs;
 import io.aipaas.cluster.provisioning.program.ClusterSpec;
 import io.aipaas.cluster.provisioning.program.K8sConstants;
+import io.aipaas.cluster.provisioning.program.ProviderSpec;
 import io.aipaas.cluster.provisioning.program.ResourceNames;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -74,7 +75,7 @@ public final class AzureProvisioner extends AbstractKubeadmProvisioner {
 
     @Override
     protected ProvisionedCluster provisionResources(Context ctx, ClusterSpec spec) {
-        if (spec.azureResourceGroup() == null || spec.azureResourceGroup().isBlank()) {
+        if (azure(spec).resourceGroup() == null || azure(spec).resourceGroup().isBlank()) {
             throw new IllegalStateException("azureResourceGroup is required for Azure provisioning");
         }
         if (spec.region() == null || spec.region().isBlank()) {
@@ -111,14 +112,13 @@ public final class AzureProvisioner extends AbstractKubeadmProvisioner {
 
     // ===== Network =====
 
-    private record NetworkResult(
-            ResourceGroup rg, VirtualNetwork vnet, Subnet subnet, NetworkSecurityGroup nsg) {}
+    private record NetworkResult(ResourceGroup rg, VirtualNetwork vnet, Subnet subnet, NetworkSecurityGroup nsg) {}
 
     private NetworkResult provisionNetwork(ClusterSpec spec) {
         ResourceGroup rg = new ResourceGroup(
                 resourceName(spec, "rg"),
                 ResourceGroupArgs.builder()
-                        .resourceGroupName(spec.azureResourceGroup())
+                        .resourceGroupName(azure(spec).resourceGroup())
                         .location(spec.region())
                         .build());
 
@@ -155,10 +155,7 @@ public final class AzureProvisioner extends AbstractKubeadmProvisioner {
         for (Rule r : List.of(
                 new Rule("ssh", 100, String.valueOf(K8sConstants.PORT_SSH)),
                 new Rule("k8s-api", 110, String.valueOf(K8sConstants.PORT_KUBE_API_SERVER)),
-                new Rule(
-                        "nodeport",
-                        120,
-                        K8sConstants.NODE_PORT_MIN + "-" + K8sConstants.NODE_PORT_MAX))) {
+                new Rule("nodeport", 120, K8sConstants.NODE_PORT_MIN + "-" + K8sConstants.NODE_PORT_MAX))) {
             new SecurityRule(
                     resourceName(spec, "nsg-rule-" + r.name()),
                     SecurityRuleArgs.builder()
@@ -206,20 +203,18 @@ public final class AzureProvisioner extends AbstractKubeadmProvisioner {
                                         .id(net.subnet.id())
                                         .build())
                                 .privateIPAllocationMethod("Dynamic")
-                                .publicIPAddress(
-                                        com.pulumi.azurenative.network.inputs.PublicIPAddressArgs.builder()
-                                                .id(publicIp.id())
-                                                .build())
-                                .build())
-                        .networkSecurityGroup(
-                                com.pulumi.azurenative.network.inputs.NetworkSecurityGroupArgs.builder()
-                                        .id(net.nsg.id())
+                                .publicIPAddress(com.pulumi.azurenative.network.inputs.PublicIPAddressArgs.builder()
+                                        .id(publicIp.id())
                                         .build())
+                                .build())
+                        .networkSecurityGroup(com.pulumi.azurenative.network.inputs.NetworkSecurityGroupArgs.builder()
+                                .id(net.nsg.id())
+                                .build())
                         .build());
 
         // Custom data — cloud-init shell script base64.
-        Output<String> base64UserData = node.userData()
-                .applyValue(s -> Base64.getEncoder().encodeToString(s.getBytes(StandardCharsets.UTF_8)));
+        Output<String> base64UserData =
+                node.userData().applyValue(s -> Base64.getEncoder().encodeToString(s.getBytes(StandardCharsets.UTF_8)));
 
         VirtualMachineArgs.Builder vmArgsBuilder = VirtualMachineArgs.builder()
                 .resourceGroupName(net.rg.name())
@@ -275,8 +270,7 @@ public final class AzureProvisioner extends AbstractKubeadmProvisioner {
 
         // Private IP — NIC.ipConfigurations() 가 Output<Optional<List<...>>> 반환. Optional 풀고 첫 element 의
         // privateIPAddress() (자체도 Optional<String>) 풀어 빈 문자열 fallback.
-        Output<String> privateIp = nic.ipConfigurations().applyValue(opt -> opt
-                .filter(cfgs -> !cfgs.isEmpty())
+        Output<String> privateIp = nic.ipConfigurations().applyValue(opt -> opt.filter(cfgs -> !cfgs.isEmpty())
                 .map(cfgs -> cfgs.get(0).privateIPAddress().orElse(""))
                 .orElse(""));
 
@@ -285,5 +279,11 @@ public final class AzureProvisioner extends AbstractKubeadmProvisioner {
 
     private static String resourceName(ClusterSpec spec, String suffix) {
         return ResourceNames.join(spec.name(), suffix);
+    }
+
+    /** provider 전용 설정. 다른 CSP 의 spec 이 오면 assembler 가 provider 를 잘못 라우팅한 것이다. */
+    private static ProviderSpec.Azure azure(ClusterSpec spec) {
+        if (spec.providerSpec() instanceof ProviderSpec.Azure azure) return azure;
+        throw new IllegalStateException("Azure 설정이 없다: provider=" + spec.provider());
     }
 }

@@ -28,6 +28,7 @@ import com.pulumi.resources.Resource;
 import com.pulumi.tls.PrivateKey;
 import com.pulumi.tls.PrivateKeyArgs;
 import io.aipaas.cluster.provisioning.program.ClusterSpec;
+import io.aipaas.cluster.provisioning.program.ProviderSpec;
 import io.aipaas.cluster.provisioning.program.ResourceNames;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,7 +56,7 @@ public final class GcpProvisioner extends AbstractKubeadmProvisioner {
 
     @Override
     protected ProvisionedCluster provisionResources(Context ctx, ClusterSpec spec) {
-        if (spec.gcpProject() == null || spec.gcpProject().isBlank()) {
+        if (gcp(spec).project() == null || gcp(spec).project().isBlank()) {
             throw new IllegalStateException("gcpProject is required for GCP provisioning");
         }
         if (spec.region() == null || spec.region().isBlank()) {
@@ -73,17 +74,14 @@ public final class GcpProvisioner extends AbstractKubeadmProvisioner {
 
         PrivateKey privateKey = new PrivateKey(
                 resourceName(spec, "ssh-key"),
-                PrivateKeyArgs.builder()
-                        .algorithm("RSA")
-                        .rsaBits(4096)
-                        .build());
+                PrivateKeyArgs.builder().algorithm("RSA").rsaBits(4096).build());
 
         Account sa = new Account(
                 resourceName(spec, "sa"),
                 AccountArgs.builder()
                         .accountId(trimAccountId(resourceName(spec, "sa")))
                         .displayName(spec.name() + " vm cluster service account")
-                        .project(spec.gcpProject())
+                        .project(gcp(spec).project())
                         .build());
 
         List<NodeSpec> nodes = NodeSpecs.from(spec);
@@ -92,8 +90,7 @@ public final class GcpProvisioner extends AbstractKubeadmProvisioner {
 
         for (NodeSpec node : nodes) {
             if (node.role() != InstanceRole.MASTER) continue;
-            masterInstance =
-                    provisionInstance(spec, net, zoneNames, imageSelfLink, sa, privateKey, node, null);
+            masterInstance = provisionInstance(spec, net, zoneNames, imageSelfLink, sa, privateKey, node, null);
         }
         if (masterInstance == null) {
             throw new IllegalStateException(
@@ -116,7 +113,7 @@ public final class GcpProvisioner extends AbstractKubeadmProvisioner {
         Network network = new Network(
                 resourceName(spec, "vpc"),
                 NetworkArgs.builder()
-                        .project(spec.gcpProject())
+                        .project(gcp(spec).project())
                         .autoCreateSubnetworks(false)
                         .routingMode("REGIONAL")
                         .build());
@@ -124,7 +121,7 @@ public final class GcpProvisioner extends AbstractKubeadmProvisioner {
         Subnetwork subnet = new Subnetwork(
                 resourceName(spec, "subnet"),
                 SubnetworkArgs.builder()
-                        .project(spec.gcpProject())
+                        .project(gcp(spec).project())
                         .region(spec.region())
                         .ipCidrRange(spec.subnetCidrs().get(0))
                         .network(network.id())
@@ -138,7 +135,7 @@ public final class GcpProvisioner extends AbstractKubeadmProvisioner {
         new Firewall(
                 resourceName(spec, "fw"),
                 FirewallArgs.builder()
-                        .project(spec.gcpProject())
+                        .project(gcp(spec).project())
                         .network(network.name())
                         .allows(List.of(
                                 FirewallAllowArgs.builder()
@@ -158,7 +155,7 @@ public final class GcpProvisioner extends AbstractKubeadmProvisioner {
         new Firewall(
                 resourceName(spec, "fw-internal"),
                 FirewallArgs.builder()
-                        .project(spec.gcpProject())
+                        .project(gcp(spec).project())
                         .network(network.name())
                         .allows(List.of(
                                 FirewallAllowArgs.builder().protocol("tcp").build(),
@@ -202,7 +199,7 @@ public final class GcpProvisioner extends AbstractKubeadmProvisioner {
         Address address = new Address(
                 resourceName(spec, suffix + "-ip"),
                 AddressArgs.builder()
-                        .project(spec.gcpProject())
+                        .project(gcp(spec).project())
                         .region(spec.region())
                         .build());
 
@@ -211,15 +208,14 @@ public final class GcpProvisioner extends AbstractKubeadmProvisioner {
         Output<String> zone = zoneNames.applyValue(zones -> zones.get(nodeIndex % zones.size()));
 
         // SSH key metadata — user:public-key 형식. cloud-init 이 worker 부팅 시 master 의 ssh key 도 받음.
-        Output<String> sshKeyMetadata =
-                privateKey.publicKeyOpenssh().applyValue(pub -> spec.sshUser() + ":" + pub);
+        Output<String> sshKeyMetadata = privateKey.publicKeyOpenssh().applyValue(pub -> spec.sshUser() + ":" + pub);
         Output<Map<String, String>> metadata = Output.tuple(sshKeyMetadata, node.userData())
                 .applyValue(t -> Map.of(
                         "ssh-keys", t.t1,
                         "startup-script", t.t2));
 
         InstanceArgs.Builder argsBuilder = InstanceArgs.builder()
-                .project(spec.gcpProject())
+                .project(gcp(spec).project())
                 .zone(zone)
                 .machineType(node.instanceType())
                 .tags(net.networkTag)
@@ -256,8 +252,8 @@ public final class GcpProvisioner extends AbstractKubeadmProvisioner {
         Instance instance = new Instance(resourceName(spec, suffix), argsBuilder.build(), opts);
 
         // GCP private IP 는 networkInterface[0].networkIp, public IP 는 address.address.
-        Output<String> privateIp =
-                instance.networkInterfaces().applyValue(nics -> nics.get(0).networkIp().orElse(""));
+        Output<String> privateIp = instance.networkInterfaces()
+                .applyValue(nics -> nics.get(0).networkIp().orElse(""));
         return new InstanceOutput(instance, instance.id(), privateIp, address.address());
     }
 
@@ -276,5 +272,11 @@ public final class GcpProvisioner extends AbstractKubeadmProvisioner {
         if (s.length() > 30) s = s.substring(0, 30);
         while (s.endsWith("-")) s = s.substring(0, s.length() - 1);
         return s;
+    }
+
+    /** provider 전용 설정. 다른 CSP 의 spec 이 오면 assembler 가 provider 를 잘못 라우팅한 것이다. */
+    private static ProviderSpec.Gcp gcp(ClusterSpec spec) {
+        if (spec.providerSpec() instanceof ProviderSpec.Gcp gcp) return gcp;
+        throw new IllegalStateException("Gcp 설정이 없다: provider=" + spec.provider());
     }
 }

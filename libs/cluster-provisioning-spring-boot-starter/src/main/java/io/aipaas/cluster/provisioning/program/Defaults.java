@@ -86,14 +86,21 @@ public final class Defaults {
             case "aws" -> b.database(applyDbDefaults(raw.database(), "anycloud", "anycloud", "db.t4g.micro", 20));
             case "azure" -> {
                 String name = blankOr(raw.name(), TABLE.get("azure").name());
-                b.azureResourceGroup(blankOr(raw.azureResourceGroup(), name + "-rg"));
+                String rg = raw.providerSpec() instanceof ProviderSpec.Azure a ? a.resourceGroup() : null;
+                b.providerSpec(new ProviderSpec.Azure(blankOr(rg, name + "-rg")));
             }
             case "openstack" -> {
-                String flavor = blankOr(raw.openstackFlavorName(), "m1.large");
+                ProviderSpec.Openstack os = raw.providerSpec() instanceof ProviderSpec.Openstack o
+                        ? o
+                        : new ProviderSpec.Openstack(null, null, null, null);
+                String flavor = blankOr(os.flavorName(), "m1.large");
                 b.masterInstanceType(blankOr(raw.masterInstanceType(), flavor))
                         .workerInstanceType(blankOr(raw.workerInstanceType(), flavor))
-                        .openstackImageName(blankOr(raw.openstackImageName(), "ubuntu-24.04"))
-                        .openstackFlavorName(flavor);
+                        .providerSpec(new ProviderSpec.Openstack(
+                                blankOr(os.imageName(), "ubuntu-24.04"),
+                                flavor,
+                                os.externalNetworkId(),
+                                os.floatingIpPool()));
             }
             default -> {
                 /* no extras */
@@ -103,7 +110,7 @@ public final class Defaults {
 
     public static String resolvedOsImage(ClusterSpec spec) {
         return switch (ProviderName.canonical(spec.provider())) {
-            case "openstack" -> spec.openstackImageName();
+            case "openstack" -> spec.providerSpec() instanceof ProviderSpec.Openstack os ? os.imageName() : null;
             case "gcp" -> "ubuntu-2404-lts";
             case "azure" -> "Canonical Ubuntu 24.04 LTS";
             case "alibaba", "oci", "digitalocean" -> "Ubuntu 24.04";

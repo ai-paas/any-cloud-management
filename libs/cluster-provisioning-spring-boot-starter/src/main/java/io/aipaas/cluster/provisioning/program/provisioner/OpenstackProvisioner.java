@@ -31,6 +31,7 @@ import com.pulumi.tls.PrivateKey;
 import com.pulumi.tls.PrivateKeyArgs;
 import io.aipaas.cluster.provisioning.program.ClusterSpec;
 import io.aipaas.cluster.provisioning.program.K8sConstants;
+import io.aipaas.cluster.provisioning.program.ProviderSpec;
 import io.aipaas.cluster.provisioning.program.ResourceNames;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,12 +47,10 @@ public final class OpenstackProvisioner extends AbstractKubeadmProvisioner {
 
     @Override
     protected ProvisionedCluster provisionResources(Context ctx, ClusterSpec spec) {
-        if (spec.openstackExternalNetworkId() == null
-                || spec.openstackExternalNetworkId().isBlank()) {
+        if (os(spec).externalNetworkId() == null || os(spec).externalNetworkId().isBlank()) {
             throw new IllegalStateException("openstackExternalNetworkId is required for OpenStack provisioning");
         }
-        if (spec.openstackFloatingIpPool() == null
-                || spec.openstackFloatingIpPool().isBlank()) {
+        if (os(spec).floatingIpPool() == null || os(spec).floatingIpPool().isBlank()) {
             throw new IllegalStateException("openstackFloatingIpPool is required for OpenStack provisioning");
         }
 
@@ -117,7 +116,7 @@ public final class OpenstackProvisioner extends AbstractKubeadmProvisioner {
                 RouterArgs.builder()
                         .name(resourceName(spec, "router"))
                         .adminStateUp(true)
-                        .externalNetworkId(spec.openstackExternalNetworkId())
+                        .externalNetworkId(os(spec).externalNetworkId())
                         .region(spec.region())
                         .build());
 
@@ -187,8 +186,8 @@ public final class OpenstackProvisioner extends AbstractKubeadmProvisioner {
 
         String imageName = (node.osImage() != null && !node.osImage().isBlank())
                 ? node.osImage()
-                : (spec.openstackImageName() != null ? spec.openstackImageName() : "ubuntu-24.04");
-        String flavorName = spec.openstackFlavorName() != null ? spec.openstackFlavorName() : node.instanceType();
+                : (os(spec).imageName() != null ? os(spec).imageName() : "ubuntu-24.04");
+        String flavorName = os(spec).flavorName() != null ? os(spec).flavorName() : node.instanceType();
 
         CustomResourceOptions opts = dependsOn == null
                 ? CustomResourceOptions.Empty
@@ -211,7 +210,7 @@ public final class OpenstackProvisioner extends AbstractKubeadmProvisioner {
         FloatingIp floatingIp = new FloatingIp(
                 resourceName(spec, suffix + "-fip"),
                 FloatingIpArgs.builder()
-                        .pool(spec.openstackFloatingIpPool())
+                        .pool(os(spec).floatingIpPool())
                         .region(spec.region())
                         .build());
 
@@ -229,5 +228,11 @@ public final class OpenstackProvisioner extends AbstractKubeadmProvisioner {
 
     private static String resourceName(ClusterSpec spec, String suffix) {
         return ResourceNames.join(spec.name(), suffix);
+    }
+
+    /** provider 전용 설정. 다른 CSP 의 spec 이 오면 assembler 가 provider 를 잘못 라우팅한 것이다. */
+    private static ProviderSpec.Openstack os(ClusterSpec spec) {
+        if (spec.providerSpec() instanceof ProviderSpec.Openstack os) return os;
+        throw new IllegalStateException("Openstack 설정이 없다: provider=" + spec.provider());
     }
 }

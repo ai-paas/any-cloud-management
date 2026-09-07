@@ -3,6 +3,7 @@ package io.aipaas.cluster.provisioning.program.yaml;
 import io.aipaas.cluster.provisioning.program.ClusterSpec;
 import io.aipaas.cluster.provisioning.program.K8sConstants;
 import io.aipaas.cluster.provisioning.program.KubeadmUserData;
+import io.aipaas.cluster.provisioning.program.ProviderSpec;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,8 +34,8 @@ final class OpenstackYamlEmitter implements ProviderYamlEmitter {
 
     @Override
     public StandardOutputs.NodeRefs emit(PulumiProgram.Builder b, ClusterSpec spec) {
-        requireConfig(spec.openstackExternalNetworkId(), "openstackExternalNetworkId");
-        requireConfig(spec.openstackFloatingIpPool(), "openstackFloatingIpPool");
+        requireConfig(os(spec).externalNetworkId(), "openstackExternalNetworkId");
+        requireConfig(os(spec).floatingIpPool(), "openstackFloatingIpPool");
 
         emitSshKey(b, spec);
         emitNetwork(b, spec);
@@ -77,7 +78,7 @@ final class OpenstackYamlEmitter implements ProviderYamlEmitter {
                 T_ROUTER,
                 Map.of(
                         "name", spec.name() + "-router",
-                        "externalNetworkId", spec.openstackExternalNetworkId(),
+                        "externalNetworkId", os(spec).externalNetworkId(),
                         "region", spec.region()));
         b.resource(
                 "routerIface",
@@ -163,8 +164,7 @@ final class OpenstackYamlEmitter implements ProviderYamlEmitter {
         instance.put("region", spec.region());
         b.resource(node, T_INSTANCE, instance);
 
-        b.resource(
-                "fip-" + node, T_FLOATING_IP, Map.of("pool", spec.openstackFloatingIpPool(), "region", spec.region()));
+        b.resource("fip-" + node, T_FLOATING_IP, Map.of("pool", os(spec).floatingIpPool(), "region", spec.region()));
         // 스키마의 FloatingIpAssociate 는 portId 만 받는다 — instanceId 라는 속성은 없다.
         b.resource(
                 "fipassoc-" + node,
@@ -179,7 +179,7 @@ final class OpenstackYamlEmitter implements ProviderYamlEmitter {
     }
 
     private String imageName(ClusterSpec spec) {
-        String image = spec.openstackImageName();
+        String image = os(spec).imageName();
         if (image != null && !image.isBlank()) {
             return image;
         }
@@ -188,7 +188,7 @@ final class OpenstackYamlEmitter implements ProviderYamlEmitter {
     }
 
     private String flavorName(ClusterSpec spec) {
-        String flavor = spec.openstackFlavorName();
+        String flavor = os(spec).flavorName();
         return flavor != null && !flavor.isBlank() ? flavor : spec.workerInstanceType();
     }
 
@@ -202,5 +202,11 @@ final class OpenstackYamlEmitter implements ProviderYamlEmitter {
         if (value == null || value.isBlank()) {
             throw new IllegalStateException(key + " is required for OpenStack provisioning");
         }
+    }
+
+    /** provider 전용 설정. 다른 CSP 의 spec 이 오면 assembler 가 provider 를 잘못 라우팅한 것이다. */
+    private static ProviderSpec.Openstack os(ClusterSpec spec) {
+        if (spec.providerSpec() instanceof ProviderSpec.Openstack os) return os;
+        throw new IllegalStateException("Openstack 설정이 없다: provider=" + spec.provider());
     }
 }

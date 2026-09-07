@@ -33,6 +33,7 @@ import com.pulumi.tls.PrivateKey;
 import com.pulumi.tls.PrivateKeyArgs;
 import io.aipaas.cluster.provisioning.program.ClusterSpec;
 import io.aipaas.cluster.provisioning.program.K8sConstants;
+import io.aipaas.cluster.provisioning.program.ProviderSpec;
 import io.aipaas.cluster.provisioning.program.ResourceNames;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -53,10 +54,10 @@ public final class OciProvisioner extends AbstractKubeadmProvisioner {
         if (spec.region() == null || spec.region().isBlank()) {
             throw new IllegalStateException("region is required for OCI provisioning");
         }
-        if (spec.ociCompartmentId() == null || spec.ociCompartmentId().isBlank()) {
+        if (oci(spec).compartmentId() == null || oci(spec).compartmentId().isBlank()) {
             throw new IllegalStateException("ociCompartmentId is required for OCI provisioning");
         }
-        String compartmentId = spec.ociCompartmentId();
+        String compartmentId = oci(spec).compartmentId();
 
         Output<String> adName = IdentityFunctions.getAvailabilityDomains(GetAvailabilityDomainsArgs.builder()
                         .compartmentId(compartmentId)
@@ -261,5 +262,11 @@ public final class OciProvisioner extends AbstractKubeadmProvisioner {
 
     private static String resourceName(ClusterSpec spec, String suffix) {
         return ResourceNames.join(spec.name(), suffix);
+    }
+
+    /** provider 전용 설정. 다른 CSP 의 spec 이 오면 assembler 가 provider 를 잘못 라우팅한 것이다. */
+    private static ProviderSpec.Oci oci(ClusterSpec spec) {
+        if (spec.providerSpec() instanceof ProviderSpec.Oci oci) return oci;
+        throw new IllegalStateException("Oci 설정이 없다: provider=" + spec.provider());
     }
 }
