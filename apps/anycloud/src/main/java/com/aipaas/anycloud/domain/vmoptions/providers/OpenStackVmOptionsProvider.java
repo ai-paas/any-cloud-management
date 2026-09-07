@@ -256,7 +256,6 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
             synchronized (this) {
                 local = insecureRestTemplate;
                 if (local == null) {
-                    // TLS context 구성은 비싸고 상태가 없어 한 번만 만든다.
                     insecureRestTemplate = local = buildInsecureRestTemplate();
                 }
             }

@@ -75,15 +75,7 @@ public class ClusterConvergenceOrchestratorImpl implements ClusterConvergenceOrc
         log.info("컴포넌트 조정으로 상태 변경 cluster={} {} -> {}", vmCluster.getClusterName(), current, next);
     }
 
-    /**
-     * 미충족 구성 요소를 다시 적용한다.
-     *
-     * <p>이 호출이 없으면 조정 루프는 상태만 다시 매기고 아무것도 고치지 않는다 — 어떤 클러스터도
-     * 스스로 READY 에 도달하지 못하고 운영자가 repair API 를 직접 부를 때까지 DEGRADED 로 남는다.
-     *
-     * <p>{@code observe} 가 결과를 이미 영속화했으므로 저장된 상태를 읽는다. 여기서 다시 probe 하면
-     * 클러스터마다 SSH 가 두 번 열린다.
-     */
+    /** {@code observe} 가 영속화한 상태를 읽는다 — 다시 probe 하면 클러스터마다 SSH 가 두 번 열린다. */
     private void repairUnsatisfied(VmClusterEntity vmCluster, List<ConvergenceSignal> signals) {
         if (evaluate(signals) != ConvergenceVerdict.UNSATISFIED) {
             return;
