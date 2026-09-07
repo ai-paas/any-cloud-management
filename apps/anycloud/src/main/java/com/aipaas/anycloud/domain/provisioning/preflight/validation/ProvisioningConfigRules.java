@@ -44,10 +44,10 @@ public final class ProvisioningConfigRules {
                 config.putIfAbsent(WORKER_VM_SPEC, "ecs.g6.large");
             }
             case OPENSTACK -> {
-                config.putIfAbsent("anycloud-k8s:openstackImageName", "ubuntu-24.04");
-                config.putIfAbsent("anycloud-k8s:openstackFlavorName", "m1.large");
-                config.putIfAbsent(MASTER_VM_SPEC, config.get("anycloud-k8s:openstackFlavorName"));
-                config.putIfAbsent(WORKER_VM_SPEC, config.get("anycloud-k8s:openstackFlavorName"));
+                config.putIfAbsent("anycloud-k8s:providerSpec.imageName", "ubuntu-24.04");
+                config.putIfAbsent("anycloud-k8s:providerSpec.flavorName", "m1.large");
+                config.putIfAbsent(MASTER_VM_SPEC, config.get("anycloud-k8s:providerSpec.flavorName"));
+                config.putIfAbsent(WORKER_VM_SPEC, config.get("anycloud-k8s:providerSpec.flavorName"));
             }
             case OCI -> {
                 config.putIfAbsent(MASTER_VM_SPEC, "VM.Standard.E4.Flex");
@@ -86,17 +86,22 @@ public final class ProvisioningConfigRules {
         validateBooleanFlags(config);
 
         switch (provider) {
-            case GCP -> requireConfigKeys(config, missingKeys, "anycloud-k8s:gcpProject");
-            case AZURE -> requireConfigKeys(config, missingKeys, "anycloud-k8s:azureResourceGroup");
+            case GCP -> requireConfigKeys(config, missingKeys, "anycloud-k8s:providerSpec.project");
+            case AZURE -> requireConfigKeys(config, missingKeys, "anycloud-k8s:providerSpec.resourceGroup");
             case OPENSTACK -> {
                 requireConfigKeys(
-                        config, missingKeys, "anycloud-k8s:openstackImageName", "anycloud-k8s:openstackFlavorName");
+                        config,
+                        missingKeys,
+                        "anycloud-k8s:providerSpec.imageName",
+                        "anycloud-k8s:providerSpec.flavorName");
                 requireAnyConfigKey(
                         config,
                         missingKeys,
-                        List.of("anycloud-k8s:openstackExternalNetworkId", "anycloud-k8s:openstackFloatingIpPool"));
+                        List.of(
+                                "anycloud-k8s:providerSpec.externalNetworkId",
+                                "anycloud-k8s:providerSpec.floatingIpPool"));
             }
-            case OCI -> requireConfigKeys(config, missingKeys, "anycloud-k8s:ociCompartmentId");
+            case OCI -> requireConfigKeys(config, missingKeys, "anycloud-k8s:providerSpec.compartmentId");
             default -> {}
         }
 

@@ -119,7 +119,7 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
         return switch (provider) {
             case GCP -> List.of(
                     ProviderConfigKey.builder()
-                            .key("anycloud-k8s:gcpProject")
+                            .key("anycloud-k8s:providerSpec.project")
                             .type("string")
                             .required(true)
                             .description("GCP project ID.")
@@ -127,7 +127,7 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                     osImage("anycloud-k8s:gcpImage", "GCP image family (예: ubuntu-2404-lts)."));
             case AZURE -> List.of(
                     ProviderConfigKey.builder()
-                            .key("anycloud-k8s:azureResourceGroup")
+                            .key("anycloud-k8s:providerSpec.resourceGroup")
                             .type("string")
                             .required(true)
                             .description("Azure resource group 이름.")
@@ -135,33 +135,33 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                     osImage("anycloud-k8s:azureImage", "Azure image URN."));
             case OPENSTACK -> List.of(
                     ProviderConfigKey.builder()
-                            .key("anycloud-k8s:openstackImageName")
+                            .key("anycloud-k8s:providerSpec.imageName")
                             .type("string")
                             .required(true)
                             .defaultValue("ubuntu-24.04")
                             .description("OpenStack glance image 이름.")
                             .build(),
                     ProviderConfigKey.builder()
-                            .key("anycloud-k8s:openstackFlavorName")
+                            .key("anycloud-k8s:providerSpec.flavorName")
                             .type("string")
                             .required(true)
                             .defaultValue("m1.large")
                             .description("OpenStack flavor 이름.")
                             .build(),
                     ProviderConfigKey.builder()
-                            .key("anycloud-k8s:openstackExternalNetworkId")
+                            .key("anycloud-k8s:providerSpec.externalNetworkId")
                             .type("string")
                             .required(false)
                             .description("External network ID (floating IP 발급용). FloatingIpPool 과 하나 필수.")
                             .build(),
                     ProviderConfigKey.builder()
-                            .key("anycloud-k8s:openstackFloatingIpPool")
+                            .key("anycloud-k8s:providerSpec.floatingIpPool")
                             .type("string")
                             .required(false)
                             .description("Floating IP pool 이름. ExternalNetworkId 와 하나 필수.")
                             .build());
             case OCI -> List.of(ProviderConfigKey.builder()
-                    .key("anycloud-k8s:ociCompartmentId")
+                    .key("anycloud-k8s:providerSpec.compartmentId")
                     .type("string")
                     .required(true)
                     .description("OCI compartment OCID.")

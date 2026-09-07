@@ -39,7 +39,7 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
     private static final String CONFIG_KUBERNETES_VERSION = "anycloud-k8s:kubernetesVersion";
     private static final String CONFIG_POD_CIDR = "anycloud-k8s:podCidr";
     private static final String CONFIG_SERVICE_CIDR = "anycloud-k8s:serviceCidr";
-    private static final String CONFIG_OPENSTACK_IMAGE_NAME = "anycloud-k8s:openstackImageName";
+    private static final String CONFIG_OPENSTACK_IMAGE_NAME = "anycloud-k8s:providerSpec.imageName";
     private static final String CONFIG_AWS_IMAGE_NAME = "anycloud-k8s:awsImageName";
     private static final String CONFIG_GCP_IMAGE = "anycloud-k8s:gcpImage";
     private static final String CONFIG_AZURE_IMAGE = "anycloud-k8s:azureImage";
@@ -84,9 +84,9 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
                 .credentialId(credential.getCredentialId())
                 .credentialName(credential.getCredentialName())
                 .masterVmSpec(firstNonBlank(
-                        config.get(CONFIG_MASTER_VM_SPEC), config.get("anycloud-k8s:openstackFlavorName")))
+                        config.get(CONFIG_MASTER_VM_SPEC), config.get("anycloud-k8s:providerSpec.flavorName")))
                 .workerVmSpec(firstNonBlank(
-                        config.get(CONFIG_WORKER_VM_SPEC), config.get("anycloud-k8s:openstackFlavorName")))
+                        config.get(CONFIG_WORKER_VM_SPEC), config.get("anycloud-k8s:providerSpec.flavorName")))
                 .workerCount(parseInteger(config.get(CONFIG_WORKER_COUNT), 2))
                 .kubernetesVersion(config.get(CONFIG_KUBERNETES_VERSION))
                 .podCidr(config.get(CONFIG_POD_CIDR))
