@@ -178,4 +178,24 @@ class OpenstackYamlEmitterTest {
 
         assertThat(props).containsEntry("portRangeMin", 22).containsEntry("portRangeMax", 22);
     }
+
+    @Test
+    void securityGroup_allowsIpipForCalicoOverlay() {
+        // Calico 기본값 ipipMode=Always. protocol 4 를 막으면 노드 간 파드 트래픽이 통째로 사라지고
+        // 파드가 다른 노드의 CoreDNS 에 닿지 못한다. 노드는 Ready 라 증상이 늦게 드러난다.
+        Map<String, Object> props = propsOf(resourcesOf(spec(1)), "sgrule-calico-ipip");
+
+        assertThat(props).containsEntry("protocol", "4");
+        assertThat(props).containsEntry("direction", "ingress");
+        assertThat(props).containsEntry("remoteIpPrefix", spec(1).vpcCidr());
+    }
+
+    @Test
+    void securityGroup_ipipRuleOmitsPortRange() {
+        // IPIP 에는 포트 개념이 없다. 전체 범위를 명시하면 OpenStack 이 정규화해 매 up 마다 replace 한다.
+        Map<String, Object> props = propsOf(resourcesOf(spec(1)), "sgrule-calico-ipip");
+
+        assertThat(props).doesNotContainKey("portRangeMin");
+        assertThat(props).doesNotContainKey("portRangeMax");
+    }
 }

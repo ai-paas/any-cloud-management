@@ -116,7 +116,14 @@ final class OpenstackYamlEmitter implements ProviderYamlEmitter {
         rule(b, spec, "nodeport", "tcp", K8sConstants.NODE_PORT_MIN, K8sConstants.NODE_PORT_MAX, "0.0.0.0/0");
         rule(b, spec, "intra-tcp", "tcp", 1, 65535, spec.vpcCidr());
         rule(b, spec, "intra-udp", "udp", 1, 65535, spec.vpcCidr());
+        // Calico 기본값 ipipMode=Always 는 노드 간 파드 트래픽을 IP protocol 4 로 감싼다. TCP/UDP 만
+        // 열면 캡슐이 전부 버려져 파드가 다른 노드의 CoreDNS 에 닿지 못하고, 노드는 Ready 라
+        // 클러스터가 정상으로 보인다. VXLAN 으로 바꿔도 intra-udp 가 4789 를 이미 덮는다.
+        rule(b, spec, "calico-ipip", IP_PROTO_IPIP, 1, 65535, spec.vpcCidr());
     }
+
+    /** Neutron 은 숫자 protocol 을 받는다. IPIP 는 IANA 4. */
+    private static final String IP_PROTO_IPIP = "4";
 
     private void rule(
             PulumiProgram.Builder b, ClusterSpec spec, String id, String proto, int from, int to, String cidr) {
