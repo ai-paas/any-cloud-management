@@ -233,4 +233,32 @@ class AgentBootstrapServiceImplTest {
 
         assertThat(token1).as("SecureRandom 기반 — 같은 input 두 번 → 다른 token").isNotEqualTo(token2);
     }
+
+    @Test
+    void shouldActivateOnRegister_promotesInactiveVmProvisionedCluster() {
+        // VM 프로비저닝으로 등록된 클러스터는 INACTIVE 다. AGENT_PENDING 만 승격하면 agent 가 붙어도
+        // cluster.status 가 그대로라 AGENT probe 가 영원히 NOT_READY 를 낸다.
+        assertThat(AgentBootstrapServiceImpl.shouldActivateOnRegister(
+                        com.aipaas.anycloud.domain.cluster.model.ClusterStatus.INACTIVE))
+                .isTrue();
+    }
+
+    @Test
+    void shouldActivateOnRegister_promotesAgentPendingAndUnknown() {
+        assertThat(AgentBootstrapServiceImpl.shouldActivateOnRegister(
+                        com.aipaas.anycloud.domain.cluster.model.ClusterStatus.AGENT_PENDING))
+                .isTrue();
+        assertThat(AgentBootstrapServiceImpl.shouldActivateOnRegister(
+                        com.aipaas.anycloud.domain.cluster.model.ClusterStatus.UNKNOWN))
+                .isTrue();
+        assertThat(AgentBootstrapServiceImpl.shouldActivateOnRegister(null)).isTrue();
+    }
+
+    @Test
+    void shouldActivateOnRegister_skipsAlreadyActive() {
+        // 매 register 마다 같은 값을 쓰면 updated_at 이 갱신되고 state history 가 헛돌아간다.
+        assertThat(AgentBootstrapServiceImpl.shouldActivateOnRegister(
+                        com.aipaas.anycloud.domain.cluster.model.ClusterStatus.ACTIVE))
+                .isFalse();
+    }
 }

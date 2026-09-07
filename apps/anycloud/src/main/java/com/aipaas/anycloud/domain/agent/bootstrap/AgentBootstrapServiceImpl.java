@@ -163,6 +163,11 @@ public class AgentBootstrapServiceImpl implements AgentBootstrapService {
      *   <li>status : AGENT_PENDING 이었으면 ACTIVE 로 전환. 그 외 상태는 유지.</li>
      * </ul>
      */
+    /** register 성공 자체가 agent 연결의 근거다. ACTIVE 가 아니면 무엇이든 승격한다. */
+    static boolean shouldActivateOnRegister(com.aipaas.anycloud.domain.cluster.model.ClusterStatus current) {
+        return com.aipaas.anycloud.domain.cluster.model.ClusterStatus.ACTIVE != current;
+    }
+
     private void backfillClusterFromAgent(ClusterEntity cluster, ClusterIdentity identity) {
         if (identity == null) return;
         boolean dirty = false;
@@ -176,7 +181,10 @@ public class AgentBootstrapServiceImpl implements AgentBootstrapService {
             dirty = true;
         }
         boolean justActivated = false;
-        if (com.aipaas.anycloud.domain.cluster.model.ClusterStatus.AGENT_PENDING == cluster.getStatus()) {
+        // register 성공 자체가 agent 연결의 근거다. AGENT_PENDING 만 승격하면 VM 프로비저닝으로
+        // 등록된 INACTIVE 클러스터가 영원히 그대로 남고, cluster.status 를 읽는 AGENT probe 가
+        // 계속 NOT_READY 를 내 조정 루프가 5분마다 재적용만 반복한다.
+        if (shouldActivateOnRegister(cluster.getStatus())) {
             cluster.transitionStatus(com.aipaas.anycloud.domain.cluster.model.ClusterStatus.ACTIVE, "agent.bootstrap");
             dirty = true;
             justActivated = true;
