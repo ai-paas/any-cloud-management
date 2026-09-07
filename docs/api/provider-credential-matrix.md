@@ -18,7 +18,7 @@
 | Provider | Credential ENV / MANUAL key | 필수 config |
 | --- | --- | --- |
 | OpenStack | `OS_AUTH_URL`, `OS_USERNAME`, `OS_PASSWORD`, `OS_PROJECT_NAME`, `OS_USER_DOMAIN_NAME`, `OS_PROJECT_DOMAIN_NAME`, `OS_REGION_NAME` | `anycloud-k8s:providerSpec.imageName`, `anycloud-k8s:providerSpec.flavorName`, 그리고 `anycloud-k8s:providerSpec.externalNetworkId` 또는 `anycloud-k8s:providerSpec.floatingIpPool` |
-| Proxmox | `PROXMOX_VE_ENDPOINT`, `PROXMOX_VE_USERNAME`, `PROXMOX_VE_PASSWORD` | `anycloud-k8s:proxmoxNodeName`, `anycloud-k8s:proxmoxTemplateVmId`, `anycloud-k8s:proxmoxDatastoreId`, `anycloud-k8s:proxmoxNetworkBridge` |
+| Proxmox | `PROXMOX_VE_ENDPOINT`, 그리고 `PROXMOX_VE_API_TOKEN` 또는 `PROXMOX_VE_USERNAME`+`PROXMOX_VE_PASSWORD` | `anycloud-k8s:providerSpec.nodeName` |
 
 ## 운영 메모
 
@@ -26,6 +26,9 @@
 - `ENV` credential은 백엔드 컨테이너 환경변수를 그대로 참조합니다.
 - Bruno CLI 테스트 시에는 `VM_CREDENTIALS_JSON` 같은 `process.env` 패턴으로 민감값을 파일 밖에서 주입하는 방식을 권장합니다.
 - 실제 `Pulumi` 실행과 `delete/retry`는 같은 `credentialId`를 다시 사용합니다.
+- `Proxmox`의 `providerSpec.datastoreId`(기본 `local-lvm`), `providerSpec.snippetDatastoreId`(기본 `local`), `providerSpec.networkBridge`(기본 `vmbr0`)는 생략하면 기본값을 씁니다.
+- `Proxmox`는 인스턴스 타입이 없습니다. `masterInstanceType`을 `"코어-메모리MiB"` 형식(예: `4-8192`)으로 받습니다.
+- `Proxmox`는 API 토큰과 username/password가 배타적입니다. 둘 다 넘기면 provider가 거부합니다.
 - `Proxmox`는 cloud-init snippet 업로드가 가능한 datastore 설정을 권장합니다.
 - `OCI`는 image OCID를 리전마다 따로 발급하고 이름으로 찾는 안정된 필터가 없습니다. `osImage`를 필수로 받아 `pulumi preview` 전에 실패시킵니다.
 - `Azure`의 `osImage`는 단일 ID가 아니라 `publisher:offer:sku:version` 4단 좌표입니다. 생략하면 `Canonical:ubuntu-24_04-lts:server:latest`를 씁니다.

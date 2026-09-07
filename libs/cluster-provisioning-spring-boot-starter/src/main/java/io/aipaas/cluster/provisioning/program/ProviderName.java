@@ -19,6 +19,7 @@ public final class ProviderName {
             case "openstack", "open-stack" -> "openstack";
             case "oci", "oracle", "oraclecloud", "oraclecloudinfrastructure" -> "oci";
             case "digitalocean", "digital-ocean", "do" -> "digitalocean";
+            case "proxmox", "proxmoxve", "pve" -> "proxmox";
             default -> p;
         };
     }

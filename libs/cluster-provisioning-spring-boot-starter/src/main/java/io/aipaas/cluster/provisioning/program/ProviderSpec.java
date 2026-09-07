@@ -26,6 +26,17 @@ public sealed interface ProviderSpec {
             implements ProviderSpec {}
 
     /**
+     * Proxmox 는 VPC, 서브넷, 보안그룹이 없다. 노드 위에 VM 을 올리고 기존 브리지에 붙인다.
+     *
+     * @param nodeName 배치할 PVE 노드. 클러스터라도 노드를 지정해야 한다
+     * @param datastoreId 디스크와 cloud-init 디스크를 만들 datastore
+     * @param snippetDatastoreId user-data 스니펫을 올릴 datastore. snippets content type 이 켜져 있어야 한다
+     * @param networkBridge 붙일 브리지 (예: vmbr0)
+     */
+    record Proxmox(String nodeName, String datastoreId, String snippetDatastoreId, String networkBridge)
+            implements ProviderSpec {}
+
+    /**
      * config map 에서 provider 에 맞는 spec 을 만든다. 인식하지 못하는 provider 는 {@code null}.
      *
      * @param lookup 키 하나를 읽는 함수. 호출자가 namespace 접두 처리를 소유한다.
@@ -43,6 +54,11 @@ public sealed interface ProviderSpec {
                     read(lookup, "flavorName"),
                     read(lookup, "externalNetworkId"),
                     read(lookup, "floatingIpPool"));
+            case "proxmox" -> new Proxmox(
+                    read(lookup, "nodeName"),
+                    read(lookup, "datastoreId"),
+                    read(lookup, "snippetDatastoreId"),
+                    read(lookup, "networkBridge"));
             default -> null;
         };
     }

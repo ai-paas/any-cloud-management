@@ -12,7 +12,8 @@ public final class YamlEmitters {
             new AwsYamlEmitter(),
             new GcpYamlEmitter(),
             new OciYamlEmitter(),
-            new AzureYamlEmitter());
+            new AzureYamlEmitter(),
+            new ProxmoxYamlEmitter());
 
     private YamlEmitters() {}
 

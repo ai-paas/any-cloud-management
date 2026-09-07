@@ -37,8 +37,9 @@ public final class Defaults {
                     new ProviderDefaults(
                             "anycloud-oci", "10.86.0.0/16", "VM.Standard.E4.Flex", "VM.Standard.E4.Flex", "ubuntu"),
             "digitalocean",
-                    new ProviderDefaults(
-                            "anycloud-digitalocean", "10.88.0.0/16", "s-2vcpu-4gb", "s-2vcpu-4gb", "root"));
+                    new ProviderDefaults("anycloud-digitalocean", "10.88.0.0/16", "s-2vcpu-4gb", "s-2vcpu-4gb", "root"),
+            // Proxmox 는 인스턴스 타입이 없다. "코어-메모리MiB" 규약으로 받아 emitter 가 나눈다.
+            "proxmox", new ProviderDefaults("anycloud-proxmox", "10.94.0.0/24", "2-4096", "2-4096", "ubuntu"));
 
     public static ClusterSpec applyProviderDefaults(ClusterSpec raw) {
         String canonical = ProviderName.canonical(raw.provider());
@@ -102,6 +103,16 @@ public final class Defaults {
                                 os.externalNetworkId(),
                                 os.floatingIpPool()));
             }
+            case "proxmox" -> {
+                ProviderSpec.Proxmox px = raw.providerSpec() instanceof ProviderSpec.Proxmox p
+                        ? p
+                        : new ProviderSpec.Proxmox(null, null, null, null);
+                b.providerSpec(new ProviderSpec.Proxmox(
+                        px.nodeName(),
+                        blankOr(px.datastoreId(), "local-lvm"),
+                        blankOr(px.snippetDatastoreId(), "local"),
+                        blankOr(px.networkBridge(), "vmbr0")));
+            }
             default -> {
                 /* no extras */
             }
@@ -113,6 +124,7 @@ public final class Defaults {
             case "openstack" -> spec.providerSpec() instanceof ProviderSpec.Openstack os ? os.imageName() : null;
             case "gcp" -> "ubuntu-2404-lts";
             case "azure" -> "Canonical Ubuntu 24.04 LTS";
+            case "proxmox" -> spec.osImage();
             case "alibaba", "oci", "digitalocean" -> "Ubuntu 24.04";
             default -> "ubuntu-24.04";
         };

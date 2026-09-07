@@ -79,6 +79,19 @@ public final class CspCredentialPulumiConfigMapper {
                         String tok = env.get("DIGITALOCEAN_TOKEN");
                         if (tok == null || tok.isBlank()) tok = env.get("DIGITALOCEAN_ACCESS_TOKEN");
                         put(out, "digitalocean:token", tok);
+                    },
+            "proxmox",
+                    (env, out) -> {
+                        put(out, "proxmoxve:endpoint", env.get("PROXMOX_VE_ENDPOINT"));
+                        // apiToken 과 username/password 는 배타적이다. 둘 다 넘기면 provider 가 거부한다.
+                        String token = env.get("PROXMOX_VE_API_TOKEN");
+                        if (token != null && !token.isBlank()) {
+                            put(out, "proxmoxve:apiToken", token);
+                        } else {
+                            put(out, "proxmoxve:username", env.get("PROXMOX_VE_USERNAME"));
+                            put(out, "proxmoxve:password", env.get("PROXMOX_VE_PASSWORD"));
+                        }
+                        putBool(out, "proxmoxve:insecure", env.get("PROXMOX_VE_INSECURE"));
                     });
 
     /**
@@ -108,6 +121,11 @@ public final class CspCredentialPulumiConfigMapper {
             "ARM_CLIENT_SECRET",
             "ARM_SUBSCRIPTION_ID",
             "ARM_TENANT_ID",
+            "PROXMOX_VE_ENDPOINT",
+            "PROXMOX_VE_USERNAME",
+            "PROXMOX_VE_PASSWORD",
+            "PROXMOX_VE_API_TOKEN",
+            "PROXMOX_VE_INSECURE",
             "ALICLOUD_ACCESS_KEY",
             "ALICLOUD_SECRET_KEY",
             "OS_AUTH_URL",
