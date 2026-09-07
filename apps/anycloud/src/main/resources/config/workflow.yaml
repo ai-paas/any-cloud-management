@@ -16,13 +16,13 @@ async:
     queue-capacity: ${ASYNC_K8S_QUEUE:100}
     thread-name-prefix: k8s-
   provisioning:
-    core-size: ${ASYNC_PROVISIONING_CORE:3}
-    max-size: ${ASYNC_PROVISIONING_MAX:6}
+    core-size: ${ASYNC_PROVISIONING_CORE:8}
+    max-size: ${ASYNC_PROVISIONING_MAX:16}
     queue-capacity: ${ASYNC_PROVISIONING_QUEUE:30}
     thread-name-prefix: pulumi-
   bootstrap:
-    core-size: ${ASYNC_BOOTSTRAP_CORE:3}
-    max-size: ${ASYNC_BOOTSTRAP_MAX:6}
+    core-size: ${ASYNC_BOOTSTRAP_CORE:8}
+    max-size: ${ASYNC_BOOTSTRAP_MAX:16}
     queue-capacity: ${ASYNC_BOOTSTRAP_QUEUE:30}
     thread-name-prefix: bootstrap-
 

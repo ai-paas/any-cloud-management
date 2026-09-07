@@ -28,8 +28,8 @@ public class AsyncProperties {
 
     private Pool helm = Pool.defaults("helm-", 5, 10, 50);
     private Pool kubernetes = Pool.defaults("k8s-", 4, 8, 100);
-    private Pool provisioning = Pool.defaults("pulumi-", 3, 6, 30);
-    private Pool bootstrap = Pool.defaults("bootstrap-", 3, 6, 30);
+    private Pool provisioning = Pool.defaults("pulumi-", 8, 16, 30);
+    private Pool bootstrap = Pool.defaults("bootstrap-", 8, 16, 30);
 
     @Getter
     @Setter
@@ -40,6 +40,8 @@ public class AsyncProperties {
         private String threadNamePrefix;
         /** graceful shutdown 대기 시간(초). */
         private int awaitTerminationSeconds = 30;
+        /** 유휴 스레드 회수 대기(초). */
+        private int keepAliveSeconds = 60;
 
         public static Pool defaults(String prefix, int core, int max, int queue) {
             Pool p = new Pool();

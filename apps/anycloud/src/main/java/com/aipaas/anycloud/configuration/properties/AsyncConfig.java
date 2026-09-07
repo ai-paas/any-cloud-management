@@ -108,6 +108,9 @@ public class AsyncConfig implements AsyncConfigurer {
         executor.setQueueCapacity(pool.getQueueCapacity());
         executor.setThreadNamePrefix(pool.getThreadNamePrefix());
         executor.setRejectedExecutionHandler(new CallerRunsPolicy());
+        // 큐가 가득 차야 core 를 넘어 늘어난다 — 실질 동시성은 coreSize 다
+        executor.setAllowCoreThreadTimeOut(true);
+        executor.setKeepAliveSeconds(pool.getKeepAliveSeconds());
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(pool.getAwaitTerminationSeconds());
         // MDC 컨텍스트를 작업 스레드로 propagate — 작업 종료 시 원복 (pool reuse 누수 방지).

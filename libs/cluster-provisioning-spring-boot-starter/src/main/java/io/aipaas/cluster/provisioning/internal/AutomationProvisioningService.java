@@ -22,6 +22,7 @@ import io.aipaas.cluster.provisioning.api.ProvisioningService;
 import io.aipaas.cluster.provisioning.api.exception.ProvisioningExecutionException;
 import io.aipaas.cluster.provisioning.program.ProvisionerOrchestrator;
 import io.aipaas.cluster.provisioning.program.yaml.YamlEmitters;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -62,6 +63,7 @@ public class AutomationProvisioningService implements ProvisioningService {
      */
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    @Bulkhead(name = "pulumi")
     public Map<String, Object> provision(ProvisioningRequest request) {
         assertEnabled();
         String stackName = buildStackName(request);
@@ -94,6 +96,7 @@ public class AutomationProvisioningService implements ProvisioningService {
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    @Bulkhead(name = "pulumi")
     public ProvisioningPreview preview(ProvisioningRequest request) {
         assertEnabled();
         String stackName = buildStackName(request);
@@ -153,12 +156,14 @@ public class AutomationProvisioningService implements ProvisioningService {
     }
 
     @Override
+    @Bulkhead(name = "pulumi")
     public void destroy(String stackName) {
         destroy(stackName, Map.of());
     }
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    @Bulkhead(name = "pulumi")
     public void refresh(ProvisioningRequest request) {
         assertEnabled();
         String stackName = buildStackName(request);
@@ -212,6 +217,7 @@ public class AutomationProvisioningService implements ProvisioningService {
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    @Bulkhead(name = "pulumi")
     public void destroy(String stackName, Map<String, String> environmentOverrides) {
         assertEnabled();
         Map<String, String> sanitized = CspCredentialPulumiConfigMapper.stripCspEnv(environmentOverrides);
