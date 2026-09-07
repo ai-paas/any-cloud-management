@@ -187,5 +187,5 @@ dependencies {
 
     // ArchUnit — convention (folder-structure.md) 자동 enforce. internal/ 외부 import 차단,
     // Controller 가 web/ 거주, @Mapper 가 mapper/ 거주 등 architecture rule 회귀 방지.
-    testImplementation 'com.tngtech.archunit:archunit-junit5:1.3.0'
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.5.0'
 }
