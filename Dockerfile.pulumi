@@ -51,7 +51,18 @@ RUN case "${TARGETARCH}" in \
     esac \
     && curl -fsSL "https://get.pulumi.com/releases/sdk/pulumi-v${PULUMI_VERSION}-linux-${PULUMI_ARCH}.tar.gz" -o /tmp/pulumi.tar.gz \
     && tar -xzf /tmp/pulumi.tar.gz -C /opt \
-    && rm -f /tmp/pulumi.tar.gz
+    && rm -f /tmp/pulumi.tar.gz \
+    # 프로그램은 전부 runtime: yaml 이다. 나머지 language host 는 140MB 를 차지하고 쓰이지 않는다.
+    && rm -f /opt/pulumi/pulumi-language-go \
+             /opt/pulumi/pulumi-language-java \
+             /opt/pulumi/pulumi-language-dotnet \
+             /opt/pulumi/pulumi-language-nodejs \
+             /opt/pulumi/pulumi-language-python \
+             /opt/pulumi/pulumi-language-python-exec \
+             /opt/pulumi/pulumi-resource-pulumi-nodejs \
+             /opt/pulumi/pulumi-resource-pulumi-python \
+             /opt/pulumi/pulumi-analyzer-policy-python \
+             /opt/pulumi/pulumi-watch
 
 RUN curl -fsSL "https://get.helm.sh/helm-v${HELM_VERSION}-linux-${TARGETARCH}.tar.gz" -o /tmp/helm.tar.gz \
     && tar -xzf /tmp/helm.tar.gz -C /tmp \
@@ -97,20 +108,18 @@ COPY --from=plugin-fetch --chown=anycloud:anycloud /plugin-home/plugins/ /app/.p
 WORKDIR /app
 
 # 변경 빈도가 낮은 순서대로 COPY 한다 — 위쪽 레이어가 캐시에 남아야 재빌드가 빠르다.
-COPY --from=gradle-builder /app/extracted/dependencies/ ./
-COPY --from=gradle-builder /app/extracted/spring-boot-loader/ ./
-COPY --from=gradle-builder /app/extracted/snapshot-dependencies/ ./
-COPY --from=gradle-builder /app/extracted/application/ ./
-COPY infra/docker/entrypoints/anycloud-entrypoint.sh /app/entrypoint.sh
+COPY --from=gradle-builder --chown=anycloud:anycloud /app/extracted/dependencies/ ./
+COPY --from=gradle-builder --chown=anycloud:anycloud /app/extracted/spring-boot-loader/ ./
+COPY --from=gradle-builder --chown=anycloud:anycloud /app/extracted/snapshot-dependencies/ ./
+COPY --from=gradle-builder --chown=anycloud:anycloud /app/extracted/application/ ./
+COPY --chown=anycloud:anycloud --chmod=755 infra/docker/entrypoints/anycloud-entrypoint.sh /app/entrypoint.sh
 
-# .pulumi 는 위에서 이미 소유권을 잡았다. 여기 포함시키면 1.8GB 를 복제한 레이어가 생긴다.
+# 소유권은 COPY --chown 으로 이미 잡혔다. 여기서 chown -R 하면 lib 176MB 를 복제한
+# 레이어가 하나 더 생긴다.
 RUN mkdir -p /app/.cache /app/.config /app/.local/share /app/runtime \
-    && chmod +x /app/entrypoint.sh \
-    && chown -R anycloud:anycloud \
-       /app/.cache /app/.config /app/.local/share /app/runtime \
-       /app/entrypoint.sh /app/lib /app/*.jar \
-    # pulumi plugin install 이 /app 을 0700 root 로 만든다. 진입 자체가 막힌다.
-    && chown anycloud:anycloud /app && chmod 755 /app
+    && chown anycloud:anycloud \
+       /app /app/.cache /app/.config /app/.local/share /app/runtime \
+    && chmod 755 /app
 
 ENV PATH="/opt/pulumi:${PATH}"
 ENV HOME="/home/anycloud"
