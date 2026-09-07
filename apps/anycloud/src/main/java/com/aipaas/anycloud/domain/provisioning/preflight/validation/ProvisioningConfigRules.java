@@ -94,14 +94,18 @@ public final class ProvisioningConfigRules {
                         missingKeys,
                         "anycloud-k8s:providerSpec.imageName",
                         "anycloud-k8s:providerSpec.flavorName");
-                requireAnyConfigKey(
+                // emitter 가 둘 다 요구한다. 하나만 검사하면 preflight 를 통과한 뒤 PROVISION 에서 죽는다.
+                requireConfigKeys(
                         config,
                         missingKeys,
-                        List.of(
-                                "anycloud-k8s:providerSpec.externalNetworkId",
-                                "anycloud-k8s:providerSpec.floatingIpPool"));
+                        "anycloud-k8s:providerSpec.externalNetworkId",
+                        "anycloud-k8s:providerSpec.floatingIpPool");
             }
-            case OCI -> requireConfigKeys(config, missingKeys, "anycloud-k8s:providerSpec.compartmentId");
+                // OCI 이미지 OCID 는 리전마다 따로 발급돼 추측할 수 없다.
+            case OCI -> requireConfigKeys(
+                    config, missingKeys, "anycloud-k8s:providerSpec.compartmentId", "anycloud-k8s:osImage");
+            case PROXMOX -> requireConfigKeys(config, missingKeys, "anycloud-k8s:providerSpec.nodeName");
+            case IBM -> requireConfigKeys(config, missingKeys, "anycloud-k8s:providerSpec.zone");
             default -> {}
         }
 

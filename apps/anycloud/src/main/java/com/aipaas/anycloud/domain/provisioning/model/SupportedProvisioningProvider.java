@@ -11,7 +11,9 @@ public enum SupportedProvisioningProvider {
     ALIBABA("Alibaba", List.of("alibaba", "alicloud", "aliyun")),
     OPENSTACK("OpenStack", List.of("openstack", "open-stack")),
     OCI("OCI", List.of("oci", "oracle", "oraclecloud", "oraclecloudinfrastructure")),
-    DIGITALOCEAN("DigitalOcean", List.of("digitalocean", "digital-ocean", "do"));
+    DIGITALOCEAN("DigitalOcean", List.of("digitalocean", "digital-ocean", "do")),
+    PROXMOX("Proxmox", List.of("proxmox", "proxmoxve", "pve")),
+    IBM("IBM", List.of("ibm", "ibmcloud", "ibm-cloud"));
 
     private final String canonicalName;
     private final List<String> aliases;

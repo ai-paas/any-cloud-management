@@ -160,6 +160,47 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                             .required(false)
                             .description("Floating IP pool 이름. ExternalNetworkId 와 하나 필수.")
                             .build());
+            case PROXMOX -> List.of(
+                    ProviderConfigKey.builder()
+                            .key("anycloud-k8s:providerSpec.nodeName")
+                            .type("string")
+                            .required(true)
+                            .description("VM 을 올릴 PVE 노드 이름. 클러스터라도 노드를 지정해야 한다.")
+                            .build(),
+                    ProviderConfigKey.builder()
+                            .key("anycloud-k8s:providerSpec.datastoreId")
+                            .type("string")
+                            .required(false)
+                            .defaultValue("local-lvm")
+                            .description("디스크와 cloud-init 디스크를 만들 datastore.")
+                            .build(),
+                    ProviderConfigKey.builder()
+                            .key("anycloud-k8s:providerSpec.snippetDatastoreId")
+                            .type("string")
+                            .required(false)
+                            .defaultValue("local")
+                            .description("user-data 스니펫을 올릴 datastore. snippets content type 이 켜져 있어야 한다.")
+                            .build(),
+                    ProviderConfigKey.builder()
+                            .key("anycloud-k8s:providerSpec.networkBridge")
+                            .type("string")
+                            .required(false)
+                            .defaultValue("vmbr0")
+                            .description("붙일 네트워크 브리지.")
+                            .build());
+            case IBM -> List.of(
+                    ProviderConfigKey.builder()
+                            .key("anycloud-k8s:providerSpec.zone")
+                            .type("string")
+                            .required(true)
+                            .description("region 이 아니라 zone (예: us-south-1). 계정마다 활성 zone 이 다르다.")
+                            .build(),
+                    ProviderConfigKey.builder()
+                            .key("anycloud-k8s:providerSpec.resourceGroup")
+                            .type("string")
+                            .required(false)
+                            .description("리소스 그룹 ID. 생략하면 계정 기본 그룹.")
+                            .build());
             case OCI -> List.of(ProviderConfigKey.builder()
                     .key("anycloud-k8s:providerSpec.compartmentId")
                     .type("string")
@@ -190,6 +231,8 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
             case OCI -> "VM.Standard.E4.Flex";
             case DIGITALOCEAN -> "s-2vcpu-4gb";
             case AWS -> "t3.large";
+            case PROXMOX -> "2-4096";
+            case IBM -> "bx2-2x8";
         };
     }
 }

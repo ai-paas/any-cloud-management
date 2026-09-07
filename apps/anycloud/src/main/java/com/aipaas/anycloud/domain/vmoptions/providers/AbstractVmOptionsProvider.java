@@ -135,6 +135,9 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
             case ALIBABA -> "ap-northeast-2";
             case OCI -> "ap-seoul-1";
             case DIGITALOCEAN -> "sgp1";
+                // Proxmox 는 리전 개념이 없다. PVE 노드 이름을 쓴다.
+            case PROXMOX -> "pve";
+            case IBM -> "us-south";
         };
     }
 
@@ -147,6 +150,9 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
             case ALIBABA -> "ecs.g6.large";
             case OCI -> "VM.Standard.E4.Flex";
             case DIGITALOCEAN -> "s-2vcpu-4gb";
+                // Proxmox 는 인스턴스 타입이 없다. "코어-메모리MiB" 규약.
+            case PROXMOX -> "2-4096";
+            case IBM -> "bx2-2x8";
         };
     }
 
@@ -156,6 +162,8 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
             case GCP -> "ubuntu-2404-lts";
             case AZURE -> "Canonical Ubuntu 24.04 LTS";
             case ALIBABA, OCI, DIGITALOCEAN -> "Ubuntu 24.04";
+            case PROXMOX -> "ubuntu-24.04-server-cloudimg-amd64.img";
+            case IBM -> "ibm-ubuntu-24-04-6-minimal-amd64-6";
         };
     }
 

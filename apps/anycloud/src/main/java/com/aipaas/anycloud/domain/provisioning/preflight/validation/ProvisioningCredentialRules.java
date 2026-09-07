@@ -35,6 +35,10 @@ public final class ProvisioningCredentialRules {
                     "TF_VAR_private_key",
                     "TF_VAR_private_key_path");
             case DIGITALOCEAN -> List.of("DIGITALOCEAN_TOKEN", "DIGITALOCEAN_ACCESS_TOKEN");
+                // API 토큰과 username/password 는 배타적이다. 하나만 있으면 된다.
+            case PROXMOX -> List.of(
+                    "PROXMOX_VE_ENDPOINT", "PROXMOX_VE_API_TOKEN", "PROXMOX_VE_USERNAME", "PROXMOX_VE_PASSWORD");
+            case IBM -> List.of("IBMCLOUD_API_KEY");
         };
     }
 
