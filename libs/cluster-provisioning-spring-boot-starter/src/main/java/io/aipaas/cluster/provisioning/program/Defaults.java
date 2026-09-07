@@ -17,7 +17,8 @@ public final class Defaults {
 
     private static final String DEFAULT_ENVIRONMENT = "dev";
     private static final String DEFAULT_K8S_VERSION = "1.31";
-    private static final String DEFAULT_POD_CIDR = "192.168.0.0/16";
+    // Calico 예제값 192.168.0.0/16 은 온프레미스 사설망과 겹쳐 파드 egress 가 끊긴다.
+    private static final String DEFAULT_POD_CIDR = "10.244.0.0/16";
     private static final String DEFAULT_SERVICE_CIDR = "10.96.0.0/12";
     private static final int DEFAULT_WORKER_COUNT = 2;
     private static final int DEFAULT_ROOT_DISK_GB = 50;
@@ -27,20 +28,23 @@ public final class Defaults {
      * 의 case 추가.
      */
     private record ProviderDefaults(
-            String name,
-            String vpcCidr,
-            String masterInstanceType,
-            String workerInstanceType,
-            String sshUser) {}
+            String name, String vpcCidr, String masterInstanceType, String workerInstanceType, String sshUser) {}
 
     private static final Map<String, ProviderDefaults> TABLE = Map.of(
-            "aws",          new ProviderDefaults("anycloud-demo",         "10.42.0.0/16", "t3.large",            "t3.large",            "ubuntu"),
-            "gcp",          new ProviderDefaults("anycloud-gcp",          "10.52.0.0/16", "e2-standard-2",       "e2-standard-2",       "ubuntu"),
-            "azure",        new ProviderDefaults("anycloud-azure",        "10.62.0.0/16", "Standard_D4s_v5",     "Standard_D4s_v5",     "ubuntu"),
-            "alibaba",      new ProviderDefaults("anycloud-alibaba",      "10.72.0.0/16", "ecs.g6.large",        "ecs.g6.large",        "ubuntu"),
-            "openstack",    new ProviderDefaults("anycloud-openstack",    "10.90.0.0/24", null,                  null,                  "ubuntu"),
-            "oci",          new ProviderDefaults("anycloud-oci",          "10.86.0.0/16", "VM.Standard.E4.Flex", "VM.Standard.E4.Flex", "ubuntu"),
-            "digitalocean", new ProviderDefaults("anycloud-digitalocean", "10.88.0.0/16", "s-2vcpu-4gb",         "s-2vcpu-4gb",         "root"));
+            "aws", new ProviderDefaults("anycloud-demo", "10.42.0.0/16", "t3.large", "t3.large", "ubuntu"),
+            "gcp", new ProviderDefaults("anycloud-gcp", "10.52.0.0/16", "e2-standard-2", "e2-standard-2", "ubuntu"),
+            "azure",
+                    new ProviderDefaults(
+                            "anycloud-azure", "10.62.0.0/16", "Standard_D4s_v5", "Standard_D4s_v5", "ubuntu"),
+            "alibaba",
+                    new ProviderDefaults("anycloud-alibaba", "10.72.0.0/16", "ecs.g6.large", "ecs.g6.large", "ubuntu"),
+            "openstack", new ProviderDefaults("anycloud-openstack", "10.90.0.0/24", null, null, "ubuntu"),
+            "oci",
+                    new ProviderDefaults(
+                            "anycloud-oci", "10.86.0.0/16", "VM.Standard.E4.Flex", "VM.Standard.E4.Flex", "ubuntu"),
+            "digitalocean",
+                    new ProviderDefaults(
+                            "anycloud-digitalocean", "10.88.0.0/16", "s-2vcpu-4gb", "s-2vcpu-4gb", "root"));
 
     public static ClusterSpec applyProviderDefaults(ClusterSpec raw) {
         String canonical = ProviderName.canonical(raw.provider());
@@ -97,7 +101,9 @@ public final class Defaults {
                         .openstackImageName(blankOr(raw.openstackImageName(), "ubuntu-24.04"))
                         .openstackFlavorName(flavor);
             }
-            default -> { /* no extras */ }
+            default -> {
+                /* no extras */
+            }
         }
     }
 

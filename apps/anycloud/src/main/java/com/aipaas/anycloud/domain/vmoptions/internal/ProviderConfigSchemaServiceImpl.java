@@ -77,8 +77,8 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                         .key("anycloud-k8s:podCidr")
                         .type("cidr")
                         .required(false)
-                        .defaultValue("192.168.0.0/16")
-                        .description("Pod 네트워크 CIDR.")
+                        .defaultValue("10.244.0.0/16")
+                        .description("Pod 네트워크 CIDR. 노드가 속한 사설망과 겹치면 파드 egress 가 끊긴다.")
                         .build(),
                 ProviderConfigKey.builder()
                         .key("anycloud-k8s:serviceCidr")

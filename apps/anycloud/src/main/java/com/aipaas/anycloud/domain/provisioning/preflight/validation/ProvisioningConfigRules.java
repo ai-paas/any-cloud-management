@@ -66,7 +66,7 @@ public final class ProvisioningConfigRules {
         config.putIfAbsent(MASTER_COUNT, "1");
         config.putIfAbsent(WORKER_COUNT, "2");
         config.putIfAbsent(KUBERNETES_VERSION, "1.31");
-        config.putIfAbsent(POD_CIDR, "192.168.0.0/16");
+        config.putIfAbsent(POD_CIDR, "10.244.0.0/16");
         config.putIfAbsent(SERVICE_CIDR, "10.96.0.0/12");
         // 정상 경로 (VmClusterProviderImpl.toProvisionDto) 는 항상 backend 생성 token 을 set —
         // 여기 도달 시점엔 이미 존재. 우회 경로 (직접 ProvisionClusterRequest 구성) 대비 방어선으로

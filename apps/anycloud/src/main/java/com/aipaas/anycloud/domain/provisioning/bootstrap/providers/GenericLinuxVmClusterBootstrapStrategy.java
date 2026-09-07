@@ -23,7 +23,7 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
 
     @Override
     public String initializeMasterCommand(VmClusterInternalRequestSnapshot snapshot) {
-        String podCidr = firstNonBlank(snapshot.getPodCidr(), "192.168.0.0/16");
+        String podCidr = firstNonBlank(snapshot.getPodCidr(), DEFAULT_POD_CIDR);
         String serviceCidr = firstNonBlank(snapshot.getServiceCidr(), "10.96.0.0/12");
         String joinToken = requiredJoinToken(snapshot);
         // HA mode (masterCount >= 2) — kubeadm init 에 --control-plane-endpoint + --upload-certs.
@@ -113,14 +113,44 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
     @Override
     public String buildAddonInstallCommand(VmClusterInternalRequestSnapshot snapshot) {
         StringBuilder commands = new StringBuilder();
-        append(commands, cniInstallCommand());
+        append(commands, cniInstallCommand(firstNonBlank(snapshot.getPodCidr(), DEFAULT_POD_CIDR)));
         return commands.toString();
     }
 
-    protected String cniInstallCommand() {
-        return "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl get daemonset calico-node -n kube-system >/dev/null 2>&1 || "
-                + "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.2/manifests/calico.yaml";
+    /**
+     * Calico 의 stock manifest 는 pool CIDR 이 주석 처리돼 있고, 그 상태의 내장 기본값이
+     * {@code 192.168.0.0/16} 이다. 온프레미스 망이 대부분 그 안에 들어가 파드가 게이트웨이와
+     * DNS 로 나가지 못한다 — kubeadm 에 넘긴 {@code --pod-network-cidr} 은 Calico 가 보지 않는다.
+     *
+     * <p>주석을 풀어 실제 pod CIDR 을 심는다. upstream 이 문구를 바꾸면 치환이 조용히 빗나가
+     * 같은 장애가 재현되므로, 적용 전에 치환 결과를 확인하고 아니면 중단한다.
+     */
+    protected String cniInstallCommand(String podCidr) {
+        String kubectl = "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl";
+        return kubectl + " get daemonset calico-node -n kube-system >/dev/null 2>&1 || { "
+                + "set -e; "
+                + "CALICO_MANIFEST=$(mktemp); "
+                + "curl -fsSL " + CALICO_MANIFEST_URL + " -o \"$CALICO_MANIFEST\"; "
+                + "sed -i " + calicoSedArgs(podCidr) + " \"$CALICO_MANIFEST\"; "
+                + "grep -q '^ *- name: CALICO_IPV4POOL_CIDR' \"$CALICO_MANIFEST\" || "
+                + "{ echo 'calico manifest: CALICO_IPV4POOL_CIDR 주석 해제 실패' >&2; exit 1; }; "
+                + "grep -q '^ *value: \"" + podCidr + "\"' \"$CALICO_MANIFEST\" || "
+                + "{ echo 'calico manifest: pod CIDR 치환 실패' >&2; exit 1; }; "
+                + kubectl + " apply -f \"$CALICO_MANIFEST\"; "
+                + "rm -f \"$CALICO_MANIFEST\"; }";
     }
+
+    /** upstream 문구에 의존하는 유일한 지점. 테스트가 실제 sed 로 이 인자를 검증한다. */
+    static String calicoSedArgs(String podCidr) {
+        return "-e 's|^\\( *\\)# - name: CALICO_IPV4POOL_CIDR|\\1- name: CALICO_IPV4POOL_CIDR|'"
+                + " -e 's|^\\( *\\)#   value: \"192.168.0.0/16\"|\\1  value: \"" + podCidr + "\"|'";
+    }
+
+    /** {@code Defaults.DEFAULT_POD_CIDR} 과 같은 값. 어긋나면 Calico 와 kubeadm 이 다른 대역을 쓴다. */
+    protected static final String DEFAULT_POD_CIDR = "10.244.0.0/16";
+
+    private static final String CALICO_MANIFEST_URL =
+            "https://raw.githubusercontent.com/projectcalico/calico/v3.28.2/manifests/calico.yaml";
 
     /**
      * Snapshot 의 joinToken — 없으면 fail-fast. 과거엔 공유 하드코딩 token
