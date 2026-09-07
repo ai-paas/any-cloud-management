@@ -31,7 +31,7 @@ public class VmCreateRequest {
     private String vmGroupName;
 
     @NotBlank
-    @Schema(description = "CSP — aws | gcp | azure | openstack | alibaba | oci | digitalocean", example = "aws")
+    @Schema(description = "CSP — aws | gcp | azure | openstack | oci | proxmox | ibm", example = "aws")
     private String provider;
 
     @NotBlank

@@ -90,3 +90,4 @@ infra/pulumi/anycloud-pulumi
 *.swp
 *~
 
+docker-compose.override.yml

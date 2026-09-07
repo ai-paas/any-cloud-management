@@ -131,7 +131,13 @@ COPY --from=cli-fetch /opt/pulumi/ /opt/pulumi/
 COPY --from=cli-fetch /opt/helm /usr/local/bin/helm
 RUN ln -s /opt/pulumi/pulumi /usr/local/bin/pulumi
 
-RUN addgroup -S anycloud && adduser -S -G anycloud -h /home/anycloud anycloud
+# uid, gid 를 고정한다. Debian 의 useradd -r 이 쓰던 999 와 맞춰야 기존 배포의 named volume
+# (PULUMI_HOME) 을 그대로 읽는다. 번호가 바뀌면 볼륨이 통째로 접근 불가가 된다.
+# uid 를 고정한다. Debian 의 useradd -r 이 쓰던 999 와 맞춰야 기존 배포의 named volume
+# (PULUMI_HOME, 모드 700) 을 그대로 읽는다. 번호가 바뀌면 볼륨이 통째로 접근 불가가 된다.
+# gid 999 는 Alpine 의 ping 그룹이 이미 쓰므로 그룹 번호는 고정하지 않는다.
+RUN addgroup -S anycloud \
+    && adduser -S -u 999 -G anycloud -h /home/anycloud anycloud
 
 # --chown 으로 복사해야 한다. 뒤에서 chown -R 하면 1.8GB 를 복제한 레이어가 생긴다.
 COPY --from=plugin-fetch --chown=anycloud:anycloud /plugin-home/plugins/ /app/.pulumi/plugins/
