@@ -143,6 +143,9 @@ public class VmClusterWorkflowSupportServiceImpl implements VmClusterWorkflowSup
         vmCluster.setLastSuccessfulStep(VmClusterWorkflowStep.DESTROY);
         vmCluster.setActiveRequestKey(null);
         vmCluster.setClusterRegistered(false);
+        // DESTROY 가 방금 cluster row 를 지웠다. 값을 남기면 flush 가 사라진 FK 를 다시 써서
+        // 1452 로 죽고, vm_cluster 는 DELETING 에 갇혀 같은 이름으로 재생성이 409 가 된다.
+        vmCluster.setClusterId(null);
         vmCluster.setLastError(null);
         vmCluster.setDeletedAt(LocalDateTime.now());
         // DELETED 후에도 row 는 audit history 로 보존되므로 sensitive 페이로드 (CSP credential / SSH private
