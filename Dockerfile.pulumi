@@ -67,20 +67,19 @@ RUN curl -fsSL "https://get.helm.sh/helm-v${HELM_VERSION}-linux-${TARGETARCH}.ta
     && chmod +x /usr/local/bin/helm \
     && rm -rf /tmp/helm.tar.gz "/tmp/linux-${TARGETARCH}"
 
-# Pulumi provider plugins pre-install — image build 시 1회 다운로드 캐싱.
-ENV PULUMI_PLUGIN_CACHE_DIR=/opt/pulumi-plugins
-# provider 플러그인 버전의 단독 출처. Java SDK 는 없으므로 여기서만 관리한다.
-RUN mkdir -p /opt/pulumi-plugins \
-    && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource aws v6.78.0 \
-    && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource gcp v8.41.1 \
-    && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource azure-native v3.16.0 \
-    && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource oci v3.16.0 \
-    && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource openstack v5.4.1 \
-    && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource tls v5.2.0 \
-    && cp -r /opt/pulumi-plugins-home/plugins/. /opt/pulumi-plugins/ \
-    && rm -rf /opt/pulumi-plugins-home
-
+# 사용자를 먼저 만든다 — 플러그인 소유권을 설치와 같은 레이어에서 잡아야 한다.
+# 나중에 chown -R 하면 1.8GB 레이어가 하나 더 생긴다.
 RUN addgroup -S anycloud && adduser -S -G anycloud -h /home/anycloud anycloud
+
+# Pulumi 는 $PULUMI_HOME/plugins 만 본다. PULUMI_PLUGIN_CACHE_DIR 은 인식하지 않는다 —
+# 다른 경로에 두면 캐시를 통째로 무시하고 런타임에 다시 받는다.
+RUN PULUMI_HOME=/app/.pulumi pulumi plugin install resource aws v6.78.0 \
+    && PULUMI_HOME=/app/.pulumi pulumi plugin install resource gcp v8.41.1 \
+    && PULUMI_HOME=/app/.pulumi pulumi plugin install resource azure-native v3.16.0 \
+    && PULUMI_HOME=/app/.pulumi pulumi plugin install resource oci v3.16.0 \
+    && PULUMI_HOME=/app/.pulumi pulumi plugin install resource openstack v5.4.1 \
+    && PULUMI_HOME=/app/.pulumi pulumi plugin install resource tls v5.2.0 \
+    && chown -R anycloud:anycloud /app/.pulumi
 
 WORKDIR /app
 
@@ -91,9 +90,14 @@ COPY --from=gradle-builder /app/extracted/snapshot-dependencies/ ./
 COPY --from=gradle-builder /app/extracted/application/ ./
 COPY infra/docker/entrypoints/anycloud-entrypoint.sh /app/entrypoint.sh
 
-RUN mkdir -p /app/.cache /app/.config /app/.local/share /app/.pulumi /app/runtime \
+# .pulumi 는 위에서 이미 소유권을 잡았다. 여기 포함시키면 1.8GB 를 복제한 레이어가 생긴다.
+RUN mkdir -p /app/.cache /app/.config /app/.local/share /app/runtime \
     && chmod +x /app/entrypoint.sh \
-    && chown -R anycloud:anycloud /app
+    && chown -R anycloud:anycloud \
+       /app/.cache /app/.config /app/.local/share /app/runtime \
+       /app/entrypoint.sh /app/lib /app/*.jar \
+    # pulumi plugin install 이 /app 을 0700 root 로 만든다. 진입 자체가 막힌다.
+    && chown anycloud:anycloud /app && chmod 755 /app
 
 ENV PATH="/opt/pulumi:${PATH}"
 ENV HOME="/home/anycloud"
