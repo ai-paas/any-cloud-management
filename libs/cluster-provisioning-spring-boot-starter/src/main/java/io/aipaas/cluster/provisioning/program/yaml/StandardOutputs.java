@@ -21,18 +21,29 @@ public final class StandardOutputs {
     /**
      * 인스턴스 하나의 YAML 리소스 이름과 속성 경로.
      *
-     * <p>publicIp 만 리소스가 따로인 이유 — OpenStack 은 floating IP 가 인스턴스가 아니라 별도
-     * 리소스다. 인스턴스를 가리키면 값이 비어 나온다.
+     * <p>IP 가 리소스별로 따로인 이유 — OpenStack 은 floating IP 가, Azure 는 private IP 가 인스턴스가
+     * 아니라 별도 리소스에 붙는다. 인스턴스를 가리키면 값이 비어 나온다.
      */
     public record NodeRef(
             String resource,
             String instanceIdProperty,
+            String privateIpResource,
             String privateIpProperty,
             String publicIpResource,
             String publicIpProperty) {
 
+        /** private IP 가 인스턴스에 붙는 CSP 용. */
+        public NodeRef(
+                String resource,
+                String instanceIdProperty,
+                String privateIpProperty,
+                String publicIpResource,
+                String publicIpProperty) {
+            this(resource, instanceIdProperty, resource, privateIpProperty, publicIpResource, publicIpProperty);
+        }
+
         String privateIp() {
-            return YamlRef.of(resource, privateIpProperty);
+            return YamlRef.of(privateIpResource, privateIpProperty);
         }
 
         String publicIp() {
