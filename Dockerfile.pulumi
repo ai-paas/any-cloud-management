@@ -29,24 +29,26 @@ RUN --mount=type=cache,target=/root/.gradle \
     done && \
     ./gradlew bootJar --no-daemon
 
+# 레이어 분리. 의존성(168MB)과 애플리케이션(20MB)이 갈려 코드만 바뀐 빌드는 20MB 레이어만 새로 만든다.
+RUN java -Djarmode=tools -jar apps/anycloud/build/libs/*-SNAPSHOT.jar \
+        extract --layers --destination /app/extracted
+
 
 # Runtime stage.
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:21-jre-alpine
 
 ARG PULUMI_VERSION=3.160.0
 ARG HELM_VERSION=3.19.0
 ARG TARGETARCH
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
+RUN apk add --no-cache \
        bash \
        ca-certificates \
        curl \
        git \
        openssh-client \
        tar \
-       unzip \
-    && rm -rf /var/lib/apt/lists/*
+       unzip
 
 # Pulumi / Helm release archive 는 arch 별로 분기. TARGETARCH (amd64|arm64) → release naming.
 RUN case "${TARGETARCH}" in \
@@ -73,18 +75,20 @@ RUN mkdir -p /opt/pulumi-plugins \
     && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource gcp v8.41.1 \
     && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource azure-native v3.16.0 \
     && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource oci v3.16.0 \
-    && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource alicloud v3.97.0 \
-    && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource digitalocean v4.63.0 \
     && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource openstack v5.4.1 \
     && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource tls v5.2.0 \
     && cp -r /opt/pulumi-plugins-home/plugins/. /opt/pulumi-plugins/ \
     && rm -rf /opt/pulumi-plugins-home
 
-RUN groupadd -r anycloud && useradd -m -r -g anycloud anycloud
+RUN addgroup -S anycloud && adduser -S -G anycloud -h /home/anycloud anycloud
 
 WORKDIR /app
 
-COPY --from=gradle-builder /app/apps/anycloud/build/libs/*-SNAPSHOT.jar /app/app.jar
+# 변경 빈도가 낮은 순서대로 COPY 한다 — 위쪽 레이어가 캐시에 남아야 재빌드가 빠르다.
+COPY --from=gradle-builder /app/extracted/dependencies/ ./
+COPY --from=gradle-builder /app/extracted/spring-boot-loader/ ./
+COPY --from=gradle-builder /app/extracted/snapshot-dependencies/ ./
+COPY --from=gradle-builder /app/extracted/application/ ./
 COPY infra/docker/entrypoints/anycloud-entrypoint.sh /app/entrypoint.sh
 
 RUN mkdir -p /app/.cache /app/.config /app/.local/share /app/.pulumi /app/runtime \
