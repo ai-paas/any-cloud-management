@@ -8,11 +8,6 @@ import jakarta.validation.constraints.Size;
 /**
  * Frontend 가 보내는 per-cluster addon spec — cluster 생성 시 또는 POST addon endpoint.
  *
- * <p>두 모드 — (1) catalog 기반 (Option B): {@link #catalogId} 만 지정, 나머지 catalog default 사용.
- * (2) custom: catalogId null + 나머지 모든 field 명시.
- *
- * <p>field 우선순위: catalog 의 default ⇐ AddonSpec override. null/blank override 는 catalog 값 보존.
- *
  * @param type          installer strategy dispatch key (required).
  * @param catalogId     addons.yaml 의 id (optional, custom 일 때 null).
  * @param releaseName   helm release name. blank 이면 catalog default 또는 chartName.

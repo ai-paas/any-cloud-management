@@ -9,12 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
-/**
- * {@link ProviderConfigSchemaService} 의 정적 catalog 구현. {@code ProvisioningConfigRules}
- * 의 검증 로직과 정합성 유지 — 변경 시 동기 갱신 필요.
- *
- * <p>HA / boolean strict / masterCount validation 등 UX 개선과 함께 추가됨.
- */
+/** {@link ProviderConfigSchemaService} 의 정적 catalog 구현. {@code ProvisioningConfigRules} 의 검증 로직과 정합성 유지 — 변경 시 동기 갱신 필요. */
 @Service
 public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaService {
 

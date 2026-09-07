@@ -164,14 +164,7 @@ public class HelmRepoController {
                 status);
     }
 
-    /**
-     * Helm repo 부분 갱신. null 필드는 현재 값 유지.
-     *
-     * <p>name 변경 미지원 — URL identity 보존을 위해 delete + create 패턴 사용.
-     *
-     * <p>autoAllowlist 자동 sync 제거. chart 제한 원하면 별도로
-     * PUT/PATCH /v1/admin/clusters/{c}/agent-policy 호출.
-     */
+    /** Helm repo 부분 갱신. null 필드는 현재 값 유지. */
     @PatchMapping("/{repoName}")
     @Operation(
             summary = "헬름 저장소 정보 부분 갱신",

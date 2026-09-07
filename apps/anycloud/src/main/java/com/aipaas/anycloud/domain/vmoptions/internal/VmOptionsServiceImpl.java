@@ -12,13 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-/**
- * VmOptions API facade. CSP provider 의 외부 metadata API (regions/specs/images) 호출은
- * 매 요청마다 quota / latency 부담이 크므로 Caffeine 캐시로 30분 TTL 적용 .
- * <p>
- * cache key 는 메서드 시그니처 전체 — 같은 provider+region+keyword 조합은 같은 응답.
- * 동일 cluster 생성 폼에서 user 가 region 바꿀 때마다 호출돼도 한 번만 외부로 나간다.
- */
+/** VmOptions API facade. CSP provider 의 외부 metadata API (regions/specs/images) 호출은 매 요청마다 quota / latency 부담이 크므로 Caffeine 캐시로 30분 TTL 적용 . */
 @Service
 @RequiredArgsConstructor
 public class VmOptionsServiceImpl implements VmOptionsService {

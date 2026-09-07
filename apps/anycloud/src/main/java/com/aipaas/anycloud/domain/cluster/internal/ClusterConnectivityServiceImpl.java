@@ -142,11 +142,7 @@ public class ClusterConnectivityServiceImpl implements ClusterConnectivityServic
         return CompletableFuture.completedFuture(null);
     }
 
-    /**
-     * Periodic sweep 시 한 chunk 당 fan-out 되는 cluster 수. ClusterCertExpiryMonitor 와 동일한
-     * 50 — 너무 크면 KUBERNETES_EXECUTOR pool (core 4 / max 8) 가 한 chunk 의 처리에 묶여
-     * caller-runs backpressure 가 발생해 sweep 자체가 느려진다.
-     */
+    /** Periodic sweep 시 한 chunk 당 fan-out 되는 cluster 수. ClusterCertExpiryMonitor 와 동일한 50 — 너무 크면 KUBERNETES_EXECUTOR pool (core 4 / max 8) 가 한 chunk 의 처리에 묶여 caller-runs backpressure 가 발생해 sweep 자체가 느려진다. */
     private static final int FAN_OUT_CHUNK_SIZE = 50;
 
     @Override

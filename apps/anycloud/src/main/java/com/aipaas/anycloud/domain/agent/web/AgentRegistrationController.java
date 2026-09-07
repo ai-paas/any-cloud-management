@@ -30,15 +30,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * {@code POST /v1/clusters/{clusterId}/agent-registration}.
- *
- * <p>Cluster Agent 를 클러스터 내부에 배포하기 위한 1회용 단기 JWT 발급. 사용자는 응답의
- * {@code registrationToken} 을 Helm value / kubectl Secret env 로 전달해 agent 를 기동.
- *
- * <p>JWT 자체에 cluster_id + scope=agent:register 박혀있고 jti 는 Redis SET NX 로 1회 사용 강제 —
- * 같은 token 으로 두 번 Register RPC 호출하면 두 번째는 PERMISSION_DENIED.
- */
+/** {@code POST /v1/clusters/{clusterId}/agent-registration}. */
 @Slf4j
 @RestController
 @RequestMapping("/v1/clusters/{clusterId}/agent-registration")
@@ -97,13 +89,7 @@ public class AgentRegistrationController {
         }
     }
 
-    /**
-     * 사용자가 helm install 로 cluster-agent 를 직접 배포할 때 사용할 values + 명령 snippet.
-     * <p>
-     * valuesYaml 은 token / backend.grpcAddr 만 들고 있음 — image 는 chart default 사용 (사용자가
-     * --set image.repository / tag 로 override 가능). 사용자는 응답의 valuesYaml 을 stdin/파일로
-     * 전달하면 됨.
-     */
+    /** 사용자가 helm install 로 cluster-agent 를 직접 배포할 때 사용할 values + 명령 snippet. */
     private HelmInstallInstructionsResponse buildHelmInstructions(String token) {
         AgentProperties.Helm helm = agentProperties.helm();
         String namespace = agentProperties.manifest().namespace();

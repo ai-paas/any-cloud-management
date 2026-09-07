@@ -123,12 +123,7 @@ public class ClusterKubernetesController {
         return ResponseEntity.ok(ApiSuccessResponse.of(HttpStatus.OK.value(), "Resource loaded", resource));
     }
 
-    /**
-     * Manifest apply (kubectl apply 등가). Content-Type 으로 YAML / JSON 둘 다 허용.
-     * <p>
-     * path 의 {kind} 는 routing / validation 용 — 실제 적용은 manifest 의 kind 가 우선.
-     * 멀티 doc (---) manifest 도 한 번에 적용 가능.
-     */
+    /** Manifest apply (kubectl apply 등가). Content-Type 으로 YAML / JSON 둘 다 허용. */
     @PostMapping(
             path = "/{kind}",
             consumes = {MediaType.APPLICATION_JSON_VALUE, "application/yaml", "application/x-yaml", "text/yaml"})

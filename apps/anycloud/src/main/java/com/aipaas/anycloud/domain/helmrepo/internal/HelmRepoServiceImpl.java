@@ -19,13 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Helm repo CRUD impl.
- *
- * <p>SSOT 자동 sync 제거. helm_repo CRUD 는 단지 DB 의 chart browsing
- * 메타데이터. ConfigMap 의 allowed_charts 와 무관. 운영자가 chart 제한을 원하면 별도로
- * PUT /v1/admin/clusters/{c}/agent-policy 호출. ApplicationEventPublisher 의존 제거.
- */
+/** Helm repo CRUD impl. */
 @Slf4j
 @Service
 // class-level default = readOnly. write 메서드는 명시 override.

@@ -21,12 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-/**
- * Helm chart 메타데이터 조회 구현 — metadata 4 method + helper.
- *
- * <p>외부 helm repo HTTP 호출 ({@link RestTemplate}) + chart archive fetch
- * ({@link ChartArchiveFetcher}) + parse ({@link ChartParser}) + repo lookup ({@link HelmRepoService}).
- */
+/** Helm chart 메타데이터 조회 구현 — metadata 4 method + helper. */
 @Slf4j
 @Service
 @RequiredArgsConstructor

@@ -1,6 +1,5 @@
 package com.aipaas.anycloud.domain.chart.internal;
 
-import com.aipaas.anycloud.common.error.exception.CustomException;
 import com.aipaas.anycloud.common.error.exception.HelmDeploymentException;
 import com.aipaas.anycloud.domain.chart.ChartService;
 import com.aipaas.anycloud.domain.chart.api.ChartHistoryItem;
@@ -25,17 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-/**
- * <pre>
- * ClassName : ChartServiceImpl
- * Type : class
- * Description : Helm 차트 관련 기능을 구현한 서비스 클래스입니다. 이후 모든 cluster-bound
- *               operations (install / uninstall / status / history / rollback / list / resources)
- *               는 cluster agent path 전용. chart 메타데이터 조회 (list / detail / values / readme)
- *               만 외부 helm repo 에 직접 HTTP/CLI 호출.
- * Related : ChartService, ChartController, HelmReleaseService (starter)
- * </pre>
- */
+/** Helm chart 서비스: cluster-bound 작업은 agent 경유, chart 메타데이터만 helm repo 직접 조회. */
 /**
  * Helm release / chart operations entry. 10+ dependency 를 3 책임 group 으로 정리 :
  *
@@ -74,17 +63,7 @@ public class ChartServiceImpl implements ChartService {
      */
     private final ChartArchiveFetcher chartArchiveFetcher;
 
-    /**
-     * Helm chart 설치 — agent-only.
-     *
-     * <p>agent 의 {@code INSTALL_ADDON} (helm SDK in-cluster install) 만 사용. agent session 없거나
-     * 호출 실패 시 503 AGENT_UNAVAILABLE.
-     *
-     * <p>cluster-agent chart 자체를 deploy 할 때는 {@link ClusterAgentValueInjector} 가 backend
-     * gRPC 주소 등 필수 values 자동 주입.
-     *
-     * @throws CustomException {@code AGENT_UNAVAILABLE} agent session 없거나 호출 실패 시.
-     */
+    /** Helm chart 설치 — agent 의 INSTALL_ADDON 전용. agent 없으면 503. */
     @Override
     public ChartDeployResponse deployChartFromYaml(
             String repositoryName,
@@ -177,10 +156,7 @@ public class ChartServiceImpl implements ChartService {
     }
 
     /**
-     * Agent dispatcher 의 INSTALL_ADDON 은 {@code values} param 을 JSON 문자열로 받음.
-     * 본 ChartService 는 YAML 또는 JSON object 모두 받을 수 있어 변환 필요.
-     * <p>
-     * 빈 값이면 빈 문자열 반환 (agent dispatcher 가 chart default values 사용).
+     * values 를 agent dispatcher 가 받는 JSON 문자열로 변환. 빈 값이면 빈 문자열 (chart default 사용).
      */
     private String yamlValuesToJson(String yamlOrEmpty) {
         if (yamlOrEmpty == null || yamlOrEmpty.isBlank()) {
@@ -237,13 +213,7 @@ public class ChartServiceImpl implements ChartService {
         return deployChartFromYaml(repositoryName, chartName, releaseName, clusterName, namespace, version, valuesYaml);
     }
 
-    /**
-     * Helm release status — agent-only.
-     *
-     * <p>agent 의 {@code GET_HELM_RELEASE_STATUS} (helm SDK {@code action.NewStatus}
-     * 호출) 로 단일 release 의 status 조회. backend 의 helm CLI + kubeconfig 임시 파일 fall-through
-     * 제거. cluster_agent 가 없거나 release 가 미존재면 503 / detail 에 원인.
-     */
+    /** Helm release status — agent 의 GET_HELM_RELEASE_STATUS 전용. agent 없거나 release 미존재면 503. */
     @Override
     public ChartStatusResponse getChartStatus(String releaseName, String clusterName, String namespace) {
         log.info("Getting chart status for release: {} in cluster: {}", releaseName, clusterName);
@@ -284,13 +254,7 @@ public class ChartServiceImpl implements ChartService {
                 .build();
     }
 
-    /**
-     * Helm release revision 이력 — agent-only.
-     *
-     * <p>agent 의 {@code GET_HELM_RELEASE_HISTORY} (helm SDK {@code action.NewHistory})
-     * 가 직접 in-cluster 호출 → backend 의 helm CLI history + kubeconfig fall-through 제거.
-     * 응답 시 raw JSON 파싱 대신 agent 가 struct field 단위로 보내 normalization 일관.
-     */
+    /** Helm release revision 이력 — agent 의 GET_HELM_RELEASE_HISTORY 전용. */
     @Override
     public ChartHistoryResponse getReleaseHistory(String clusterName, String releaseName, String namespace, int max) {
         log.info("Getting history for release: {} in cluster: {} (max={})", releaseName, clusterName, max);
@@ -326,13 +290,7 @@ public class ChartServiceImpl implements ChartService {
                 .build();
     }
 
-    /**
-     * Helm release rollback — agent-only.
-     *
-     * <p>agent 의 {@code ROLLBACK_HELM_RELEASE} 가 helm SDK {@code action.NewRollback}
-     * 호출 후 status 까지 같이 반환. backend 는 helm CLI rollback + 별도 status 조회 2-step 을
-     * 한 RPC 로 대체. kubeconfig 파일 생성/삭제 surface 제거.
-     */
+    /** Helm release rollback — agent 가 ROLLBACK_HELM_RELEASE 로 rollback 과 status 를 함께 반환. */
     @Override
     public ChartStatusResponse rollbackRelease(
             String clusterName, String releaseName, int revision, String namespace, boolean waitForReady) {
@@ -368,14 +326,7 @@ public class ChartServiceImpl implements ChartService {
                 .build();
     }
 
-    /**
-     * Helm release uninstall — agent-only.
-     *
-     * <p>agent 의 {@code UNINSTALL_ADDON} dispatcher 가 helm SDK 의 KeepHistory /
-     * Wait 옵션을 직접 surface — in-cluster agent 가 동일 시맨틱 제공.
-     *
-     * @throws CustomException {@code AGENT_UNAVAILABLE} agent session 없거나 호출 실패 시.
-     */
+    /** Helm release uninstall — agent 의 UNINSTALL_ADDON 이 KeepHistory / Wait 옵션을 그대로 받는다. */
     @Override
     public ChartStatusResponse uninstallRelease(
             String clusterName, String releaseName, String namespace, boolean keepHistory, boolean waitForReady) {
@@ -409,13 +360,7 @@ public class ChartServiceImpl implements ChartService {
                 .build();
     }
 
-    /**
-     * 3 — Helm release UPGRADE.
-     *
-     * <p>deployChartFromYaml 와 거의 동일한 chart resolution (helm_repo URL lookup + chart .tgz
-     * pre-fetch) — release 가 이미 존재한다는 가정만 다름. release 미존재 시 agent 가 HELM_NOT_FOUND
-     * error_code 로 회신 → toClassifiedException 가 400 으로 분류.
-     */
+    /** 3 — Helm release UPGRADE. */
     @Override
     public ChartStatusResponse upgradeRelease(
             String clusterName,
@@ -517,15 +462,7 @@ public class ChartServiceImpl implements ChartService {
     // ServiceAccount token 으로 K8s API 호출하므로 임시 kubeconfig 파일이 불필요. backend 의
     // disk write / cleanup surface (특히 cleanup 누락 위험) 가 사라짐.
 
-    /**
-     * Cluster 의 Helm 릴리즈 목록 — agent-only (LIST_HELM_RELEASES).
-     *
-     * <p>helm CLI + kubeconfig fall-through 제거. agent path 가 in-cluster 의 helm SDK
-     * 로 자연스럽게 모든 release 를 enumerate. CLI fallback 은 kubeconfig 생성 / process spawn /
-     * temp 파일 cleanup 의 큰 surface 였는데 동일 정보를 in-cluster 한 RPC 로 얻을 수 있어 제거.
-     *
-     * @throws CustomException {@code AGENT_UNAVAILABLE} agent session 없거나 호출 실패 시.
-     */
+    /** Cluster 의 Helm 릴리즈 목록 — agent 의 LIST_HELM_RELEASES 전용. agent 없으면 503. */
     @Override
     public ChartReleasesResponse getReleases(String clusterName, String namespace) {
         log.info("Getting releases for cluster: {}, namespace: {}", clusterName, namespace);
@@ -545,15 +482,7 @@ public class ChartServiceImpl implements ChartService {
         return ChartReleasesResponse.builder().releases(releases).build();
     }
 
-    /**
-     * Agent 의 LIST_HELM_RELEASES 응답 ({@link HelmReleaseService#listReleases}) 을
-     * {@link ChartReleasesResponse.ReleaseInfo} list 로 변환.
-     * <p>
-     * Agent dispatcher 출력 (dispatcher.go listHelmReleases) field names:
-     *   name, namespace, chart, version, app_version, revision, status, updated.
-     * CLI 의 {@code helm list -o json} field names 와 다른 부분 (e.g. revision: int vs string)
-     * 도 본 변환에서 normalize.
-     */
+    /** Agent 의 LIST_HELM_RELEASES 응답 ({@link HelmReleaseService#listReleases}) 을 {@link ChartReleasesResponse.ReleaseInfo} list 로 변환. */
     private List<ChartReleasesResponse.ReleaseInfo> parseAgentReleasesJson(JsonNode releasesNode) {
         if (releasesNode == null || !releasesNode.isArray()) {
             return List.of();
@@ -576,14 +505,7 @@ public class ChartServiceImpl implements ChartService {
         return out;
     }
 
-    /**
-     * Helm release 의 K8s 자원 ref 목록 — agent-only.
-     *
-     * <p>agent path 는 in-cluster 단일 호출 — agent 없거나 실패 시 503. caller 가 재시도 / 사용자
-     * degraded 알림.
-     *
-     * @throws CustomException {@code AGENT_UNAVAILABLE} agent session 없거나 호출 실패 시.
-     */
+    /** Helm release 의 K8s 자원 ref 목록 — agent 단일 호출. 실패 시 503, caller 가 degraded 처리. */
     @Override
     public List<HelmReleaseResourceRef> getHelmResources(String clusterName, String namespace, String releaseName) {
         String ns = Namespaces.defaultIfBlank(namespace);

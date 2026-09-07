@@ -7,17 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.http.HttpStatus;
 
-/**
- * Helm chart repository CRUD.
- *
- * <p>SSOT 자동 sync 제거. helm_repo 는 단지 chart browsing /
- * INSTALL_ADDON 용 alias 등록부. ConfigMap 의 allowed_charts 와 무관.
- * 운영자가 chart 제한 원하면 PUT/PATCH /v1/admin/clusters/{c}/agent-policy 사용.
- *
- * <p>{@code *Entity} 메서드와 {@code *Domain*} 메서드가 양립합니다.
- * 새 caller 는 domain method 만 사용 (immutable record). entity method 는 점진 deprecate 됩니다.
- * 자세한 로드맵: {@code docs/architecture/design/domain-model-roadmap.md}.
- */
+/** Helm chart repository CRUD. */
 public interface HelmRepoService {
     // ===== Entity 반환 (legacy) — 점진 deprecate =====
     List<HelmRepoEntity> getHelmRepoEntities();

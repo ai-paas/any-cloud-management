@@ -15,12 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-/**
- * Registered source cluster 등록 strategy.
- * <p>
- * VM 과 달리 외부 cluster 등록은 동기 — Pulumi / Bootstrap workflow 없이 즉시 DB 등록 후 완료.
- * spec 은 {@link RegisteredClusterSpec} record 로 typed 처리.
- */
+/** Registered source cluster 등록 strategy. */
 @Slf4j
 @Component
 @RequiredArgsConstructor

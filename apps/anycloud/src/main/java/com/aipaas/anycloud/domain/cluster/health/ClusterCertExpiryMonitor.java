@@ -59,13 +59,7 @@ public class ClusterCertExpiryMonitor {
                 .register(meterRegistry);
     }
 
-    /**
-     * 매일 02:00 UTC. 운영 환경에선 cron 을 override 해 시간대 / 빈도 조정 가능.
-     * <p>
-     * cluster 수가 많을 때 (1000+) {@code findAll()} 한 번에 메모리에 올리지 않도록 50개씩
-     * 페이지 처리. 페이지 간 1초 sleep — DB 와 K8s API 양쪽 spike 방지. metric 은 마지막
-     * register 시에만 atomic 갱신 (이전 cluster 의 row 가 사라지지 않도록 cumulative).
-     */
+    /** 매일 02:00 UTC. 운영 환경에선 cron 을 override 해 시간대 / 빈도 조정 가능. */
     @Scheduled(cron = "${cluster.cert.expiry-check.cron:0 0 2 * * *}")
     @SchedulerLock(name = "certExpiryScan", lockAtMostFor = "PT1H", lockAtLeastFor = "PT5M")
     public void scan() {

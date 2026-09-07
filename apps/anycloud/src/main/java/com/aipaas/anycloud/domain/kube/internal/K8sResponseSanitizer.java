@@ -70,13 +70,6 @@ public final class K8sResponseSanitizer {
 
     /**
      * Secret 자원의 {@code data} (base64) / {@code stringData} (plain) value 를 redact.
-     * wildcard read RBAC 트레이드오프 mitigation.
-     *
-     * <p>kind 가 "Secret" 인 응답에 대해서만 동작 — 다른 자원은 그대로. List wrapper (SecretList)
-     * 도 items[] 재귀로 처리. 결과: data 의 모든 value 가 {@code "<redacted:<len>>"} 문자열로 교체,
-     * key 와 size 정보는 보존 (UI 가 "이런 key 가 있다" 표시 가능).
-     *
-     * <p>caller 가 redact-secrets toggle 끈 경우 본 메서드 호출 자체를 skip.
      *
      * @return 입력 node (in-place mutation)
      */

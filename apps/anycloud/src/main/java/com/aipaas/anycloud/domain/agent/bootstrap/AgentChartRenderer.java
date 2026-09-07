@@ -161,11 +161,7 @@ public class AgentChartRenderer {
         }
     }
 
-    /**
-     * Resource 의 jar URL ({@code jar:file:/app/app.jar!/agent-chart/templates/deployment.yaml})
-     * 또는 file URL ({@code file:/.../agent-chart/templates/deployment.yaml}) 에서
-     * "agent-chart/" 뒤의 relative path 만 추출.
-     */
+    /** Resource 의 jar URL ({@code jar:file:/app/app.jar!/agent-chart/templates/deployment.yaml}) 또는 file URL ({@code file:/.../agent-chart/templates/deployment.yaml}) 에서 "agent-chart/" 뒤의 relative path 만 추출. */
     private static String relativePath(Resource r) throws IOException {
         String url = r.getURL().toString();
         int idx = url.lastIndexOf(CHART_PREFIX);

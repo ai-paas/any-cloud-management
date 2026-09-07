@@ -8,15 +8,7 @@ import com.aipaas.anycloud.domain.chart.api.response.ChartStatusResponse;
 import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 
-/**
- * Cluster 의 Helm release lifecycle — install / status / history / rollback / uninstall.
- *
- * <p>모든 메서드가 agent gRPC routing 으로 in-cluster helm SDK 호출. 이후 fabric8 / helm CLI
- * fall-through 없음 — agent session 미가용 시 503 AGENT_UNAVAILABLE.
- *
- * <p>Chart 메타데이터 조회 (index.yaml / values.yaml / README) 는 {@link ChartMetadataService} 가
- * 별도 책임 — 외부 helm repo HTTP 호출과 cluster-internal gRPC routing 의 책임 분리.
- */
+/** Cluster 의 Helm release lifecycle — install / status / history / rollback / uninstall. */
 public interface ChartService {
 
     /**
@@ -41,11 +33,7 @@ public interface ChartService {
             String version,
             MultipartFile valuesFile);
 
-    /**
-     * Helm 차트를 비동기로 배포합니다 (raw YAML 문자열 변형).
-     * JSON-friendly — values.yaml 내용을 문자열로 받아 임시 파일로 변환 후 동일 흐름.
-     * RESTful /v1 endpoint (JSON body) 가 사용.
-     */
+    /** Helm 차트를 비동기로 배포합니다 (raw YAML 문자열 변형). */
     ChartDeployResponse deployChartFromYaml(
             String repositoryName,
             String chartName,

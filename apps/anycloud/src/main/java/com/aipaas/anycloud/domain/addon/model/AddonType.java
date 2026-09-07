@@ -1,13 +1,6 @@
 package com.aipaas.anycloud.domain.addon.model;
 
-/**
- * Cluster addon 의 type — installer strategy dispatch 의 key.
- *
- * <p>각 type 별로 {@code AddonInstallerRegistry} 가 매칭되는 {@code AddonInstaller} bean 을
- * resolve. GENERIC 은 catalog YAML (Option B) 만으로 driven — chart_repo/chart_name/values 가
- * full spec 을 결정. 다른 type 들은 도메인-특화 logic 을 추가로 가진 installer (예: monitoring 은
- * GPU exporter 동반, velero 는 BackupPolicy 후속 install).
- */
+/** Cluster addon 의 type — installer strategy dispatch 의 key. */
 public enum AddonType {
     /** kube-prometheus-stack — 기존 ObservabilityStackInstaller 위임. */
     MONITORING,

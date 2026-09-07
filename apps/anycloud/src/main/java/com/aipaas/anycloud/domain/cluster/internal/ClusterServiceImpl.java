@@ -133,12 +133,7 @@ public class ClusterServiceImpl implements ClusterService {
         return clusterRepository.findAllByStatus(status);
     }
 
-    /**
-     * [ClusterServiceImpl] 클러스터 단일 조회 함수.
-     *
-     * <p>{@code findById(name)} primary key 정확 매칭 — miss 시 즉시 {@link ClusterNotFoundException} throw
-     * (caller controller 가 404 매핑).
-     */
+    /** [ClusterServiceImpl] 클러스터 단일 조회 함수. */
     public ClusterEntity getClusterEntity(String clusterName) {
         var exact = clusterRepository.findById(clusterName);
         if (exact.isPresent()) {

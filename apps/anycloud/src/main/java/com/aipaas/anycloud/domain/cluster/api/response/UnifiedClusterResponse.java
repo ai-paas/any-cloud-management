@@ -5,13 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import lombok.Builder;
 
-/**
- * 통합 cluster 응답. source 가 vm 인지 registered 인지를 동일한 schema 로 표현.
- *
- * <p><b>Deprecated</b> — VM 인프라 자원과 K8s cluster 자원이 별도 API namespace 로 분리됐다 ({@code /v1/vms},
- * {@code /v1/clusters}). 신규 caller 는 {@code VmClusterListItemResponse} / {@code VmClusterStatusResponse}
- * (VM 측) 또는 cluster 전용 응답 (registered side) 을 사용. 본 통합 응답은 backward-compat 유지 동안만 존속.
- */
+/** 통합 cluster 응답. source 가 vm 인지 registered 인지를 동일한 schema 로 표현. */
 @Deprecated
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(description = "통합 cluster 응답 (vm + registered 공통 schema) — deprecated, /v1/vms 와 /v1/clusters 분리")

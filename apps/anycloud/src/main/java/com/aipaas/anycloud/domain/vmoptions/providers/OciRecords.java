@@ -3,13 +3,7 @@ package com.aipaas.anycloud.domain.vmoptions.providers;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 
-/**
- * L1 — OCI REST API 응답의 typed projection. JsonNode 직접 접근 (path("foo").asText())
- * 을 record field 접근으로 교체해 컴파일 시점에 typo 차단.
- *
- * <p>각 record 는 OCI API 문서의 응답 schema 의 핵심 부분만 발췌. {@link JsonIgnoreProperties}
- * 로 unknown field 는 무시 — OCI 가 schema 를 확장해도 deserialize 깨지지 않음.
- */
+/** L1 — OCI REST API 응답의 typed projection. JsonNode 직접 접근 (path("foo").asText()) 을 record field 접근으로 교체해 컴파일 시점에 typo 차단. */
 final class OciRecords {
 
     private OciRecords() {}
@@ -24,11 +18,7 @@ final class OciRecords {
     @JsonIgnoreProperties(ignoreUnknown = true)
     record AvailabilityDomain(String name) {}
 
-    /**
-     * GET /shapes 의 단일 item. {@code ocpus}/{@code memoryInGBs} 는 flex shape 면 응답에서
-     * 누락 가능 — record field 가 null 이면 처리 측에서 null 체크.
-     * {@code shapeConfigOptions} 는 존재 여부만 활용하므로 raw JsonNode 유지.
-     */
+    /** GET /shapes 의 단일 item. {@code ocpus}/{@code memoryInGBs} 는 flex shape 면 응답에서 누락 가능 — record field 가 null 이면 처리 측에서 null 체크. */
     @JsonIgnoreProperties(ignoreUnknown = true)
     record Shape(
             String shape,

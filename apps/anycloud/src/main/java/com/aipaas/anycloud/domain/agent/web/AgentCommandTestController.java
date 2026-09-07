@@ -32,14 +32,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * agent 에 직접 명령을 보내는 테스트 endpoint.
- *
- * <p>운영 흐름에서는 KubeServiceImpl 등 기존 service 가 agent routing 으로 통합될 예정 .
- * 본 controller 는 그때까지 stream 동작 검증용.
- *
- * <p>응답: agent 가 보낸 CommandResponse 의 result Struct 를 JSON 으로 직접 노출.
- */
+/** agent 에 직접 명령을 보내는 테스트 endpoint. */
 @Slf4j
 @RestController
 @RequestMapping("/v1/clusters/{clusterId}/agent")

@@ -2,13 +2,7 @@ package com.aipaas.anycloud.domain.cluster.model;
 
 import java.util.regex.Pattern;
 
-/**
- * CSP 별 GPU instance type 감지 — instance type 명 prefix 기반.
- *
- * <p>UI 가 보낸 {@code hasGpuNodes} 값과 별개로 server 가 instance type 으로 derive 해 둘을 OR — UI
- * 우회 / 누락 / 오등록 방어. web 의 {@code util/gpuInstance.ts} 와 동일 규칙 (single source of truth
- * 는 spec catalog 의 gpuCount 지만, 본 classifier 는 instance type 만 가지고 backup 감지).
- */
+/** CSP 별 GPU instance type 감지 — instance type 명 prefix 기반. */
 public final class GpuInstanceClassifier {
 
     private GpuInstanceClassifier() {}

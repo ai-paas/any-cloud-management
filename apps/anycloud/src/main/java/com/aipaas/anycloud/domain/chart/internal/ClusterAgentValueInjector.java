@@ -115,12 +115,7 @@ public class ClusterAgentValueInjector {
     }
 
     /**
-     * backend.tls.* 자동 주입 — backend 의 agent.grpc.tls.enabled 가 true 일 때만 chart values 에
-     * 주입. 사용자가 명시한 키는 보존.
-     *
-     * <p>backend TLS 비활성 (default) 면 본 메서드는 no-op — chart 의 default values
-     * (backend.tls.enabled=false) 가 그대로 사용됨. 사용자가 명시했어도 backend 가 TLS off 면
-     * 사용자 의도 우선 — 무엇이든 노출.
+     * backend.tls.* 자동 주입 — backend 의 agent.grpc.tls.enabled 가 true 일 때만 chart values 에 주입. 사용자가 명시한 키는 보존.
      *
      * @return true 면 변경 발생.
      */

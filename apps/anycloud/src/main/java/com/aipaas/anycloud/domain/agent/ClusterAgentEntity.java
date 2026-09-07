@@ -16,15 +16,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-/**
- * In-cluster Cluster Agent 의 등록/런타임 상태.
- *
- * <p>bootstrap RPC 가 끝나면 row 가 생긴다. 하나의 cluster 가 HA 로 여러 agent
- * 인스턴스를 가질 수 있으므로 (instance_id 별 row), PK 는 agent_id (UUID).
- *
- * <p>{@code identity_token_hash} 는 hex string — 원본 token 은 발급 직후 agent 에게
- * 만 전달되고 backend 는 hash 만 보관 (DB 유출 시 token 직접 재사용 차단).
- */
+/** In-cluster Cluster Agent 의 등록/런타임 상태. */
 @Entity
 @Table(name = "cluster_agent")
 @Getter
@@ -85,11 +77,7 @@ public class ClusterAgentEntity {
     @Column(name = "last_seen_at")
     private LocalDateTime lastSeenAt;
 
-    /**
-     * Agent → K8s API server 의 마지막 성공 호출 시각. Heartbeat 의 AgentHealth.last_k8s_api_ok 에서
-     * 갱신. last_seen_at 은 stream 레벨, 본 컬럼은 K8s 통신 가능 여부 — 둘 다 fresh 해야 cluster
-     * 실제 사용 가능.
-     */
+    /** Agent → K8s API server 의 마지막 성공 호출 시각. Heartbeat 의 AgentHealth.last_k8s_api_ok 에서 갱신. last_seen_at 은 stream 레벨, 본 컬럼은 K8s 통신 가능 여부 — 둘 다 fresh 해야 cluster 실제 사용 가능. */
     @Column(name = "last_k8s_api_ok_at")
     private LocalDateTime lastK8sApiOkAt;
 

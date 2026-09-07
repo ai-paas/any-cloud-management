@@ -16,13 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-/**
- * VM source cluster 생성 strategy.
- * <p>
- * spec 의 weak typing (Map&lt;String, Object&gt;) 은 {@link ClusterSpecMapper} 가 service
- * 진입 시점에 typed {@link VmClusterSpec} record 로 변환 — typo / 누락 field 가 즉시 IllegalArg
- * 으로 잡힘 + provider 내부에선 {@code spec.field()} 로 type-safe 접근.
- */
+/** VM source cluster 생성 strategy. */
 @Slf4j
 @Component
 @RequiredArgsConstructor
