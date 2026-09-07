@@ -28,9 +28,10 @@ class YamlProgramDumpTest {
         config.put("openstackFlavorName", envOr("ANYCLOUD_OS_FLAVOR", "m1.large"));
         config.put("workerCount", "2");
         config.put("joinToken", "abcdef.0123456789abcdef");
+        config.put("vpcCidr", envOr("ANYCLOUD_VPC_CIDR", "10.42.0.0/16"));
 
         ProvisioningRequest request = new ProvisioningRequest();
-        request.setProvider("openstack");
+        request.setProvider(envOr("ANYCLOUD_DUMP_PROVIDER", "openstack"));
         request.setClusterName("yaml-smoke");
         request.setEnvironment("dev");
         request.setRegion("RegionOne");

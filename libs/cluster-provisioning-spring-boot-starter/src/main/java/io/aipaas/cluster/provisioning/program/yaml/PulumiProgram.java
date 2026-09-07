@@ -38,6 +38,7 @@ public final class PulumiProgram {
     public static final class Builder {
 
         private final String projectName;
+        private final Map<String, Object> variables = new LinkedHashMap<>();
         private final Map<String, Object> resources = new LinkedHashMap<>();
         private final Map<String, Object> outputs = new LinkedHashMap<>();
 
@@ -60,6 +61,12 @@ public final class PulumiProgram {
             return this;
         }
 
+        /** provider function 호출 결과처럼 리소스가 아닌 값. {@code ${name.field}} 로 참조한다. */
+        public Builder variable(String name, Object value) {
+            variables.put(name, value);
+            return this;
+        }
+
         public Builder output(String key, Object value) {
             outputs.put(key, value);
             return this;
@@ -69,6 +76,9 @@ public final class PulumiProgram {
             Map<String, Object> doc = new LinkedHashMap<>();
             doc.put("name", projectName);
             doc.put("runtime", "yaml");
+            if (!variables.isEmpty()) {
+                doc.put("variables", variables);
+            }
             // 비어도 항상 넣는다 — resources 키가 없으면 CLI 가 프로그램으로 인정하지 않는다.
             doc.put("resources", resources);
             if (!outputs.isEmpty()) {

@@ -29,11 +29,11 @@ class YamlProgramAssemblerTest {
     }
 
     @Test
-    void openstackIsSupportedOthersAreNot() {
-        // 나머지 CSP 는 아직 inline 프로그램으로 돈다. 한 번에 하나씩만 위험에 노출한다.
+    void migratedProvidersAreSupported() {
+        // 아직 emitter 가 없는 CSP 는 타입 SDK 경로로 간다. 한 번에 하나씩만 옮긴다.
         assertThat(YamlEmitters.supports("openstack")).isTrue();
         assertThat(YamlEmitters.supports("OpenStack")).isTrue();
-        assertThat(YamlEmitters.supports("aws")).isFalse();
+        assertThat(YamlEmitters.supports("aws")).isTrue();
         assertThat(YamlEmitters.supports("gcp")).isFalse();
     }
 
@@ -64,9 +64,9 @@ class YamlProgramAssemblerTest {
     @Test
     void unsupportedProviderIsRejected() {
         // 아직 emitter 가 없는 CSP 로 YAML 경로에 들어오면 즉시 알린다.
-        assertThatThrownBy(() -> YamlProgramAssembler.assemble(request("aws")))
+        assertThatThrownBy(() -> YamlProgramAssembler.assemble(request("gcp")))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("aws");
+                .hasMessageContaining("gcp");
     }
 
     @Test
