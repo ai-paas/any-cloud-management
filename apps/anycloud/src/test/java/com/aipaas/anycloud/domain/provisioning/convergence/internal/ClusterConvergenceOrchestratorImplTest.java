@@ -2,6 +2,7 @@ package com.aipaas.anycloud.domain.provisioning.convergence.internal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -10,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
 import com.aipaas.anycloud.domain.provisioning.VmClusterRepository;
 import com.aipaas.anycloud.domain.provisioning.convergence.ClusterComponentObserver;
+import com.aipaas.anycloud.domain.provisioning.convergence.ClusterComponentRepairService;
 import com.aipaas.anycloud.domain.provisioning.convergence.ComponentHealth;
 import com.aipaas.anycloud.domain.provisioning.convergence.ComponentObservation;
 import com.aipaas.anycloud.domain.provisioning.convergence.ComponentType;
@@ -25,8 +27,9 @@ class ClusterConvergenceOrchestratorImplTest {
     private final ClusterComponentObserver observer = mock(ClusterComponentObserver.class);
     private final RequestedAddonInspector addonInspector = mock(RequestedAddonInspector.class);
     private final VmClusterRepository repository = mock(VmClusterRepository.class);
+    private final ClusterComponentRepairService repairService = mock(ClusterComponentRepairService.class);
     private final ClusterConvergenceOrchestratorImpl orchestrator =
-            new ClusterConvergenceOrchestratorImpl(observer, addonInspector, repository);
+            new ClusterConvergenceOrchestratorImpl(observer, addonInspector, repository, repairService);
 
     private VmClusterEntity cluster(VmClusterStatus status) {
         VmClusterEntity vmCluster = new VmClusterEntity();
@@ -184,5 +187,53 @@ class ClusterConvergenceOrchestratorImplTest {
         orchestrator.drive();
 
         assertThat(vmCluster.getProvisioningStatus()).isEqualTo(VmClusterStatus.READY);
+    }
+
+    private void driveWith(ConvergenceSignal signal, ComponentObservation observation) {
+        VmClusterEntity vmCluster = cluster(VmClusterStatus.DEGRADED);
+        when(repository.findByProvisioningStatusIn(any())).thenReturn(List.of(vmCluster));
+        when(observer.observe(vmCluster)).thenReturn(List.of(observation));
+        when(observer.currentComponents("vmc-001")).thenReturn(List.of(observation));
+        when(addonInspector.inspect(vmCluster)).thenReturn(List.of());
+        orchestrator.drive();
+    }
+
+    @Test
+    void drive_repairsRequiredComponentThatIsNotReady() {
+        // 이 호출이 없으면 조정 루프는 상태만 다시 매기고 아무것도 고치지 않는다.
+        driveWith(
+                signal(Requirement.REQUIRED, ComponentHealth.NOT_READY),
+                observation(Requirement.REQUIRED, ComponentHealth.NOT_READY));
+
+        verify(repairService).repairIfDue(any(), eq(ComponentType.AGENT));
+    }
+
+    @Test
+    void drive_doesNotRepairWhenSatisfied() {
+        driveWith(
+                signal(Requirement.REQUIRED, ComponentHealth.READY),
+                observation(Requirement.REQUIRED, ComponentHealth.READY));
+
+        verify(repairService, never()).repairIfDue(any(), any());
+    }
+
+    @Test
+    void drive_doesNotRepairBestEffortComponent() {
+        // BEST_EFFORT 는 미충족이어도 판정을 UNSATISFIED 로 만들지 않는다. 고칠 대상도 아니다.
+        driveWith(
+                signal(Requirement.BEST_EFFORT, ComponentHealth.NOT_READY),
+                observation(Requirement.BEST_EFFORT, ComponentHealth.NOT_READY));
+
+        verify(repairService, never()).repairIfDue(any(), any());
+    }
+
+    @Test
+    void drive_doesNotReprobeForRepairTargets() {
+        // observe 가 이미 영속화했다. 여기서 다시 probe 하면 클러스터마다 SSH 가 두 번 열린다.
+        driveWith(
+                signal(Requirement.REQUIRED, ComponentHealth.NOT_READY),
+                observation(Requirement.REQUIRED, ComponentHealth.NOT_READY));
+
+        verify(observer, org.mockito.Mockito.times(1)).observe(any());
     }
 }

@@ -116,4 +116,110 @@ class ClusterComponentRepairServiceImplTest {
         assertThatThrownBy(() -> service.repair(cluster(), ComponentType.AGENT))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    private VmClusterComponentEntity dueRow() {
+        VmClusterComponentEntity entity = row();
+        entity.setAttempts(0);
+        entity.setNextAttemptAt(null);
+        return entity;
+    }
+
+    @Test
+    void repairIfDue_appliesWhenNoBackoffPending() {
+        // 이 경로가 없으면 어떤 클러스터도 스스로 READY 에 도달하지 못한다.
+        ClusterComponent component = agentComponent();
+        VmClusterComponentEntity entity = dueRow();
+        when(repository.findByVmClusterIdAndComponentType("vmc-001", ComponentType.AGENT))
+                .thenReturn(Optional.of(entity));
+
+        boolean applied = service(component).repairIfDue(cluster(), ComponentType.AGENT);
+
+        assertThat(applied).isTrue();
+        verify(component).apply(any(), any());
+        assertThat(entity.getLastAppliedAt()).isEqualTo(ZonedDateTime.now(clock));
+    }
+
+    @Test
+    void repairIfDue_skipsWhileBackoffPending() {
+        ClusterComponent component = agentComponent();
+        VmClusterComponentEntity entity = row(); // nextAttemptAt = +1h
+        when(repository.findByVmClusterIdAndComponentType("vmc-001", ComponentType.AGENT))
+                .thenReturn(Optional.of(entity));
+
+        boolean applied = service(component).repairIfDue(cluster(), ComponentType.AGENT);
+
+        assertThat(applied).isFalse();
+        verify(component, never()).apply(any(), any());
+    }
+
+    @Test
+    void repairIfDue_accumulatesAttemptsUnlikeManualRepair() {
+        // 같은 이유로 계속 실패하는 컴포넌트를 5분마다 무한 재시도하면 안 된다.
+        ClusterComponent component = agentComponent();
+        VmClusterComponentEntity entity = dueRow();
+        entity.setAttempts(3);
+        when(repository.findByVmClusterIdAndComponentType("vmc-001", ComponentType.AGENT))
+                .thenReturn(Optional.of(entity));
+
+        service(component).repairIfDue(cluster(), ComponentType.AGENT);
+
+        assertThat(entity.getAttempts()).isEqualTo(4);
+        assertThat(entity.getNextAttemptAt()).isAfter(ZonedDateTime.now(clock));
+    }
+
+    @Test
+    void repairIfDue_backsOffEvenOnSuccess() {
+        // 적용이 곧 준비 완료가 아니다. 백오프가 없으면 같은 매니페스트를 5분마다 다시 민다.
+        ClusterComponent component = agentComponent();
+        VmClusterComponentEntity entity = dueRow();
+        when(repository.findByVmClusterIdAndComponentType("vmc-001", ComponentType.AGENT))
+                .thenReturn(Optional.of(entity));
+
+        service(component).repairIfDue(cluster(), ComponentType.AGENT);
+
+        assertThat(entity.getLastError()).isNull();
+        assertThat(entity.getNextAttemptAt()).isAfter(ZonedDateTime.now(clock));
+    }
+
+    @Test
+    void repairIfDue_backoffIsCapped() {
+        ClusterComponent component = agentComponent();
+        VmClusterComponentEntity entity = dueRow();
+        entity.setAttempts(100);
+        when(repository.findByVmClusterIdAndComponentType("vmc-001", ComponentType.AGENT))
+                .thenReturn(Optional.of(entity));
+
+        service(component).repairIfDue(cluster(), ComponentType.AGENT);
+
+        assertThat(entity.getNextAttemptAt()).isEqualTo(ZonedDateTime.now(clock).plusMinutes(30));
+    }
+
+    @Test
+    void repairIfDue_swallowsApplyFailureAndRecordsIt() {
+        // 한 컴포넌트의 실패가 나머지 조정을 멈추면 안 된다.
+        ClusterComponent component = agentComponent();
+        org.mockito.Mockito.doThrow(new IllegalStateException("SSH 불가"))
+                .when(component)
+                .apply(any(), any());
+        VmClusterComponentEntity entity = dueRow();
+        when(repository.findByVmClusterIdAndComponentType("vmc-001", ComponentType.AGENT))
+                .thenReturn(Optional.of(entity));
+
+        boolean applied = service(component).repairIfDue(cluster(), ComponentType.AGENT);
+
+        assertThat(applied).isTrue();
+        assertThat(entity.getLastError()).contains("SSH 불가");
+        assertThat(entity.getLastAppliedAt()).isNull();
+    }
+
+    @Test
+    void repairIfDue_ignoresUnknownComponentRow() {
+        ClusterComponent component = agentComponent();
+        when(repository.findByVmClusterIdAndComponentType("vmc-001", ComponentType.AGENT))
+                .thenReturn(Optional.empty());
+
+        assertThat(service(component).repairIfDue(cluster(), ComponentType.AGENT))
+                .isFalse();
+        verify(component, never()).apply(any(), any());
+    }
 }

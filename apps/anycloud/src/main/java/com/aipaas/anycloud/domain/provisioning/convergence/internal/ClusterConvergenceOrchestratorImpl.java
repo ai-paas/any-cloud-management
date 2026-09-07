@@ -3,6 +3,7 @@ package com.aipaas.anycloud.domain.provisioning.convergence.internal;
 import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
 import com.aipaas.anycloud.domain.provisioning.VmClusterRepository;
 import com.aipaas.anycloud.domain.provisioning.convergence.ClusterComponentObserver;
+import com.aipaas.anycloud.domain.provisioning.convergence.ClusterComponentRepairService;
 import com.aipaas.anycloud.domain.provisioning.convergence.ClusterConvergenceOrchestrator;
 import com.aipaas.anycloud.domain.provisioning.convergence.ComponentHealth;
 import com.aipaas.anycloud.domain.provisioning.convergence.ComponentObservation;
@@ -35,6 +36,7 @@ public class ClusterConvergenceOrchestratorImpl implements ClusterConvergenceOrc
     private final ClusterComponentObserver observer;
     private final RequestedAddonInspector addonInspector;
     private final VmClusterRepository vmClusterRepository;
+    private final ClusterComponentRepairService repairService;
 
     @Override
     @Scheduled(
@@ -54,7 +56,9 @@ public class ClusterConvergenceOrchestratorImpl implements ClusterConvergenceOrc
     }
 
     private void driveOne(VmClusterEntity vmCluster) {
-        ConvergenceVerdict verdict = evaluate(collectSignals(observer, addonInspector, vmCluster));
+        List<ConvergenceSignal> signals = collectSignals(observer, addonInspector, vmCluster);
+        repairUnsatisfied(vmCluster, signals);
+        ConvergenceVerdict verdict = evaluate(signals);
         VmClusterStatus current = vmCluster.getProvisioningStatus();
         VmClusterStatus next =
                 switch (verdict) {
@@ -69,6 +73,28 @@ public class ClusterConvergenceOrchestratorImpl implements ClusterConvergenceOrc
         vmCluster.transitionTo(next, "convergence.reconcile");
         vmClusterRepository.save(vmCluster);
         log.info("컴포넌트 조정으로 상태 변경 cluster={} {} -> {}", vmCluster.getClusterName(), current, next);
+    }
+
+    /**
+     * 미충족 구성 요소를 다시 적용한다.
+     *
+     * <p>이 호출이 없으면 조정 루프는 상태만 다시 매기고 아무것도 고치지 않는다 — 어떤 클러스터도
+     * 스스로 READY 에 도달하지 못하고 운영자가 repair API 를 직접 부를 때까지 DEGRADED 로 남는다.
+     *
+     * <p>{@code observe} 가 결과를 이미 영속화했으므로 저장된 상태를 읽는다. 여기서 다시 probe 하면
+     * 클러스터마다 SSH 가 두 번 열린다.
+     */
+    private void repairUnsatisfied(VmClusterEntity vmCluster, List<ConvergenceSignal> signals) {
+        if (evaluate(signals) != ConvergenceVerdict.UNSATISFIED) {
+            return;
+        }
+        for (ComponentObservation observation : observer.currentComponents(vmCluster.getId())) {
+            if (observation.requirement() != Requirement.REQUIRED
+                    || observation.health() != ComponentHealth.NOT_READY) {
+                continue;
+            }
+            repairService.repairIfDue(vmCluster, observation.type());
+        }
     }
 
     /** 구성 요소 관측과 요청 addon 상태를 한 묶음으로. 어느 쪽 실패든 같은 무게로 본다. */
