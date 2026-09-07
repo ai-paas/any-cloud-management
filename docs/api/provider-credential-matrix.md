@@ -4,22 +4,22 @@
 
 ## Public Providers
 
-| Provider | Credential ENV / MANUAL key | 필수 config |
+| Provider | Credential ENV / MANUAL key | 필수 `providerSpec` |
 | --- | --- | --- |
 | AWS | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` | 없음 |
-| GCP | `GOOGLE_APPLICATION_CREDENTIALS` 또는 `GOOGLE_CREDENTIALS` | `anycloud-k8s:providerSpec.project` |
-| Azure | `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID` | `anycloud-k8s:providerSpec.resourceGroup` |
+| GCP | `GOOGLE_APPLICATION_CREDENTIALS` 또는 `GOOGLE_CREDENTIALS` | `providerSpec.project` |
+| Azure | `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID` | `providerSpec.resourceGroup` |
 | Alibaba | `ALICLOUD_ACCESS_KEY`, `ALICLOUD_SECRET_KEY`, `ALICLOUD_REGION` | 없음 |
-| OCI | `TF_VAR_tenancy_ocid`, `TF_VAR_user_ocid`, `TF_VAR_fingerprint`, `TF_VAR_region`, `TF_VAR_private_key` 또는 `TF_VAR_private_key_path` | `anycloud-k8s:providerSpec.compartmentId`, `anycloud-k8s:osImage` |
+| OCI | `TF_VAR_tenancy_ocid`, `TF_VAR_user_ocid`, `TF_VAR_fingerprint`, `TF_VAR_region`, `TF_VAR_private_key` 또는 `TF_VAR_private_key_path` | `providerSpec.compartmentId`, `spec.osImage` |
 | DigitalOcean | `DIGITALOCEAN_TOKEN` 또는 `DIGITALOCEAN_ACCESS_TOKEN` | 없음 |
 
 ## Private Providers
 
-| Provider | Credential ENV / MANUAL key | 필수 config |
+| Provider | Credential ENV / MANUAL key | 필수 `providerSpec` |
 | --- | --- | --- |
-| OpenStack | `OS_AUTH_URL`, `OS_USERNAME`, `OS_PASSWORD`, `OS_PROJECT_NAME`, `OS_USER_DOMAIN_NAME`, `OS_PROJECT_DOMAIN_NAME`, `OS_REGION_NAME` | `anycloud-k8s:providerSpec.imageName`, `anycloud-k8s:providerSpec.flavorName`, 그리고 `anycloud-k8s:providerSpec.externalNetworkId` 또는 `anycloud-k8s:providerSpec.floatingIpPool` |
-| IBM | `IBMCLOUD_API_KEY`, `IBMCLOUD_REGION` | `anycloud-k8s:providerSpec.zone` |
-| Proxmox | `PROXMOX_VE_ENDPOINT`, 그리고 `PROXMOX_VE_API_TOKEN` 또는 `PROXMOX_VE_USERNAME`+`PROXMOX_VE_PASSWORD` | `anycloud-k8s:providerSpec.nodeName` |
+| OpenStack | `OS_AUTH_URL`, `OS_USERNAME`, `OS_PASSWORD`, `OS_PROJECT_NAME`, `OS_USER_DOMAIN_NAME`, `OS_PROJECT_DOMAIN_NAME`, `OS_REGION_NAME` | `providerSpec.imageName`, `providerSpec.flavorName`, 그리고 `providerSpec.externalNetworkId` 또는 `providerSpec.floatingIpPool` |
+| IBM | `IBMCLOUD_API_KEY`, `IBMCLOUD_REGION` | `providerSpec.zone` |
+| Proxmox | `PROXMOX_VE_ENDPOINT`, 그리고 `PROXMOX_VE_API_TOKEN` 또는 `PROXMOX_VE_USERNAME`+`PROXMOX_VE_PASSWORD` | `providerSpec.nodeName` |
 
 ## 운영 메모
 

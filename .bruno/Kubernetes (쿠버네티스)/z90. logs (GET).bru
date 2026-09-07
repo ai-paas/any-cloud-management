@@ -1,0 +1,15 @@
+meta {
+  name: logs (GET)
+  type: http
+  seq: 91
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/namespaces/{{namespace}}/pods/{{pod_name}}/logs
+  body: none
+  auth: none
+}
+
+docs {
+  `GET /v1/clusters/{clusterName}/namespaces/{namespace}/pods/{podName}/logs`
+}

@@ -1,0 +1,15 @@
+meta {
+  name: agent bootstrap 정보 (GET)
+  type: http
+  seq: 94
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/agent-bootstrap
+  body: none
+  auth: none
+}
+
+docs {
+  `GET /v1/clusters/{clusterName}/agent-bootstrap`
+}

@@ -1,0 +1,15 @@
+meta {
+  name: operations (POST)
+  type: http
+  seq: 92
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/helm-releases/{{releasesName}}/operations
+  body: none
+  auth: none
+}
+
+docs {
+  `POST /v1/clusters/{clusterName}/helm-releases/{releaseName}/operations`
+}

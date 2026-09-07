@@ -1,0 +1,15 @@
+meta {
+  name: kind (POST)
+  type: http
+  seq: 93
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/namespaces/{{namespace}}/{{kind}}
+  body: none
+  auth: none
+}
+
+docs {
+  `POST /v1/clusters/{clusterName}/namespaces/{namespace}/{kind}`
+}

@@ -20,14 +20,14 @@
 
 ### GCP
 - `GOOGLE_APPLICATION_CREDENTIALS` 또는 `GOOGLE_CREDENTIALS`
-- provisioning config에 `anycloud-k8s:providerSpec.project`
+- 요청의 `providerSpec.project`
 
 ### Azure
 - `ARM_CLIENT_ID`
 - `ARM_CLIENT_SECRET`
 - `ARM_TENANT_ID`
 - `ARM_SUBSCRIPTION_ID`
-- provisioning config에 `anycloud-k8s:providerSpec.resourceGroup`
+- 요청의 `providerSpec.resourceGroup`
 
 ### Alibaba
 - `ALICLOUD_ACCESS_KEY`
@@ -43,14 +43,14 @@
 - `OS_USER_DOMAIN_NAME`
 - `OS_PROJECT_DOMAIN_NAME`
 - `OS_REGION_NAME`
-- provisioning config에 `anycloud-k8s:providerSpec.imageName`, `anycloud-k8s:providerSpec.flavorName`
+- 요청의 `providerSpec.imageName`, `providerSpec.flavorName`
 - floating IP pool / external network capacity 확인
 
 ### Proxmox
 - `PROXMOX_VE_ENDPOINT`
 - `PROXMOX_VE_USERNAME`
 - `PROXMOX_VE_PASSWORD`
-- provisioning config에 `anycloud-k8s:proxmoxNodeName`, `anycloud-k8s:proxmoxTemplateVmId`, `anycloud-k8s:proxmoxDatastoreId`, `anycloud-k8s:proxmoxNetworkBridge`
+- 요청의 `anycloud-k8s:proxmoxNodeName`, `anycloud-k8s:proxmoxTemplateVmId`, `anycloud-k8s:proxmoxDatastoreId`, `anycloud-k8s:proxmoxNetworkBridge`
 - snippet 저장이 가능한 datastore와 cloud-init template VM 확인
 
 ### OCI
@@ -59,7 +59,7 @@
 - `TF_VAR_fingerprint`
 - `TF_VAR_region`
 - `TF_VAR_private_key` 또는 `TF_VAR_private_key_path`
-- provisioning config에 `anycloud-k8s:providerSpec.compartmentId`
+- 요청의 `providerSpec.compartmentId`
 - compartment 권한 / shape / Ubuntu image availability 확인
 
 ### DigitalOcean

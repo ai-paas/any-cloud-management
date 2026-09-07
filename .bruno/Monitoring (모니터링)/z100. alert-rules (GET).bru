@@ -1,0 +1,15 @@
+meta {
+  name: alert-rules (GET)
+  type: http
+  seq: 101
+}
+
+get {
+  url: {{baseUrl}}/v1/observability/alert-rules
+  body: none
+  auth: none
+}
+
+docs {
+  `GET /v1/observability/alert-rules`
+}

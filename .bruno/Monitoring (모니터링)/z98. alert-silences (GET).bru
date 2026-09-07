@@ -1,0 +1,15 @@
+meta {
+  name: alert-silences (GET)
+  type: http
+  seq: 99
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/observability/alert-silences
+  body: none
+  auth: none
+}
+
+docs {
+  `GET /v1/clusters/{clusterName}/observability/alert-silences`
+}

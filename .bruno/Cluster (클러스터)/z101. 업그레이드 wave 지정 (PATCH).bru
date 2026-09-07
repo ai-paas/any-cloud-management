@@ -1,0 +1,26 @@
+meta {
+  name: 업그레이드 wave 지정 (PATCH)
+  type: http
+  seq: 102
+}
+
+patch {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/upgrade-wave
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+}
+
+body:json {
+  {
+    "wave": 1
+  }
+}
+
+docs {
+  `PATCH /v1/clusters/{clusterName}/upgrade-wave`
+}

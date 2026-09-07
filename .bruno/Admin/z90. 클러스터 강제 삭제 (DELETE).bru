@@ -1,0 +1,15 @@
+meta {
+  name: 클러스터 강제 삭제 (DELETE)
+  type: http
+  seq: 91
+}
+
+delete {
+  url: {{baseUrl}}/v1/admin/clusters/{{cluster_name}}/force
+  body: none
+  auth: none
+}
+
+docs {
+  `DELETE /v1/admin/clusters/{clusterName}/force`
+}

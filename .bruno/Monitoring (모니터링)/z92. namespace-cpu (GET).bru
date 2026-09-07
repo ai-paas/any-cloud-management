@@ -1,0 +1,15 @@
+meta {
+  name: namespace-cpu (GET)
+  type: http
+  seq: 93
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/metrics/standard/namespace-cpu
+  body: none
+  auth: none
+}
+
+docs {
+  `GET /v1/clusters/{clusterName}/metrics/standard/namespace-cpu`
+}

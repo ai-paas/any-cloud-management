@@ -1,0 +1,15 @@
+meta {
+  name: 클러스터 operation 목록 (GET)
+  type: http
+  seq: 99
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/operations
+  body: none
+  auth: none
+}
+
+docs {
+  `GET /v1/clusters/{clusterName}/operations`
+}

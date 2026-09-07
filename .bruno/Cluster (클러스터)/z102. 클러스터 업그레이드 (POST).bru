@@ -1,0 +1,26 @@
+meta {
+  name: 클러스터 업그레이드 (POST)
+  type: http
+  seq: 103
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/upgrade
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+}
+
+body:json {
+  {
+    "targetImage": "{{agent_image}}"
+  }
+}
+
+docs {
+  `POST /v1/clusters/{clusterName}/upgrade`
+}

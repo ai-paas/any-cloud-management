@@ -1,0 +1,15 @@
+meta {
+  name: pods (GET)
+  type: http
+  seq: 93
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_id}}/agent/pods
+  body: none
+  auth: none
+}
+
+docs {
+  `GET /v1/clusters/{clusterId}/agent/pods`
+}
