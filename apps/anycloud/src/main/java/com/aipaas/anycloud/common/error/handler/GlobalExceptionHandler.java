@@ -243,6 +243,16 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
+    /** 필수 query parameter 누락. 핸들러가 없으면 최종 Exception 으로 떨어져 500 이 나간다. */
+    @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
+    protected ResponseEntity<ErrorResponse> handleMissingServletRequestParameterException(
+            org.springframework.web.bind.MissingServletRequestParameterException e) {
+        log.warn("Handler exception: {}", e.getMessage());
+        final ErrorResponse response =
+                ErrorResponse.of(ErrorCode.INVALID_INPUT_VALUE, "필수 파라미터 누락: " + e.getParameterName());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
     /**
      * 지원하지 않은 HTTP method 호출 할 경우 발생
      */
