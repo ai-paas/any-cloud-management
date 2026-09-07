@@ -38,6 +38,7 @@ public final class PulumiProgram {
     public static final class Builder {
 
         private final String projectName;
+        private final PluginVersions pluginVersions = PluginVersions.fromEnvironment();
         private final Map<String, Object> variables = new LinkedHashMap<>();
         private final Map<String, Object> resources = new LinkedHashMap<>();
         private final Map<String, Object> outputs = new LinkedHashMap<>();
@@ -54,8 +55,14 @@ public final class PulumiProgram {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("type", type);
             entry.put("properties", new LinkedHashMap<>(properties));
-            if (!options.isEmpty()) {
-                entry.put("options", new LinkedHashMap<>(options));
+            Map<String, Object> merged = new LinkedHashMap<>(options);
+            // 고정하지 않으면 캐시가 빈 환경에서 그날의 latest 를 받는다.
+            String version = pluginVersions.forType(type);
+            if (version != null) {
+                merged.putIfAbsent("version", version);
+            }
+            if (!merged.isEmpty()) {
+                entry.put("options", merged);
             }
             resources.put(name, entry);
             return this;

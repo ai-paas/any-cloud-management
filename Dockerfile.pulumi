@@ -2,6 +2,11 @@
 #
 # anycloud backend with Pulumi Java Automation API.
 
+# 플러그인 목록. 스테이지를 넘지 않으므로 전역에 두고 각 스테이지가 상속한다.
+# PluginVersions.DEFAULT 와 같은 값이어야 한다 — 어긋나면 런타임에 다시 받는다.
+# 목록을 좁히면 그만큼 이미지가 준다. openstack 전용이면 "openstack:5.5.1 tls:5.6.0".
+ARG PULUMI_PLUGINS="aws:7.44.0 gcp:9.36.1 azure-native:3.27.0 oci:4.22.0 openstack:5.5.1 proxmoxve:8.6.0 tls:5.6.0"
+
 # Gradle (Java) build stage.
 FROM eclipse-temurin:21-jdk AS gradle-builder
 
@@ -73,14 +78,25 @@ RUN curl -fsSL "https://get.helm.sh/helm-v${HELM_VERSION}-linux-${TARGETARCH}.ta
 # 플러그인 스테이지 — 1.8GB 다운로드를 apk 목록이나 앱 코드 변경과 분리해 캐시한다.
 FROM cli-fetch AS plugin-fetch
 
-# 목록을 좁히면 그만큼 이미지가 준다. openstack 전용이면 "openstack:5.4.1 tls:5.2.0".
-ARG PULUMI_PLUGINS="aws:6.78.0 gcp:8.41.1 azure-native:3.16.0 oci:3.16.0 openstack:5.4.1 tls:5.2.0"
+ARG PULUMI_PLUGINS
+
+# 서드파티 플러그인은 get.pulumi.com 에 없고 GitHub 릴리스에서 받는다. 익명 요청은 IP 당
+# 시간당 60회라 CI 에서 쉽게 걸린다 — GITHUB_TOKEN 을 secret 으로 넘기면 5000회가 된다.
+ARG PULUMI_PLUGIN_SERVERS="proxmoxve=github://api.github.com/muhlba91/pulumi-proxmoxve"
 
 # Pulumi 는 $PULUMI_HOME/plugins 만 본다. PULUMI_PLUGIN_CACHE_DIR 은 인식하지 않고
 # 심볼릭 링크도 따라가지 않는다 — 다른 경로에 두면 런타임에 전부 다시 받는다.
-RUN for p in ${PULUMI_PLUGINS}; do \
+RUN --mount=type=secret,id=github_token,required=false \
+    if [ -f /run/secrets/github_token ]; then \
+        GITHUB_TOKEN="$(cat /run/secrets/github_token)"; export GITHUB_TOKEN; \
+    fi; \
+    for p in ${PULUMI_PLUGINS}; do \
+        name="${p%%:*}"; ver="${p##*:}"; server=""; \
+        for m in ${PULUMI_PLUGIN_SERVERS}; do \
+            [ "${m%%=*}" = "$name" ] && server="--server ${m#*=}"; \
+        done; \
         PULUMI_HOME=/plugin-home /opt/pulumi/pulumi plugin install \
-            resource "${p%%:*}" "v${p##*:}" || exit 1; \
+            resource "$name" "v$ver" $server || exit 1; \
     done
 
 
@@ -127,6 +143,9 @@ ENV XDG_CACHE_HOME=/app/.cache
 ENV XDG_CONFIG_HOME=/app/.config
 ENV XDG_DATA_HOME=/app/.local/share
 ENV PULUMI_HOME=/app/.pulumi
+# 앱이 YAML 리소스에 options.version 으로 박는다. 설치본과 같은 값이어야 한다.
+ARG PULUMI_PLUGINS
+ENV PULUMI_PLUGINS="${PULUMI_PLUGINS}"
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseStringDeduplication"
 
 USER anycloud
