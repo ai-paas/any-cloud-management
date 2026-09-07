@@ -63,6 +63,16 @@ jobs:
           fi
           echo "Detected source branch: $BRANCH"
 
+      # apps/agent/internal/gen 은 gitignore 대상이라 checkout 트리에 없다. 생성하지 않으면
+      # go build 가 "package anycloud/agent/internal/gen/... is not in std" 로 실패한다.
+      - name: Install buf
+        uses: bufbuild/buf-action@v1
+        with:
+          setup_only: true
+
+      - name: Generate agent protobuf code
+        run: buf generate
+
       - name: Set up QEMU (cross-arch)
         uses: docker/setup-qemu-action@v3
 
