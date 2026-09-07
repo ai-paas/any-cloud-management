@@ -1,0 +1,36 @@
+# 빌드 컨텍스트에서 제외. COPY 대상이 아니어도 BuildKit 이 전부 훑고 해시하므로
+# 컨텍스트에 남아 있으면 매 빌드가 느려지고 캐시가 깨진다.
+
+# 로컬 빌드 산출물. COPY apps/anycloud/ 가 그대로 가져가 이미지 안 빌드를 오염시킨다.
+**/build/
+**/bin/
+**/out/
+.gradle/
+
+# 이력. 이미지에서 쓰지 않는다.
+.git/
+.github/
+.gitignore
+.gitattributes
+
+# 자격증명. 컨텍스트에 들어가면 빌드 캐시와 중간 레이어에 남을 수 있다.
+_secret/
+*.pem
+*.key
+.env
+.env.*
+
+# 컨테이너 안에서 쓰지 않는 것들.
+apps/web/
+docs/
+.bruno/
+.outline/
+.idea/
+.vscode/
+**/node_modules/
+**/*.md
+!apps/agent/deploy/helm/**/*.md
+
+# Go agent 는 별도 이미지로 빌드한다. helm chart 만 필요하다.
+apps/agent/*
+!apps/agent/deploy/
