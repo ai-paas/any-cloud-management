@@ -10,12 +10,7 @@ import java.util.Comparator;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * YAML 프로그램을 담을 임시 workDir 관리.
- *
- * <p>스택 상태는 workDir 이 아니라 백엔드(S3/RustFS)에 있다. workDir 은 프로그램 정의만 담으므로
- * 작업이 끝나면 지워도 된다.
- */
+/** YAML 프로그램을 담을 임시 workDir 관리. */
 @Slf4j
 public final class YamlWorkspaceFactory {
 

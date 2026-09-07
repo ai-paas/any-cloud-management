@@ -8,12 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * OpenStack 리소스 정의. {@code OpenstackProvisioner} 의 YAML 등가물.
- *
- * <p>type token 과 속성 이름은 provider 스키마({@code pulumi package get-schema openstack})에서
- * 확인한 값이다. 추측하면 preview 에서 unknown resource type 으로 드러난다.
- */
+/** OpenStack 리소스 정의. {@code OpenstackProvisioner} 의 YAML 등가물. */
 final class OpenstackYamlEmitter implements ProviderYamlEmitter {
 
     private static final String T_NETWORK = "openstack:networking/network:Network";

@@ -48,12 +48,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * AWS provider 구현. VPC + multi-AZ subnet + IGW + RT + SG + EC2 (master + workers) +
- * TLS keypair + IAM role + optional RDS postgres.
- *
- * <p>HA 한계: masterCount=1 가정. 본격 HA 는 VIP/LB 도입 필요.
- */
+/** AWS provider 구현. */
 public final class AwsProvisioner extends AbstractKubeadmProvisioner {
 
     @Override
@@ -67,10 +62,7 @@ public final class AwsProvisioner extends AbstractKubeadmProvisioner {
 
         PrivateKey privateKey = new PrivateKey(
                 resourceName(spec, "ssh-key"),
-                PrivateKeyArgs.builder()
-                        .algorithm("RSA")
-                        .rsaBits(4096)
-                        .build());
+                PrivateKeyArgs.builder().algorithm("RSA").rsaBits(4096).build());
         KeyPair keyPair = new KeyPair(
                 resourceName(spec, "keypair"),
                 KeyPairArgs.builder()
@@ -89,13 +81,13 @@ public final class AwsProvisioner extends AbstractKubeadmProvisioner {
             masterInstance = provisionInstance(spec, net, node, keyPair, instanceProfile, null);
         }
         if (masterInstance == null) {
-            throw new IllegalStateException("AwsProvisioner: no master NodeSpec produced (masterCount="
-                    + spec.masterCount() + ")");
+            throw new IllegalStateException(
+                    "AwsProvisioner: no master NodeSpec produced (masterCount=" + spec.masterCount() + ")");
         }
         for (NodeSpec node : nodes) {
             if (node.role() != InstanceRole.WORKER) continue;
-            workerInstances.add(provisionInstance(
-                    spec, net, node, keyPair, instanceProfile, masterInstance.resource()));
+            workerInstances.add(
+                    provisionInstance(spec, net, node, keyPair, instanceProfile, masterInstance.resource()));
         }
 
         Map<String, Output<?>> extras = new LinkedHashMap<>();
@@ -117,8 +109,7 @@ public final class AwsProvisioner extends AbstractKubeadmProvisioner {
 
     private NetworkResult provisionNetwork(ClusterSpec spec) {
         // AZ list — 최소 2 zone 필요 (multi-AZ subnet 배치).
-        Output<List<String>> zoneNames =
-                AwsFunctions.getAvailabilityZones().applyValue(r -> r.names());
+        Output<List<String>> zoneNames = AwsFunctions.getAvailabilityZones().applyValue(r -> r.names());
 
         Vpc vpc = new Vpc(
                 resourceName(spec, "vpc"),
@@ -252,11 +243,7 @@ public final class AwsProvisioner extends AbstractKubeadmProvisioner {
                 .applyValue(r -> r.id());
     }
 
-    /**
-     * AWS Graviton (ARM64) instance type 인지 판정. instance type 의 family token (`.` 앞부분) 이
-     * {@code a<digit>} (a1) 또는 {@code [a-z]+<digit>+g[a-z]*} (t4g, m6g, c7gn, r8gd 등) 매치하면 ARM.
-     * Mismatch 시 EC2 RunInstances 가 architecture 400 에러를 반환하므로 AMI 선택 시 필수.
-     */
+    /** AWS Graviton (ARM64) instance type 인지 판정. */
     private static boolean isArm64Family(String instanceType) {
         if (instanceType == null || instanceType.isBlank()) return false;
         int dot = instanceType.indexOf('.');
@@ -315,8 +302,8 @@ public final class AwsProvisioner extends AbstractKubeadmProvisioner {
             InstanceProfile instanceProfile,
             Resource dependsOn) {
         if (node.subnetIndex() < 0 || node.subnetIndex() >= net.subnetIds.size()) {
-            throw new IllegalStateException("subnetIndex " + node.subnetIndex()
-                    + " out of range (have " + net.subnetIds.size() + " subnets)");
+            throw new IllegalStateException(
+                    "subnetIndex " + node.subnetIndex() + " out of range (have " + net.subnetIds.size() + " subnets)");
         }
         String tagSuffix = node.role().token() + "-" + (node.index() + 1);
 
@@ -413,9 +400,7 @@ public final class AwsProvisioner extends AbstractKubeadmProvisioner {
 
         Map<String, Output<?>> outputs = new LinkedHashMap<>();
         outputs.put(
-                "dbEndpoint",
-                Output.tuple(instance.address(), instance.port())
-                        .applyValue(t -> t.t1 + ":" + t.t2));
+                "dbEndpoint", Output.tuple(instance.address(), instance.port()).applyValue(t -> t.t1 + ":" + t.t2));
         outputs.put("dbName", Output.of(spec.database().name()));
         outputs.put("dbUsername", Output.of(spec.database().username()));
         return outputs;

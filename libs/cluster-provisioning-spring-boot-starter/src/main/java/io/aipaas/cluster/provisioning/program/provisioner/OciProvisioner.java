@@ -37,16 +37,10 @@ import io.aipaas.cluster.provisioning.program.ResourceNames;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Oracle Cloud Infrastructure provider. Go {@code infra/pulumi/pkg/providers/oci/*} 등가물.
- *
- * <p>VCN + InternetGateway + DefaultRouteTable + DefaultSecurityList + Subnet + Compute Instance.
- * CCM 권한은 Dynamic Group + Policy 로 instance-principal 제공. Spot/preemptible 미지원 (no-op).
- */
+/** Oracle Cloud Infrastructure provider. Go {@code infra/pulumi/pkg/providers/oci/*} 등가물. */
 public final class OciProvisioner extends AbstractKubeadmProvisioner {
 
     @Override
@@ -90,11 +84,17 @@ public final class OciProvisioner extends AbstractKubeadmProvisioner {
                         .compartmentId(compartmentId)
                         .name(resourceName(spec, "ccm-policy"))
                         .description("Allow K8s cloud-controller-manager to manage compute/network/blockstorage")
-                        .statements(dynGroup.name().applyValue(dg -> List.of(
-                                "Allow dynamic-group " + dg + " to manage instance-family in compartment id " + compartmentId,
-                                "Allow dynamic-group " + dg + " to manage virtual-network-family in compartment id " + compartmentId,
-                                "Allow dynamic-group " + dg + " to manage volume-family in compartment id " + compartmentId,
-                                "Allow dynamic-group " + dg + " to manage load-balancers in compartment id " + compartmentId)))
+                        .statements(dynGroup.name()
+                                .applyValue(dg -> List.of(
+                                        "Allow dynamic-group " + dg + " to manage instance-family in compartment id "
+                                                + compartmentId,
+                                        "Allow dynamic-group " + dg
+                                                + " to manage virtual-network-family in compartment id "
+                                                + compartmentId,
+                                        "Allow dynamic-group " + dg + " to manage volume-family in compartment id "
+                                                + compartmentId,
+                                        "Allow dynamic-group " + dg + " to manage load-balancers in compartment id "
+                                                + compartmentId)))
                         .build());
 
         List<NodeSpec> nodes = NodeSpecs.from(spec);
@@ -251,12 +251,11 @@ public final class OciProvisioner extends AbstractKubeadmProvisioner {
         return InstanceSourceDetailsArgs.builder()
                 .sourceType("image")
                 .bootVolumeSizeInGbs(bootVolumeGb)
-                .instanceSourceImageFilterDetails(
-                        InstanceSourceDetailsInstanceSourceImageFilterDetailsArgs.builder()
-                                .compartmentId(compartmentId)
-                                .operatingSystem("Canonical Ubuntu")
-                                .operatingSystemVersion("24.04")
-                                .build())
+                .instanceSourceImageFilterDetails(InstanceSourceDetailsInstanceSourceImageFilterDetailsArgs.builder()
+                        .compartmentId(compartmentId)
+                        .operatingSystem("Canonical Ubuntu")
+                        .operatingSystemVersion("24.04")
+                        .build())
                 .build();
     }
 

@@ -5,18 +5,11 @@ import com.pulumi.core.Output;
 import io.aipaas.cluster.provisioning.api.ProvisioningRequest;
 import io.aipaas.cluster.provisioning.program.provisioner.ProviderProvisioner;
 import io.aipaas.cluster.provisioning.program.provisioner.ProviderRegistry;
-import io.aipaas.cluster.provisioning.program.ClusterSpec;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * Pulumi 자동화 API 안의 Pulumi 프로그램. {@link
- * com.pulumi.automation.LocalWorkspace#createOrSelectStack} 에 inline program 으로 주입되어 stack
- * up/preview/destroy 시 {@link #run(Context, ProvisioningRequest)} 호출.
- *
- * <p>책임: ctx.config() → ClusterSpec → normalize → ProviderRegistry dispatch → outputs export.
- */
+/** Pulumi 자동화 API 안의 Pulumi 프로그램. */
 @Slf4j
 @RequiredArgsConstructor
 public class ProvisionerOrchestrator {
@@ -39,11 +32,10 @@ public class ProvisionerOrchestrator {
 
         ctx.export(
                 "summary",
-                Output.of(
-                        "provider=" + spec.provider()
-                                + " cluster=" + spec.name()
-                                + " masters=" + spec.masterCount()
-                                + " workers=" + spec.workerCount()
-                                + " kubernetes=" + spec.kubernetesVersion()));
+                Output.of("provider=" + spec.provider()
+                        + " cluster=" + spec.name()
+                        + " masters=" + spec.masterCount()
+                        + " workers=" + spec.workerCount()
+                        + " kubernetes=" + spec.kubernetesVersion()));
     }
 }

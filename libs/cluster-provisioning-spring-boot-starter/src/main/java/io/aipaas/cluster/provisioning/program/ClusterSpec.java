@@ -96,13 +96,7 @@ public record ClusterSpec(
         return Defaults.resolvedOsImage(this);
     }
 
-    /**
-     * Pulumi Context 없이 config map 으로부터 raw spec 빌드. defaults 미적용.
-     *
-     * <p>YAML 프로그램 경로용이다 — 프로그램을 JVM 안에서 실행하지 않으므로 {@code Context} 가 없다.
-     * 키는 namespace 접두 유무 양쪽을 받는다. 호출자가 Pulumi config 원형
-     * ({@code anycloud-k8s:workerCount}) 을 그대로 넘길 수 있다.
-     */
+    /** Pulumi Context 없이 config map 으로부터 raw spec 빌드. defaults 미적용. */
     public static ClusterSpec from(Map<String, String> config) {
         Map<String, String> cfg = config == null ? Map.of() : config;
         return new ClusterSpec(

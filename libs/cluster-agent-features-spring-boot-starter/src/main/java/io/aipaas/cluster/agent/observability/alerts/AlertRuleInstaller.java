@@ -19,20 +19,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * anycloud-default PrometheusRule 카탈로그를 cluster 에 install/uninstall.
- *
- * <p>구현 전략: 자체 K8s client 없이, 기존 cluster-agent 의 {@link CommandType#APPLY_MANIFEST} 와
- * {@link CommandType#DELETE_RESOURCE} 를 reverse-tunnel 로 호출. allowlist / RBAC 은 agent 측이
- * 그대로 적용 — backend 가 K8s 자격을 가질 필요 없음.
- *
- * <p>placeholder 치환: catalog YAML 의 {@code ${NAMESPACE}} / {@code ${RELEASE}} 는 install
- * 시점에 호출 인자로 치환. 본 단순 토큰 치환으로 충분 — Spring SpEL 같은 무거운 evaluator 회피.
- *
- * <p>release label 의미: Prometheus Operator 가 PrometheusRule 을 discover 할 때 spec.ruleSelector
- * 와 매칭. kube-prometheus-stack 의 default ruleSelector 는 release=<release-name> 이므로 본 값과
- * 일치시켜야 rule 이 실제로 활성됨.
- */
+/** anycloud-default PrometheusRule 카탈로그를 cluster 에 install/uninstall. */
 @Slf4j
 public class AlertRuleInstaller {
 
@@ -111,12 +98,7 @@ public class AlertRuleInstaller {
         return out;
     }
 
-    /**
-     * capability 가 필요한 rule-set 을 그 능력이 없는 cluster 에 설치하지 않는다. 설치해도 지표가
-     * 없어 절대 발화하지 않는 PrometheusRule 이 남고, 운영자가 알림 목록에서 혼동한다.
-     *
-     * <p>알 수 없는 capability 는 설치하는 쪽으로 둔다 — 새 라벨이 조용히 빠지는 것보다 낫다.
-     */
+    /** capability 가 필요한 rule-set 을 그 능력이 없는 cluster 에 설치하지 않는다. */
     private boolean supportedBy(String clusterName, AlertRuleSet rs) {
         String required = rs.requiredCapability();
         if (required == null || capabilities == null) {

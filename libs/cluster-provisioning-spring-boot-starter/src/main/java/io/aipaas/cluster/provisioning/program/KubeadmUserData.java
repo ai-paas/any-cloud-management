@@ -1,13 +1,6 @@
 package io.aipaas.cluster.provisioning.program;
 
-/**
- * kubeadm 기반 k8s 노드 bootstrap 의 cloud-init 스크립트 생성. Go {@code infra/pulumi/pkg/userdata/kubeadm.go}
- * 등가물. Java text block + format() — 16-bit Go fmt 대체.
- *
- * <p>master 와 worker 모두 동일한 OS prepare 단계 (containerd, kubelet, kubeadm 설치) 를 수행하고,
- * master 만 추가로 jq/openssl 패키지 설치 (kubeadm init 시 token/cert 처리 도구). 실제 kubeadm init/join
- * 은 본 user-data 이후 별도 단계 (Ansible 또는 SSH script) — 본 user-data 는 OS 준비만 담당.
- */
+/** kubeadm 기반 k8s 노드 bootstrap 의 cloud-init 스크립트 생성. */
 public final class KubeadmUserData {
 
     private KubeadmUserData() {}

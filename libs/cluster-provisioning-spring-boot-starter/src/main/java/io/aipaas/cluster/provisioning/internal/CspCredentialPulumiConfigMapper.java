@@ -5,15 +5,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
-/**
- * CSP credential 의 env 변수 (예: AWS_ACCESS_KEY_ID) 를 Pulumi stack config key (예: aws:accessKey)
- * 로 변환. Pulumi state backend (RustFS) 와 CSP provider 가 같은 env namespace (AWS_*) 를
- * 공유하던 충돌을 해소.
- *
- * <p>변환된 key 는 Pulumi default provider 가 자동 인식 (e.g. {@code aws:accessKey} → AWS SDK
- * static credential, {@code gcp:credentials} → GCP service account 등). 모든 value 는 stack
- * config 에 secret 으로 저장.
- */
+/** CSP credential 의 env 변수 (예: AWS_ACCESS_KEY_ID) 를 Pulumi stack config key (예: aws:accessKey) 로 변환. */
 public final class CspCredentialPulumiConfigMapper {
 
     private CspCredentialPulumiConfigMapper() {}
@@ -105,13 +97,7 @@ public final class CspCredentialPulumiConfigMapper {
         return out;
     }
 
-    /**
-     * Process environment 에 inject 되면 안 되는 CSP-specific env 의 union. Pulumi binary 가 보면
-     * default chain 으로 잡아채서 state backend 자격증명을 덮어씀.
-     *
-     * <p>State backend (RustFS) 가 사용하는 표준 AWS_* env 도 여기 포함 — host 의 system env
-     * (compose env_file 같은 process-level) 에서 별도 set 필요.
-     */
+    /** Process environment 에 inject 되면 안 되는 CSP-specific env 의 union. */
     private static final Set<String> CSP_ENV_BLOCKLIST = Set.of(
             "AWS_ACCESS_KEY_ID",
             "AWS_SECRET_ACCESS_KEY",

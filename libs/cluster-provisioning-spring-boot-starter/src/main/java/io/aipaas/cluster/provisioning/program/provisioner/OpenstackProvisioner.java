@@ -1,7 +1,6 @@
 package io.aipaas.cluster.provisioning.program.provisioner;
 
 import com.pulumi.Context;
-import com.pulumi.core.Output;
 import com.pulumi.openstack.compute.Instance;
 import com.pulumi.openstack.compute.InstanceArgs;
 import com.pulumi.openstack.compute.Keypair;
@@ -37,14 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * OpenStack (Neutron + Nova) provider. Go {@code infra/pulumi/pkg/providers/openstack/*} 등가물.
- *
- * <p>Network + Subnet + Router + RouterInterface (external network) + SecGroup + 5 rules.
- * 인스턴스 1대 = (Port + Compute + FloatingIp + Associate) 4 자원.
- *
- * <p>Spot 미지원 (no-op). FloatingIpPool / ExternalNetworkId 필수.
- */
+/** OpenStack (Neutron + Nova) provider. Go {@code infra/pulumi/pkg/providers/openstack/*} 등가물. */
 public final class OpenstackProvisioner extends AbstractKubeadmProvisioner {
 
     @Override
@@ -54,10 +46,12 @@ public final class OpenstackProvisioner extends AbstractKubeadmProvisioner {
 
     @Override
     protected ProvisionedCluster provisionResources(Context ctx, ClusterSpec spec) {
-        if (spec.openstackExternalNetworkId() == null || spec.openstackExternalNetworkId().isBlank()) {
+        if (spec.openstackExternalNetworkId() == null
+                || spec.openstackExternalNetworkId().isBlank()) {
             throw new IllegalStateException("openstackExternalNetworkId is required for OpenStack provisioning");
         }
-        if (spec.openstackFloatingIpPool() == null || spec.openstackFloatingIpPool().isBlank()) {
+        if (spec.openstackFloatingIpPool() == null
+                || spec.openstackFloatingIpPool().isBlank()) {
             throw new IllegalStateException("openstackFloatingIpPool is required for OpenStack provisioning");
         }
 
@@ -184,7 +178,9 @@ public final class OpenstackProvisioner extends AbstractKubeadmProvisioner {
                         .name(resourceName(spec, suffix + "-port"))
                         .networkId(net.network.id())
                         .adminStateUp(true)
-                        .fixedIps(PortFixedIpArgs.builder().subnetId(net.subnet.id()).build())
+                        .fixedIps(PortFixedIpArgs.builder()
+                                .subnetId(net.subnet.id())
+                                .build())
                         .securityGroupIds(net.sg.id().applyValue(List::of))
                         .region(spec.region())
                         .build());

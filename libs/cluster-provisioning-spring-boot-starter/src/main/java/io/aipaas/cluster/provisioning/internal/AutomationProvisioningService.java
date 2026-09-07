@@ -34,16 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * {@link ProvisioningService} 의 Pulumi Automation Java SDK 기반 구현.
- *
- * <p>{@link LocalWorkspace} + {@link WorkspaceStack} 으로 in-JVM Pulumi engine 호출. {@code pulumi}
- * binary 는 필요하지만 Pulumi 가 invoke 하는 language host 가 같은 JVM 안 {@link ProvisionerOrchestrator} 빈
- * — Go runtime 의존성 0.
- *
- * <p>CSP 자격증명은 process env 가 아닌 stack config (예: {@code aws:accessKey}) 로 분리 — state
- * backend env (호스트 AWS_*) 와 충돌 방지.
- */
+/** {@link ProvisioningService} 의 Pulumi Automation Java SDK 기반 구현. */
 @Slf4j
 @RequiredArgsConstructor
 public class AutomationProvisioningService implements ProvisioningService {
@@ -311,12 +302,7 @@ public class AutomationProvisioningService implements ProvisioningService {
         stack.setAllConfig(allConfig);
     }
 
-    /**
-     * 스택을 연다. YAML emitter 가 있는 provider 는 local workDir 프로그램을, 나머지는 기존 inline
-     * 프로그램을 쓴다. 한 번에 하나씩만 위험에 노출한다.
-     *
-     * <p>{@code workDirHolder} 에 생성된 임시 디렉토리를 담아 caller 가 finally 에서 지운다.
-     */
+    /** 스택을 연다. YAML emitter 가 있는 provider 는 local workDir 프로그램을, 나머지는 기존 inline 프로그램을 쓴다. 한 번에 하나씩만 위험에 노출한다. */
     private WorkspaceStack openStack(
             String stackName, ProvisioningRequest request, LocalWorkspaceOptions workspaceOpts, Path[] workDirHolder)
             throws AutomationException {

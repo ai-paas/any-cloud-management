@@ -4,13 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Provider 별 default 적용 + cross-cutting 보정.
- *
- * <p>caller 가 제공한 ClusterSpec 의 빈 필드를 provider 의 권장 값으로 채워 새 record 반환.
- * cross-cutting default (masterCount odd 강제 — etcd quorum split-brain 방지, rootDiskSizeGb≥50 — k8s
- * NodeHasDiskPressure 방지) 도 본 메서드가 적용.
- */
+/** Provider 별 default 적용 + cross-cutting 보정. */
 public final class Defaults {
 
     private Defaults() {}

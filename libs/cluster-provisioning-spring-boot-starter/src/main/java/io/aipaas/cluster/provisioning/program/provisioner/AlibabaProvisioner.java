@@ -33,12 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Alibaba Cloud provider. Go {@code infra/pulumi/pkg/providers/alibaba/*} 등가물.
- *
- * <p>VPC + VSwitch (단일 zone) + ECS SecurityGroup + 3 rules + RAM Role + ECS Instance.
- * Spot 매핑: SpotStrategy=SpotAsPriceGo + SpotDuration=0.
- */
+/** Alibaba Cloud provider. Go {@code infra/pulumi/pkg/providers/alibaba/*} 등가물. */
 public final class AlibabaProvisioner extends AbstractKubeadmProvisioner {
 
     private static final String ASSUME_ROLE_POLICY =
@@ -108,7 +103,8 @@ public final class AlibabaProvisioner extends AbstractKubeadmProvisioner {
         }
         for (NodeSpec node : nodes) {
             if (node.role() != InstanceRole.WORKER) continue;
-            workerInstances.add(provisionInstance(spec, net, imageId, keyPair, ramRole, node, masterInstance.resource()));
+            workerInstances.add(
+                    provisionInstance(spec, net, imageId, keyPair, ramRole, node, masterInstance.resource()));
         }
 
         return new ProvisionedCluster(privateKey, masterInstance, workerInstances, net.vpc.id(), Map.of());

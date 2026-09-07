@@ -13,15 +13,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.util.StreamUtils;
 
-/**
- * Classpath 의 {@code alert-rules/*.yaml} 을 로드해 id 별로 보관.
- *
- * <p>본 catalog 는 starter 시작 시 한 번 로드되어 immutable. id 는 파일명 (확장자 제외). 호스트
- * 애플리케이션이 별도 rule set 을 추가하려면 본 catalog 를 override 하거나 자체 bean 으로 합성.
- *
- * <p>displayName / description / ruleCount 는 manifest YAML 의 metadata.name / annotations /
- * spec.groups[].rules[] 길이로부터 추정 — 별도 metadata 파일 불필요.
- */
+/** Classpath 의 {@code alert-rules/*.yaml} 을 로드해 id 별로 보관. */
 @Slf4j
 public class AlertRuleCatalog {
 
