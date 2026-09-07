@@ -24,7 +24,8 @@ body:json {
     "region": "{{provision_region}}",
     "credentialId": "{{credential_id}}",
     "config": {
-      "anycloud-k8s:azureResourceGroup": "{{azure_resource_group}}",
+      "anycloud-k8s:providerSpec.resourceGroup": "{{azure_resource_group}}",
+      "anycloud-k8s:osImage": "{{azure_image}}",
       "anycloud-k8s:masterInstanceType": "{{master_vm_spec}}",
       "anycloud-k8s:workerInstanceType": "{{worker_vm_spec}}",
       "anycloud-k8s:workerCount": "{{worker_count}}",
@@ -61,7 +62,7 @@ docs {
   - `master_vm_spec` / `worker_vm_spec`: e.g. `Standard_D4s_v5`, `Standard_E4s_v5`
 
   ### Azure 만의 config
-  - `anycloud-k8s:azureResourceGroup` (필수)
+  - `anycloud-k8s:providerSpec.resourceGroup` (필수)
   - 옵션: `anycloud-k8s:osImage` — `Publisher:Offer:Sku:Version` 형식
     (예: `Canonical:ubuntu-24_04-lts:server:latest`)
 

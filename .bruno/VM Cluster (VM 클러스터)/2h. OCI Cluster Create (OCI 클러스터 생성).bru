@@ -24,7 +24,8 @@ body:json {
     "region": "{{provision_region}}",
     "credentialId": "{{credential_id}}",
     "config": {
-      "anycloud-k8s:ociCompartmentId": "{{oci_compartment_id}}",
+      "anycloud-k8s:providerSpec.compartmentId": "{{oci_compartment_id}}",
+      "anycloud-k8s:osImage": "{{oci_image_ocid}}",
       "anycloud-k8s:masterInstanceType": "{{master_vm_spec}}",
       "anycloud-k8s:workerInstanceType": "{{worker_vm_spec}}",
       "anycloud-k8s:workerCount": "{{worker_count}}",
@@ -63,7 +64,7 @@ docs {
     (ARM Ampere 가 가성비)
 
   ### OCI 만의 config
-  - `anycloud-k8s:ociCompartmentId` (필수)
+  - `anycloud-k8s:providerSpec.compartmentId` (필수)
   - 옵션: `anycloud-k8s:osImage` — `ocid1.image....` 형식 (지정 안 하면 Canonical Ubuntu 24.04)
 
   ### OCI 의 특수 사항

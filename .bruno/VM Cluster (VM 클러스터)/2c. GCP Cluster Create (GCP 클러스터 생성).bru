@@ -24,7 +24,7 @@ body:json {
     "region": "{{provision_region}}",
     "credentialId": "{{credential_id}}",
     "config": {
-      "anycloud-k8s:gcpProject": "{{gcp_project}}",
+      "anycloud-k8s:providerSpec.project": "{{gcp_project}}",
       "anycloud-k8s:masterInstanceType": "{{master_vm_spec}}",
       "anycloud-k8s:workerInstanceType": "{{worker_vm_spec}}",
       "anycloud-k8s:workerCount": "{{worker_count}}",
@@ -61,7 +61,7 @@ docs {
   - `master_vm_spec` / `worker_vm_spec`: e.g. `e2-standard-4`, `n2-standard-4`
 
   ### GCP 만의 config
-  - `anycloud-k8s:gcpProject` (필수) — VM 이 배포될 project
+  - `anycloud-k8s:providerSpec.project` (필수) — VM 이 배포될 project
 
   ### 실행
   ```bash

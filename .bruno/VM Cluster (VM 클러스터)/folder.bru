@@ -75,8 +75,11 @@ docs {
 
   | 응답 | 원인 |
   |------|------|
-  | 400 `INVALID_PARAMS: missing gcpProject` | GCP cluster 에 `gcp_project` 누락 — `2c` 사용했는지 확인 |
-  | 400 `INVALID_PARAMS: missing azureResourceGroup` | Azure cluster 에 `azure_resource_group` 누락 |
+  | 500 `필수 config 누락: providerSpec.project` | GCP cluster 에 `gcp_project` 누락 — `2c` 사용했는지 확인 |
+  | 500 `필수 config 누락: providerSpec.resourceGroup` | Azure cluster 에 `azure_resource_group` 누락 |
+  | 500 `필수 config 누락: providerSpec.compartmentId` | OCI cluster 에 `oci_compartment_id` 누락 |
+  | 500 `필수 config 누락: osImage (OCI image OCID)` | OCI 이미지 OCID 는 리전마다 달라 추측할 수 없다 — `oci_image_ocid` 채우기 |
+  | 500 `osImage 는 publisher:offer:sku:version 형식` | Azure 이미지는 단일 ID 가 아니다 |
   | 400 `INVALID_PARAMS: openstack* required` | OpenStack 4개 키 중 하나 비어있음 |
   | 401 `CREDENTIAL_NOT_FOUND` | `credential_id` 가 stale / 다른 provider |
   | 409 `CLUSTER_NAME_CONFLICT` | 같은 `clusterName` 이미 존재 — env 의 `provision_cluster_name` 변경 |
