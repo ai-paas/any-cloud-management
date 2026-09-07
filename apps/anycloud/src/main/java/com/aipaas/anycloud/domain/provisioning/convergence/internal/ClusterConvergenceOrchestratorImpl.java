@@ -19,12 +19,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * READY / DEGRADED 클러스터의 컴포넌트 상태를 주기적으로 조정.
- *
- * <p>VERIFY 단계의 시간 제한 수렴 루프가 끝내지 못한 일을 이어받는다. consumer 스레드를 오래
- * 점유하지 않으려면 긴 대기는 여기로 와야 한다.
- */
+/** READY / DEGRADED 클러스터의 컴포넌트 상태를 주기적으로 조정. */
 @Slf4j
 @Service
 @RequiredArgsConstructor

@@ -93,9 +93,6 @@ public enum VmClusterStatus {
     /**
      * 현재 상태에서 {@code next} 로 transition 이 valid 한지 검사.
      *
-     * <p>state diagram 의 single source of truth. {@code VmClusterEntity#transitionTo} 가 본
-     * 메서드로 검증.
-     *
      * @return true 면 valid 또는 idempotent (same state).
      */
     public boolean canTransitionTo(VmClusterStatus next) {

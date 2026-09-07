@@ -32,13 +32,7 @@ public class VmClusterNodeResolverImpl implements VmClusterNodeResolver {
                 .toList();
     }
 
-    /**
-     * nodes 는 provisioner 에 따라 배열로도 JSON 문자열로도 온다.
-     *
-     * <p>Pulumi Java SDK 의 일부 역직렬화 경로가 배열 값을 못 다뤄 provisioner 가 문자열로 export
-     * 한다. 문자열을 못 읽으면 worker join 목록이 비고 — 그 경로에는 폴백이 없다 — worker 가
-     * 클러스터에 붙지 않는다.
-     */
+    /** nodes 는 provisioner 에 따라 배열로도 JSON 문자열로도 온다. */
     private List<?> toNodeList(Object value) {
         if (value instanceof List<?> list) {
             return list;

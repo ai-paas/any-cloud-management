@@ -50,15 +50,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * VM 인프라 자원 전용 API. {@code /v1/clusters} 의 source=vm 변형을 별도 namespace 로 노출.
- *
- * <p>책임 — Pulumi 통한 CSP VM provision 라이프사이클: create / scale / destroy / state history /
- * SSH 키 발급 / kubeconfig 다운로드 / 노드 목록 조회.
- *
- * <p>K8s cluster 의 registered/agent-led 등록은 별도 {@code ClusterController} 에서 다룬다 —
- * 두 라이프사이클의 책임 분리를 명시적으로 표현.
- */
+/** VM 인프라 자원 전용 API. {@code /v1/clusters} 의 source=vm 변형을 별도 namespace 로 노출. */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/vms")

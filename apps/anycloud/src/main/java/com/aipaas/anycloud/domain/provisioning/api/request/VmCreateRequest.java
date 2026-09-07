@@ -11,12 +11,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * POST /v1/vms body — VM (CSP 인스턴스) 생성 요청. cluster 등록과 분리된 단일 책임.
- *
- * <p>K8s cluster 의 registered/imported 경로는 별도 {@code POST /v1/clusters} 에서 다룬다.
- * 본 요청은 Pulumi 통한 VM 인프라 provision 만 트리거.
- */
+/** POST /v1/vms body — VM (CSP 인스턴스) 생성 요청. cluster 등록과 분리된 단일 책임. */
 @Data
 @Builder
 @NoArgsConstructor

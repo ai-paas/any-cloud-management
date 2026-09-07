@@ -26,16 +26,7 @@ public final class GpuFlavorMapper {
 
     public static final String CONFIG_KEY_WORKER_ACCELERATOR_COUNT = "workerAcceleratorCount";
 
-    /**
-     * NVIDIA GPU operator 요청 flag. GPU instance 만 띄우면 driver 가 없다.
-     *
-     * <p>Pulumi 는 이 값을 읽지 않는다 — VM 과 네트워크까지가 Pulumi 의 범위다. true 면
-     * {@code nvidia-gpu-operator} addon 이 등록되고, agent 연결 후 helm 으로 설치되며
-     * operator 가 driver / container runtime / device plugin 을 관리한다.
-     *
-     * <p>dcgm-exporter 는 별도 addon 이다 — operator 가 노드 측 driver/runtime 을 담당하고
-     * dcgm-exporter 가 메트릭을 노출한다. 카탈로그가 operator 쪽 dcgmExporter 를 꺼서 중복을 피한다.
-     */
+    /** NVIDIA GPU operator 요청 flag. GPU instance 만 띄우면 driver 가 없다. */
     public static final String CONFIG_KEY_ENABLE_GPU_OPERATOR = "enableGpuOperator";
 
     private GpuFlavorMapper() {}
@@ -116,13 +107,7 @@ public final class GpuFlavorMapper {
                             "gpu-medium", "ecs.gn7i-c8g1.2xlarge",
                             "gpu-large", "ecs.ebmgn7e.32xlarge"));
 
-    /**
-     * GCP 의 alias 별 accelerator type / count override.
-     *
-     * <p>gpu-small (T4) 는 default 와 동일 — entry 없음.
-     * gpu-medium (L4) / gpu-large (A100) / gpu-h100 은 instance type 자체에 accelerator 포함 — extra
-     * accelerator config 불요 (n1 family 만 별도 attach 필요).
-     */
+    /** GCP 의 alias 별 accelerator type / count override. */
     private static final Map<String, Map<String, String>> GCP_ALIAS_EXTRA = Map.of(
             "gpu-small",
             Map.of(

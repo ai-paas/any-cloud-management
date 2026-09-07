@@ -14,18 +14,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * VmCluster state history retention scheduler.
- *
- * <p>매일 03:45 KST (audit log cleanup 03:30 직후) 에 retention window 보다 오래된 history row
- * 일괄 삭제. row 수 unbounded growth 방지 — fleet 규모 + 운영 시간 누적 시 GB 단위 증가 가능.
- *
- * <p>Default retention: 180일. {@code anycloud.vm-cluster.state-history.retention-days} 로 운영자
- * override 가능.
- *
- * <p>ShedLock 으로 multi-instance leader election. Metric:
- * {@code anycloud.vmcluster.state_history.cleanup{result="removed|none|error"}}.
- */
+/** VmCluster state history retention scheduler. */
 @Slf4j
 @Component
 @RequiredArgsConstructor

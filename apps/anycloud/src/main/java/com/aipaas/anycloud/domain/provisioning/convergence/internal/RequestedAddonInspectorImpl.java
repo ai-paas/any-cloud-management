@@ -19,12 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-/**
- * 프로비저닝 요청이 함축하는 addon 의 설치 상태를 수렴 신호로 변환.
- *
- * <p>어떤 addon 이 "요청된" 것인지는 별도 컬럼 없이 요청 스냅샷에서 매번 다시 계산한다. 스냅샷은
- * {@code vm_cluster.request_config} 에 이미 영속화되어 있어 추가 저장이 필요 없다.
- */
+/** 프로비저닝 요청이 함축하는 addon 의 설치 상태를 수렴 신호로 변환. */
 @Slf4j
 @Service
 @RequiredArgsConstructor

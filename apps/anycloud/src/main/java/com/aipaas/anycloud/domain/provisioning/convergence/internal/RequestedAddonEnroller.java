@@ -11,14 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-/**
- * 프로비저닝 요청이 함축하는 addon 을 등록.
- *
- * <p>등록만 하고 설치는 하지 않는다. addon 설치는 agent 세션을 전제하므로, cluster 가 ACTIVE 될 때
- * {@code AddonOrchestrator.enqueuePendingForCluster} 가 PENDING 행을 큐에 넣는다.
- *
- * <p>차트 버전과 저장소는 지정하지 않는다 — 카탈로그 기본값을 쓴다. 두 곳에 적으면 갈린다.
- */
+/** 프로비저닝 요청이 함축하는 addon 을 등록. */
 @Slf4j
 @Service
 @RequiredArgsConstructor

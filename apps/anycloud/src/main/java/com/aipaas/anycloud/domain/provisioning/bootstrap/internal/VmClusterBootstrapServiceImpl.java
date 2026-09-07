@@ -70,11 +70,7 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
         waitForNodesReady(vmCluster, outputs, strategy);
     }
 
-    /**
-     * HA control-plane join: extra master 들이 lead master 의 init 결과 (cert key + token + CA
-     * hash) 를 받아 {@code kubeadm join --control-plane} 수행. lead master IP / token / cert key
-     * 가 필요. single-master 면 no-op.
-     */
+    /** HA control-plane join: extra master 들이 lead master 의 init 결과 (cert key + token + CA hash) 를 받아 {@code kubeadm join --control-plane} 수행. lead master IP / token / cert key 가 필요. single-master 면 no-op. */
     private void joinExtraMasters(
             VmClusterEntity vmCluster,
             Map<String, Object> outputs,

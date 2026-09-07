@@ -9,12 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-/**
- * VERIFY 단계 안에서 도는 시간 제한 수렴 루프.
- *
- * <p>RabbitMQ consumer 스레드 위에서 실행되므로 오래 붙잡으면 consumer 하나가 통째로 묶인다.
- * 기본 3회, 회당 1분이라 최대 3분이다. 그 이상 걸리는 수렴은 조정 루프가 맡는다.
- */
+/** VERIFY 단계 안에서 도는 시간 제한 수렴 루프. */
 @Slf4j
 @Service
 public class ClusterConvergenceServiceImpl implements ClusterConvergenceService {

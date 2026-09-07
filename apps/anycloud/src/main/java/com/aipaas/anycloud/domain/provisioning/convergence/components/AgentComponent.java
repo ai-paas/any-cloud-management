@@ -45,12 +45,7 @@ public class AgentComponent implements ClusterComponent {
         this.configuredRequirement = configuredRequirement;
     }
 
-    /**
-     * {@code VmClusterAgentInstaller} 에서 옮겨온 SSH 설치 경로.
-     *
-     * <p>AGENT transport 는 agent 가 아직 없어 쓸 수 없고, fabric8 경로는 kubeconfig 자격 저장이
-     * 제거된 뒤로 동작하지 않는다. SSH 가 유일하게 보장된 transport 다.
-     */
+    /** {@code VmClusterAgentInstaller} 에서 옮겨온 SSH 설치 경로. */
     @Override
     public void apply(VmClusterEntity cluster, Map<String, Object> outputs) {
         var bootstrap = agentApiManagedInstaller.prepareBootstrap(cluster.getClusterName());

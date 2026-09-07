@@ -26,12 +26,7 @@ public class VmClusterBootstrapLogServiceImpl implements VmClusterBootstrapLogSe
 
     private final VmClusterRemoteAccessService vmClusterRemoteAccessService;
 
-    /**
-     * Bootstrap log 안에 우연히 포함될 수 있는 민감 정보 패턴들. SSH key 자체는 cloud-init 으로
-     * VM 에 placement 되며 user-data 가 stdout 으로 echo 하지 않지만, 향후 cloud-init 변경 /
-     * verbose kubelet log / kubeadm verbose mode 에서 PEM 이나 token 이 우연히 포함될 가능성에
-     * 대한 defense-in-depth.
-     */
+    /** Bootstrap log 안에 우연히 포함될 수 있는 민감 정보 패턴들. SSH key 자체는 cloud-init 으로 VM 에 placement 되며 user-data 가 stdout 으로 echo 하지 않지만, 향후 cloud-init 변경 / verbose kubelet log / kubeadm verbose mode 에서 PEM 이나 token 이 우연히 포함될 가능성에 대한 defense-in-depth. */
     private static final java.util.regex.Pattern PEM_BLOCK_PATTERN = java.util.regex.Pattern.compile(
             "-----BEGIN [A-Z ]+-----.*?-----END [A-Z ]+-----", java.util.regex.Pattern.DOTALL);
 

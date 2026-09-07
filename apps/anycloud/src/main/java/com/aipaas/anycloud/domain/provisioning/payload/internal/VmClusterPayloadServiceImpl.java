@@ -225,15 +225,7 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
      */
     private static final java.util.Set<String> ALWAYS_REDACT_KEYS = java.util.Set.of("sshPrivateKeyPem");
 
-    /**
-     * 키 이름에 포함되면 자동 redact — defense-in-depth. 미래에 Pulumi/provider 가 새 secret 필드를
-     * 추가하더라도 명시적 화이트리스트 없이 통과 못하게 함. 대소문자 무시.
-     *
-     * <p>{@code privateKey}, {@code password}, {@code secret}, {@code token}, {@code credential},
-     * {@code apiKey}, {@code bearerToken} 중 하나라도 키 이름에 포함되면 redact.
-     *
-     * <p>예외: 화이트리스트로 사용자 응답에 명시적으로 필요한 키는 별도 제외 (현재 없음).
-     */
+    /** 키 이름에 포함되면 자동 redact — defense-in-depth. 미래에 Pulumi/provider 가 새 secret 필드를 추가하더라도 명시적 화이트리스트 없이 통과 못하게 함. 대소문자 무시. */
     private static final java.util.regex.Pattern SECRET_KEY_PATTERN =
             java.util.regex.Pattern.compile("(?i)(privateKey|password|secret|token|credential|apiKey|bearerToken)");
 
@@ -317,11 +309,7 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
         }
     }
 
-    /**
-     * Boolean flag 파싱 — strict 검증은 {@code ProvisioningConfigRules.validateBooleanFlags}
-     * 에서 끝나므로 여기서는 trim+lowercase 만 적용 (defense-in-depth). 검증을 우회한
-     * 경로로 들어오면 "true" / "false" 외엔 모두 null 반환.
-     */
+    /** Boolean flag 파싱 — strict 검증은 {@code ProvisioningConfigRules.validateBooleanFlags} 에서 끝나므로 여기서는 trim+lowercase 만 적용 (defense-in-depth). 검증을 우회한 경로로 들어오면 "true" / "false" 외엔 모두 null 반환. */
     private Boolean parseBoolean(String raw) {
         if (raw == null || raw.isBlank()) {
             return null;

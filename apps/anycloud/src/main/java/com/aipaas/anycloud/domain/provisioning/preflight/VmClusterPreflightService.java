@@ -3,16 +3,7 @@ package com.aipaas.anycloud.domain.provisioning.preflight;
 import com.aipaas.anycloud.domain.provisioning.api.request.ProvisionClusterRequest;
 import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterPreflightResponse;
 
-/**
- * VM cluster 생성 전 사전 검증 — provider / credential / VM options discovery / readiness / cost
- * estimation 을 한 번에 평가해 frontend 에 ready-to-provision 여부 응답.
- *
- * <p>{@link VmClusterQueryServiceImpl} 의 449 LOC god class 에서 분리.
- * 의도적 boundary: read-only query (list / status) 와 heavy validation (preflight) 의 책임 분리.
- *
- * <p>호출 path: REST `POST /v1/vm-clusters/preflight` → {@link VmClusterQueryService} (interface
- * 보존, internal delegation) → 본 service. caller 측 변경 0.
- */
+/** VM cluster 생성 전 사전 검증 — provider / credential / VM options discovery / readiness / cost estimation 을 한 번에 평가해 frontend 에 ready-to-provision 여부 응답. */
 public interface VmClusterPreflightService {
 
     /**
