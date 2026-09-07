@@ -35,14 +35,14 @@ public sealed interface ProviderSpec {
             return null;
         }
         return switch (ProviderName.canonical(provider)) {
-            case "gcp" -> new Gcp(read(lookup, "project", "gcpProject"));
-            case "azure" -> new Azure(read(lookup, "resourceGroup", "azureResourceGroup"));
-            case "oci" -> new Oci(read(lookup, "compartmentId", "ociCompartmentId"));
+            case "gcp" -> new Gcp(read(lookup, "project"));
+            case "azure" -> new Azure(read(lookup, "resourceGroup"));
+            case "oci" -> new Oci(read(lookup, "compartmentId"));
             case "openstack" -> new Openstack(
-                    read(lookup, "imageName", "openstackImageName"),
-                    read(lookup, "flavorName", "openstackFlavorName"),
-                    read(lookup, "externalNetworkId", "openstackExternalNetworkId"),
-                    read(lookup, "floatingIpPool", "openstackFloatingIpPool"));
+                    read(lookup, "imageName"),
+                    read(lookup, "flavorName"),
+                    read(lookup, "externalNetworkId"),
+                    read(lookup, "floatingIpPool"));
             default -> null;
         };
     }
@@ -53,9 +53,7 @@ public sealed interface ProviderSpec {
         return from(provider, cfg::get);
     }
 
-    /** 중첩 키를 먼저 보고, 없으면 평면 접두 키로 물러난다 — 기존 요청과 저장된 페이로드가 깨지지 않도록. */
-    private static String read(java.util.function.Function<String, String> lookup, String nested, String legacy) {
-        String value = lookup.apply(PREFIX + nested);
-        return value != null ? value : lookup.apply(legacy);
+    private static String read(java.util.function.Function<String, String> lookup, String key) {
+        return lookup.apply(PREFIX + key);
     }
 }

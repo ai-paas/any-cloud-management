@@ -1,18 +1,13 @@
 package io.aipaas.cluster.provisioning.program;
 
-import com.pulumi.Config;
-import com.pulumi.Context;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
- * Pulumi program 안에서 ctx.config() 로부터 읽어들이는 정규화된 cluster spec.
+ * 정규화된 cluster spec.
  *
- * <p>{@link #load(Context)} 로 raw spec 빌드 → {@link #normalize()} 로 provider 별 default + cross-cutting
- * 보정 (masterCount odd 강제, rootDiskSizeGb≥50) 후 provisioner 에 전달. PoC 단계라 control-plane HA 는
- * 단일 master endpoint 기반 (VIP/LB 미적용).
+ * <p>{@link #from(Map)} 으로 raw spec 빌드 → {@link #normalize()} 로 provider 별 default 와 cross-cutting
+ * 보정(masterCount odd 강제, rootDiskSizeGb≥50). control-plane HA 는 단일 master endpoint 기반이다.
  */
 public record ClusterSpec(
         String provider,
@@ -35,39 +30,6 @@ public record ClusterSpec(
         boolean useSpot,
         String osImage,
         int rootDiskSizeGb) {
-
-    /** Pulumi stack config (namespace=anycloud-k8s) 으로부터 raw spec 빌드. defaults 미적용 상태. */
-    public static ClusterSpec load(Context ctx) {
-        Config cfg = ctx.config("anycloud-k8s");
-        return new ClusterSpec(
-                str(cfg, "provider"),
-                str(cfg, "name"),
-                str(cfg, "environment"),
-                str(cfg, "region"),
-                str(cfg, "vpcCidr"),
-                strList(cfg, "subnetCidrs"),
-                str(cfg, "sshUser"),
-                str(cfg, "masterInstanceType"),
-                str(cfg, "workerInstanceType"),
-                intVal(cfg, "masterCount"),
-                intVal(cfg, "workerCount"),
-                str(cfg, "kubernetesVersion"),
-                str(cfg, "podCidr"),
-                str(cfg, "serviceCidr"),
-                str(cfg, "joinToken"),
-                ProviderSpec.from(str(cfg, "provider"), key -> str(cfg, key)),
-                new DatabaseSpec(
-                        boolVal(cfg, "dbEnabled"),
-                        str(cfg, "dbName"),
-                        str(cfg, "dbUsername"),
-                        str(cfg, "dbPassword"),
-                        str(cfg, "dbInstanceClass"),
-                        intVal(cfg, "dbAllocatedStorageGb"),
-                        boolVal(cfg, "dbPubliclyAccessible")),
-                boolVal(cfg, "useSpot"),
-                str(cfg, "osImage"),
-                intVal(cfg, "rootDiskSizeGb"));
-    }
 
     /** Provider 별 default + cross-cutting 보정 적용. {@link Defaults#applyProviderDefaults} 위임. */
     public ClusterSpec normalize() {
@@ -151,44 +113,6 @@ public record ClusterSpec(
                 .map(String::trim)
                 .filter(part -> !part.isEmpty())
                 .toList();
-    }
-
-    private static String str(Config cfg, String key) {
-        try {
-            return cfg.get(key).orElse(null);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private static int intVal(Config cfg, String key) {
-        try {
-            return cfg.getInteger(key).orElse(0);
-        } catch (Exception e) {
-            return 0;
-        }
-    }
-
-    private static boolean boolVal(Config cfg, String key) {
-        try {
-            return cfg.getBoolean(key).orElse(false);
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private static List<String> strList(Config cfg, String key) {
-        try {
-            Optional<Object> obj = cfg.getObject(key, Object.class);
-            if (obj.isEmpty()) return Collections.emptyList();
-            if (obj.get() instanceof List<?> list) {
-                return list.stream().map(String::valueOf).toList();
-            }
-            return Collections.emptyList();
-        } catch (Exception e) {
-            return Collections.emptyList();
-        }
     }
 
     /**

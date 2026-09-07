@@ -23,8 +23,8 @@ class OpenstackYamlEmitterTest {
         cfg.put("region", "RegionOne");
         cfg.put("masterCount", "1");
         cfg.put("workerCount", String.valueOf(workerCount));
-        cfg.put("openstackExternalNetworkId", "ext-net-id");
-        cfg.put("openstackFloatingIpPool", "public");
+        cfg.put("providerSpec.externalNetworkId", "ext-net-id");
+        cfg.put("providerSpec.floatingIpPool", "public");
         cfg.put("joinToken", "abcdef.0123456789abcdef");
         return Defaults.applyProviderDefaults(ClusterSpec.from(cfg));
     }
@@ -129,7 +129,7 @@ class OpenstackYamlEmitterTest {
 
         assertThatThrownBy(() -> emitter.emit(PulumiProgram.builder("p"), incomplete))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("openstackExternalNetworkId");
+                .hasMessageContaining("providerSpec.externalNetworkId");
     }
 
     @Test

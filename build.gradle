@@ -39,16 +39,9 @@ ext {
     reactorVersion = '3.6.5'
     resilience4jVersion = '2.2.0'
     micrometerVersion = '1.13.4'
-    // Pulumi Java SDK — IaC engine. Automation API + provider 별 별도 artifact (com.pulumi:aws 등).
+    // Pulumi Automation API. provider 플러그인 버전은 Dockerfile.pulumi 가 단독 출처다 —
+    // 런타임 아티팩트라 컴파일 의존성이 아니다.
     pulumiSdkVersion = '1.36.3'
-    pulumiAwsVersion = '6.78.0'
-    pulumiGcpVersion = '8.41.1'
-    pulumiAzureNativeVersion = '3.16.0'
-    pulumiOciVersion = '3.16.0'
-    pulumiAlicloudVersion = '3.97.0'
-    pulumiDigitaloceanVersion = '4.63.0'
-    pulumiOpenstackVersion = '5.4.1'
-    pulumiTlsVersion = '5.2.0'
 }
 
 // AllProjects 설정

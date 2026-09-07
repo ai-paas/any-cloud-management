@@ -1,6 +1,5 @@
 package io.aipaas.cluster.provisioning.internal;
 
-import com.pulumi.Context;
 import com.pulumi.automation.AutomationException;
 import com.pulumi.automation.ConfigValue;
 import com.pulumi.automation.DestroyOptions;
@@ -20,8 +19,6 @@ import io.aipaas.cluster.provisioning.api.ProvisioningRequest;
 import io.aipaas.cluster.provisioning.api.ProvisioningResult;
 import io.aipaas.cluster.provisioning.api.ProvisioningService;
 import io.aipaas.cluster.provisioning.api.exception.ProvisioningExecutionException;
-import io.aipaas.cluster.provisioning.program.ProvisionerOrchestrator;
-import io.aipaas.cluster.provisioning.program.yaml.YamlEmitters;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
@@ -29,7 +26,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Propagation;
@@ -40,10 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AutomationProvisioningService implements ProvisioningService {
 
-    private static final String PROJECT_NAME = "anycloud-k8s";
-
     private final ExecutionConfig config;
-    private final ProvisionerOrchestrator program;
     private final ProvisioningResultMapper outputMapper;
     private final EngineEventAdapter eventAdapter;
 
@@ -308,17 +301,12 @@ public class AutomationProvisioningService implements ProvisioningService {
         stack.setAllConfig(allConfig);
     }
 
-    /** 스택을 연다. YAML emitter 가 있는 provider 는 local workDir 프로그램을, 나머지는 기존 inline 프로그램을 쓴다. 한 번에 하나씩만 위험에 노출한다. */
     private WorkspaceStack openStack(
             String stackName, ProvisioningRequest request, LocalWorkspaceOptions workspaceOpts, Path[] workDirHolder)
             throws AutomationException {
-        if (YamlEmitters.supports(request.getProvider())) {
-            Path workDir = YamlWorkspaceFactory.create(YamlProgramAssembler.assemble(request));
-            workDirHolder[0] = workDir;
-            return LocalWorkspace.createOrSelectStack(stackName, workDir, workspaceOpts);
-        }
-        Consumer<Context> programFn = ctx -> program.run(ctx, request);
-        return LocalWorkspace.createOrSelectStack(PROJECT_NAME, stackName, programFn, workspaceOpts);
+        Path workDir = YamlWorkspaceFactory.create(YamlProgramAssembler.assemble(request));
+        workDirHolder[0] = workDir;
+        return LocalWorkspace.createOrSelectStack(stackName, workDir, workspaceOpts);
     }
 
     /**

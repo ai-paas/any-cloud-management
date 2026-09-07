@@ -67,6 +67,7 @@ RUN curl -fsSL "https://get.helm.sh/helm-v${HELM_VERSION}-linux-${TARGETARCH}.ta
 
 # Pulumi provider plugins pre-install — image build 시 1회 다운로드 캐싱.
 ENV PULUMI_PLUGIN_CACHE_DIR=/opt/pulumi-plugins
+# provider 플러그인 버전의 단독 출처. Java SDK 는 없으므로 여기서만 관리한다.
 RUN mkdir -p /opt/pulumi-plugins \
     && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource aws v6.78.0 \
     && PULUMI_HOME=/opt/pulumi-plugins-home pulumi plugin install resource gcp v8.41.1 \

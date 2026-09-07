@@ -12,14 +12,17 @@ Java가 생성한 YAML 프로그램을 Pulumi CLI로 실행하는 방식으로 �
 
 이 starter는 **다른 프로젝트가 가져다 쓰는 공개 아티팩트**입니다. 릴리스 태그마다 GHCR Maven으로
 publish되고 Apache 2.0 POM을 갖습니다. 그런데 CSP SDK 7종이 `api` 스코프로 선언되어 있어 **가져다 쓰는
-모든 프로젝트가 732MB를 그대로 물려받습니다.**
+모든 프로젝트가 253MB를 그대로 물려받습니다.**
 
 | SDK | 크기 | SDK | 크기 |
 |---|---|---|---|
-| azure-native | 220MB | alicloud | 66MB |
-| oci | 186MB | digitalocean | 3.7MB |
-| aws | 137MB | openstack | 1.6MB |
-| gcp | 114MB | **합계** | **732MB** |
+| azure-native | 76.7MB | alicloud | 22.0MB |
+| oci | 65.6MB | digitalocean | 3.7MB |
+| aws | 46.0MB | openstack | 1.6MB |
+| gcp | 37.0MB | **합계** | **252.6MB** |
+
+크기는 bootJar에 실제로 실리는 jar 기준입니다. Gradle 캐시에는 같은 좌표로 `-javadoc`, `-sources`
+아티팩트가 함께 있어, 파일 이름만 보고 재면 3배 가까이 부풀려집니다.
 
 OpenStack만 쓰는 사설 배포도 azure-native와 oci를 받습니다. 그리고 이 SDK들은 **public 시그니처에
 0건 노출**됩니다 — 순수한 구현 세부사항인데 `api`로 선언되어 소비자의 컴파일 클래스패스까지
@@ -208,8 +211,12 @@ provisioner 7종을 그대로 옮기지 않고 **공통 골격 + CSP별 리소�
 | 2 | AWS emitter | `pulumi preview` 구조 검증 | 완료 |
 | 3 | GCP emitter | `pulumi preview` 구조 검증 | 완료 |
 | 4 | OCI, Azure emitter | `pulumi preview` 구조 검증 | 완료 |
-| 5 | Proxmox, IBM emitter | 각 스택 실제 생성 | 미착수 |
-| 6 | `ProviderProvisioner` 계열 제거, `build.gradle`에서 SDK 제거 | 크기 실측, 전체 회귀 | 미착수 |
+| 5 | `ProviderProvisioner` 계열 제거, `build.gradle`에서 SDK 제거 | 크기 실측, 전체 회귀 | 완료 |
+| 6 | Proxmox, IBM emitter | 각 스택 실제 생성 | 미착수 |
+
+5단계 결과는 bootJar 440.4MB → 187.7MB입니다. `tls` SDK도 함께 걷어냈습니다 — YAML은
+`tls:index/privateKey:PrivateKey`를 토큰으로 참조하고 CLI 플러그인이 해석하므로 Java 바인딩이
+필요 없습니다. 남는 Pulumi 의존성은 Automation API(`com.pulumi:pulumi`) 3.4MB뿐입니다.
 
 실제 스택 생성까지 확인한 것은 OpenStack뿐입니다. 나머지는 자격증명이 없어 `pulumi preview`가
 타입 토큰과 참조를 해석하는 지점까지만 확인했고, 속성 이름은 provider 스키마와 대조했습니다.

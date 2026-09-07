@@ -34,8 +34,8 @@ final class OpenstackYamlEmitter implements ProviderYamlEmitter {
 
     @Override
     public StandardOutputs.NodeRefs emit(PulumiProgram.Builder b, ClusterSpec spec) {
-        requireConfig(os(spec).externalNetworkId(), "openstackExternalNetworkId");
-        requireConfig(os(spec).floatingIpPool(), "openstackFloatingIpPool");
+        requireConfig(os(spec).externalNetworkId(), "providerSpec.externalNetworkId");
+        requireConfig(os(spec).floatingIpPool(), "providerSpec.floatingIpPool");
 
         emitSshKey(b, spec);
         emitNetwork(b, spec);

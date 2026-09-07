@@ -32,29 +32,21 @@ class ProviderSpecTest {
     }
 
     @Test
-    void fallsBackToLegacyFlatKeys() {
-        // 저장된 요청 페이로드와 Bruno 환경이 아직 평면 키를 쓴다.
-        ProviderSpec spec = ProviderSpec.from(
-                "openstack", cfg("openstackImageName", "ubuntu-24.04", "openstackFloatingIpPool", "external"));
+    void legacyFlatKeysAreIgnored() {
+        // 평면 키는 provider 조합을 검증하지 못해 걷어냈다. 조용히 통과하면 안 된다.
+        ProviderSpec spec =
+                ProviderSpec.from("openstack", cfg("openstackImageName", "ubuntu-24.04", "gcpProject", "p"));
 
         ProviderSpec.Openstack os = (ProviderSpec.Openstack) spec;
-        assertThat(os.imageName()).isEqualTo("ubuntu-24.04");
-        assertThat(os.floatingIpPool()).isEqualTo("external");
-    }
-
-    @Test
-    void nestedKeyWinsOverLegacy() {
-        ProviderSpec spec =
-                ProviderSpec.from("openstack", cfg("providerSpec.imageName", "new", "openstackImageName", "old"));
-
-        assertThat(((ProviderSpec.Openstack) spec).imageName()).isEqualTo("new");
+        assertThat(os.imageName()).isNull();
+        assertThat(os.floatingIpPool()).isNull();
     }
 
     @Test
     void otherProvidersSpecKeysAreIgnored() {
         // provider=gcp 요청에 openstack 값이 섞여 있어도 gcp spec 에 스며들지 않는다.
         ProviderSpec spec =
-                ProviderSpec.from("gcp", cfg("providerSpec.project", "p-1", "openstackFloatingIpPool", "external"));
+                ProviderSpec.from("gcp", cfg("providerSpec.project", "p-1", "providerSpec.floatingIpPool", "external"));
 
         assertThat(spec).isInstanceOf(ProviderSpec.Gcp.class);
         assertThat(((ProviderSpec.Gcp) spec).project()).isEqualTo("p-1");

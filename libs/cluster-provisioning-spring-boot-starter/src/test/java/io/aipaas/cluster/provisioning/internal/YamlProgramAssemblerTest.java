@@ -14,8 +14,8 @@ class YamlProgramAssemblerTest {
 
     private ProvisioningRequest request(String provider) {
         Map<String, String> config = new HashMap<>();
-        config.put("openstackExternalNetworkId", "ext-net-id");
-        config.put("openstackFloatingIpPool", "public");
+        config.put("providerSpec.externalNetworkId", "ext-net-id");
+        config.put("providerSpec.floatingIpPool", "public");
         config.put("workerCount", "2");
         config.put("joinToken", "abcdef.0123456789abcdef");
 

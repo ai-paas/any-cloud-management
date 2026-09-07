@@ -2,17 +2,6 @@ package io.aipaas.cluster.provisioning.autoconfigure;
 
 import io.aipaas.cluster.provisioning.api.ExecutionConfig;
 import io.aipaas.cluster.provisioning.internal.AutomationProvisioningService;
-import io.aipaas.cluster.provisioning.program.ProvisionerOrchestrator;
-import io.aipaas.cluster.provisioning.program.provisioner.AlibabaProvisioner;
-import io.aipaas.cluster.provisioning.program.provisioner.AwsProvisioner;
-import io.aipaas.cluster.provisioning.program.provisioner.AzureProvisioner;
-import io.aipaas.cluster.provisioning.program.provisioner.DigitalOceanProvisioner;
-import io.aipaas.cluster.provisioning.program.provisioner.GcpProvisioner;
-import io.aipaas.cluster.provisioning.program.provisioner.OciProvisioner;
-import io.aipaas.cluster.provisioning.program.provisioner.OpenstackProvisioner;
-import io.aipaas.cluster.provisioning.program.provisioner.ProviderProvisioner;
-import io.aipaas.cluster.provisioning.program.provisioner.ProviderRegistry;
-import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -89,62 +78,6 @@ public class ClusterProvisioningAutoConfiguration {
         };
     }
 
-    @Bean
-    @ConditionalOnMissingBean(name = "awsProvisioner")
-    public AwsProvisioner awsProvisioner() {
-        return new AwsProvisioner();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean(name = "gcpProvisioner")
-    public GcpProvisioner gcpProvisioner() {
-        return new GcpProvisioner();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean(name = "azureProvisioner")
-    public AzureProvisioner azureProvisioner() {
-        return new AzureProvisioner();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean(name = "ociProvisioner")
-    public OciProvisioner ociProvisioner() {
-        return new OciProvisioner();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean(name = "alibabaProvisioner")
-    public AlibabaProvisioner alibabaProvisioner() {
-        return new AlibabaProvisioner();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean(name = "digitalOceanProvisioner")
-    public DigitalOceanProvisioner digitalOceanProvisioner() {
-        return new DigitalOceanProvisioner();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean(name = "openstackProvisioner")
-    public OpenstackProvisioner openstackProvisioner() {
-        return new OpenstackProvisioner();
-    }
-
-    /** ProviderProvisioner bean 모음 → ProviderRegistry. ProvisionerOrchestrator 의 dispatch. */
-    @Bean
-    @ConditionalOnMissingBean
-    public ProviderRegistry providerRegistry(List<ProviderProvisioner> provisioners) {
-        return new ProviderRegistry(provisioners);
-    }
-
-    /** Pulumi 프로그램 default — ProviderRegistry 로 dispatch. */
-    @Bean
-    @ConditionalOnMissingBean
-    public ProvisionerOrchestrator provisionerOrchestrator(ProviderRegistry registry) {
-        return new ProvisionerOrchestrator(registry);
-    }
-
     /**
      * {@link io.aipaas.cluster.provisioning.api.ProvisioningService} default impl —
      * Pulumi Automation Java SDK 기반 in-JVM 구현.
@@ -153,10 +86,8 @@ public class ClusterProvisioningAutoConfiguration {
     @ConditionalOnMissingBean
     public io.aipaas.cluster.provisioning.api.ProvisioningService provisioningService(
             ExecutionConfig config,
-            ProvisionerOrchestrator provisionerOrchestrator,
             io.aipaas.cluster.provisioning.internal.ProvisioningResultMapper provisioningResultMapper,
             io.aipaas.cluster.provisioning.internal.EngineEventAdapter engineEventAdapter) {
-        return new AutomationProvisioningService(
-                config, provisionerOrchestrator, provisioningResultMapper, engineEventAdapter);
+        return new AutomationProvisioningService(config, provisioningResultMapper, engineEventAdapter);
     }
 }

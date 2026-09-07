@@ -22,10 +22,11 @@ class YamlProgramDumpTest {
             return;
         }
         Map<String, String> config = new HashMap<>();
-        config.put("openstackExternalNetworkId", envOr("ANYCLOUD_OS_EXT_NET", "00000000-0000-0000-0000-000000000000"));
-        config.put("openstackFloatingIpPool", envOr("ANYCLOUD_OS_FIP_POOL", "public"));
-        config.put("openstackImageName", "ubuntu-24.04");
-        config.put("openstackFlavorName", envOr("ANYCLOUD_OS_FLAVOR", "m1.large"));
+        config.put(
+                "providerSpec.externalNetworkId", envOr("ANYCLOUD_OS_EXT_NET", "00000000-0000-0000-0000-000000000000"));
+        config.put("providerSpec.floatingIpPool", envOr("ANYCLOUD_OS_FIP_POOL", "public"));
+        config.put("providerSpec.imageName", "ubuntu-24.04");
+        config.put("providerSpec.flavorName", envOr("ANYCLOUD_OS_FLAVOR", "m1.large"));
         config.put("workerCount", "2");
         config.put("joinToken", "abcdef.0123456789abcdef");
         config.put("vpcCidr", envOr("ANYCLOUD_VPC_CIDR", "10.42.0.0/16"));
