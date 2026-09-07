@@ -650,7 +650,7 @@ public class KubeServiceImpl implements KubeService {
     // ClusterNotFoundException 은 4xx 로 그대로 전파해야 하므로 분기 처리.
 
     @SuppressWarnings("unused")
-    private JsonNode getResourcesFallback(String clusterName, String namespace, String kind, Throwable t) {
+    JsonNode getResourcesFallback(String clusterName, String namespace, String kind, Throwable t) {
         if (t instanceof ClusterNotFoundException cnf) {
             throw cnf;
         }
@@ -660,11 +660,13 @@ public class KubeServiceImpl implements KubeService {
                 kind,
                 namespace,
                 t.toString());
-        return objectMapper.valueToTree(Collections.emptyList());
+        // 빈 배열은 "리소스 0 개" 와 구분되지 않는다. paginated 경로처럼 degraded 를 실을 자리가
+        // 없는 반환 타입이라, 성공으로 위장하는 대신 실패로 드러낸다.
+        throw agentUnavailable("getResources", clusterName, t);
     }
 
     @SuppressWarnings("unused")
-    private JsonNode getResourceFallback(String clusterName, String namespace, String kind, String name, Throwable t) {
+    JsonNode getResourceFallback(String clusterName, String namespace, String kind, String name, Throwable t) {
         if (t instanceof ClusterNotFoundException cnf) {
             throw cnf;
         }
@@ -674,7 +676,7 @@ public class KubeServiceImpl implements KubeService {
                 kind,
                 name,
                 t.toString());
-        return objectMapper.nullNode();
+        throw agentUnavailable("getResource", clusterName, t);
     }
 
     @SuppressWarnings("unused")
