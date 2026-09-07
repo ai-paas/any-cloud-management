@@ -8,7 +8,7 @@ import java.util.List;
 public final class YamlEmitters {
 
     private static final List<ProviderYamlEmitter> EMITTERS =
-            List.of(new OpenstackYamlEmitter(), new AwsYamlEmitter(), new GcpYamlEmitter());
+            List.of(new OpenstackYamlEmitter(), new AwsYamlEmitter(), new GcpYamlEmitter(), new OciYamlEmitter());
 
     private YamlEmitters() {}
 

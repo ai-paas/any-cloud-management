@@ -27,6 +27,13 @@ public final class YamlRef {
         return String.format(template, args);
     }
 
+    /** 값을 base64 로 인코딩한다. OCI 는 user-data 를 base64 로만 받는다. */
+    public static Map<String, Object> toBase64(Object value) {
+        Map<String, Object> wrapped = new LinkedHashMap<>(1);
+        wrapped.put("fn::toBase64", value);
+        return wrapped;
+    }
+
     /** 값을 JSON 문자열로 직렬화한다. */
     public static Map<String, Object> toJson(Object value) {
         Map<String, Object> wrapped = new LinkedHashMap<>(1);
