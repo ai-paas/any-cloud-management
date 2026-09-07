@@ -29,6 +29,9 @@ class YamlProgramDumpTest {
         config.put("workerCount", "2");
         config.put("joinToken", "abcdef.0123456789abcdef");
         config.put("vpcCidr", envOr("ANYCLOUD_VPC_CIDR", "10.42.0.0/16"));
+        config.put("providerSpec.project", envOr("ANYCLOUD_GCP_PROJECT", "demo-project"));
+        config.put("providerSpec.compartmentId", envOr("ANYCLOUD_OCI_COMPARTMENT", "ocid1.compartment.oc1..demo"));
+        config.put("providerSpec.resourceGroup", envOr("ANYCLOUD_AZURE_RG", "demo-rg"));
 
         ProvisioningRequest request = new ProvisioningRequest();
         request.setProvider(envOr("ANYCLOUD_DUMP_PROVIDER", "openstack"));

@@ -7,7 +7,8 @@ import java.util.List;
 /** emitter 를 canonical provider 토큰으로 골라 실행하고 표준 출력까지 붙인다. */
 public final class YamlEmitters {
 
-    private static final List<ProviderYamlEmitter> EMITTERS = List.of(new OpenstackYamlEmitter(), new AwsYamlEmitter());
+    private static final List<ProviderYamlEmitter> EMITTERS =
+            List.of(new OpenstackYamlEmitter(), new AwsYamlEmitter(), new GcpYamlEmitter());
 
     private YamlEmitters() {}
 

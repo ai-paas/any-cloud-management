@@ -29,12 +29,12 @@ class YamlProgramAssemblerTest {
     }
 
     @Test
-    void migratedProvidersAreSupported() {
-        // 아직 emitter 가 없는 CSP 는 타입 SDK 경로로 간다. 한 번에 하나씩만 옮긴다.
+    void supportIsCaseInsensitiveAndClosed() {
+        // 어느 CSP 가 옮겨졌는지는 등록 목록이 정한다. 여기서 목록을 복제하면 옮길 때마다 깨진다.
         assertThat(YamlEmitters.supports("openstack")).isTrue();
         assertThat(YamlEmitters.supports("OpenStack")).isTrue();
-        assertThat(YamlEmitters.supports("aws")).isTrue();
-        assertThat(YamlEmitters.supports("gcp")).isFalse();
+        assertThat(YamlEmitters.supports("nonesuch")).isFalse();
+        // canonical(null) 은 aws 로 떨어진다 — 여기서 null 을 검사하면 그 규칙을 중복으로 못박는다.
     }
 
     @Test
@@ -64,9 +64,9 @@ class YamlProgramAssemblerTest {
     @Test
     void unsupportedProviderIsRejected() {
         // 아직 emitter 가 없는 CSP 로 YAML 경로에 들어오면 즉시 알린다.
-        assertThatThrownBy(() -> YamlProgramAssembler.assemble(request("gcp")))
+        assertThatThrownBy(() -> YamlProgramAssembler.assemble(request("nonesuch")))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("gcp");
+                .hasMessageContaining("nonesuch");
     }
 
     @Test
