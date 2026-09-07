@@ -1,6 +1,6 @@
 # Pulumi 타입 SDK를 생성 YAML로 교체
 
-`cluster-provisioning-spring-boot-starter`가 의존하는 Pulumi Java provider SDK 7종(732MB)을 제거하고,
+`cluster-provisioning-spring-boot-starter`가 의존하는 Pulumi Java provider SDK 7종(253MB)을 제거하고,
 Java가 생성한 YAML 프로그램을 Pulumi CLI로 실행하는 방식으로 바꾸는 설계입니다.
 
 관련 문서는 [pulumi-multicloud-k8s-blueprint.md](pulumi-multicloud-k8s-blueprint.md),
@@ -100,20 +100,84 @@ Pulumi CLI 와 provider 플러그인은 **전환 전후 모두 필수**입니다
 |---|---|---|
 | Pulumi CLI | 필수 | 필수 |
 | provider 플러그인 | 필수 | 필수 |
-| Java SDK jar 732MB | 앱에 포함 | **제거** |
+| Java SDK jar 253MB | 앱에 포함 | **제거** |
 
 `Dockerfile.pulumi` 가 이미 둘 다 이미지에 넣습니다 — CLI 는 `get.pulumi.com` 에서 받고, 플러그인
 8종은 `pulumi plugin install` 로 미리 받아 `PULUMI_PLUGIN_CACHE_DIR=/opt/pulumi-plugins` 에
 캐싱합니다. **런타임 다운로드가 없으므로 네트워크가 제한된 환경에서도 동작합니다.**
 
+### 플러그인 버전 고정
+
+타입 SDK 는 jar 이 버전을 담아 자동으로 고정됐습니다. YAML 은 `aws:ec2/instance:Instance` 라는
+타입 토큰만 쓰므로, 캐시가 빈 환경에서는 그날의 latest 를 받습니다. 실제로 `tls` 를 5.2.0 대신
+5.6.0 으로 받는 것을 확인했습니다. 환경마다 다른 버전이 뜨고, 몇 달 뒤 재현되지 않습니다.
+
+`PulumiProgram.resource` 가 타입 토큰의 패키지를 보고 `options.version` 을 넣습니다. emitter 를
+각각 고치지 않아도 되고, 새 emitter 도 자동으로 고정됩니다.
+
+```yaml
+master:
+  type: aws:ec2/instance:Instance
+  properties: { ... }
+  options:
+    version: 7.44.0
+```
+
+값의 출처는 `PULUMI_PLUGINS` 하나입니다. `Dockerfile.pulumi` 가 같은 ARG 로 플러그인을 설치하고
+런타임 ENV 로 앱에 넘깁니다. `PluginVersions.DEFAULT` 는 그 ARG 가 없을 때의 대비책이라 같은
+값이어야 합니다.
+
+### provider 버전 올릴 때
+
+메이저 상향이라도 우리가 쓰는 것은 VPC, 서브넷, 보안그룹, 인스턴스 같은 코어 리소스라
+영향권 밖인 경우가 많습니다. 다만 확인 없이 올리면 안 됩니다. 검증 절차는 이렇습니다.
+
+1. `YamlProgramDumpTest` 로 provider 별 `Pulumi.yaml` 을 생성한다.
+2. 생성물에서 실제 쓰는 타입 토큰과 속성 이름을 뽑는다.
+3. `pulumi package get-schema <provider>@<새 버전>` 과 대조한다 — 없어진 타입, 없어진 속성,
+   새로 생긴 필수 입력, deprecated 사용을 본다.
+4. `pulumi preview` 가 자격증명 단계까지 도달하는지 확인한다.
+
+aws 6→7, gcp 8→9, oci 3→4 를 이 절차로 올렸고 타입 38종에서 문제 0건이었습니다.
+
+`pulumi preview` 는 자격증명이 없으면 provider 설정 단계에서 멈춥니다. 속성 이름 오타는 그
+뒤에 검사되므로 CLI 만으로는 드러나지 않습니다. 3번의 스키마 대조가 그 자리를 대신합니다.
+
+### 서드파티 provider
+
+`get.pulumi.com` 에 없는 provider 는 취급이 다릅니다.
+
+| provider | 방식 | 설치 |
+|---|---|---|
+| aws, gcp, azure-native, oci, openstack, tls | Pulumi 플러그인 | `pulumi plugin install` |
+| proxmoxve | Pulumi 플러그인 (GitHub 릴리스) | `--server github://api.github.com/muhlba91/pulumi-proxmoxve` |
+| ibm | 동적 브리지 패키지 | 플러그인 아님 — `terraform-provider` 베이스가 런타임에 OpenTofu provider 를 붙인다 |
+
+IBM 은 `pulumi plugin install resource ibm` 이 되지 않습니다. YAML 에 `packages:` 선언이
+필요하고, 프로비저닝 시점에 `registry.opentofu.org` 에 접근합니다. 사전 캐시 구조가 적용되지
+않으므로 폐쇄망에서는 별도 대응이 필요합니다.
+
+### 전부 브리지 방식으로 바꾸지 않는 이유
+
+IBM 처럼 `terraform-provider` 베이스를 공유하면 provider 마다 브리지 런타임을 중복으로 담지
+않습니다. 다만 실측해 보면 이득이 크지 않습니다 — `pulumi-resource-aws` 943MB 의 대부분은
+브리지가 아니라 terraform-provider-aws 자체(839MB)입니다. 5개 provider 를 다 옮겨도 약 480MB,
+22% 입니다.
+
+대가가 훨씬 큽니다. 토큰이 `aws:ec2/instance:Instance` 에서 `aws:index/instance:Instance` 로
+바뀌어 emitter 5개를 다시 써야 합니다. Azure 는 더 심합니다 — `azure-native` 는 ARM REST 에서
+직접 생성한 native 패키지라 Terraform 대응물이 없고, `azurerm` 으로 가면 리소스 모델이
+다릅니다. 프로비저닝 시점의 레지스트리 접근 의존도 생깁니다.
+
+같은 480MB 는 `PULUMI_PLUGINS` 에서 CSP 를 좁혀 훨씬 싸게 얻습니다.
+
 ### 플러그인 버전의 단일 출처
 
-SDK 를 제거하면 `build.gradle` 의 `pulumiAwsVersion` 계열 변수가 사라집니다. 그런데 플러그인 버전은
-여전히 필요하고, 지금은 `Dockerfile.pulumi:71-78` 에 하드코딩되어 두 곳이 수동으로 맞춰져 있습니다.
+`build.gradle` 의 `pulumiAwsVersion` 계열 변수는 SDK 와 함께 제거했습니다. 지우기 전 Dockerfile
+쪽 8개 값이 모두 일치하는지 확인했습니다.
 
-전환 후에는 `Dockerfile.pulumi` 가 단독 출처가 됩니다. 플러그인은 런타임 아티팩트이지 컴파일
-의존성이 아니므로 자연스럽습니다. 다만 SDK 제거 단계에서 **`build.gradle` 의 버전 변수를 지우기
-전에 Dockerfile 쪽이 같은 값을 갖고 있는지 확인**해야 합니다.
+`Dockerfile.pulumi` 의 `PULUMI_PLUGINS` 가 단독 출처입니다. 플러그인은 런타임 아티팩트이지 컴파일
+의존성이 아니므로 자연스럽습니다.
 
 ## 4. YAML 생성 방식
 
@@ -217,6 +281,9 @@ provisioner 7종을 그대로 옮기지 않고 **공통 골격 + CSP별 리소�
 5단계 결과는 bootJar 440.4MB → 187.7MB입니다. `tls` SDK도 함께 걷어냈습니다 — YAML은
 `tls:index/privateKey:PrivateKey`를 토큰으로 참조하고 CLI 플러그인이 해석하므로 Java 바인딩이
 필요 없습니다. 남는 Pulumi 의존성은 Automation API(`com.pulumi:pulumi`) 3.4MB뿐입니다.
+
+6단계는 플러그인만 준비된 상태입니다. `proxmoxve` 8.6.0 은 이미지에 설치되어 있고(82.1MB),
+`ibm` 은 동적 브리지 패키지라 설치 방식이 다릅니다. emitter 는 둘 다 없습니다.
 
 실제 스택 생성까지 확인한 것은 OpenStack뿐입니다. 나머지는 자격증명이 없어 `pulumi preview`가
 타입 토큰과 참조를 해석하는 지점까지만 확인했고, 속성 이름은 provider 스키마와 대조했습니다.

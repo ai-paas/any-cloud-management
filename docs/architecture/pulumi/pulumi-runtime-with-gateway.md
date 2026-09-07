@@ -9,7 +9,7 @@ Spring Boot 가 받아 내부에서 Pulumi 를 실행합니다.
 Client
   -> API Gateway
   -> anycloud-backend (Spring Boot)
-  -> Pulumi Java SDK (Automation API, inline program)
+  -> Pulumi Automation API (생성된 YAML 프로그램 실행)
   -> AWS / GCP / Azure / OpenStack ...
 ```
 
@@ -70,7 +70,7 @@ CLI 를 프로세스로 부르지 않고 Automation API 로 같은 일을 합니
 - CSP credential 주입 경로
 
 Go toolchain 과 Pulumi program 소스는 필요 없습니다. provisioning 은 Java SDK 의
-inline program 으로 backend JVM 안에서 실행됩니다.
+backend JVM 이 YAML 프로그램을 만들고 Pulumi CLI 가 실행합니다.
 
 이 방식은 가장 단순하고 PoC 속도가 빠릅니다.
 
@@ -107,7 +107,7 @@ Pulumi 확장용 오버레이 compose 를 추가하는 방식이 안전합니다
 Pulumi 실행 시 아래 경로는 volume 또는 외부 backend 를 고려해야 합니다.
 
 - `/home/anycloud/.pulumi`
-- `/tmp/pulumi` (inline program 의 workspace 가 여기 생성됨)
+- `/tmp/pulumi` (호출마다 생성되는 workDir)
 - kubeconfig export 디렉터리
 - SSH private key export 디렉터리
 
@@ -259,6 +259,70 @@ CSP 여러 개를 동시에 올릴 때 실질 동시성은 아래 셋 중 가장
 
 동시 실행은 메모리와 CSP API rate limit에 함께 걸립니다. 늘리기 전에
 `resilience4j_bulkhead_available_concurrent_calls{name="pulumi"}`와 컨테이너 메모리를 봅니다.
+
+## 이미지 구성
+
+`Dockerfile.pulumi` 는 4단계입니다. 플러그인 다운로드가 앱 코드나 apk 목록 변경과 분리되어야
+재빌드가 빠릅니다.
+
+| 스테이지 | 하는 일 |
+|---|---|
+| `gradle-builder` | bootJar 빌드 후 `jarmode=tools extract --layers` 로 레이어 분리 |
+| `cli-fetch` | pulumi, helm 바이너리. 쓰지 않는 language host 제거 |
+| `plugin-fetch` | provider 플러그인 설치 |
+| runtime | Alpine JRE + 위 산출물 조립 |
+
+크기는 provider 플러그인이 지배합니다. 2,878MB 중 2,252MB(78%)가 플러그인입니다.
+
+| 항목 | 크기 |
+|---|---:|
+| aws 플러그인 | 943.5 MB |
+| azure-native 플러그인 | 587.8 MB |
+| oci 플러그인 | 349.6 MB |
+| gcp 플러그인 | 243.8 MB |
+| proxmoxve 플러그인 | 82.1 MB |
+| tls 플러그인 | 69.6 MB |
+| openstack 플러그인 | 45.4 MB |
+| app lib 의존성 | 168.7 MB |
+| JRE | 156.7 MB |
+| Pulumi CLI | 98.8 MB |
+| helm | 57.4 MB |
+| app jar | 18.6 MB |
+
+`PULUMI_PLUGINS` 를 좁히면 해당 행이 통째로 빠집니다. OpenStack 만 쓰는 배포는 641MB 입니다.
+
+```bash
+docker build -f Dockerfile.pulumi \
+  --build-arg PULUMI_PLUGINS="openstack:5.5.1 tls:5.6.0" -t anycloud:openstack .
+```
+
+### 이 구성에서 지켜야 하는 것
+
+Pulumi 는 플러그인을 `$PULUMI_HOME/plugins` 에서만 찾습니다. `PULUMI_PLUGIN_CACHE_DIR` 은 읽지
+않고 심볼릭 링크도 따라가지 않습니다. 다른 경로에 두면 캐시를 통째로 무시하고 프로비저닝마다
+다시 받습니다.
+
+`pulumi plugin install` 은 디렉터리를 `0700 root` 로, `/app` 을 `0700 root` 로 만듭니다. 컨테이너는
+`USER anycloud` 로 돌기 때문에 소유권을 설치와 같은 레이어에서 잡아야 합니다. 뒤에서 `chown -R`
+하면 1.8GB 를 복제한 레이어가 하나 더 생깁니다.
+
+`COPY` 뒤의 `chown -R` 도 같은 이유로 피합니다. `COPY --chown` 을 씁니다.
+
+서드파티 플러그인은 GitHub 릴리스에서 받습니다. 익명 요청은 IP 당 시간당 60회라 CI 에서
+걸립니다. `GITHUB_TOKEN` 을 build secret 으로 넘기면 5000회가 됩니다.
+
+```bash
+docker build -f Dockerfile.pulumi --secret id=github_token,env=GITHUB_TOKEN -t anycloud .
+```
+
+### distroless, native image 를 쓰지 않는 이유
+
+런타임이 `pulumi`, `helm`, `ssh` 바이너리를 실행하고 entrypoint 가 셸 스크립트입니다. distroless
+에는 셋 다 없어 전부 되넣어야 하고, 그러면 distroless 가 아닙니다. Alpine JRE 대비 크기 차이도
+24MB 입니다.
+
+GraalVM native image 는 JRE 157MB 와 jar 일부를 줄이지만, 지배적인 플러그인 2,252MB 는 그대로
+입니다. JPA, Jackson, Pulumi Automation SDK 가 리플렉션 기반이라 메타데이터 비용도 큽니다.
 
 ## 운영 시 주의점
 

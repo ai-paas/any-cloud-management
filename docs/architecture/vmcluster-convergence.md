@@ -336,7 +336,7 @@ addon 재설치는 기존 addon API 를 씁니다. 새로 만들지 않습니다
 
 | 항목 | 이유 |
 |---|---|
-| Pulumi Java SDK 를 생성 YAML 로 교체 (빌드 산출물 732MB 제거) | `stackOutputs()` 의 `Map<String, Object>` 계약만 공유하고 서로를 바꾸지 않습니다. 별도 설계로 분리합니다. |
+| Pulumi Java SDK 를 생성 YAML 로 교체 (빌드 산출물 253MB 제거) | `stackOutputs()` 의 `Map<String, Object>` 계약만 공유하고 서로를 바꾸지 않습니다. 별도 설계로 분리합니다. |
 | Cluster API 이전 | 조정 루프 모델의 상위 호환이지만 프로비저닝 도메인 전체를 재작성하는 규모이며, Alibaba provider 가 CAPI 공식 목록에서 unofficial 입니다. 이 설계로 단계 경계가 정리되면 개별 단계를 이관하는 선택지가 열립니다. |
 | 메시지 브로커 교체 | [13절](#13-메시지-브로커에-관한-검토) 참조 |
 | kubeadm 단계의 수렴 | 실패 시 클러스터가 성립하지 않으므로 `FAILED` 처리가 맞습니다. |
