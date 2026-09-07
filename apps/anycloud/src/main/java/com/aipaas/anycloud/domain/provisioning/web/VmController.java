@@ -18,6 +18,7 @@ import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterListItemRes
 import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterStatusResponse;
 import com.aipaas.anycloud.domain.provisioning.query.VmClusterQueryService;
 import com.aipaas.anycloud.domain.provisioning.remote.VmClusterSshAccessService;
+import com.aipaas.anycloud.domain.provisioning.support.ProvisioningConfigFlattener;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -124,20 +125,67 @@ public class VmController {
                                             schema = @Schema(implementation = VmCreateRequest.class),
                                             examples = {
                                                 @ExampleObject(
-                                                        name = "VM (AWS) provision",
+                                                        name = "AWS — providerSpec 불요",
                                                         value =
                                                                 """
-												{
-												  "vmGroupName": "demo-aws-01",
-												  "provider": "aws",
-												  "region": "ap-northeast-2",
-												  "environment": "dev",
-												  "credentialId": "cred-aws-001",
-												  "config": {
-												    "workerCount": "3",
-												    "instanceType": "t3.medium"
-												  }
-												}""")
+								{
+								  "vmGroupName": "demo-aws-01",
+								  "provider": "aws",
+								  "region": "ap-northeast-2",
+								  "environment": "dev",
+								  "credentialId": "cred-aws-001",
+								  "spec": {
+								    "kubernetesVersion": "1.31",
+								    "workerCount": 2,
+								    "masterInstanceType": "t3.large",
+								    "workerInstanceType": "t3.large",
+								    "network": { "vpcCidr": "10.42.0.0/16" }
+								  }
+								}"""),
+                                                @ExampleObject(
+                                                        name = "OpenStack — providerSpec 4개 필수",
+                                                        value =
+                                                                """
+								{
+								  "vmGroupName": "demo-openstack-01",
+								  "provider": "openstack",
+								  "region": "RegionOne",
+								  "credentialId": "cred-openstack-001",
+								  "spec": {
+								    "kubernetesVersion": "1.31",
+								    "workerCount": 1,
+								    "masterInstanceType": "4-8-50",
+								    "workerInstanceType": "4-8-50",
+								    "network": { "vpcCidr": "10.90.0.0/24" }
+								  },
+								  "providerSpec": {
+								    "imageName": "ubuntu-24.04",
+								    "flavorName": "4-8-50",
+								    "externalNetworkId": "3f8d3f36-8582-482c-ba8f-d2ea2e2c4147",
+								    "floatingIpPool": "external"
+								  }
+								}"""),
+                                                @ExampleObject(
+                                                        name = "Proxmox — 인스턴스 타입은 코어-메모리MiB",
+                                                        value =
+                                                                """
+								{
+								  "vmGroupName": "demo-proxmox-01",
+								  "provider": "proxmox",
+								  "region": "pve",
+								  "credentialId": "cred-proxmox-001",
+								  "spec": {
+								    "workerCount": 2,
+								    "masterInstanceType": "4-8192",
+								    "workerInstanceType": "2-4096"
+								  },
+								  "providerSpec": {
+								    "nodeName": "pve1",
+								    "datastoreId": "local-lvm",
+								    "snippetDatastoreId": "local",
+								    "networkBridge": "vmbr0"
+								  }
+								}""")
                                             }))
                     @Valid
                     @RequestBody
@@ -318,7 +366,7 @@ public class VmController {
         if (request.getEnvironment() != null) spec.put("environment", request.getEnvironment());
         spec.put("credentialId", request.getCredentialId());
         if (request.getDescription() != null) spec.put("description", request.getDescription());
-        if (request.getConfig() != null) spec.put("config", request.getConfig());
+        spec.put("config", ProvisioningConfigFlattener.flatten(request));
         if (request.getHasGpuNodes() != null) spec.put("hasGpuNodes", request.getHasGpuNodes());
         return CreateClusterRequest.builder()
                 .source(CreateClusterRequest.Source.vm)

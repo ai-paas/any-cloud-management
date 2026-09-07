@@ -22,10 +22,10 @@ body:json {
     "environment": "{{provision_environment}}",
     "region": "{{provision_region}}",
     "credentialId": "{{credential_id}}",
-    "config": {
-      "anycloud-k8s:masterInstanceType": "{{master_vm_spec}}",
-      "anycloud-k8s:workerInstanceType": "{{worker_vm_spec}}",
-      "anycloud-k8s:workerCount": "{{worker_count}}"
+    "spec": {
+      "masterInstanceType": "{{master_vm_spec}}",
+      "workerInstanceType": "{{worker_vm_spec}}",
+      "workerCount": "{{worker_count}}"
     }
   }
 }

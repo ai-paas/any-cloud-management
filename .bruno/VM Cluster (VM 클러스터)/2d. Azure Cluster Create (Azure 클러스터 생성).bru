@@ -23,18 +23,22 @@ body:json {
     "environment": "{{provision_environment}}",
     "region": "{{provision_region}}",
     "credentialId": "{{credential_id}}",
-    "config": {
-      "anycloud-k8s:providerSpec.resourceGroup": "{{azure_resource_group}}",
-      "anycloud-k8s:osImage": "{{azure_image}}",
-      "anycloud-k8s:masterInstanceType": "{{master_vm_spec}}",
-      "anycloud-k8s:workerInstanceType": "{{worker_vm_spec}}",
-      "anycloud-k8s:workerCount": "{{worker_count}}",
-      "anycloud-k8s:kubernetesVersion": "{{kubernetes_version}}",
-      "anycloud-k8s:vpcCidr": "{{vpc_cidr}}",
-      "anycloud-k8s:podCidr": "{{pod_cidr}}",
-      "anycloud-k8s:serviceCidr": "{{service_cidr}}",
-      "anycloud-k8s:enableIngress": "{{enable_ingress}}",
-      "anycloud-k8s:enableGpuOperator": "{{enable_gpu_operator}}"
+    "spec": {
+      "osImage": "{{azure_image}}",
+      "masterInstanceType": "{{master_vm_spec}}",
+      "workerInstanceType": "{{worker_vm_spec}}",
+      "workerCount": "{{worker_count}}",
+      "kubernetesVersion": "{{kubernetes_version}}",
+      "enableIngress": "{{enable_ingress}}",
+      "enableGpuOperator": "{{enable_gpu_operator}}",
+      "network": {
+        "vpcCidr": "{{vpc_cidr}}",
+        "podCidr": "{{pod_cidr}}",
+        "serviceCidr": "{{service_cidr}}"
+      }
+    },
+    "providerSpec": {
+      "resourceGroup": "{{azure_resource_group}}"
     }
   }
 }
