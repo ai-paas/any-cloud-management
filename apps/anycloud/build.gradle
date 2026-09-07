@@ -129,7 +129,7 @@ dependencies {
     implementation "org.mapstruct:mapstruct:${rootProject.ext.mapstructVersion}"
     annotationProcessor "org.mapstruct:mapstruct-processor:${rootProject.ext.mapstructVersion}"
     annotationProcessor "org.projectlombok:lombok-mapstruct-binding:${rootProject.ext.lombokMapstructBindingVersion}"
-    implementation "org.json:json:20230618"
+    implementation "org.json:json:20260814"
     implementation "com.google.code.gson:gson"
     implementation 'com.google.auth:google-auth-library-oauth2-http:1.51.0'
     implementation "com.fasterxml.jackson.core:jackson-core"
