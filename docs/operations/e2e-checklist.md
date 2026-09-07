@@ -20,14 +20,14 @@
 
 ### GCP
 - `GOOGLE_APPLICATION_CREDENTIALS` 또는 `GOOGLE_CREDENTIALS`
-- provisioning config에 `anycloud-k8s:gcpProject`
+- provisioning config에 `anycloud-k8s:providerSpec.project`
 
 ### Azure
 - `ARM_CLIENT_ID`
 - `ARM_CLIENT_SECRET`
 - `ARM_TENANT_ID`
 - `ARM_SUBSCRIPTION_ID`
-- provisioning config에 `anycloud-k8s:azureResourceGroup`
+- provisioning config에 `anycloud-k8s:providerSpec.resourceGroup`
 
 ### Alibaba
 - `ALICLOUD_ACCESS_KEY`
@@ -43,7 +43,7 @@
 - `OS_USER_DOMAIN_NAME`
 - `OS_PROJECT_DOMAIN_NAME`
 - `OS_REGION_NAME`
-- provisioning config에 `anycloud-k8s:openstackImageName`, `anycloud-k8s:openstackFlavorName`
+- provisioning config에 `anycloud-k8s:providerSpec.imageName`, `anycloud-k8s:providerSpec.flavorName`
 - floating IP pool / external network capacity 확인
 
 ### Proxmox
@@ -59,7 +59,7 @@
 - `TF_VAR_fingerprint`
 - `TF_VAR_region`
 - `TF_VAR_private_key` 또는 `TF_VAR_private_key_path`
-- provisioning config에 `anycloud-k8s:ociCompartmentId`
+- provisioning config에 `anycloud-k8s:providerSpec.compartmentId`
 - compartment 권한 / shape / Ubuntu image availability 확인
 
 ### DigitalOcean

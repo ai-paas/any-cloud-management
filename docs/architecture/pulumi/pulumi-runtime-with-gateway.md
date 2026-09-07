@@ -238,6 +238,28 @@ Gateway/프론트 polling 기준 권장 의미는 다음과 같습니다.
 - `DELETING` 은 `stack.destroy()` 또는 stack cleanup 진행 중인 상태입니다.
 - `DELETED` 는 클러스터 연결 정보와 Pulumi stack 정리 완료 상태입니다.
 
+## 동시 실행 한도
+
+CSP 여러 개를 동시에 올릴 때 실질 동시성은 아래 셋 중 가장 작은 값입니다. 기본값은 CSP 8종을
+한 번에 처리하도록 맞춰져 있습니다.
+
+| 지점 | 설정 | 기본값 | 넘치면 |
+|---|---|---|---|
+| RabbitMQ 리스너 | `SPRING_RABBITMQ_CONCURRENCY` | 8 | 큐에서 대기 |
+| Pulumi bulkhead | `PULUMI_MAX_CONCURRENT` | 8 | `PULUMI_MAX_WAIT`(30m) 동안 대기 후 실패 |
+| 로컬 워크플로 풀 | `ASYNC_PROVISIONING_CORE` | 8 | 큐 30개까지 대기 |
+
+세 가지가 함께 걸리는 함정이 있습니다.
+
+- `SPRING_RABBITMQ_PREFETCH`가 크면 consumer 하나가 대기 메시지를 전부 선점해, 동시성을 올려도
+  나머지 consumer가 놉니다. 작업이 수십 분이므로 1로 둡니다.
+- `ThreadPoolTaskExecutor`는 큐가 가득 차야 core를 넘어 늘어납니다. 큐가 크면 max에 닿지 않으므로
+  실질 동시성은 core 값입니다. max만 올리는 것은 효과가 없습니다.
+- bulkhead 대기 시간이 작업 시간보다 짧으면 큐잉이 아니라 실패가 됩니다.
+
+동시 실행은 메모리와 CSP API rate limit에 함께 걸립니다. 늘리기 전에
+`resilience4j_bulkhead_available_concurrent_calls{name="pulumi"}`와 컨테이너 메모리를 봅니다.
+
 ## 운영 시 주의점
 
 - Pulumi 실행은 API 요청 thread 에서 직접 처리하지 않습니다.

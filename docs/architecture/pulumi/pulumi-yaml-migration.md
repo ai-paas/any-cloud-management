@@ -202,13 +202,20 @@ provisioner 7종을 그대로 옮기지 않고 **공통 골격 + CSP별 리소�
 병행 운영(타입 SDK와 YAML을 동시에 두고 플래그로 전환)은 고려했다가 접었습니다. SDK 의존성이 남아
 있으면 732MB가 그대로라 목적을 달성하지 못하고, 두 경로의 출력이 미묘하게 달라도 알아채기 어렵습니다.
 
-| 단계 | 내용 | 검증 |
-|---|---|---|
-| 1 | `YamlProgramBuilder` + 출력 조립 + OpenStack emitter | OpenStack 스택 실제 생성 |
-| 2 | AWS emitter | AWS 스택 실제 생성 |
-| 3 | GCP, Azure emitter | 각 스택 실제 생성 |
-| 4 | OCI, Alibaba, DigitalOcean emitter | 각 스택 실제 생성 |
-| 5 | `ProviderProvisioner` 계열 제거, `build.gradle`에서 SDK 7종 제거 | 크기 실측, 전체 회귀 |
+| 단계 | 내용 | 검증 | 상태 |
+|---|---|---|---|
+| 1 | `YamlProgramBuilder` + 출력 조립 + OpenStack emitter | OpenStack 스택 실제 생성 | 완료 |
+| 2 | AWS emitter | `pulumi preview` 구조 검증 | 완료 |
+| 3 | GCP emitter | `pulumi preview` 구조 검증 | 완료 |
+| 4 | OCI, Azure emitter | `pulumi preview` 구조 검증 | 완료 |
+| 5 | Proxmox, IBM emitter | 각 스택 실제 생성 | 미착수 |
+| 6 | `ProviderProvisioner` 계열 제거, `build.gradle`에서 SDK 제거 | 크기 실측, 전체 회귀 | 미착수 |
+
+실제 스택 생성까지 확인한 것은 OpenStack뿐입니다. 나머지는 자격증명이 없어 `pulumi preview`가
+타입 토큰과 참조를 해석하는 지점까지만 확인했고, 속성 이름은 provider 스키마와 대조했습니다.
+
+Alibaba와 DigitalOcean은 대상에서 제외합니다. 목표 CSP는 AWS, GCP, Azure, Oracle Cloud,
+OpenStack, Proxmox, IBM입니다. 두 provider의 타입 SDK provisioner는 6단계에서 함께 걷어냅니다.
 
 OpenStack을 먼저 하는 이유는 두 가지입니다. 리소스 정의가 가장 단순하고(1.6MB SDK), 사설 환경이라
 검증 비용이 낮습니다.
