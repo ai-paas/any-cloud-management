@@ -97,6 +97,11 @@ public final class CspCredentialPulumiConfigMapper {
                             put(out, "proxmoxve:password", env.get("PROXMOX_VE_PASSWORD"));
                         }
                         putBool(out, "proxmoxve:insecure", env.get("PROXMOX_VE_INSECURE"));
+                        // cloud-init 스니펫은 API 가 아니라 SSH 로 올라간다. API 토큰만 주면
+                        // VM 은 만들어지고 user-data 업로드에서 죽는다.
+                        put(out, "proxmoxve:ssh.username", env.get("PROXMOX_VE_SSH_USERNAME"));
+                        put(out, "proxmoxve:ssh.password", env.get("PROXMOX_VE_SSH_PASSWORD"));
+                        put(out, "proxmoxve:ssh.privateKey", env.get("PROXMOX_VE_SSH_PRIVATE_KEY"));
                     });
 
     /**
@@ -133,6 +138,9 @@ public final class CspCredentialPulumiConfigMapper {
             "PROXMOX_VE_PASSWORD",
             "PROXMOX_VE_API_TOKEN",
             "PROXMOX_VE_INSECURE",
+            "PROXMOX_VE_SSH_USERNAME",
+            "PROXMOX_VE_SSH_PASSWORD",
+            "PROXMOX_VE_SSH_PRIVATE_KEY",
             "ALICLOUD_ACCESS_KEY",
             "ALICLOUD_SECRET_KEY",
             "OS_AUTH_URL",

@@ -36,8 +36,15 @@ public final class ProvisioningCredentialRules {
                     "TF_VAR_private_key_path");
             case DIGITALOCEAN -> List.of("DIGITALOCEAN_TOKEN", "DIGITALOCEAN_ACCESS_TOKEN");
                 // API 토큰과 username/password 는 배타적이다. 하나만 있으면 된다.
+                // cloud-init 스니펫 업로드가 SSH 를 쓴다. API 토큰만으로는 VM 이 뜬 뒤 user-data 에서 죽는다.
             case PROXMOX -> List.of(
-                    "PROXMOX_VE_ENDPOINT", "PROXMOX_VE_API_TOKEN", "PROXMOX_VE_USERNAME", "PROXMOX_VE_PASSWORD");
+                    "PROXMOX_VE_ENDPOINT",
+                    "PROXMOX_VE_API_TOKEN",
+                    "PROXMOX_VE_USERNAME",
+                    "PROXMOX_VE_PASSWORD",
+                    "PROXMOX_VE_SSH_USERNAME",
+                    "PROXMOX_VE_SSH_PASSWORD",
+                    "PROXMOX_VE_SSH_PRIVATE_KEY");
             case IBM -> List.of("IBMCLOUD_API_KEY");
         };
     }

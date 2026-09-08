@@ -32,6 +32,7 @@
 - `Proxmox`의 `providerSpec.datastoreId`(기본 `local-lvm`), `providerSpec.snippetDatastoreId`(기본 `local`), `providerSpec.networkBridge`(기본 `vmbr0`)는 생략하면 기본값을 씁니다.
 - `Proxmox`는 인스턴스 타입이 없습니다. `masterInstanceType`을 `"코어-메모리MiB"` 형식(예: `4-8192`)으로 받습니다.
 - `Proxmox`는 API 토큰과 username/password가 배타적입니다. 둘 다 넘기면 provider가 거부합니다.
+- `Proxmox`는 **API 토큰만으로는 부족합니다.** cloud-init user-data는 `snippets` content type이고, 이건 REST API가 아니라 SSH로 업로드됩니다. SSH 자격증명이 없으면 VM은 만들어지고 user-data 단계에서 실패합니다.
 - `Proxmox`는 cloud-init snippet 업로드가 가능한 datastore 설정을 권장합니다.
 - `OCI`는 image OCID를 리전마다 따로 발급하고 이름으로 찾는 안정된 필터가 없습니다. `osImage`를 필수로 받아 `pulumi preview` 전에 실패시킵니다.
 - `Azure`의 `osImage`는 단일 ID가 아니라 `publisher:offer:sku:version` 4단 좌표입니다. 생략하면 `Canonical:ubuntu-24_04-lts:server:latest`를 씁니다.
