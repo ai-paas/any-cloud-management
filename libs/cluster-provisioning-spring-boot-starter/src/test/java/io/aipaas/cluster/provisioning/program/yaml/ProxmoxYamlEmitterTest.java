@@ -105,6 +105,17 @@ class ProxmoxYamlEmitterTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void injectsSshPublicKey() {
+        // user-data 스니펫에는 키가 없다. 빠지면 VM 은 뜨고 bootstrap 의 SSH 접속만 실패한다.
+        Map<String, Object> init = (Map<String, Object>) props("master").get("initialization");
+        Map<String, Object> account = (Map<String, Object>) init.get("userAccount");
+
+        assertThat((List<String>) account.get("keys")).containsExactly("${sshKey.publicKeyOpenssh}");
+        assertThat(account).containsEntry("username", "ubuntu");
+    }
+
+    @Test
     void qemuAgentIsEnabled() {
         // 꺼져 있으면 ipv4Addresses 가 빈 배열이라 masterPublicIp 가 비어 나온다.
         assertThat(props("master")).containsEntry("agent", Map.of("enabled", true));

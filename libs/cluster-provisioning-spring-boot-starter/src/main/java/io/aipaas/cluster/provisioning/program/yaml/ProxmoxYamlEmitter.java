@@ -109,12 +109,18 @@ final class ProxmoxYamlEmitter implements ProviderYamlEmitter {
                         "importFrom", YamlRef.of("image", "id"),
                         "size", rootDiskGb(spec))));
         vm.put("networkDevices", List.of(Map.of("bridge", px.networkBridge(), "model", "virtio", "enabled", true)));
+        // userAccount 로 공개키를 넣는다. user-data 스니펫에는 키가 없어서, 빠지면 VM 은 정상적으로
+        // 뜨고 bootstrap 의 SSH 접속만 실패한다.
         vm.put(
                 "initialization",
                 Map.of(
                         "datastoreId", px.datastoreId(),
                         "interface", CLOUD_INIT_INTERFACE,
                         "userDataFileId", YamlRef.of(snippet, "id"),
+                        "userAccount",
+                                Map.of(
+                                        "username", sshUser(spec),
+                                        "keys", List.of(YamlRef.of("sshKey", "publicKeyOpenssh"))),
                         "ipConfigs", List.of(Map.of("ipv4", Map.of("address", "dhcp")))));
         b.resource(node, T_VM, vm);
 
@@ -129,6 +135,10 @@ final class ProxmoxYamlEmitter implements ProviderYamlEmitter {
 
     private int memoryMib(ClusterSpec spec, String node) {
         return part(instanceType(spec, node), 1, DEFAULT_MEMORY_MIB);
+    }
+
+    private String sshUser(ClusterSpec spec) {
+        return (spec.sshUser() != null && !spec.sshUser().isBlank()) ? spec.sshUser() : "ubuntu";
     }
 
     private String instanceType(ClusterSpec spec, String node) {
