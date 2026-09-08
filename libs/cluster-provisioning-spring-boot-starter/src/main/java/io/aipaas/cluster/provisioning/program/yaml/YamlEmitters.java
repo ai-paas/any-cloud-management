@@ -24,6 +24,11 @@ public final class YamlEmitters {
         return EMITTERS.stream().anyMatch(emitter -> emitter.name().equals(canonical));
     }
 
+    /** 등록된 provider 토큰. 계약 검사가 emitter 를 빠뜨리지 않도록 목록을 노출한다. */
+    public static List<String> supported() {
+        return EMITTERS.stream().map(ProviderYamlEmitter::name).sorted().toList();
+    }
+
     public static void emit(PulumiProgram.Builder builder, ClusterSpec spec) {
         String canonical = ProviderName.canonical(spec.provider());
         ProviderYamlEmitter emitter = EMITTERS.stream()
