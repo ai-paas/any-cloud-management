@@ -97,11 +97,23 @@ public final class CspCredentialPulumiConfigMapper {
                             put(out, "proxmoxve:password", env.get("PROXMOX_VE_PASSWORD"));
                         }
                         putBool(out, "proxmoxve:insecure", env.get("PROXMOX_VE_INSECURE"));
-                        // cloud-init 스니펫은 API 가 아니라 SSH 로 올라간다. API 토큰만 주면
+                        // cloud-init 스니펫은 SSH 로만 올라간다. Proxmox API 의 upload 는 content 를
+                        // iso, vztmpl, import 로만 받아 snippets 를 거부한다 (bugzilla #2208).
+                        // API 토큰 인증에서는 provider 가 ssh.username 을 상속하지 못한다 — 비워 두면
                         // VM 은 만들어지고 user-data 업로드에서 죽는다.
-                        put(out, "proxmoxve:ssh.username", env.get("PROXMOX_VE_SSH_USERNAME"));
+                        put(
+                                out,
+                                "proxmoxve:ssh.username",
+                                firstOf(env, "PROXMOX_VE_SSH_USERNAME") == null
+                                        ? "root"
+                                        : env.get("PROXMOX_VE_SSH_USERNAME"));
                         put(out, "proxmoxve:ssh.password", env.get("PROXMOX_VE_SSH_PASSWORD"));
                         put(out, "proxmoxve:ssh.privateKey", env.get("PROXMOX_VE_SSH_PRIVATE_KEY"));
+                        putBool(out, "proxmoxve:ssh.agent", env.get("PROXMOX_VE_SSH_AGENT"));
+                        // 기본값 api 는 PVE API 가 알려주는 노드 IP 를 쓴다. 다중 서브넷이면 그 주소가
+                        // 백엔드에서 안 닿을 수 있다 — dns 로 바꾸거나 nodes 로 직접 지정한다.
+                        put(out, "proxmoxve:ssh.nodeAddressSource", env.get("PROXMOX_VE_SSH_NODE_ADDRESS_SOURCE"));
+                        putJsonArray(out, "proxmoxve:ssh.nodes", env.get("PROXMOX_VE_SSH_NODES"));
                     });
 
     /**
@@ -141,6 +153,9 @@ public final class CspCredentialPulumiConfigMapper {
             "PROXMOX_VE_SSH_USERNAME",
             "PROXMOX_VE_SSH_PASSWORD",
             "PROXMOX_VE_SSH_PRIVATE_KEY",
+            "PROXMOX_VE_SSH_AGENT",
+            "PROXMOX_VE_SSH_NODE_ADDRESS_SOURCE",
+            "PROXMOX_VE_SSH_NODES",
             "ALICLOUD_ACCESS_KEY",
             "ALICLOUD_SECRET_KEY",
             "OS_AUTH_URL",
@@ -210,6 +225,20 @@ public final class CspCredentialPulumiConfigMapper {
      * <p>깨진 값을 그대로 넘기면 provider 가 stack 전체를 거부하고, 그 시점 메시지로는 자격증명의
      * 어느 항목이 문제인지 알 수 없다. 등록 시점에 거른다.
      */
+    /** {@code [{"name":"pve1","address":"10.0.0.11"}]} 형태. 값이 깨지면 SSH 가 엉뚱한 곳으로 간다. */
+    private static void putJsonArray(Map<String, String> out, String key, String value) {
+        if (value == null || value.isBlank()) return;
+        String json = value.trim();
+        try {
+            if (!JSON.readTree(json).isArray()) {
+                throw new IllegalArgumentException(key + " 는 JSON array 여야 한다: " + json);
+            }
+        } catch (com.fasterxml.jackson.core.JacksonException e) {
+            throw new IllegalArgumentException(key + " 가 올바른 JSON 이 아니다: " + json, e);
+        }
+        out.put(key, json);
+    }
+
     private static void putJsonObject(Map<String, String> out, String key, String value) {
         if (value == null || value.isBlank()) return;
         String json = value.trim();
