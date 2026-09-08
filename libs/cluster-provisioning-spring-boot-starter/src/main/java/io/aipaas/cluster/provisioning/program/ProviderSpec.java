@@ -32,8 +32,16 @@ public sealed interface ProviderSpec {
      * @param datastoreId 디스크와 cloud-init 디스크를 만들 datastore
      * @param snippetDatastoreId user-data 스니펫을 올릴 datastore. snippets content type 이 켜져 있어야 한다
      * @param networkBridge 붙일 브리지 (예: vmbr0)
+     * @param snippetUploadMode {@code sftp} 는 sudo 없이 올린다 — SSH 계정에 디렉터리 쓰기 권한만 있으면
+     *     된다. {@code stream} 은 셸 세션으로 파이프하며 필요하면 sudo 를 쓴다. SFTP subsystem 이 꺼진
+     *     호스트에서만 stream 이 필요하다
      */
-    record Proxmox(String nodeName, String datastoreId, String snippetDatastoreId, String networkBridge)
+    record Proxmox(
+            String nodeName,
+            String datastoreId,
+            String snippetDatastoreId,
+            String networkBridge,
+            String snippetUploadMode)
             implements ProviderSpec {}
 
     /**
@@ -67,7 +75,8 @@ public sealed interface ProviderSpec {
                     read(lookup, "nodeName"),
                     read(lookup, "datastoreId"),
                     read(lookup, "snippetDatastoreId"),
-                    read(lookup, "networkBridge"));
+                    read(lookup, "networkBridge"),
+                    read(lookup, "snippetUploadMode"));
             default -> null;
         };
     }

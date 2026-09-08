@@ -113,12 +113,14 @@ public final class Defaults {
             case "proxmox" -> {
                 ProviderSpec.Proxmox px = raw.providerSpec() instanceof ProviderSpec.Proxmox p
                         ? p
-                        : new ProviderSpec.Proxmox(null, null, null, null);
+                        : new ProviderSpec.Proxmox(null, null, null, null, null);
+                // sftp 를 기본으로 둬서 sudo 없는 SSH 계정으로 운영할 수 있게 한다.
                 b.providerSpec(new ProviderSpec.Proxmox(
                         px.nodeName(),
                         blankOr(px.datastoreId(), "local-lvm"),
                         blankOr(px.snippetDatastoreId(), "local"),
-                        blankOr(px.networkBridge(), "vmbr0")));
+                        blankOr(px.networkBridge(), "vmbr0"),
+                        blankOr(px.snippetUploadMode(), "sftp")));
             }
             default -> {
                 /* no extras */

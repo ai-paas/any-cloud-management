@@ -87,6 +87,8 @@ final class ProxmoxYamlEmitter implements ProviderYamlEmitter {
                         "nodeName", px.nodeName(),
                         "datastoreId", px.snippetDatastoreId(),
                         "contentType", "snippets",
+                        // sftp 는 sudo 를 쓰지 않는다. 권한 없는 SSH 계정으로 운영하려면 이 모드여야 한다.
+                        "uploadMode", px.snippetUploadMode(),
                         "sourceRaw",
                                 Map.of("data", userData, "fileName", spec.name() + "-" + node + "-user-data.yaml")));
 

@@ -116,6 +116,27 @@ class ProxmoxYamlEmitterTest {
     }
 
     @Test
+    void snippetUploadDefaultsToSftp() {
+        // stream 은 sudo 를 쓴다. sftp 여야 권한 없는 SSH 계정으로 운영할 수 있다.
+        assertThat(props("cloudinit-master")).containsEntry("uploadMode", "sftp");
+    }
+
+    @Test
+    void snippetUploadModeIsOverridable() {
+        // SFTP subsystem 이 꺼진 호스트가 있다.
+        Map<String, String> cfg = cfg();
+        cfg.put("providerSpec.snippetUploadMode", "stream");
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> resources = (Map<String, Object>) doc(cfg).get("resources");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> snippet =
+                (Map<String, Object>) ((Map<String, Object>) resources.get("cloudinit-master")).get("properties");
+
+        assertThat(snippet).containsEntry("uploadMode", "stream");
+    }
+
+    @Test
     void qemuAgentIsEnabled() {
         // 꺼져 있으면 ipv4Addresses 가 빈 배열이라 masterPublicIp 가 비어 나온다.
         assertThat(props("master")).containsEntry("agent", Map.of("enabled", true));
