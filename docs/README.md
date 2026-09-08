@@ -99,6 +99,7 @@ HTTP 엔드포인트 명세, 요청, 응답 envelope 입니다.
 
 - [quickstart.md](./operations/quickstart.md) — dev 5분 부팅
 - [db-setup.md](./operations/db-setup.md) — Flyway auto-apply + 호환성
+- [proxmox-setup.md](./operations/proxmox-setup.md) — Proxmox API 토큰, 스니펫 SSH, datastore 설정
 - [day-2-operations.md](./operations/day-2-operations.md) — Scale / Upgrade / Patch / Rollback / DLQ / SLO 10 시나리오
 - [runbook-agent-health.md](./operations/runbook-agent-health.md) — health endpoint + alert runbook
 - [monitoring-usage.md](./operations/monitoring-usage.md) — addon-기반 monitoring 설치 + raw query endpoint
