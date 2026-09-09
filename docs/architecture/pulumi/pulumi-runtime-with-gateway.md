@@ -289,12 +289,27 @@ CSP 여러 개를 동시에 올릴 때 실질 동시성은 아래 셋 중 가장
 | helm | 57.4 MB |
 | app jar | 18.6 MB |
 
-`PULUMI_PLUGINS` 를 좁히면 해당 행이 통째로 빠집니다. OpenStack 만 쓰는 배포는 641MB 입니다.
+`PULUMI_PLUGINS` 를 좁히면 해당 행이 통째로 빠집니다. 배포 대상 CSP 가 정해졌다면 값 하나로
+크게 줄일 수 있습니다.
+
+| 조합 | 이미지 | `PULUMI_PLUGINS` |
+|---|---:|---|
+| 전체 7종 | 3.39 GB | 기본값 |
+| OpenStack 전용 | 약 671 MB | `openstack:5.5.1 tls:5.6.0` |
+| OpenStack + Proxmox | 약 753 MB | `openstack:5.5.1 proxmoxve:8.6.0 tls:5.6.0` |
+| AWS 제외 | 약 1.9 GB | `gcp:9.36.1 azure-native:3.27.0 oci:4.22.0 openstack:5.5.1 proxmoxve:8.6.0 tls:5.6.0` |
 
 ```bash
 docker build -f Dockerfile.pulumi \
   --build-arg PULUMI_PLUGINS="openstack:5.5.1 tls:5.6.0" -t anycloud:openstack .
 ```
+
+IBM 은 이 목록에 없습니다. 플러그인이 아니라 `terraform-provider` 베이스와 OpenTofu provider,
+스키마 파일을 함께 굽는 구조라 약 297MB 를 따로 씁니다. IBM 을 쓰지 않는 배포는 `IBM_PACKAGE`
+빌드 단계를 빼면 그만큼 줄어듭니다.
+
+CSP 를 좁히면 그 provider 로는 프로비저닝이 불가능합니다. 요청이 오면 emitter 는 YAML 을 만들지만
+CLI 가 플러그인을 찾지 못해 실패합니다.
 
 ### 이 구성에서 지켜야 하는 것
 
