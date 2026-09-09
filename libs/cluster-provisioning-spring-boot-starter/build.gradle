@@ -29,7 +29,6 @@ bootJar { enabled = false }
 jar { enabled = true }
 
 spotless {
-    enforceCheck false
     ratchetFrom 'origin/main'
     java {
         target 'src/**/*.java'
@@ -48,16 +47,13 @@ dependencies {
     // Jackson — Pulumi engine event raw payload parsing.
     api "com.fasterxml.jackson.core:jackson-databind:${rootProject.ext.jacksonVersion}"
 
-    // Pulumi Java SDK — in-JVM IaC engine. Automation API + 7개 CSP provider.
+    // Pulumi Automation API. provider 타입은 YAML 프로그램이 선언하고 CLI 플러그인이 해석하므로
+    // provider 별 Java SDK 는 필요 없다.
     api "com.pulumi:pulumi:${rootProject.ext.pulumiSdkVersion}"
-    api "com.pulumi:aws:${rootProject.ext.pulumiAwsVersion}"
-    api "com.pulumi:gcp:${rootProject.ext.pulumiGcpVersion}"
-    api "com.pulumi:azure-native:${rootProject.ext.pulumiAzureNativeVersion}"
-    api "com.pulumi:oci:${rootProject.ext.pulumiOciVersion}"
-    api "com.pulumi:alicloud:${rootProject.ext.pulumiAlicloudVersion}"
-    api "com.pulumi:digitalocean:${rootProject.ext.pulumiDigitaloceanVersion}"
-    api "com.pulumi:openstack:${rootProject.ext.pulumiOpenstackVersion}"
-    api "com.pulumi:tls:${rootProject.ext.pulumiTlsVersion}"
+
+    // YAML 프로그램 직렬화. Spring Boot 를 통해 transitive 로도 오지만, 외부 소비자가
+    // Boot 버전을 바꿀 때 조용히 깨지지 않도록 명시한다.
+    api 'org.yaml:snakeyaml:2.4'
 
     // Reactor for ProvisionEventBus (multicast Sinks.Many).
     api "io.projectreactor:reactor-core:${rootProject.ext.reactorVersion}"

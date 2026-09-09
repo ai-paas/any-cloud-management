@@ -3,14 +3,7 @@ package com.aipaas.anycloud.domain.provisioning.scale;
 import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
 import java.util.Map;
 
-/**
- * Pulumi worker 인덱스를 K8s 노드 라벨로 부착해 두 시스템 간 매핑 명시화.
- *
- * <p>Pulumi 는 stack state 의 {@code workers[N]} 배열, K8s 는 hostname/IP 기준으로 노드 식별 —
- * 두 식별자가 일치한다는 보장 없어 scale-down/delete 시 대상 노드 특정 어려움. privateIp →
- * K8s InternalIP 매칭으로 {@code anycloud.aipaas/pulumi-index=worker-N} 라벨 부착,
- * {@link VmClusterScaleDrainService} 의 drain 대상 선정 및 노드별 cleanup 의 식별자로 활용.
- */
+/** Pulumi worker 인덱스를 K8s 노드 라벨로 부착해 두 시스템 간 매핑 명시화. */
 public interface VmClusterNodeLabelService {
 
     /** Pulumi worker 인덱스 보존용 K8s 노드 라벨 키. */

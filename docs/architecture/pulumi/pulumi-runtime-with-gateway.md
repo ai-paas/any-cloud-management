@@ -1,7 +1,7 @@
-# Gateway 뒤에서 Spring + Pulumi Go 운영 구조
+# Gateway 뒤에서 Spring + Pulumi 운영 구조
 
 `any-cloud-management` 는 외부에서 직접 Pulumi 를 호출하지 않고, Gateway 를 통해 들어온 요청을
-Spring Boot 가 받아 내부에서 Pulumi Go 프로젝트를 실행합니다.
+Spring Boot 가 받아 내부에서 Pulumi 를 실행합니다.
 
 구조는 다음과 같습니다.
 
@@ -9,15 +9,15 @@ Spring Boot 가 받아 내부에서 Pulumi Go 프로젝트를 실행합니다.
 Client
   -> API Gateway
   -> anycloud-backend (Spring Boot)
-  -> Pulumi CLI + infra/pulumi (Go program)
+  -> Pulumi Automation API (생성된 YAML 프로그램 실행)
   -> AWS / GCP / Azure / OpenStack ...
 ```
 
 핵심 포인트는 다음과 같습니다.
 
-- Go 는 상시 실행 서버가 아닙니다.
-- `infra/pulumi` 는 Pulumi program 입니다.
-- Spring 이 `pulumi up`, `pulumi destroy`, `pulumi stack output --json` 을 호출합니다.
+- Pulumi program 은 별도 프로세스가 아니라 backend JVM 안에서 실행됩니다.
+- provider 별 구현은 `libs/cluster-provisioning-spring-boot-starter` 의 `*Provisioner` 입니다.
+- Automation API 가 up / destroy / stack output 을 담당합니다.
 - 긴 작업은 HTTP 요청 안에서 직접 처리하지 않고 비동기 Job 으로 돌립니다.
 
 ## 실행 모델
@@ -39,21 +39,23 @@ Client
 
 Spring 은 요청 직후 다음을 수행합니다.
 
-1. 메타데이터 DB 에 `PROVISIONING` 상태 저장입니다.
-2. Pulumi stack 이름 생성입니다.
-3. 비동기 Executor 또는 Job Queue 에 실행 위임입니다.
-4. 즉시 `202 Accepted` 를 반환합니다.
+1. 메타데이터 DB 에 `PROVISIONING` 상태를 저장한다
+2. Pulumi stack 이름을 만든다
+3. 비동기 Executor 또는 Job Queue 에 실행을 넘긴다
+4. 즉시 `202 Accepted` 를 반환한다
 
 ### 3. 비동기 Worker 에서 Pulumi 실행
 
 Worker 는 다음 순서로 처리합니다.
 
-1. `pulumi stack init` 또는 `pulumi stack select` 입니다.
-2. `pulumi config set` 입니다.
-3. `pulumi up --yes --skip-preview` 입니다.
-4. `pulumi stack output --json` 입니다.
-5. output 을 DB 에 저장합니다.
-6. 상태를 `READY` 또는 `FAILED` 로 변경합니다.
+1. `LocalWorkspace.createOrSelectStack()` 으로 stack 을 준비한다
+2. CSP credential 을 Pulumi config 로 주입한다
+3. `stack.up()` 을 호출한다
+4. `stack.outputs()` 로 결과를 읽는다
+5. output 을 DB 에 저장한다
+6. 상태를 `READY` 또는 `FAILED` 로 바꾼다
+
+CLI 를 프로세스로 부르지 않고 Automation API 로 같은 일을 합니다.
 
 ## Docker 구성 전략
 
@@ -63,11 +65,12 @@ Worker 는 다음 순서로 처리합니다.
 
 `anycloud-backend` 이미지 안에 아래를 함께 넣습니다.
 
-- Java runtime 입니다.
-- Pulumi CLI 입니다.
-- Go toolchain 입니다.
-- `infra/pulumi` 소스입니다.
-- CSP credential 주입 경로입니다.
+- Java runtime
+- Pulumi CLI
+- CSP credential 주입 경로
+
+Go toolchain 과 Pulumi program 소스는 필요 없습니다. provisioning 은 Java SDK 의
+backend JVM 이 YAML 프로그램을 만들고 Pulumi CLI 가 실행합니다.
 
 이 방식은 가장 단순하고 PoC 속도가 빠릅니다.
 
@@ -79,22 +82,22 @@ Gateway -> anycloud-backend -> pulumi-runner
 
 이 방식은 나중에 다음 상황에서 고려하면 좋습니다.
 
-- Pulumi 실행 권한을 따로 격리하고 싶을 때입니다.
-- 동시 프로비저닝 요청이 많을 때입니다.
-- Spring 이미지를 가볍게 유지하고 싶을 때입니다.
+- Pulumi 실행 권한을 따로 격리하고 싶을 때
+- 동시 프로비저닝 요청이 많을 때
+- Spring 이미지를 가볍게 유지하고 싶을 때
 
 ## Compose 권장 형태
 
 기본 서비스는 다음과 같습니다.
 
-- `gateway` 입니다.
-- `anycloud-backend` 입니다.
-- `anycloud-db` 입니다.
+- `gateway`
+- `anycloud-backend`
+- `anycloud-db`
 
 선택 서비스는 다음과 같습니다.
 
-- `rabbitmq` 입니다 (workflow messaging).
-- `pulumi-runner` 입니다.
+- `rabbitmq` (workflow messaging)
+- `pulumi-runner`
 
 현재 리포지토리에는 `anycloud-backend` + `anycloud-db` 가 이미 있으므로,
 Pulumi 확장용 오버레이 compose 를 추가하는 방식이 안전합니다.
@@ -104,8 +107,7 @@ Pulumi 확장용 오버레이 compose 를 추가하는 방식이 안전합니다
 Pulumi 실행 시 아래 경로는 volume 또는 외부 backend 를 고려해야 합니다.
 
 - `/home/anycloud/.pulumi`
-- `/workspace/infra/pulumi`
-- `/tmp/pulumi`
+- `/tmp/pulumi` (호출마다 생성되는 workDir)
 - kubeconfig export 디렉터리
 - SSH private key export 디렉터리
 
@@ -162,7 +164,7 @@ docker compose -f docker-compose.dev.yml exec openbao bao write -f transit/keys/
 docker compose -f docker-compose.dev.yml exec anycloud-backend pulumi login --help
 ```
 
-`docker compose` 만으로 Pulumi backend·secrets 가 같이 올라가므로
+`docker compose` 만으로 Pulumi backend, secrets 가 같이 올라가므로
 사용자는 `PULUMI_PASSPHRASE` (또는 OpenBao 모드일 때 `VAULT_TOKEN`) 만 안전하게 주입하면 됩니다.
 
 ### 운영 환경 점검 체크리스트
@@ -186,11 +188,12 @@ docker compose -f docker-compose.dev.yml exec anycloud-backend pulumi login --he
 환경변수 또는 secret mount 로 주입합니다. `application.yaml` 의 `pulumi.environment` 맵에
 누적됩니다.
 
-- AWS 는 `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` 입니다.
+- AWS — `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`
 - Azure 는 `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID` 입니다.
-- GCP 는 `GOOGLE_CREDENTIALS` 또는 `GOOGLE_APPLICATION_CREDENTIALS` 입니다.
-- OpenStack 은 `OS_AUTH_URL` 등입니다.
-- 기타 CSP 도 동일 패턴입니다.
+- GCP — `GOOGLE_CREDENTIALS` 또는 `GOOGLE_APPLICATION_CREDENTIALS`
+- OpenStack — `OS_AUTH_URL` 등
+
+나머지 CSP 도 같은 패턴을 따릅니다.
 
 > **주의**: backend 용 `AWS_*` 변수와 CSP(AWS) 용 `AWS_*` 변수가 충돌합니다.
 > RustFS backend 와 AWS CSP 를 동시에 쓰려면 CSP 자격증명은 `PULUMI_CONFIG`
@@ -200,22 +203,17 @@ docker compose -f docker-compose.dev.yml exec anycloud-backend pulumi login --he
 
 ### 컴포넌트 분리
 
-- `PulumiProperties` 입니다.
-  - binary path 입니다.
-  - project dir 입니다.
-  - stack prefix 입니다.
-  - env vars 입니다.
+- `PulumiProperties` — `runtimeDir`, `stackPrefix`, `backendUrl`, `secretsProvider`,
+  `passphrase`, `environment`
 - `PulumiCommandService` 는 CLI 실행을 담당합니다.
-- `PulumiProvisioningService` 입니다.
-  - stack naming 입니다.
-  - config set 입니다.
-  - up/destroy/output orchestration 입니다.
+- `AutomationProvisioningService` — stack 이름 생성, config 주입,
+  up / preview / destroy / output 오케스트레이션
 - `ClusterProvisioningFacade` 는 기존 `ClusterService` 와 연결됩니다.
 
 현재 리포지토리 기준 권장 분리는 다음과 같습니다.
 
-- `ClusterEntity` 는 kubeconfig 기반으로 실제 Kubernetes API 에 붙는 운영 엔티티입니다.
-- `ClusterProvisioningEntity` 는 Pulumi infra 생성 상태와 raw output 을 저장하는 엔티티입니다.
+- `ClusterEntity` 는 kubeconfig 기반으로 실제 Kubernetes API 에 붙는 운영 엔티티
+- `ClusterProvisioningEntity` 는 Pulumi infra 생성 상태와 raw output 을 저장하는 엔티티
 
 즉, `프로비저닝 완료` 와 `운영용 클러스터 등록 완료` 를 같은 개념으로 두지 않습니다.
 이 분리는 현재 프로젝트의 kubeconfig 중심 구조와 잘 맞습니다.
@@ -234,18 +232,119 @@ docker compose -f docker-compose.dev.yml exec anycloud-backend pulumi login --he
 Gateway/프론트 polling 기준 권장 의미는 다음과 같습니다.
 
 - `REQUESTED` 는 요청은 저장되었고 아직 worker 가 시작 전 상태입니다.
-- `PROVISIONING` 은 Pulumi 실행 중입니다.
+- `PROVISIONING` 은 Pulumi 실행 중인 상태입니다.
 - `READY` 는 infra 생성 성공, kubeconfig 등록 완료, cluster API 사용 가능 상태입니다.
 - `FAILED` 는 프로비저닝 또는 kubeconfig 등록 실패 상태입니다.
-- `DELETING` 은 `pulumi destroy` 또는 stack cleanup 진행 중인 상태입니다.
+- `DELETING` 은 `stack.destroy()` 또는 stack cleanup 진행 중인 상태입니다.
 - `DELETED` 는 클러스터 연결 정보와 Pulumi stack 정리 완료 상태입니다.
+
+## 동시 실행 한도
+
+CSP 여러 개를 동시에 올릴 때 실질 동시성은 아래 셋 중 가장 작은 값입니다. 기본값은 CSP 8종을
+한 번에 처리하도록 맞춰져 있습니다.
+
+| 지점 | 설정 | 기본값 | 넘치면 |
+|---|---|---|---|
+| RabbitMQ 리스너 | `SPRING_RABBITMQ_CONCURRENCY` | 8 | 큐에서 대기 |
+| Pulumi bulkhead | `PULUMI_MAX_CONCURRENT` | 8 | `PULUMI_MAX_WAIT`(30m) 동안 대기 후 실패 |
+| 로컬 워크플로 풀 | `ASYNC_PROVISIONING_CORE` | 8 | 큐 30개까지 대기 |
+
+세 가지가 함께 걸리는 함정이 있습니다.
+
+- `SPRING_RABBITMQ_PREFETCH`가 크면 consumer 하나가 대기 메시지를 전부 선점해, 동시성을 올려도
+  나머지 consumer가 놉니다. 작업이 수십 분이므로 1로 둡니다.
+- `ThreadPoolTaskExecutor`는 큐가 가득 차야 core를 넘어 늘어납니다. 큐가 크면 max에 닿지 않으므로
+  실질 동시성은 core 값입니다. max만 올리는 것은 효과가 없습니다.
+- bulkhead 대기 시간이 작업 시간보다 짧으면 큐잉이 아니라 실패가 됩니다.
+
+동시 실행은 메모리와 CSP API rate limit에 함께 걸립니다. 늘리기 전에
+`resilience4j_bulkhead_available_concurrent_calls{name="pulumi"}`와 컨테이너 메모리를 봅니다.
+
+## 이미지 구성
+
+`Dockerfile.pulumi` 는 4단계입니다. 플러그인 다운로드가 앱 코드나 apk 목록 변경과 분리되어야
+재빌드가 빠릅니다.
+
+| 스테이지 | 하는 일 |
+|---|---|
+| `gradle-builder` | bootJar 빌드 후 `jarmode=tools extract --layers` 로 레이어 분리 |
+| `cli-fetch` | pulumi, helm 바이너리. 쓰지 않는 language host 제거 |
+| `plugin-fetch` | provider 플러그인 설치 |
+| runtime | Alpine JRE + 위 산출물 조립 |
+
+크기는 provider 플러그인이 지배합니다. 2,878MB 중 2,252MB(78%)가 플러그인입니다.
+
+| 항목 | 크기 |
+|---|---:|
+| aws 플러그인 | 943.5 MB |
+| azure-native 플러그인 | 587.8 MB |
+| oci 플러그인 | 349.6 MB |
+| gcp 플러그인 | 243.8 MB |
+| proxmoxve 플러그인 | 82.1 MB |
+| tls 플러그인 | 69.6 MB |
+| openstack 플러그인 | 45.4 MB |
+| app lib 의존성 | 168.7 MB |
+| JRE | 156.7 MB |
+| Pulumi CLI | 98.8 MB |
+| helm | 57.4 MB |
+| app jar | 18.6 MB |
+
+`PULUMI_PLUGINS` 를 좁히면 해당 행이 통째로 빠집니다. 배포 대상 CSP 가 정해졌다면 값 하나로
+크게 줄일 수 있습니다.
+
+| 조합 | 이미지 | `PULUMI_PLUGINS` |
+|---|---:|---|
+| 전체 7종 | 3.39 GB | 기본값 |
+| OpenStack 전용 | 약 671 MB | `openstack:5.5.1 tls:5.6.0` |
+| OpenStack + Proxmox | 약 753 MB | `openstack:5.5.1 proxmoxve:8.6.0 tls:5.6.0` |
+| AWS 제외 | 약 1.9 GB | `gcp:9.36.1 azure-native:3.27.0 oci:4.22.0 openstack:5.5.1 proxmoxve:8.6.0 tls:5.6.0` |
+
+```bash
+docker build -f Dockerfile.pulumi \
+  --build-arg PULUMI_PLUGINS="openstack:5.5.1 tls:5.6.0" -t anycloud:openstack .
+```
+
+IBM 은 이 목록에 없습니다. 플러그인이 아니라 `terraform-provider` 베이스와 OpenTofu provider,
+스키마 파일을 함께 굽는 구조라 약 297MB 를 따로 씁니다. IBM 을 쓰지 않는 배포는 `IBM_PACKAGE`
+빌드 단계를 빼면 그만큼 줄어듭니다.
+
+CSP 를 좁히면 그 provider 로는 프로비저닝이 불가능합니다. 요청이 오면 emitter 는 YAML 을 만들지만
+CLI 가 플러그인을 찾지 못해 실패합니다.
+
+### 이 구성에서 지켜야 하는 것
+
+Pulumi 는 플러그인을 `$PULUMI_HOME/plugins` 에서만 찾습니다. `PULUMI_PLUGIN_CACHE_DIR` 은 읽지
+않고 심볼릭 링크도 따라가지 않습니다. 다른 경로에 두면 캐시를 통째로 무시하고 프로비저닝마다
+다시 받습니다.
+
+`pulumi plugin install` 은 디렉터리를 `0700 root` 로, `/app` 을 `0700 root` 로 만듭니다. 컨테이너는
+`USER anycloud` 로 돌기 때문에 소유권을 설치와 같은 레이어에서 잡아야 합니다. 뒤에서 `chown -R`
+하면 1.8GB 를 복제한 레이어가 하나 더 생깁니다.
+
+`COPY` 뒤의 `chown -R` 도 같은 이유로 피합니다. `COPY --chown` 을 씁니다.
+
+서드파티 플러그인은 GitHub 릴리스에서 받습니다. 익명 요청은 IP 당 시간당 60회라 CI 에서
+걸립니다. `GITHUB_TOKEN` 을 build secret 으로 넘기면 5000회가 됩니다.
+
+```bash
+docker build -f Dockerfile.pulumi --secret id=github_token,env=GITHUB_TOKEN -t anycloud .
+```
+
+### distroless, native image 를 쓰지 않는 이유
+
+런타임이 `pulumi`, `helm`, `ssh` 바이너리를 실행하고 entrypoint 가 셸 스크립트입니다. distroless
+에는 셋 다 없어 전부 되넣어야 하고, 그러면 distroless 가 아닙니다. Alpine JRE 대비 크기 차이도
+24MB 입니다.
+
+GraalVM native image 는 JRE 157MB 와 jar 일부를 줄이지만, 지배적인 플러그인 2,252MB 는 그대로
+입니다. JPA, Jackson, Pulumi Automation SDK 가 리플렉션 기반이라 메타데이터 비용도 큽니다.
 
 ## 운영 시 주의점
 
 - Pulumi 실행은 API 요청 thread 에서 직접 처리하지 않습니다.
 - stdout/stderr 전체를 로깅하고 마지막 에러를 DB 에도 남깁니다.
 - stack 이름 규칙을 강제합니다.
-  - 예: `anycloud-aws-dev-demo` 입니다.
+  - 예: `anycloud-aws-dev-demo`
 - destroy 시 partial failure 처리 전략이 필요합니다.
 - provider 별 quota 체크를 선행하면 장애가 줄어듭니다.
 

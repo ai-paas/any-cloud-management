@@ -124,12 +124,28 @@ public class VmClusterWorkflowSupportServiceImpl implements VmClusterWorkflowSup
     }
 
     @Override
+    public void markDegraded(VmClusterEntity vmCluster) {
+        vmCluster.transitionTo(VmClusterStatus.DEGRADED, "workflow.degraded");
+        vmCluster.setCurrentWorkflowStep(VmClusterWorkflowStep.VERIFY);
+        vmCluster.setLastSuccessfulStep(VmClusterWorkflowStep.VERIFY);
+        vmCluster.setClusterRegistered(true);
+        vmCluster.setCurrentSubStep(null);
+        vmCluster.setSubStepStartedAt(null);
+        // readyAt 은 채우지 않는다 — 아직 요청한 구성이 갖춰지지 않았다.
+        // failedAt 도 아니다. 워크플로우가 실패한 게 아니라 수렴을 기다리는 상태다.
+        vmClusterRepository.save(vmCluster);
+    }
+
+    @Override
     public void markDeleteCompleted(VmClusterEntity vmCluster) {
         vmCluster.transitionTo(VmClusterStatus.DELETED, "workflow.deleted");
         vmCluster.setCurrentWorkflowStep(VmClusterWorkflowStep.DESTROY);
         vmCluster.setLastSuccessfulStep(VmClusterWorkflowStep.DESTROY);
         vmCluster.setActiveRequestKey(null);
         vmCluster.setClusterRegistered(false);
+        // DESTROY 가 방금 cluster row 를 지웠다. 값을 남기면 flush 가 사라진 FK 를 다시 써서
+        // 1452 로 죽고, vm_cluster 는 DELETING 에 갇혀 같은 이름으로 재생성이 409 가 된다.
+        vmCluster.setClusterId(null);
         vmCluster.setLastError(null);
         vmCluster.setDeletedAt(LocalDateTime.now());
         // DELETED 후에도 row 는 audit history 로 보존되므로 sensitive 페이로드 (CSP credential / SSH private
@@ -265,8 +281,8 @@ public class VmClusterWorkflowSupportServiceImpl implements VmClusterWorkflowSup
     private static int percentForStep(VmClusterWorkflowStep step) {
         if (step == null) return 0;
         return switch (step) {
-            case PROVISION -> 33;
-            case BOOTSTRAP -> 66;
+            case PROVISION -> 5;
+            case BOOTSTRAP -> 33;
             case VERIFY -> 90;
             case DESTROY -> 50;
         };

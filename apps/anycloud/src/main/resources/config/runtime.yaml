@@ -11,6 +11,13 @@ spring:
     port: ${SPRING_RABBITMQ_PORT:5672}
     username: ${SPRING_RABBITMQ_USERNAME:guest}
     password: ${SPRING_RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        # 기본값 1 은 CSP 별 프로비저닝을 직렬화한다
+        concurrency: ${SPRING_RABBITMQ_CONCURRENCY:8}
+        max-concurrency: ${SPRING_RABBITMQ_MAX_CONCURRENCY:16}
+        # 기본값 250 이면 consumer 하나가 대기 메시지를 전부 선점한다
+        prefetch: ${SPRING_RABBITMQ_PREFETCH:1}
   # Kafka / Redis 모두 제거됨. 메시징 = RabbitMQ (workflow). 영속 = MariaDB (jti dedup 포함).
   # Flyway 가 schema 책임. JPA 의 ddl-auto 는 환경별 profile yaml (application-dev/docker.yaml) 에서 관리.
   flyway:
@@ -106,10 +113,9 @@ resilience4j:
           - java.net.ConnectException
   bulkhead:
     instances:
-      # Pulumi CLI: 동시에 N 개 이상의 무거운 pulumi up/destroy 가 돌면 머신 자원이 빠르게 고갈.
-      # 큐잉 방식 bulkhead 로 동시 실행 상한.
-      # III-48: 5 → 2. pulumi up/preview 마다 go build (rosetta 에뮬레이션 시 1.5GB+) 가 떠서
-      # 동시 3개부터 compile OOM kill 실증. 2개 초과는 max-wait-duration 동안 큐잉.
+      # Pulumi 동시 실행 상한. 초과분은 max-wait-duration 동안 큐잉 후 실패.
+      # 2 였던 이유(inline Java program 의 go build OOM)는 YAML 전환으로 사라졌다.
+      # up/destroy 는 수십 분이라 대기 시간이 짧으면 큐잉이 아니라 실패가 된다.
       pulumi:
-        max-concurrent-calls: 2
-        max-wait-duration: 60s
+        max-concurrent-calls: ${PULUMI_MAX_CONCURRENT:8}
+        max-wait-duration: ${PULUMI_MAX_WAIT:30m}

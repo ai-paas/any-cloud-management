@@ -216,7 +216,7 @@ package com.aipaas.anycloud.domain.cluster.model;
 
 | File | LOC | 보존 이유 |
 |---|---|---|
-| `GlobalExceptionHandler` | 532 | 단일 책임 (exception → response mapping table). 분해 시 4 file 순회로 신규 합류자 손해. |
+| `GlobalExceptionHandler` | 532 | 단일 책임 (exception → response mapping table). 분해하면 4개 파일을 오가야 해서 처음 보는 사람에게 불리. |
 | `VmClusterPreflightServiceImpl` | 555 | 단일 흐름 (preflight orchestration). internal helper 로 organize. 분해 시 5 file 점프. |
 | `KubeServiceImpl` | 530 | K8s API surface 자체가 큼 (list/patch/delete/exec/port-forward/apply cohesive wrapper). |
 | `OciVmOptionsProvider` (+ 8 CSP) | 300-426 each | CSP-specific 로직 의 inherent complexity. `AbstractVmOptionsProvider` 가 이미 공통 로직 lift-up. 각 CSP file 은 REST signing + response parsing 의 single cohesion. |

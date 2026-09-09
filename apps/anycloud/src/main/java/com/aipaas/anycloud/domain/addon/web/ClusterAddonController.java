@@ -26,12 +26,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Cluster addon CRUD + retry/backfill.
- *
- * <p>전제: ClusterAgentBootstrapServiceImpl 가 cluster ACTIVE 전환 시 자동으로 PENDING addon 들
- * enqueue. 본 controller 는 manual CRUD (frontend addon manager + admin retry).
- */
+/** Cluster addon CRUD + retry/backfill. */
 @Slf4j
 @RestController
 @RequiredArgsConstructor
@@ -118,16 +113,7 @@ public class ClusterAddonController {
                 .body(ApiSuccessResponse.of(HttpStatus.ACCEPTED.value(), "enqueued " + count + " addon(s)", count));
     }
 
-    /**
-     * — Addon 의 현재 active operation 식별자 단축 lookup.
-     *
-     * <p>frontend 가 addon row 의 lastOperationId 를 GET 한 뒤 SSE 구독하는 2-step 을 1-step 으로
-     * 단축. response 의 {@code operationId} 를 가지고
-     * {@code GET /v1/operations/{operationId}/events} 로 SSE 구독.
-     *
-     * <p>302 redirect 가 아닌 명시 lookup — SseEmitter 가 controller 간 forward 불편 + frontend 가
-     * EventSource 직접 build 하므로 id 만 제공이 깔끔.
-     */
+    /** — Addon 의 현재 active operation 식별자 단축 lookup. */
     @GetMapping("/{addonId}/operation")
     @Operation(
             summary = "Addon 의 latest operation 식별자",

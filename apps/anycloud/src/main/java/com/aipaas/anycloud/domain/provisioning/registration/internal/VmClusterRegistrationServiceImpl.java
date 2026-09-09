@@ -3,6 +3,7 @@ package com.aipaas.anycloud.domain.provisioning.registration.internal;
 import com.aipaas.anycloud.domain.cluster.ClusterEntity;
 import com.aipaas.anycloud.domain.cluster.ClusterRepository;
 import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
+import com.aipaas.anycloud.domain.provisioning.convergence.internal.RequestedAddonEnroller;
 import com.aipaas.anycloud.domain.provisioning.registration.VmClusterRegistrationService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 public class VmClusterRegistrationServiceImpl implements VmClusterRegistrationService {
 
     private final ClusterRepository clusterRepository;
+    private final RequestedAddonEnroller requestedAddonEnroller;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -26,6 +28,9 @@ public class VmClusterRegistrationServiceImpl implements VmClusterRegistrationSe
         vmCluster.setClusterId(clusterEntity.getId());
         // Backend 는 cluster K8s API 를 직접 호출하지 않으므로 도달성 확인 없이 AGENT_PENDING.
         // cluster-agent 가 helm install 후 boot → gRPC dial-in 시점에 ACTIVE 로 전환됨.
+        // 요청이 함축하는 addon 을 PENDING 으로 등록만 해 둔다. 실제 설치는 agent 가 붙어
+        // cluster 가 ACTIVE 될 때 AddonOrchestrator 가 큐에 넣는다.
+        requestedAddonEnroller.enroll(vmCluster);
         log.info("Provisioned cluster {} registered (AGENT_PENDING — agent dial-in 대기)", vmCluster.getClusterName());
         return clusterEntity;
     }

@@ -1,0 +1,15 @@
+meta {
+  name: agent manifest (GET)
+  type: http
+  seq: 95
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/agent-manifest.yaml
+  body: none
+  auth: none
+}
+
+docs {
+  `GET /v1/clusters/{clusterName}/agent-manifest.yaml`
+}

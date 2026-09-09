@@ -18,6 +18,7 @@ import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterListItemRes
 import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterStatusResponse;
 import com.aipaas.anycloud.domain.provisioning.query.VmClusterQueryService;
 import com.aipaas.anycloud.domain.provisioning.remote.VmClusterSshAccessService;
+import com.aipaas.anycloud.domain.provisioning.support.ProvisioningConfigFlattener;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -50,15 +51,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * VM 인프라 자원 전용 API. {@code /v1/clusters} 의 source=vm 변형을 별도 namespace 로 노출.
- *
- * <p>책임 — Pulumi 통한 CSP VM provision 라이프사이클: create / scale / destroy / state history /
- * SSH 키 발급 / kubeconfig 다운로드 / 노드 목록 조회.
- *
- * <p>K8s cluster 의 registered/agent-led 등록은 별도 {@code ClusterController} 에서 다룬다 —
- * 두 라이프사이클의 책임 분리를 명시적으로 표현.
- */
+/** VM 인프라 자원 전용 API. {@code /v1/clusters} 의 source=vm 변형을 별도 namespace 로 노출. */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/vms")
@@ -76,6 +69,8 @@ public class VmController {
     private final VmClusterSshAccessService vmClusterSshAccessService;
     private final KubeconfigExportService kubeconfigExportService;
     private final KubeconfigIdentityResolver kubeconfigIdentityResolver;
+    private final com.aipaas.anycloud.domain.provisioning.convergence.internal.ClusterComponentRepairFacade
+            componentRepairFacade;
 
     // =============== Collection ===============
 
@@ -130,20 +125,67 @@ public class VmController {
                                             schema = @Schema(implementation = VmCreateRequest.class),
                                             examples = {
                                                 @ExampleObject(
-                                                        name = "VM (AWS) provision",
+                                                        name = "AWS — providerSpec 불요",
                                                         value =
                                                                 """
-												{
-												  "vmGroupName": "demo-aws-01",
-												  "provider": "aws",
-												  "region": "ap-northeast-2",
-												  "environment": "dev",
-												  "credentialId": "cred-aws-001",
-												  "config": {
-												    "workerCount": "3",
-												    "instanceType": "t3.medium"
-												  }
-												}""")
+								{
+								  "vmGroupName": "demo-aws-01",
+								  "provider": "aws",
+								  "region": "ap-northeast-2",
+								  "environment": "dev",
+								  "credentialId": "cred-aws-001",
+								  "spec": {
+								    "kubernetesVersion": "1.31",
+								    "workerCount": 2,
+								    "masterInstanceType": "t3.large",
+								    "workerInstanceType": "t3.large",
+								    "network": { "vpcCidr": "10.42.0.0/16" }
+								  }
+								}"""),
+                                                @ExampleObject(
+                                                        name = "OpenStack — providerSpec 4개 필수",
+                                                        value =
+                                                                """
+								{
+								  "vmGroupName": "demo-openstack-01",
+								  "provider": "openstack",
+								  "region": "RegionOne",
+								  "credentialId": "cred-openstack-001",
+								  "spec": {
+								    "kubernetesVersion": "1.31",
+								    "workerCount": 1,
+								    "masterInstanceType": "4-8-50",
+								    "workerInstanceType": "4-8-50",
+								    "network": { "vpcCidr": "10.90.0.0/24" }
+								  },
+								  "providerSpec": {
+								    "imageName": "ubuntu-24.04",
+								    "flavorName": "4-8-50",
+								    "externalNetworkId": "3f8d3f36-8582-482c-ba8f-d2ea2e2c4147",
+								    "floatingIpPool": "external"
+								  }
+								}"""),
+                                                @ExampleObject(
+                                                        name = "Proxmox — 인스턴스 타입은 코어-메모리MiB",
+                                                        value =
+                                                                """
+								{
+								  "vmGroupName": "demo-proxmox-01",
+								  "provider": "proxmox",
+								  "region": "pve",
+								  "credentialId": "cred-proxmox-001",
+								  "spec": {
+								    "workerCount": 2,
+								    "masterInstanceType": "4-8192",
+								    "workerInstanceType": "2-4096"
+								  },
+								  "providerSpec": {
+								    "nodeName": "pve1",
+								    "datastoreId": "local-lvm",
+								    "snippetDatastoreId": "local",
+								    "networkBridge": "vmbr0"
+								  }
+								}""")
                                             }))
                     @Valid
                     @RequestBody
@@ -198,6 +240,25 @@ public class VmController {
     }
 
     // =============== Sub-resources ===============
+
+    @PostMapping("/{vmName}/components/{componentType}/repair")
+    @Operation(
+            summary = "구성 요소 재적용",
+            description = "백오프를 무시하고 즉시 재적용합니다. 조정 루프가 다음 시도까지 기다리는 동안 " + "원인을 고친 뒤 바로 확인할 때 사용합니다.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "재적용 실행"),
+        @ApiResponse(responseCode = "400", description = "알 수 없는 구성 요소"),
+        @ApiResponse(responseCode = "404", description = "VM not found")
+    })
+    public ResponseEntity<ApiSuccessResponse<Void>> repairComponent(
+            @PathVariable @NotBlank @Pattern(regexp = VM_NAME_PATTERN) @Size(max = VM_NAME_MAX) String vmName,
+            @PathVariable @NotBlank String componentType) {
+        componentRepairFacade.repairByClusterName(
+                vmName,
+                com.aipaas.anycloud.domain.provisioning.convergence.ComponentType.valueOf(
+                        componentType.toUpperCase(java.util.Locale.ROOT)));
+        return ResponseEntity.ok(ApiSuccessResponse.of(HttpStatus.OK.value(), "component repair triggered", null));
+    }
 
     @PostMapping("/{vmName}/operations")
     @Operation(
@@ -305,7 +366,7 @@ public class VmController {
         if (request.getEnvironment() != null) spec.put("environment", request.getEnvironment());
         spec.put("credentialId", request.getCredentialId());
         if (request.getDescription() != null) spec.put("description", request.getDescription());
-        if (request.getConfig() != null) spec.put("config", request.getConfig());
+        spec.put("config", ProvisioningConfigFlattener.flatten(request));
         if (request.getHasGpuNodes() != null) spec.put("hasGpuNodes", request.getHasGpuNodes());
         return CreateClusterRequest.builder()
                 .source(CreateClusterRequest.Source.vm)

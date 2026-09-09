@@ -76,7 +76,7 @@ Layer 1 + Layer 2 starter 들은 **데이터베이스 없이 동작**하도록 �
 | Impersonation pass-through | `ImpersonationContext` |
 | AllowList enforcement | agent 측 ConfigMap watch |
 
-### cluster-agent-backup-spring-boot-starter
+### cluster-agent-features-spring-boot-starter — backup 서브패키지
 
 | 책임 | API |
 |---|---|
@@ -87,7 +87,7 @@ Layer 1 + Layer 2 starter 들은 **데이터베이스 없이 동작**하도록 �
 
 K8s minor version upgrade 는 **scope 외** (별도 운영 도구 — `docs/runbooks/cluster-upgrade.md`).
 
-### cluster-agent-observability-spring-boot-starter
+### cluster-agent-features-spring-boot-starter — observability 서브패키지
 
 | 책임 | API |
 |---|---|
@@ -96,7 +96,7 @@ K8s minor version upgrade 는 **scope 외** (별도 운영 도구 — `docs/runb
 | Grafana ingress URL 발견 | `DashboardLocator` |
 | 표준 메트릭 헬퍼 | `ClusterMetricsService` |
 
-### cluster-agent-rbac-spring-boot-starter
+### cluster-agent-features-spring-boot-starter — rbac 서브패키지
 
 | 책임 | API |
 |---|---|
@@ -111,7 +111,7 @@ K8s minor version upgrade 는 **scope 외** (별도 운영 도구 — `docs/runb
 | 책임 | API |
 |---|---|
 | Pulumi CLI orchestration | `PulumiCommandService` |
-| 8 CSP provider modules | `infra/pulumi` Go 코드 (별도 binary) |
+| 8 CSP provider modules | `program/provisioner/*Provisioner` (Java) |
 | stack-config 영속화 | `ClusterDescriptorRepository` SPI (host = backend DB) |
 
 > 본 starter 만 외부 storage (RustFS/S3) 필수 — Pulumi state 가 외부에서만 의미.
@@ -122,7 +122,7 @@ K8s minor version upgrade 는 **scope 외** (별도 운영 도구 — `docs/runb
 // build.gradle.kts
 dependencies {
     implementation("io.aipaas.cluster:cluster-agent-spring-boot-starter:0.1.0")
-    implementation("io.aipaas.cluster:cluster-agent-rbac-spring-boot-starter:0.1.0")
+    implementation("io.aipaas.cluster:cluster-agent-features-spring-boot-starter:0.1.0")
 }
 ```
 

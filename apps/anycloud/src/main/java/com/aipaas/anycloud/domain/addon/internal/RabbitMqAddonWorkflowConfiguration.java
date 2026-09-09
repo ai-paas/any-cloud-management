@@ -12,16 +12,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * RabbitMQ topology for cluster addon install/uninstall workflow.
- *
- * <p>VmCluster workflow 패턴 그대로 차용 — DirectExchange + per-stage queue + DLQ binding.
- * Jackson converter / listener container factory / retry interceptor 는 VmCluster 의 것을
- * 공유 (ConnectionFactory + 동일 broker).
- *
- * <p>Toggle: {@code addon-workflow.enabled=false} 면 본 config 비활성 → publish/listen 안됨.
- * legacy MonitoringAutoInstaller path 만 동작 (backward-compat).
- */
+/** RabbitMQ topology for cluster addon install/uninstall workflow. */
 @Configuration
 @ConditionalOnProperty(prefix = "addon-workflow", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(AddonWorkflowProperties.class)

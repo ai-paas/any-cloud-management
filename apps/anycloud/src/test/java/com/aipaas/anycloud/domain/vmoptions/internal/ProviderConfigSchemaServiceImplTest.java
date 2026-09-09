@@ -72,13 +72,13 @@ class ProviderConfigSchemaServiceImplTest extends AbstractUnitTest {
     void gcpSchema_includesGcpProjectAsRequired() {
         List<ProviderConfigKey> schema = service.getSchema("GCP");
 
-        ProviderConfigKey entry = findKey(schema, "anycloud-k8s:gcpProject");
+        ProviderConfigKey entry = findKey(schema, "anycloud-k8s:providerSpec.project");
         assertThat(entry.required()).isTrue();
     }
 
     @Test
     void azureSchema_includesAzureResourceGroupAsRequired() {
-        ProviderConfigKey entry = findKey(service.getSchema("Azure"), "anycloud-k8s:azureResourceGroup");
+        ProviderConfigKey entry = findKey(service.getSchema("Azure"), "anycloud-k8s:providerSpec.resourceGroup");
         assertThat(entry.required()).isTrue();
     }
 
@@ -89,19 +89,19 @@ class ProviderConfigSchemaServiceImplTest extends AbstractUnitTest {
         assertThat(schema)
                 .extracting(ProviderConfigKey::key)
                 .contains(
-                        "anycloud-k8s:openstackImageName",
-                        "anycloud-k8s:openstackFlavorName",
-                        "anycloud-k8s:openstackExternalNetworkId",
-                        "anycloud-k8s:openstackFloatingIpPool");
-        assertThat(findKey(schema, "anycloud-k8s:openstackImageName").required())
+                        "anycloud-k8s:providerSpec.imageName",
+                        "anycloud-k8s:providerSpec.flavorName",
+                        "anycloud-k8s:providerSpec.externalNetworkId",
+                        "anycloud-k8s:providerSpec.floatingIpPool");
+        assertThat(findKey(schema, "anycloud-k8s:providerSpec.imageName").required())
                 .isTrue();
-        assertThat(findKey(schema, "anycloud-k8s:openstackFlavorName").required())
+        assertThat(findKey(schema, "anycloud-k8s:providerSpec.flavorName").required())
                 .isTrue();
     }
 
     @Test
     void ociSchema_listsCompartmentIdAsRequired() {
-        ProviderConfigKey entry = findKey(service.getSchema("oci"), "anycloud-k8s:ociCompartmentId");
+        ProviderConfigKey entry = findKey(service.getSchema("oci"), "anycloud-k8s:providerSpec.compartmentId");
         assertThat(entry.required()).isTrue();
     }
 

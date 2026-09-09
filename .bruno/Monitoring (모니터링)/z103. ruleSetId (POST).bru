@@ -1,0 +1,15 @@
+meta {
+  name: ruleSetId (POST)
+  type: http
+  seq: 104
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/observability/alert-rules/{{rule_set_id}}
+  body: none
+  auth: none
+}
+
+docs {
+  `POST /v1/clusters/{clusterName}/observability/alert-rules/{ruleSetId}`
+}

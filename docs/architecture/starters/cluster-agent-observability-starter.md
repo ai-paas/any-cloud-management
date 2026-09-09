@@ -58,7 +58,7 @@ cluster-agent starter 는 transitive 로 따라오므로 별도로 추가할 필
 (`AgentIdentityStore`, `IdempotencyStore`) 와 JWT secret 은 본 starter 도 동일하게 요구합니다.
 
 `group = io.aipaas.cluster`, `version = 0.1.0`. 다른 Layer-2 starter
-(`cluster-agent-backup-spring-boot-starter`) 와 동일한 publish pattern 을 사용합니다.
+(`cluster-agent-features-spring-boot-starter` 의 backup 서브패키지) 와 동일한 publish pattern 을 사용합니다.
 
 ## AutoConfiguration
 
@@ -105,7 +105,7 @@ cluster-agent starter 는 transitive 로 따라오므로 별도로 추가할 필
 ### Gradle dependency
 
 ```gradle
-implementation project(':cluster-agent-observability-spring-boot-starter')
+implementation project(':cluster-agent-features-spring-boot-starter')
 // cluster-agent starter 는 transitive — 별도 추가 불필요
 ```
 

@@ -1,0 +1,24 @@
+meta {
+  name: VM 구성요소 복구 (POST)
+  type: http
+  seq: 98
+}
+
+post {
+  url: {{baseUrl}}/v1/vms/{{provision_cluster_name}}/components/AGENT/repair
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+}
+
+body:json {
+  {}
+}
+
+docs {
+  `POST /v1/vms/{vmName}/components/{componentType}/repair`
+}

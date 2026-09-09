@@ -1,0 +1,15 @@
+meta {
+  name: node-memory (GET)
+  type: http
+  seq: 96
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/metrics/standard/node-memory
+  body: none
+  auth: none
+}
+
+docs {
+  `GET /v1/clusters/{clusterName}/metrics/standard/node-memory`
+}

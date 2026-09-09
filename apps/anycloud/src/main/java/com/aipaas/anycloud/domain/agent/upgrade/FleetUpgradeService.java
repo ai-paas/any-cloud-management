@@ -4,24 +4,10 @@ import com.aipaas.anycloud.domain.agent.model.ClusterAgentUpgradeWave;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Fleet upgrade staggered rollout — agent 신버전 배포의 wave-based 순차 처리.
- *
- * <p>본 interface 는 cluster_agent.upgrade_wave 메타데이터 관리 + fleet 가시화의 진입점. 실제
- * 신버전 trigger 는 {@link AgentUpgradeService} (single-cluster) 또는
- * {@link FleetUpgradeOrchestrator} (wave 기반 fleet-wide) 가 책임.
- *
- * <p>구현체: {@link FleetUpgradeServiceImpl}. mock 기반 unit test 는 본 interface 를 통해
- * 임의의 cluster fleet shape 을 stub 가능.
- */
+/** Fleet upgrade staggered rollout — agent 신버전 배포의 wave-based 순차 처리. */
 public interface FleetUpgradeService {
 
-    /**
-     * Fleet upgrade 가시화. wave 별 cluster 분포 + agent_version 분포 + per-cluster 상세.
-     *
-     * <p>HA replica (같은 cluster_name 의 여러 row) 는 dedup. 응답의 {@code byWave} map 은
-     * wave priority 순 (CANARY → STAGING → GENERAL → PAUSED) 으로 정렬.
-     */
+    /** Fleet upgrade 가시화. wave 별 cluster 분포 + agent_version 분포 + per-cluster 상세. */
     FleetPreview preview();
 
     /**

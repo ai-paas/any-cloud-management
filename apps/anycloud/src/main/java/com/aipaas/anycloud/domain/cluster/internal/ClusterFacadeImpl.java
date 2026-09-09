@@ -239,11 +239,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
                         () -> new com.aipaas.anycloud.common.error.exception.ClusterNotFoundException(clusterName));
     }
 
-    /**
-     * source ("vm" | "registered") 별 ClusterProvider 에 위임. 알 수 없는 source 는 즉시
-     * {@link IllegalArgumentException} 으로 400. 신규 source 추가 시 {@link ClusterProvider}
-     * 구현체만 등록하면 별도 코드 변경 없음.
-     */
+    /** source ("vm" | "registered") 별 ClusterProvider 에 위임. 알 수 없는 source 는 즉시 {@link IllegalArgumentException} 으로 400. 신규 source 추가 시 {@link ClusterProvider} 구현체만 등록하면 별도 코드 변경 없음. */
     @Override
     public OperationEntity create(CreateClusterRequest request) {
         String sourceKey =

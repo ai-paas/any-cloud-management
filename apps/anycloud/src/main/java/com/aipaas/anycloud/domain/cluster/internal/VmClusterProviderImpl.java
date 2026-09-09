@@ -16,13 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-/**
- * VM source cluster 생성 strategy.
- * <p>
- * spec 의 weak typing (Map&lt;String, Object&gt;) 은 {@link ClusterSpecMapper} 가 service
- * 진입 시점에 typed {@link VmClusterSpec} record 로 변환 — typo / 누락 field 가 즉시 IllegalArg
- * 으로 잡힘 + provider 내부에선 {@code spec.field()} 로 type-safe 접근.
- */
+/** VM source cluster 생성 strategy. */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -59,6 +53,16 @@ public class VmClusterProviderImpl implements ClusterProvider {
         return op;
     }
 
+    /**
+     * 요청은 {@code anycloud-k8s:} 접두를 붙여 온다. 접두 없이 확인하면 운영자가 명시한 값을 못 보고
+     * 덮어쓴다.
+     */
+    private static void putIfAbsentNs(java.util.Map<String, String> config, String key, String value) {
+        if (value == null || value.isBlank()) return;
+        if (config.containsKey(key) || config.containsKey("anycloud-k8s:" + key)) return;
+        config.put("anycloud-k8s:" + key, value);
+    }
+
     private ProvisionClusterRequest toProvisionDto(String clusterName, VmClusterSpec spec) {
         ProvisionClusterRequest dto = new ProvisionClusterRequest();
         dto.setClusterName(clusterName);
@@ -79,15 +83,11 @@ public class VmClusterProviderImpl implements ClusterProvider {
         // typed VmClusterSpec 필드를 config map 에 주입.
         // Pulumi provider 가 config map 의 key 로 읽음. 운영자가 직접 config 에 명시한 값이 있으면
         // 보존 (typed 필드는 보조 — 운영자 입력 우선).
-        if (Boolean.TRUE.equals(spec.useSpot()) && !config.containsKey("useSpot")) {
-            config.put("useSpot", "true");
-        }
-        if (spec.osImage() != null && !spec.osImage().isBlank() && !config.containsKey("osImage")) {
-            config.put("osImage", spec.osImage());
-        }
+        putIfAbsentNs(config, "useSpot", Boolean.TRUE.equals(spec.useSpot()) ? "true" : null);
+        putIfAbsentNs(config, "osImage", spec.osImage());
         // root 디스크 크기 (GB). null/0 이하면 미주입 → Pulumi provider 가 model.defaults 의 기본(50GB) 적용.
-        if (spec.rootDiskSizeGb() != null && spec.rootDiskSizeGb() > 0 && !config.containsKey("rootDiskSizeGb")) {
-            config.put("rootDiskSizeGb", String.valueOf(spec.rootDiskSizeGb()));
+        if (spec.rootDiskSizeGb() != null && spec.rootDiskSizeGb() > 0) {
+            putIfAbsentNs(config, "rootDiskSizeGb", String.valueOf(spec.rootDiskSizeGb()));
         }
         // joinToken 은 backend 가 cluster 별 random 생성 — 사용자 입력은 항상 무시.
         // 약한/공유 token 입력을 허용하면 node 탈취 시 타 cluster join 가능. 생성 시점이

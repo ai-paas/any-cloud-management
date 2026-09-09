@@ -44,12 +44,7 @@ public final class SensitiveDataRedactor {
                     Pattern.compile("-----BEGIN[^-]+PRIVATE KEY-----[\\s\\S]+?-----END[^-]+PRIVATE KEY-----"),
                     "PRIVATE_KEY"));
 
-    /**
-     * 입력 문자열에서 알려진 sensitive 패턴을 마스킹. null/blank 는 그대로 반환.
-     *
-     * <p>현재 마스킹: AWS Access Key ID, AWS ARN, AWS Account ID (12-digit), UUID (Azure
-     * subscription/tenant), OCI fingerprint, OCI OCID, PEM private key block.
-     */
+    /** 입력 문자열에서 알려진 sensitive 패턴을 마스킹. null/blank 는 그대로 반환. */
     public static String redact(String input) {
         if (input == null || input.isEmpty()) {
             return input;

@@ -69,14 +69,14 @@
 - `missingCredentialKeys`가 비어 있지 않음
   - provider 실행에 필요한 credential이 아직 준비되지 않았습니다.
 - `appliedDefaults`
-  - 요청에 비어 있던 값 중 기본값이 자동 적용된 key 목록입니다.
+  - 요청에 비어 있던 값 중 기본값이 자동 적용된 key 목록
 - `providerReadinessMessages`
   - provider별로 실제 E2E 전에 수동 확인이 필요한 항목을 요약해서 보여줍니다.
 - `e2eChecklistItems`
-  - credential이 준비된 뒤 실제 생성/삭제 테스트 전에 점검할 체크리스트입니다.
+  - credential이 준비된 뒤 실제 생성/삭제 테스트 전에 점검할 체크리스트
 - `errors`
-  - 실제 생성 전에 반드시 수정해야 하는 항목입니다.
+  - 실제 생성 전에 반드시 수정해야 하는 항목
 - `warnings`
-  - 생성은 가능할 수 있지만 점검이 필요한 항목입니다.
+  - 생성은 가능할 수 있지만 점검이 필요한 항목
 - `warningItems`, `errorItems`
-  - 문자열 배열과 함께 `code`, `message`, `field`를 가진 구조화된 이슈 목록입니다.
+  - 문자열 배열과 함께 `code`, `message`, `field`를 가진 구조화된 이슈 목록

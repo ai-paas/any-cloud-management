@@ -40,12 +40,7 @@ public class AgentPolicyDiffCalculator {
     /** JSON mapper for agent param 직렬화 (4개 list → JSON array string). */
     private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
-    /**
-     * 두 snapshot 간 list 단위 diff. 각 list 의 추가/제거 항목 + resource_policy 변경 여부.
-     *
-     * <p>{@code before} 가 null 이면 {@code missingBefore=true} 의 {@link PolicyDiff} 반환 — diff
-     * 계산 불가 표시 (apply 자체는 성공 가능).
-     */
+    /** 두 snapshot 간 list 단위 diff. 각 list 의 추가/제거 항목 + resource_policy 변경 여부. */
     public PolicyDiff computeDiff(AgentPolicySnapshot before, AgentPolicySnapshot after) {
         if (before == null) {
             return new PolicyDiff(null, null, null, null, null, null, null, true);

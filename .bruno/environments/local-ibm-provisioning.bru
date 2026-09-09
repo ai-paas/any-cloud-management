@@ -1,0 +1,38 @@
+vars {
+  baseUrl: http://localhost:8888
+  cluster_name: ibm-kubernetes-001
+  provision_cluster_name: demo-ibm-01
+  provision_provider: IBM
+  provision_environment: dev
+  provision_region: us-south
+  credential_id: 
+  vm_credential_id: 
+  vm_credential_name: ibm-manual-01
+  vm_options_provider: IBM
+  vm_options_region: us-south
+  vm_options_keyword: ubuntu
+  master_vm_spec: bx2-2x8
+  worker_vm_spec: bx2-2x8
+  worker_count: 2
+  kubernetes_version: 1.31
+  vpc_cidr: 10.98.0.0/16
+  pod_cidr: 10.244.0.0/16
+  service_cidr: 10.96.0.0/12
+  enable_ingress: true
+  enable_gpu_operator: false
+  ibm_zone: us-south-1
+  ibm_resource_group: 
+  gcp_project: 
+  azure_resource_group: 
+  azure_image: Canonical:ubuntu-24_04-lts:server:latest
+  openstack_image_name: 
+  openstack_flavor_name: 
+  openstack_external_network_id: 
+  openstack_floating_ip_pool: 
+  oci_compartment_id: 
+  oci_image_ocid: 
+  proxmox_node_name: pve
+  proxmox_datastore_id: local-lvm
+  proxmox_snippet_datastore_id: local
+  proxmox_network_bridge: vmbr0
+}

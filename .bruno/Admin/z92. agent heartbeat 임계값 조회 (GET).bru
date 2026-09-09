@@ -1,0 +1,15 @@
+meta {
+  name: agent heartbeat 임계값 조회 (GET)
+  type: http
+  seq: 93
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/agent/heartbeat-staleness
+  body: none
+  auth: none
+}
+
+docs {
+  `GET /v1/admin/agent/heartbeat-staleness`
+}

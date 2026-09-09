@@ -1,17 +1,6 @@
 package com.aipaas.anycloud.domain.agent.upgrade;
 
-/**
- * Single-cluster agent upgrade trigger.
- *
- * <p>운영자가 단일 cluster 의 agent 를 target image 로 upgrade — 최소 Deployment patch 를
- * agent path ({@code APPLY_MANIFEST}) 로 보내 K8s rolling update 트리거.
- *
- * <p>구현체: {@link AgentUpgradeServiceImpl}. fleet-wide 의 wave 기반 orchestration 은
- * {@link FleetUpgradeOrchestrator} 가 본 interface 의 메서드를 wave 별로 호출.
- *
- * <p>Trigger 직후 IN_PROGRESS 응답 — 진행 감지는 heartbeat 기반으로
- * {@link AgentUpgradeProgressMonitor} 가 SUCCEEDED/FAILED 전환.
- */
+/** Single-cluster agent upgrade trigger. */
 public interface AgentUpgradeService {
 
     /**

@@ -91,7 +91,7 @@ function openPodExec(opts: {
 
 **참고**:
 - `tty=true` 가 default 입니다 — 인터랙티브 shell 용입니다. `false` 이면 stdout/stderr 가 분리됩니다.
-- `command` 는 comma-separated (`/bin/bash,-l`) 입니다. default 는 `/bin/sh` 입니다.
+- `command` 는 comma-separated (`/bin/bash,-l`) 입니다. default 는 `/bin/sh`
 - WebSocket buffer 는 backend 가 64KB 입니다 — 더 큰 출력은 chunk 됩니다.
 
 ---

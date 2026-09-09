@@ -11,15 +11,7 @@ import io.aipaas.cluster.agent.rbac.template.RoleRef;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * {@link Entry#rbac()} 의 group binding spec 을 starter 의 {@link BindingTemplate} 으로 변환.
- *
- * <p>{@code AddonInstaller.onAfterInstall} hook 이 본 mapper 로 catalog 의 추천 binding 을
- * starter 의 {@code BindingApplyClient.apply()} 호출 형태로 전환.
- *
- * <p>template id 규약: {@code addon-<entryId>-<index>} — addon uninstall 시 label
- * {@code aipaas.io/addon=<entryId>} 매칭으로 일괄 cleanup.
- */
+/** {@link Entry#rbac()} 의 group binding spec 을 starter 의 {@link BindingTemplate} 으로 변환. */
 public final class AddonRbacTemplateMapper {
 
     private AddonRbacTemplateMapper() {}

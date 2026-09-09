@@ -1,0 +1,15 @@
+meta {
+  name: node-cpu (GET)
+  type: http
+  seq: 95
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/metrics/standard/node-cpu
+  body: none
+  auth: none
+}
+
+docs {
+  `GET /v1/clusters/{clusterName}/metrics/standard/node-cpu`
+}

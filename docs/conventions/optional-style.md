@@ -1,6 +1,6 @@
 # Optional 사용 규칙
 
-> 단일 진실 — Optional 사용 룰 ("신규 코드는 `.orElse(null)` 추가하지 않는다") 의 상세.
+> 기준 문서 — Optional 사용 룰 ("신규 코드는 `.orElse(null)` 추가하지 않는다") 의 상세.
 
 ## 왜 중요한가
 

@@ -40,14 +40,14 @@ public class VmOptionsSelectionValidator {
                     provider,
                     credentialId,
                     region,
-                    config.get("anycloud-k8s:openstackImageName"),
-                    "openstackImageName");
+                    config.get("anycloud-k8s:providerSpec.imageName"),
+                    "providerSpec.imageName");
             validateSpec(
                     provider,
                     credentialId,
                     region,
-                    config.get("anycloud-k8s:openstackFlavorName"),
-                    "openstackFlavorName");
+                    config.get("anycloud-k8s:providerSpec.flavorName"),
+                    "providerSpec.flavorName");
         }
     }
 

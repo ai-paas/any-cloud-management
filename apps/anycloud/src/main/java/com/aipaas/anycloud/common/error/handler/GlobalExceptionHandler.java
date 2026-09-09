@@ -137,11 +137,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
-    /**
-     * javax.validation.Valid or @Validated 으로 binding error 발생시 발생.
-     * HttpMessageConverter 에서 등록한 HttpMessageConverter binding 못할경우 발생
-     * 주로 @RequestBody, @RequestPart 어노테이션에서 발생
-     */
+    /** javax.validation.Valid or @Validated 으로 binding error 발생시 발생. */
     @ExceptionHandler({MethodArgumentNotValidException.class, BindException.class})
     protected ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         log.error("Handler exception: {}", e.getMessage(), e);
@@ -240,6 +236,16 @@ public class GlobalExceptionHandler {
             MethodArgumentTypeMismatchException e) {
         log.error("Handler exception: {}", e.getMessage(), e);
         final ErrorResponse response = ErrorResponse.of(e);
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    /** 필수 query parameter 누락. 핸들러가 없으면 최종 Exception 으로 떨어져 500 이 나간다. */
+    @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
+    protected ResponseEntity<ErrorResponse> handleMissingServletRequestParameterException(
+            org.springframework.web.bind.MissingServletRequestParameterException e) {
+        log.warn("Handler exception: {}", e.getMessage());
+        final ErrorResponse response =
+                ErrorResponse.of(ErrorCode.INVALID_INPUT_VALUE, "필수 파라미터 누락: " + e.getParameterName());
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
@@ -462,12 +468,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
-    /**
-     * Agent 의 RESTMapper 가 입력 kind 를 resolve 못한 경우.
-     *
-     * <p>404 + metadata 에 {@code input} 과 {@code suggestions} (Levenshtein top-3) 노출.
-     * caller 는 type-ahead UI 에서 suggestions 활용 또는 사용자에게 오타 보정 제시.
-     */
+    /** Agent 의 RESTMapper 가 입력 kind 를 resolve 못한 경우. */
     @ExceptionHandler(UnsupportedKindException.class)
     protected ResponseEntity<ErrorResponse> handleUnsupportedKind(UnsupportedKindException e) {
         log.info("Unsupported kind: input={}, suggestions={}", e.input(), e.suggestions());

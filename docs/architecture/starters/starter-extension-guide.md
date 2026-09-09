@@ -21,7 +21,7 @@
 ┌──────────────▼───────────────────────────────────────────────────┐
 │ Layer 2: Functionality (현재 1개 존재)                              │
 │   책임: 모니터링 / 로깅 / 보안 등 횡단 영역. 여러 cluster 의 같은 데이터  │
-│   현재: cluster-agent-observability-spring-boot-starter                  │
+│   현재: cluster-agent-features-spring-boot-starter                  │
 └──────────────┬───────────────────────────────────────────────────┘
                │ depends on (api transitive)
 ┌──────────────▼───────────────────────────────────────────────────┐

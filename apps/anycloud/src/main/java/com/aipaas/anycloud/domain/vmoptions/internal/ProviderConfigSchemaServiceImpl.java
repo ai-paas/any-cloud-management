@@ -9,12 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
-/**
- * {@link ProviderConfigSchemaService} 의 정적 catalog 구현. {@code ProvisioningConfigRules}
- * 의 검증 로직과 정합성 유지 — 변경 시 동기 갱신 필요.
- *
- * <p>HA / boolean strict / masterCount validation 등 UX 개선과 함께 추가됨.
- */
+/** {@link ProviderConfigSchemaService} 의 정적 catalog 구현. {@code ProvisioningConfigRules} 의 검증 로직과 정합성 유지 — 변경 시 동기 갱신 필요. */
 @Service
 public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaService {
 
@@ -77,8 +72,8 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                         .key("anycloud-k8s:podCidr")
                         .type("cidr")
                         .required(false)
-                        .defaultValue("192.168.0.0/16")
-                        .description("Pod 네트워크 CIDR.")
+                        .defaultValue("10.244.0.0/16")
+                        .description("Pod 네트워크 CIDR. 노드가 속한 사설망과 겹치면 파드 egress 가 끊긴다.")
                         .build(),
                 ProviderConfigKey.builder()
                         .key("anycloud-k8s:serviceCidr")
@@ -124,7 +119,7 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
         return switch (provider) {
             case GCP -> List.of(
                     ProviderConfigKey.builder()
-                            .key("anycloud-k8s:gcpProject")
+                            .key("anycloud-k8s:providerSpec.project")
                             .type("string")
                             .required(true)
                             .description("GCP project ID.")
@@ -132,7 +127,7 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                     osImage("anycloud-k8s:gcpImage", "GCP image family (예: ubuntu-2404-lts)."));
             case AZURE -> List.of(
                     ProviderConfigKey.builder()
-                            .key("anycloud-k8s:azureResourceGroup")
+                            .key("anycloud-k8s:providerSpec.resourceGroup")
                             .type("string")
                             .required(true)
                             .description("Azure resource group 이름.")
@@ -140,33 +135,74 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                     osImage("anycloud-k8s:azureImage", "Azure image URN."));
             case OPENSTACK -> List.of(
                     ProviderConfigKey.builder()
-                            .key("anycloud-k8s:openstackImageName")
+                            .key("anycloud-k8s:providerSpec.imageName")
                             .type("string")
                             .required(true)
                             .defaultValue("ubuntu-24.04")
                             .description("OpenStack glance image 이름.")
                             .build(),
                     ProviderConfigKey.builder()
-                            .key("anycloud-k8s:openstackFlavorName")
+                            .key("anycloud-k8s:providerSpec.flavorName")
                             .type("string")
                             .required(true)
                             .defaultValue("m1.large")
                             .description("OpenStack flavor 이름.")
                             .build(),
                     ProviderConfigKey.builder()
-                            .key("anycloud-k8s:openstackExternalNetworkId")
+                            .key("anycloud-k8s:providerSpec.externalNetworkId")
                             .type("string")
                             .required(false)
                             .description("External network ID (floating IP 발급용). FloatingIpPool 과 하나 필수.")
                             .build(),
                     ProviderConfigKey.builder()
-                            .key("anycloud-k8s:openstackFloatingIpPool")
+                            .key("anycloud-k8s:providerSpec.floatingIpPool")
                             .type("string")
                             .required(false)
                             .description("Floating IP pool 이름. ExternalNetworkId 와 하나 필수.")
                             .build());
+            case PROXMOX -> List.of(
+                    ProviderConfigKey.builder()
+                            .key("anycloud-k8s:providerSpec.nodeName")
+                            .type("string")
+                            .required(true)
+                            .description("VM 을 올릴 PVE 노드 이름. 클러스터라도 노드를 지정해야 한다.")
+                            .build(),
+                    ProviderConfigKey.builder()
+                            .key("anycloud-k8s:providerSpec.datastoreId")
+                            .type("string")
+                            .required(false)
+                            .defaultValue("local-lvm")
+                            .description("디스크와 cloud-init 디스크를 만들 datastore.")
+                            .build(),
+                    ProviderConfigKey.builder()
+                            .key("anycloud-k8s:providerSpec.snippetDatastoreId")
+                            .type("string")
+                            .required(false)
+                            .defaultValue("local")
+                            .description("user-data 스니펫을 올릴 datastore. snippets content type 이 켜져 있어야 한다.")
+                            .build(),
+                    ProviderConfigKey.builder()
+                            .key("anycloud-k8s:providerSpec.networkBridge")
+                            .type("string")
+                            .required(false)
+                            .defaultValue("vmbr0")
+                            .description("붙일 네트워크 브리지.")
+                            .build());
+            case IBM -> List.of(
+                    ProviderConfigKey.builder()
+                            .key("anycloud-k8s:providerSpec.zone")
+                            .type("string")
+                            .required(true)
+                            .description("region 이 아니라 zone (예: us-south-1). 계정마다 활성 zone 이 다르다.")
+                            .build(),
+                    ProviderConfigKey.builder()
+                            .key("anycloud-k8s:providerSpec.resourceGroup")
+                            .type("string")
+                            .required(false)
+                            .description("리소스 그룹 ID. 생략하면 계정 기본 그룹.")
+                            .build());
             case OCI -> List.of(ProviderConfigKey.builder()
-                    .key("anycloud-k8s:ociCompartmentId")
+                    .key("anycloud-k8s:providerSpec.compartmentId")
                     .type("string")
                     .required(true)
                     .description("OCI compartment OCID.")
@@ -195,6 +231,8 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
             case OCI -> "VM.Standard.E4.Flex";
             case DIGITALOCEAN -> "s-2vcpu-4gb";
             case AWS -> "t3.large";
+            case PROXMOX -> "2-4096";
+            case IBM -> "bx2-2x8";
         };
     }
 }

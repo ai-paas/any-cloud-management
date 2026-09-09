@@ -1,0 +1,15 @@
+meta {
+  name: VM 상태머신 strict 조회 (GET)
+  type: http
+  seq: 95
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/state-machine/vmcluster/strict
+  body: none
+  auth: none
+}
+
+docs {
+  `GET /v1/admin/state-machine/vmcluster/strict`
+}

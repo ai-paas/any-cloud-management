@@ -39,12 +39,7 @@ public class PagedKubeResourceResponse {
     @Schema(description = "이번 페이지 항목 수")
     private int returnedItemCount;
 
-    /**
-     * Circuit fallback 으로 empty list 가 반환된 경우 true. 정상 응답 (실제 0건) 과 구분하기 위한
-     * UX 시그널 — UI 는 이 값을 보고 "결과 없음" vs "agent / 권한 문제로 조회 불가" 명확히 알림.
-     *
-     * <p>일반 응답에서는 {@code null} (JSON omit). Degraded 인 경우만 {@code true}.
-     */
+    /** Circuit fallback 으로 empty list 가 반환된 경우 true. 정상 응답 (실제 0건) 과 구분하기 위한 UX 시그널 — UI 는 이 값을 보고 "결과 없음" vs "agent / 권한 문제로 조회 불가" 명확히 알림. */
     @Schema(description = "true면 agent/circuit 문제로 부분 가용성 (items 가 empty 인 이유). 정상은 null/false.", example = "true")
     private Boolean degraded;
 

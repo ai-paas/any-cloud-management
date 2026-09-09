@@ -1,0 +1,15 @@
+meta {
+  name: VM 삭제 (DELETE)
+  type: http
+  seq: 91
+}
+
+delete {
+  url: {{baseUrl}}/v1/vms/{{provision_cluster_name}}
+  body: none
+  auth: none
+}
+
+docs {
+  `DELETE /v1/vms/{vmName}`
+}

@@ -24,13 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * 감사 로그 조회 API. mutation HTTP 요청 (POST/PUT/PATCH/DELETE) 의 자동 기록을 시간/리소스/액션/
- * principal 별로 검색.
- * <p>
- * layering 위반 해소 — controller 는 더 이상 repository 를 직접 import 하지 않고 service 만
- * 의존. 향후 audit policy (마스킹, RBAC, multi-tenancy) 가 service 계층에서 일원화 가능.
- */
+/** 감사 로그 조회 API. mutation HTTP 요청 (POST/PUT/PATCH/DELETE) 의 자동 기록을 시간/리소스/액션/ principal 별로 검색. */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/audit-logs")

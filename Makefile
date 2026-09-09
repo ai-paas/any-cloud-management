@@ -232,10 +232,10 @@ test-rebuild: dev-restart
 # ============= Proto =============
 
 proto-lint:
-	cd proto && buf lint
+	buf lint
 
 proto-gen:
-	cd proto && buf generate
+	buf generate
 	./gradlew :anycloud:generateProto
 
 # ============= Buildx =============

@@ -8,12 +8,7 @@ import java.util.stream.Collectors;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-/**
- * Addon catalog — addons.yaml 의 memoized lookup.
- *
- * <p>{@code GET /v1/addons} 응답 source, {@code AddonSpec.catalogId} resolve,
- * installer 가 catalog default 와 caller override 를 merge 할 때 사용.
- */
+/** Addon catalog — addons.yaml 의 memoized lookup. */
 @Component
 @EnableConfigurationProperties(AddonCatalogProperties.class)
 public class AddonCatalog {

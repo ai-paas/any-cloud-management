@@ -20,14 +20,14 @@
 
 ### GCP
 - `GOOGLE_APPLICATION_CREDENTIALS` 또는 `GOOGLE_CREDENTIALS`
-- provisioning config에 `anycloud-k8s:gcpProject`
+- 요청의 `providerSpec.project`
 
 ### Azure
 - `ARM_CLIENT_ID`
 - `ARM_CLIENT_SECRET`
 - `ARM_TENANT_ID`
 - `ARM_SUBSCRIPTION_ID`
-- provisioning config에 `anycloud-k8s:azureResourceGroup`
+- 요청의 `providerSpec.resourceGroup`
 
 ### Alibaba
 - `ALICLOUD_ACCESS_KEY`
@@ -43,14 +43,14 @@
 - `OS_USER_DOMAIN_NAME`
 - `OS_PROJECT_DOMAIN_NAME`
 - `OS_REGION_NAME`
-- provisioning config에 `anycloud-k8s:openstackImageName`, `anycloud-k8s:openstackFlavorName`
+- 요청의 `providerSpec.imageName`, `providerSpec.flavorName`
 - floating IP pool / external network capacity 확인
 
 ### Proxmox
 - `PROXMOX_VE_ENDPOINT`
 - `PROXMOX_VE_USERNAME`
 - `PROXMOX_VE_PASSWORD`
-- provisioning config에 `anycloud-k8s:proxmoxNodeName`, `anycloud-k8s:proxmoxTemplateVmId`, `anycloud-k8s:proxmoxDatastoreId`, `anycloud-k8s:proxmoxNetworkBridge`
+- 요청의 `anycloud-k8s:proxmoxNodeName`, `anycloud-k8s:proxmoxTemplateVmId`, `anycloud-k8s:proxmoxDatastoreId`, `anycloud-k8s:proxmoxNetworkBridge`
 - snippet 저장이 가능한 datastore와 cloud-init template VM 확인
 
 ### OCI
@@ -59,7 +59,7 @@
 - `TF_VAR_fingerprint`
 - `TF_VAR_region`
 - `TF_VAR_private_key` 또는 `TF_VAR_private_key_path`
-- provisioning config에 `anycloud-k8s:ociCompartmentId`
+- 요청의 `providerSpec.compartmentId`
 - compartment 권한 / shape / Ubuntu image availability 확인
 
 ### DigitalOcean
@@ -87,6 +87,12 @@
 - `BOOTSTRAPPING`
 - `VERIFYING`
 - `READY`
+
+GPU 나 ingress 를 요청했다면 `VERIFYING` 다음이 `DEGRADED` 일 수 있습니다. 실패가 아니라 구성 요소
+수렴을 기다리는 상태이며, 조정 루프가 5분마다 재시도해 갖춰지면 `READY` 로 올라갑니다. 사유는
+`GET /v1/vms/{name}` 의 `components` 와 `requestedAddons` 에서 확인합니다.
+
+addon 은 agent 가 연결된 뒤에 설치되므로, agent dial-in 전까지는 `UNKNOWN`(등록 대기)이 정상입니다.
 
 삭제 시:
 
@@ -117,3 +123,19 @@
 - `Ingress`는 Public Cloud 계열은 `provider/cloud`, OpenStack/Proxmox는 `provider/baremetal` manifest를 사용합니다.
 - `GPU driver` 자동 설치는 현재 Ubuntu 계열 이미지 기준으로만 수행합니다.
 - 실제 AWS E2E는 현재 로컬 환경에 credential이 없어 아직 실행하지 못했습니다.
+
+## OpenStack 노드 접근 (개발 환경)
+
+floating IP 대역이 사설망이면 백엔드 컨테이너에서 노드에 닿지 않아 `BOOTSTRAP` 이 실패합니다.
+bastion 으로 SOCKS 프록시를 연 뒤 노드 IP 마다 터널을 만듭니다.
+
+```bash
+ssh -f -N -D 1080 innogrid-icn-idc-bastion
+./infra/scripts/os-jump.sh sync <클러스터>
+```
+
+`sync` 는 `GET /v1/vms/{name}/nodes` 로 노드 IP 를 읽어 터널을 만들고 백엔드와 워커를 네트워크에
+붙입니다. floating IP 는 프로비저닝마다 새로 할당되므로 `PROVISION` 이 끝난 뒤에 실행합니다.
+
+`PROVISION` 성공 후 `BOOTSTRAP` 에서 멈췄다면 `sync` 를 실행하고
+`POST /v1/vms/{name}/operations` 로 `retryWorkflow` 를 보냅니다.

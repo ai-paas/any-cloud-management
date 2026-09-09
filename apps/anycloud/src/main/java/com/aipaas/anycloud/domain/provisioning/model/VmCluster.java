@@ -3,16 +3,7 @@ package com.aipaas.anycloud.domain.provisioning.model;
 import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowStep;
 import java.time.LocalDateTime;
 
-/**
- * VM-provisioned cluster 의 immutable 도메인 표현.
- *
- * <p>JPA / persistence 와 분리된 순수 자바 record. workflow 상태 기계 (PROVISION → BOOTSTRAP →
- * VERIFY → READY) 와 step 별 timestamp 를 한 record 로 캡처.
- *
- * <p>도메인 ↔ JPA 변환은 service 계층에서 처리 (현재 별도 mapper 클래스 없음 — H-D 시점에 unused
- * VmClusterMapper 삭제됨. 사용처가 신설되면 MapStruct {@code @Mapper(componentModel = "spring")}
- * interface 로 신규 작성).
- */
+/** VM-provisioned cluster 의 immutable 도메인 표현. */
 public record VmCluster(
         String id,
         String clusterName,

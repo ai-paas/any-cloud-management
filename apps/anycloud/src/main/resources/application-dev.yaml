@@ -52,3 +52,11 @@ vm-cluster-workflow:
 helm-repo:
   auto-seed:
     enabled: ${ANYCLOUD_HELM_REPO_AUTO_SEED:true}
+
+# 개발 기본 gRPC endpoint (host.docker.internal) 는 CSP VM 에서 도달 불가라 agent 가
+# ACTIVE 로 전환되지 않는다. 이를 DEGRADED 사유로 삼으면 모든 dev 클러스터가 DEGRADED 가 된다.
+anycloud:
+  vm-cluster:
+    component:
+      agent:
+        requirement: BEST_EFFORT

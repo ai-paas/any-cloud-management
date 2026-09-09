@@ -181,5 +181,5 @@ cluster_agent.forbidden.count{cluster="prod-c1", kind="backups.velero.io"} 12
 
 - `docs/architecture/identity/k8s-impersonation-auth.md` — impersonation pass-through design + trade-off §4.4
 - `docs/architecture/oidc-group-k8s-binding-webhook.md` — OidcGroupBinding CRD 도입 시 자동 binding 이 가능합니다.
-- `classifyDegradedCause` — FORBIDDEN 라벨 분류 위치입니다.
+- `classifyDegradedCause` — FORBIDDEN 라벨 분류 위치
 - KindResolver — Caffeine cache 30min TTL (CRD 추가 후 사용자가 즉시 보려면 refresh 가 필요합니다)

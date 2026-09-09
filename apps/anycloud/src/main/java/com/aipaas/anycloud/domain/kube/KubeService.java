@@ -22,13 +22,9 @@ public interface KubeService {
 
     /**
      * Manifest 적용 (kubectl apply 와 동일 시맨틱 — server-side, create or update).
-     * <p>
-     * agent 의 {@code APPLY_MANIFEST} 가 in-cluster 에서 parse + apply.
-     * 단일 / multi-doc YAML 모두 동일하게 처리.
      *
      * @param clusterName 대상 cluster
      * @param namespace   path 의 namespace. cluster-scoped kind 면 무시. manifest 의 metadata.namespace
-     *                    가 지정돼 있으면 그 값을 우선 사용.
      * @param manifest    YAML 또는 JSON 둘 다 가능. agent 가 auto-detect.
      * @return 적용된 자원의 K8s 표현 (JsonNode). create 든 update 든 동일 형식.
      */
@@ -36,9 +32,6 @@ public interface KubeService {
 
     /**
      * {@link #applyResource} 의 dry-run 변형.
-     *
-     * <p>{@code dryRun=true} → K8s API server 가 admission / validation 만 수행하고 etcd 에 persist
-     * 하지 않음. frontend 의 저장 전 "검증" / "미리보기" 버튼 path 에 사용.
      *
      * @param dryRun true 면 server-side dry-run. false 면 일반 apply 와 동일.
      */
@@ -75,11 +68,7 @@ public interface KubeService {
     PagedKubeResourceResponse listPodsPaginated(
             String clusterName, String namespace, int limit, String continueToken, String labelSelector);
 
-    /**
-     * 임의 kind 의 server-side pagination. 지원 kind: pods, services, deployments, statefulsets,
-     * daemonsets, replicasets, configmaps, secrets, persistentvolumeclaims, jobs, cronjobs.
-     * 미지원 kind 면 IllegalArgumentException.
-     */
+    /** 임의 kind 의 server-side pagination. 지원 kind: pods, services, deployments, statefulsets, daemonsets, replicasets, configmaps, secrets, persistentvolumeclaims, jobs, cronjobs. */
     PagedKubeResourceResponse listResourcesPaginated(
             String clusterName, String namespace, String kind, int limit, String continueToken, String labelSelector);
 
@@ -146,9 +135,6 @@ public interface KubeService {
 
     /**
      * Cluster 의 discovery API 가 노출하는 모든 API resource (kind) enumerate. CRD 도 자동 포함.
-     *
-     * <p>UI 의 "resource kind picker" 채울 때 사용. cluster 마다 결과가 다름 (CRD 다양함). 응답은
-     * group/plural 순으로 정렬.
      *
      * @return 정렬된 ResourceKindInfo list. cluster 가 unreachable 이면 {@code AGENT_UNAVAILABLE}.
      */

@@ -68,11 +68,7 @@ public class ClusterEntity implements Serializable {
     @Column(name = "description")
     private String description;
 
-    /**
-     * Cluster lifecycle status. — type-safe enum 으로 마이그레이션 완료
-     * ({@link ClusterStatus}). DB 컬럼은 VARCHAR(45) 유지 — {@code @Enumerated(STRING)} 가
-     * enum.name() ↔ string 변환. {@link #transitionStatus} helper 사용 권장 (graph 검증).
-     */
+    /** Cluster lifecycle status. — type-safe enum 으로 마이그레이션 완료 ({@link ClusterStatus}). DB 컬럼은 VARCHAR(45) 유지 — {@code @Enumerated(STRING)} 가 enum.name() ↔ string 변환. {@link #transitionStatus} helper 사용 권장 (graph 검증). */
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 45)
     private ClusterStatus status;
@@ -164,10 +160,6 @@ public class ClusterEntity implements Serializable {
 
     /**
      * Validated status transition. {@link ClusterStatus#canTransitionTo} 로 graph 검증 후 status 갱신.
-     * status field 가 enum 으로 마이그레이션 완료, 직접 setter 대신 본 helper 권장.
-     * 호출 측이 type-safe + invalid transition 감지 가능.
-     *
-     * <p>호출 예: {@code cluster.transitionStatus(ClusterStatus.ACTIVE, "health-check.ok")}
      *
      * @param next 새 상태 (enum)
      * @param reason 호출 위치 / 사유 (log 용도).

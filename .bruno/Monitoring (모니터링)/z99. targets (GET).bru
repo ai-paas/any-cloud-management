@@ -1,0 +1,15 @@
+meta {
+  name: targets (GET)
+  type: http
+  seq: 100
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/observability/targets
+  body: none
+  auth: none
+}
+
+docs {
+  `GET /v1/clusters/{clusterName}/observability/targets`
+}

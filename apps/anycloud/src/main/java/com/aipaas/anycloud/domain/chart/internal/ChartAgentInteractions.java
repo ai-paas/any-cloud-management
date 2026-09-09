@@ -42,12 +42,7 @@ public class ChartAgentInteractions {
         }
     }
 
-    /**
-     * agent action 을 try/catch 로 감싸 {@link HelmRoutingException} 을 운영자용 에러로 분류.
-     *
-     * <p>Caller 가 pre-work 가 필요한 케이스 (install / upgrade — repo lookup + tarball pre-fetch)
-     * 에서는 {@link #requireHelmAgent} 를 일찍 호출하고, 본 wrap 만 별도 사용.
-     */
+    /** agent action 을 try/catch 로 감싸 {@link HelmRoutingException} 을 운영자용 에러로 분류. */
     public <R> R wrapHelmRouting(String clusterName, String operationDesc, String context, HelmAction<R> action) {
         try {
             return action.execute();

@@ -4,20 +4,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Provider 별 default 적용 + cross-cutting 보정.
- *
- * <p>caller 가 제공한 ClusterSpec 의 빈 필드를 provider 의 권장 값으로 채워 새 record 반환.
- * cross-cutting default (masterCount odd 강제 — etcd quorum split-brain 방지, rootDiskSizeGb≥50 — k8s
- * NodeHasDiskPressure 방지) 도 본 메서드가 적용.
- */
+/** Provider 별 default 적용 + cross-cutting 보정. */
 public final class Defaults {
 
     private Defaults() {}
 
     private static final String DEFAULT_ENVIRONMENT = "dev";
     private static final String DEFAULT_K8S_VERSION = "1.31";
-    private static final String DEFAULT_POD_CIDR = "192.168.0.0/16";
+    // Calico 예제값 192.168.0.0/16 은 온프레미스 사설망과 겹쳐 파드 egress 가 끊긴다.
+    private static final String DEFAULT_POD_CIDR = "10.244.0.0/16";
     private static final String DEFAULT_SERVICE_CIDR = "10.96.0.0/12";
     private static final int DEFAULT_WORKER_COUNT = 2;
     private static final int DEFAULT_ROOT_DISK_GB = 50;
@@ -27,20 +22,25 @@ public final class Defaults {
      * 의 case 추가.
      */
     private record ProviderDefaults(
-            String name,
-            String vpcCidr,
-            String masterInstanceType,
-            String workerInstanceType,
-            String sshUser) {}
+            String name, String vpcCidr, String masterInstanceType, String workerInstanceType, String sshUser) {}
 
     private static final Map<String, ProviderDefaults> TABLE = Map.of(
-            "aws",          new ProviderDefaults("anycloud-demo",         "10.42.0.0/16", "t3.large",            "t3.large",            "ubuntu"),
-            "gcp",          new ProviderDefaults("anycloud-gcp",          "10.52.0.0/16", "e2-standard-2",       "e2-standard-2",       "ubuntu"),
-            "azure",        new ProviderDefaults("anycloud-azure",        "10.62.0.0/16", "Standard_D4s_v5",     "Standard_D4s_v5",     "ubuntu"),
-            "alibaba",      new ProviderDefaults("anycloud-alibaba",      "10.72.0.0/16", "ecs.g6.large",        "ecs.g6.large",        "ubuntu"),
-            "openstack",    new ProviderDefaults("anycloud-openstack",    "10.90.0.0/24", null,                  null,                  "ubuntu"),
-            "oci",          new ProviderDefaults("anycloud-oci",          "10.86.0.0/16", "VM.Standard.E4.Flex", "VM.Standard.E4.Flex", "ubuntu"),
-            "digitalocean", new ProviderDefaults("anycloud-digitalocean", "10.88.0.0/16", "s-2vcpu-4gb",         "s-2vcpu-4gb",         "root"));
+            "aws", new ProviderDefaults("anycloud-demo", "10.42.0.0/16", "t3.large", "t3.large", "ubuntu"),
+            "gcp", new ProviderDefaults("anycloud-gcp", "10.52.0.0/16", "e2-standard-2", "e2-standard-2", "ubuntu"),
+            "azure",
+                    new ProviderDefaults(
+                            "anycloud-azure", "10.62.0.0/16", "Standard_D4s_v5", "Standard_D4s_v5", "ubuntu"),
+            "alibaba",
+                    new ProviderDefaults("anycloud-alibaba", "10.72.0.0/16", "ecs.g6.large", "ecs.g6.large", "ubuntu"),
+            "openstack", new ProviderDefaults("anycloud-openstack", "10.90.0.0/24", null, null, "ubuntu"),
+            "oci",
+                    new ProviderDefaults(
+                            "anycloud-oci", "10.86.0.0/16", "VM.Standard.E4.Flex", "VM.Standard.E4.Flex", "ubuntu"),
+            "digitalocean",
+                    new ProviderDefaults("anycloud-digitalocean", "10.88.0.0/16", "s-2vcpu-4gb", "s-2vcpu-4gb", "root"),
+            // Proxmox 는 인스턴스 타입이 없다. "코어-메모리MiB" 규약으로 받아 emitter 가 나눈다.
+            "proxmox", new ProviderDefaults("anycloud-proxmox", "10.94.0.0/24", "2-4096", "2-4096", "ubuntu"),
+            "ibm", new ProviderDefaults("anycloud-ibm", "10.98.0.0/16", "bx2-2x8", "bx2-2x8", "ubuntu"));
 
     public static ClusterSpec applyProviderDefaults(ClusterSpec raw) {
         String canonical = ProviderName.canonical(raw.provider());
@@ -88,24 +88,52 @@ public final class Defaults {
             case "aws" -> b.database(applyDbDefaults(raw.database(), "anycloud", "anycloud", "db.t4g.micro", 20));
             case "azure" -> {
                 String name = blankOr(raw.name(), TABLE.get("azure").name());
-                b.azureResourceGroup(blankOr(raw.azureResourceGroup(), name + "-rg"));
+                String rg = raw.providerSpec() instanceof ProviderSpec.Azure a ? a.resourceGroup() : null;
+                b.providerSpec(new ProviderSpec.Azure(blankOr(rg, name + "-rg")));
             }
             case "openstack" -> {
-                String flavor = blankOr(raw.openstackFlavorName(), "m1.large");
+                ProviderSpec.Openstack os = raw.providerSpec() instanceof ProviderSpec.Openstack o
+                        ? o
+                        : new ProviderSpec.Openstack(null, null, null, null);
+                String flavor = blankOr(os.flavorName(), "m1.large");
                 b.masterInstanceType(blankOr(raw.masterInstanceType(), flavor))
                         .workerInstanceType(blankOr(raw.workerInstanceType(), flavor))
-                        .openstackImageName(blankOr(raw.openstackImageName(), "ubuntu-24.04"))
-                        .openstackFlavorName(flavor);
+                        .providerSpec(new ProviderSpec.Openstack(
+                                blankOr(os.imageName(), "ubuntu-24.04"),
+                                flavor,
+                                os.externalNetworkId(),
+                                os.floatingIpPool()));
             }
-            default -> { /* no extras */ }
+            case "ibm" -> {
+                ProviderSpec.Ibm ibm =
+                        raw.providerSpec() instanceof ProviderSpec.Ibm i ? i : new ProviderSpec.Ibm(null, null);
+                // zone 은 region 에서 유도할 수 없다. 계정마다 활성 zone 이 달라 추측하면 생성이 실패한다.
+                b.providerSpec(new ProviderSpec.Ibm(ibm.zone(), ibm.resourceGroup()));
+            }
+            case "proxmox" -> {
+                ProviderSpec.Proxmox px = raw.providerSpec() instanceof ProviderSpec.Proxmox p
+                        ? p
+                        : new ProviderSpec.Proxmox(null, null, null, null, null);
+                // sftp 를 기본으로 둬서 sudo 없는 SSH 계정으로 운영할 수 있게 한다.
+                b.providerSpec(new ProviderSpec.Proxmox(
+                        px.nodeName(),
+                        blankOr(px.datastoreId(), "local-lvm"),
+                        blankOr(px.snippetDatastoreId(), "local"),
+                        blankOr(px.networkBridge(), "vmbr0"),
+                        blankOr(px.snippetUploadMode(), "sftp")));
+            }
+            default -> {
+                /* no extras */
+            }
         }
     }
 
     public static String resolvedOsImage(ClusterSpec spec) {
         return switch (ProviderName.canonical(spec.provider())) {
-            case "openstack" -> spec.openstackImageName();
+            case "openstack" -> spec.providerSpec() instanceof ProviderSpec.Openstack os ? os.imageName() : null;
             case "gcp" -> "ubuntu-2404-lts";
             case "azure" -> "Canonical Ubuntu 24.04 LTS";
+            case "proxmox", "ibm" -> spec.osImage();
             case "alibaba", "oci", "digitalocean" -> "Ubuntu 24.04";
             default -> "ubuntu-24.04";
         };

@@ -4,12 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/**
- * Cluster addon workflow RabbitMQ topology + retry config.
- *
- * <p>VmCluster workflow 패턴 모방 — DirectExchange + install/uninstall queue + DLQ +
- * stateless retry interceptor.
- */
+/** Cluster addon workflow RabbitMQ topology + retry config. */
 @Getter
 @Setter
 @ConfigurationProperties(prefix = "addon-workflow")

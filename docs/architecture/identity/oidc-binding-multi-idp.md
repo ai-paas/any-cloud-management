@@ -84,7 +84,7 @@ multi-IdP 의 개별 user RBAC override 를 지원합니다.
 spec:
   oidcGroupSelector:
     matchExact: ["platform-admins"]   # kind 생략 → Group
-    
+
 # User binding
 spec:
   oidcGroupSelector:
@@ -261,7 +261,7 @@ roleRef:
 - 모든 cluster 의 K8s API 통신은 agent 를 경유해 일관성을 유지합니다.
 
 **Channel B** — User 작업 (impersonation path) 입니다.
-- backend → agent (gRPC) → K8s API (Impersonate-User/Group) 입니다.
+- backend → agent (gRPC) → K8s API (Impersonate-User/Group)
 - impersonation pass-through 로 구현합니다.
 - Channel A 가 만든 RBAC 가 Channel B 의 권한을 결정합니다.
 

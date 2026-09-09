@@ -13,9 +13,6 @@ public interface VmClusterBootstrapLogService {
 
     /**
      * 새 bootstrap attempt 시작 시 기존 log 위에 attempt 마커 추가.
-     * Retry log 가 사라지지 않도록 append 방식 — 디버깅 가시성 보존.
-     * 마커 형식: {@code === attempt N — yyyy-MM-dd HH:mm:ss ===}.
-     * 총 길이 cap 초과 시 가장 오래된 attempt 부터 잘라발신.
      *
      * @param attemptNumber 1-based attempt index (workflow retry count + 1).
      */

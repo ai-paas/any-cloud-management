@@ -50,11 +50,7 @@ public class VmClusterEntity implements Serializable {
     @Column(name = "cluster_name", nullable = false, length = 45)
     private String clusterName;
 
-    /**
-     * 매칭된 K8s ClusterEntity 의 id (FK). VERIFY / cluster-agent self-register 시점에 SET.
-     * 미설정 = 아직 K8s cluster 등록 전 (provisioning 중). ON DELETE SET NULL — cluster row 삭제 시
-     * vm_cluster 의 audit 보존을 위해 FK 만 끊는다.
-     */
+    /** 매칭된 K8s ClusterEntity 의 id (FK). VERIFY / cluster-agent self-register 시점에 SET. */
     @Size(max = 45)
     @Column(name = "cluster_id", length = 45)
     private String clusterId;
@@ -121,11 +117,7 @@ public class VmClusterEntity implements Serializable {
     @Column(name = "bootstrap_log", columnDefinition = "MEDIUMTEXT")
     private String bootstrapLog;
 
-    /**
-     * BOOTSTRAP 단계 내부의 sub-step label — MASTER_INIT / WORKER_JOIN / NODES_READY 등.
-     * BOOTSTRAP 은 20~30분 걸려 "어디서 멈췄나" 가시성이 핵심. progress reporter 가 갱신,
-     * markReady 가 클리어.
-     */
+    /** BOOTSTRAP 단계 내부의 sub-step label — MASTER_INIT / WORKER_JOIN / NODES_READY 등. */
     @Column(name = "current_sub_step", length = 50)
     private String currentSubStep;
 

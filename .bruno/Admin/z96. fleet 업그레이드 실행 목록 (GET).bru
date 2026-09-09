@@ -1,0 +1,15 @@
+meta {
+  name: fleet 업그레이드 실행 목록 (GET)
+  type: http
+  seq: 97
+}
+
+get {
+  url: {{baseUrl}}/v1/fleet/upgrade/runs
+  body: none
+  auth: none
+}
+
+docs {
+  `GET /v1/fleet/upgrade/runs`
+}

@@ -334,7 +334,7 @@ public class ClusterController {
                     @Valid
                     @RequestBody
                     CreateClusterOperationRequest request) {
-        // UX #8: 항상 202 + Operation — sync/async 양 케이스를 동일 패턴으로 처리. 클라이언트는
+        // 항상 202 + Operation — sync/async 양 케이스를 동일 패턴으로 처리. 클라이언트는
         // 응답 body 의 state (PENDING/RUNNING/SUCCEEDED/FAILED) 로 polling 필요 여부 판단.
         var op = clusterFacade.createOperationDomain(
                 clusterName, request.getType().name());

@@ -4,15 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.util.List;
 
-/**
- * VM cluster 의 예상 비용 요약.
- *
- * <p>모든 금액은 {@link #currency} 단위 (현재 USD only). hourly = on-demand list price 기준, spot
- * 적용 시 자동 할인. 본 estimate 는 정확도 ±10-30% — 사용자에게 명시 (accuracyNote).
- *
- * <p>missing entries (catalog 에 없는 instance type) 는 status=PARTIAL — 부분 합산 + 경고.
- * 미지원 provider 는 status=UNKNOWN — 모든 금액 null.
- */
+/** VM cluster 의 예상 비용 요약. */
 @Schema(description = "VM 클러스터 예상 비용 (정확도 ±10-30%)")
 public record CostEstimate(
         @Schema(description = "예상 정확도 — FULL=모든 항목 매핑됨, PARTIAL=일부 누락, UNKNOWN=지원 안함", example = "FULL") Status status,

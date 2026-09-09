@@ -8,7 +8,7 @@
 
 ## 주요 특징
 
-- **멀티 CSP 8종 지원**: AWS · GCP · Azure · Alibaba · OCI · DigitalOcean · OpenStack · Proxmox
+- **멀티 CSP 8종 지원**: AWS, GCP, Azure, Alibaba, OCI, DigitalOcean, OpenStack, Proxmox
 - **VM → kubeadm 자동화**: Pulumi(Go) 가 VM/네트워크/보안/IAM 생성 → Bootstrap Worker 가 kubeadm init/join, CNI/Ingress/GPU Operator 설치 → 등록까지 한 번에
 - **RabbitMQ 단계형 워크플로우**: `provision → bootstrap → verify → ready` (DLQ 포함), at-least-once 멱등성 가드 적용
 - **Self-hosted 친화**: state backend RustFS(S3 호환), secrets OpenBao(Vault 호환). 외부 SaaS 의존 없음
@@ -56,7 +56,6 @@ OpenBao 모드로 전환하려면 `PULUMI_SECRETS_PROVIDER=hashivault://openbao:
 | `make format` | `spotlessApply` — Palantir Java Format | ~5 s |
 | `make format-check` | `spotlessCheck` — CI 동일 | ~5 s |
 | `make proto-lint` | `buf lint` | ~2 s |
-| `make pulumi-build` | Pulumi Go 빌드 | ~2 min / ~10 s |
 | `make all-build` | backend + pulumi + agent | ~5 min |
 
 ## API 목록
@@ -73,7 +72,7 @@ OpenBao 모드로 전환하려면 `PULUMI_SECRETS_PROVIDER=hashivault://openbao:
 | K8s Resources | `*/v1/clusters/{c}/namespaces/{ns}/{kind}/{name}` | 통합 controller — cluster-scoped 도 동일 path 패턴 |
 | Helm Releases | `*/v1/clusters/{c}/helm-releases/{r}` | install / upgrade / rollback / uninstall (LRO) |
 | Helm Repos & Charts | `*/v1/helm-repos/{repoName}/charts/{chartName}` | repo CRUD + chart catalog |
-| Operations (LRO) | `*/v1/operations/{operationId}` + `/events` (SSE) | 모든 비동기 작업의 단일 진실 소스 |
+| Operations (LRO) | `*/v1/operations/{operationId}` + `/events` (SSE) | 모든 비동기 작업의 상태를 여기서 확인 |
 | Audit Logs | `GET /v1/audit-logs` | 자동 기록된 mutation 감사 로그 |
 | Workflow (admin) | `GET /v1/workflow/queues` | RabbitMQ queue + DLQ 메시지 검색 |
 
@@ -111,12 +110,12 @@ OpenBao 모드로 전환하려면 `PULUMI_SECRETS_PROVIDER=hashivault://openbao:
 |---|---|
 | `apps/anycloud/` | Spring Boot 백엔드 (Java 21) |
 | `apps/agent/` | Cluster Agent (Go, in-cluster) |
-| `libs/cluster-agent-spring-boot-starter/` | **Layer 1** — gRPC reverse-tunnel · 인증 · PodExec WebSocket |
+| `libs/cluster-agent-spring-boot-starter/` | **Layer 1** — gRPC reverse-tunnel, 인증, PodExec WebSocket |
 | `libs/cluster-agent-features-spring-boot-starter/` | **Layer 2 통합** — RBAC + Backup + Observability sub-feature |
 | `libs/cluster-provisioning-spring-boot-starter/` | 별도 — Pulumi **Java SDK** 기반 multi-CSP VM 인프라 orchestration. provider 별 `*Provisioner` |
-| `infra/helm/` | Helm 차트 · binary 번들 |
+| `infra/helm/` | Helm 차트, binary 번들 |
 | `infra/manifests/` | K8s manifest 예시 (gpu-observability, postgresql, kured) |
-| `infra/docker/` | Dockerfile entrypoints · 빌드 보조 자산 |
+| `infra/docker/` | Dockerfile entrypoints, 빌드 보조 자산 |
 | `libs/cluster-agent-spring-boot-starter/src/main/proto/` | 공유 protobuf 스키마 (Java + Go generate). 생성물은 gitignore |
 | `docker-compose.dev.yml` | MariaDB + RabbitMQ + ChartMuseum + RustFS + OpenBao + backend + worker 통합 dev compose (`make dev-up`) |
 | `docker-compose.yml` | GHCR image pull 만 — production-like (`make prod-up`) |

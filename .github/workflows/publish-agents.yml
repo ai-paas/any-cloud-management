@@ -1,7 +1,8 @@
 name: Publish Agent Images (GHCR)
 
-# cluster-agent + backup-agent 두 binary 를 단일 Dockerfile + CMD_TARGET build arg 로 빌드해
-# ghcr.io/<owner>/{cluster-agent,backup-agent} 로 push.
+# cluster-agent 를 단일 Dockerfile + CMD_TARGET build arg 로 빌드해
+# ghcr.io/<owner>/cluster-agent 로 push. backup-agent 는 같은 Dockerfile 로 빌드 가능하나
+# 아직 배포 대상이 아니라 matrix 에서 뺐다.
 #
 # 발동 조건:
 #   - tag push (vX.Y.Z)     → :vX.Y.Z, :X.Y, :sha-<short>, :{branch}-vX.Y.Z, :latest(main only)
@@ -38,7 +39,6 @@ jobs:
       matrix:
         target:
           - { cmd: cluster-agent, image: cluster-agent }
-          - { cmd: backup-agent,  image: backup-agent }
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,6 +62,16 @@ jobs:
             echo "is_main=false" >> "$GITHUB_OUTPUT"
           fi
           echo "Detected source branch: $BRANCH"
+
+      # apps/agent/internal/gen 은 gitignore 대상이라 checkout 트리에 없다. 생성하지 않으면
+      # go build 가 "package anycloud/agent/internal/gen/... is not in std" 로 실패한다.
+      - name: Install buf
+        uses: bufbuild/buf-action@v1
+        with:
+          setup_only: true
+
+      - name: Generate agent protobuf code
+        run: buf generate
 
       - name: Set up QEMU (cross-arch)
         uses: docker/setup-qemu-action@v3

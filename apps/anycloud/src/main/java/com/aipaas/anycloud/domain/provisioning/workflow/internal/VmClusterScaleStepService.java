@@ -27,11 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-/**
- * VM cluster scale 작업 step service. Pulumi {@code up} 의 idempotency 활용 — 새 workerCount 로
- * {@link ProvisioningRequest} 재구성 → {@link ProvisioningService#provision(ProvisioningRequest)}
- * 호출. master 는 변경 없고 worker 수만 reconcile. drain (scale-down) + label reconcile 동봉.
- */
+/** VM cluster scale 작업 step service. Pulumi {@code up} 의 idempotency 활용 — 새 workerCount 로 {@link ProvisioningRequest} 재구성 → {@link ProvisioningService#provision(ProvisioningRequest)} 호출. master 는 변경 없고 worker 수만 reconcile. drain (scale-down) + label reconcile 동봉. */
 @Slf4j
 @Service
 @RequiredArgsConstructor

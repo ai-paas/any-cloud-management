@@ -39,13 +39,7 @@ public class ProvisioningProviderValidator {
         return request;
     }
 
-    /**
-     * In-memory 정적 검증만 수행 — provider name, required config keys, credential value 존재.
-     * Network 호출 없음 (~ms). controller sync 경로에서 호출 안전.
-     *
-     * <p>Live 검증 (instance type / image 존재 여부 — CSP API) 은
-     * {@link #validateLive} 로 분리. 잘못된 instance type 도 여기선 통과 — async worker 에서 잡힌다.
-     */
+    /** In-memory 정적 검증만 수행 — provider name, required config keys, credential value 존재. */
     public ProvisioningRequest validateStaticAndBuildRequest(
             ProvisionClusterRequest cluster, ResolvedCspCredential credential) {
         SupportedProvisioningProvider provider = normalizeProvider(cluster.getClusterProvider());

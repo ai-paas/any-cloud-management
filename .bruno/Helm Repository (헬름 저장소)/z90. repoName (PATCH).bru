@@ -1,0 +1,15 @@
+meta {
+  name: repoName (PATCH)
+  type: http
+  seq: 91
+}
+
+patch {
+  url: {{baseUrl}}/v1/helm-repos/{{helm_repo_name}}
+  body: none
+  auth: none
+}
+
+docs {
+  `PATCH /v1/helm-repos/{repoName}`
+}

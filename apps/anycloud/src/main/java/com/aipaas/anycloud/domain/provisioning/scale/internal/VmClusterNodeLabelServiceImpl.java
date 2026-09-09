@@ -141,12 +141,7 @@ public class VmClusterNodeLabelServiceImpl implements VmClusterNodeLabelService 
         return v == null ? null : String.valueOf(v);
     }
 
-    /**
-     * shell metachar 회피용 보수적 quoting. node 이름/라벨 값은 영숫자/`.`/`-` 만 허용한다고
-     * 가정하지만, 방어적으로 single-quote wrap + 내부 single-quote 분리. 더 일반화된 quoting 은
-     * {@link com.aipaas.anycloud.domain.provisioning.bootstrap.providers.GenericLinuxVmClusterBootstrapStrategy}
-     * 와 동일 패턴.
-     */
+    /** shell metachar 회피용 보수적 quoting. node 이름/라벨 값은 영숫자/`.`/`-` 만 허용한다고 가정하지만, 방어적으로 single-quote wrap + 내부 single-quote 분리. 더 일반화된 quoting 은 {@link com.aipaas.anycloud.domain.provisioning.bootstrap.providers.GenericLinuxVmClusterBootstrapStrategy} 와 동일 패턴. */
     private static String shellWord(String v) {
         if (v == null) return "''";
         return "'" + v.replace("'", "'\\''") + "'";

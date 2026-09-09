@@ -95,6 +95,12 @@ public class VmClusterStatusResponse {
     @Schema(description = "노드 목록")
     private List<VmClusterNodeResponse> nodes;
 
+    @Schema(description = "구성 요소 상태 — DEGRADED 사유를 여기서 확인한다")
+    private List<VmClusterComponentResponse> components;
+
+    @Schema(description = "요청 addon 설치 상태")
+    private List<VmClusterRequestedAddonResponse> requestedAddons;
+
     @Schema(description = "생성 시각", example = "2026-04-03T14:30:00")
     private LocalDateTime createdAt;
 

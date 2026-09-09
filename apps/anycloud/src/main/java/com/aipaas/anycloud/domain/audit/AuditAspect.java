@@ -41,11 +41,7 @@ public class AuditAspect {
     private static final ParameterNameDiscoverer PARAM_DISCOVERER = new DefaultParameterNameDiscoverer();
 
     private final AuditLogger auditLogger;
-    /**
-     * Impersonation 활성화 시 audit 의 principal 자동 채우기. starter 가
-     * default ThreadLocalImpersonationContext bean 을 등록 → 항상 주입 가능 (toggle OFF 면 current()
-     * 가 empty Optional 반환). ObjectProvider 로 받아 bean 부재 시도 안전.
-     */
+    /** Impersonation 활성화 시 audit 의 principal 자동 채우기. starter 가 default ThreadLocalImpersonationContext bean 을 등록 → 항상 주입 가능 (toggle OFF 면 current() 가 empty Optional 반환). ObjectProvider 로 받아 bean 부재 시도 안전. */
     private final ObjectProvider<ImpersonationContext> impersonationContextProvider;
 
     public AuditAspect(AuditLogger auditLogger, ObjectProvider<ImpersonationContext> impersonationContextProvider) {

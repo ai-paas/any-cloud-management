@@ -20,11 +20,7 @@ public class KubeconfigLifecycleServiceImpl implements KubeconfigLifecycleServic
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    /**
-     * ClusterEntity 의 serverCa / clientCa / clientKey / clientToken 컬럼이 모두
-     * DROP 됐으므로 cleanup 대상 자체가 없음. agent ACTIVE 전환은 backend bootstrap service 가
-     * 처리. 본 메서드는 항상 false (no-op).
-     */
+    /** ClusterEntity 의 serverCa / clientCa / clientKey / clientToken 컬럼이 모두 DROP 됐으므로 cleanup 대상 자체가 없음. agent ACTIVE 전환은 backend bootstrap service 가 처리. 본 메서드는 항상 false (no-op). */
     public boolean maybeCleanupOnActive(String clusterName) {
         log.debug("Kubeconfig cleanup no-op: admin credentials 컬럼 제거됨 cluster_name={}", clusterName);
         return false;

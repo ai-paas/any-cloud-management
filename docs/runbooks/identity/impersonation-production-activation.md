@@ -206,7 +206,7 @@ kubectl rollout restart deploy/anycloud
 ```
 
 - 결과: backend interceptor 가 등록되지 않습니다. impersonate_* 필드를 빈 채로 전송합니다. agent 가 base config 를 사용합니다 (admin-equivalent).
-- 0 데이터 손실, audit_log.principal 만 다시 null 입니다.
+- 0 데이터 손실, audit_log.principal 만 다시 null
 
 ### 5.2 Hard rollback — gateway header strip
 

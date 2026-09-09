@@ -230,12 +230,7 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
                 .build();
     }
 
-    /**
-     * Step 1 helper. provider normalize + config defaults 적용. defaults 가 raw config 에 없던
-     * key 면 appliedDefaults 에 누적 (응답으로 사용자에게 노출).
-     *
-     * <p>provider 가 invalid 면 result.error() 가 non-null — caller 가 errors 에 추가.
-     */
+    /** Step 1 helper. provider normalize + config defaults 적용. defaults 가 raw config 에 없던 key 면 appliedDefaults 에 누적 (응답으로 사용자에게 노출). */
     private ProviderNormalizationResult normalizeProviderAndDefaults(
             ProvisionClusterRequest cluster, Map<String, String> rawConfig, Map<String, String> normalizedConfig) {
         List<String> applied = new ArrayList<>();
@@ -254,12 +249,7 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
         }
     }
 
-    /**
-     * Step 2 helper. cluster name 이 이미 등록된 cluster (clusters) 또는 진행 중인 VM workflow
-     * (vm_clusters.active_request_key) 와 충돌하는지 확인.
-     *
-     * <p>cluster 또는 clusterName blank 면 conflict false (caller 가 name 검증 별도).
-     */
+    /** Step 2 helper. cluster name 이 이미 등록된 cluster (clusters) 또는 진행 중인 VM workflow (vm_clusters.active_request_key) 와 충돌하는지 확인. */
     private boolean checkClusterNameConflict(ProvisionClusterRequest cluster) {
         if (cluster == null
                 || cluster.getClusterName() == null
@@ -344,11 +334,7 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
         }
     }
 
-    /**
-     * Step 7 helper. Pulumi 가 사용할 stackName 미리 계산. credential 이 미해결인 경우
-     * dummy ResolvedCspCredential (ENV / Application Environment) 로 채워 stackName builder 가
-     * 어쨌든 동작하.
-     */
+    /** Step 7 helper. Pulumi 가 사용할 stackName 미리 계산. credential 이 미해결인 경우 dummy ResolvedCspCredential (ENV / Application Environment) 로 채워 stackName builder 가 어쨌든 동작하. */
     private StackNamePreview buildStackNamePreview(
             SupportedProvisioningProvider provider,
             ProvisionClusterRequest cluster,

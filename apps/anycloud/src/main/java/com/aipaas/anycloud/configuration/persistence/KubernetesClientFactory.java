@@ -19,13 +19,7 @@ import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
 
-/**
- * {@link ClusterEntity} 로부터 Fabric8 {@link KubernetesClient} 생성 정적 팩토리.
- *
- * <p>인스턴스는 {@code AgentBootstrapKubeClient} 가 bootstrap 경로에서 보관/재사용 (day-2 는
- * agent gRPC). 본 팩토리는 매번 새 인스턴스 생성용 빌더 헬퍼만 제공 (파싱·키 변환 비용 포함).
- * BouncyCastle Provider 는 클래스 로딩 시점 1회 등록.
- */
+/** {@link ClusterEntity} 로부터 Fabric8 {@link KubernetesClient} 생성 정적 팩토리. */
 @Slf4j
 public final class KubernetesClientFactory {
 
