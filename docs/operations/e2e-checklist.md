@@ -123,3 +123,19 @@ addon 은 agent 가 연결된 뒤에 설치되므로, agent dial-in 전까지는
 - `Ingress`는 Public Cloud 계열은 `provider/cloud`, OpenStack/Proxmox는 `provider/baremetal` manifest를 사용합니다.
 - `GPU driver` 자동 설치는 현재 Ubuntu 계열 이미지 기준으로만 수행합니다.
 - 실제 AWS E2E는 현재 로컬 환경에 credential이 없어 아직 실행하지 못했습니다.
+
+## OpenStack 노드 접근 (개발 환경)
+
+floating IP 대역이 사설망이면 백엔드 컨테이너에서 노드에 닿지 않아 `BOOTSTRAP` 이 실패합니다.
+bastion 으로 SOCKS 프록시를 연 뒤 노드 IP 마다 터널을 만듭니다.
+
+```bash
+ssh -f -N -D 1080 innogrid-icn-idc-bastion
+./infra/scripts/os-jump.sh sync <클러스터>
+```
+
+`sync` 는 `GET /v1/vms/{name}/nodes` 로 노드 IP 를 읽어 터널을 만들고 백엔드와 워커를 네트워크에
+붙입니다. floating IP 는 프로비저닝마다 새로 할당되므로 `PROVISION` 이 끝난 뒤에 실행합니다.
+
+`PROVISION` 성공 후 `BOOTSTRAP` 에서 멈췄다면 `sync` 를 실행하고
+`POST /v1/vms/{name}/operations` 로 `retryWorkflow` 를 보냅니다.

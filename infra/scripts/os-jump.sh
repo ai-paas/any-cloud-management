@@ -10,7 +10,8 @@
 # floating IP 는 프로비저닝마다 새로 할당되므로 노드가 뜬 뒤에 실행해야 한다.
 #
 # 사용법:
-#   ./os-jump.sh up 192.168.10.166 192.168.10.113   # 노드 IP 마다 터널 생성
+#   ./os-jump.sh sync <클러스터>                     # API 에서 노드 IP 를 읽어 터널 생성
+#   ./os-jump.sh up 192.168.10.166 192.168.10.113   # IP 를 직접 넘기는 경우
 #   ./os-jump.sh attach                              # backend, worker 를 네트워크에 연결
 #   ./os-jump.sh status
 #   ./os-jump.sh down                                # 터널만 정리 (컨테이너는 유지)
@@ -21,6 +22,7 @@ SUBNET="${OS_JUMP_SUBNET:-192.168.10.0/24}"
 GATEWAY="${OS_JUMP_GATEWAY:-192.168.10.1}"
 SOCKS_PORT="${OS_JUMP_SOCKS_PORT:-1080}"
 ATTACH_CONTAINERS="${OS_JUMP_CONTAINERS:-anycloud-backend-dev anycloud-bootstrap-worker-dev}"
+BACKEND_URL="${OS_JUMP_BACKEND_URL:-http://localhost:8888}"
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 
@@ -62,6 +64,24 @@ attach() {
     done
 }
 
+# floating IP 는 프로비저닝마다 새로 할당된다. 사람이 옮겨 적으면 오타가 나고, 재생성하면 또
+# 바뀐다. 백엔드가 이미 아는 값을 그대로 읽는다.
+sync() {
+    [ $# -eq 1 ] || die "클러스터 이름을 하나 넘겨야 한다: ./os-jump.sh sync <클러스터>"
+    cluster="$1"
+    body=$(curl -fsS -m 30 "${BACKEND_URL}/v1/vms/${cluster}/nodes" 2>/dev/null) \
+        || die "노드 조회 실패: ${BACKEND_URL}/v1/vms/${cluster}/nodes"
+    ips=$(printf '%s' "$body" | python3 -c "
+import json,sys
+d=json.load(sys.stdin).get('data') or {}
+print(' '.join(n['publicIp'] for n in (d.get('nodes') or []) if n.get('publicIp')))
+")
+    [ -n "$ips" ] || die "공인 IP 가 없다. PROVISION 이 끝났는지 확인한다"
+    echo "  ${cluster}: $ips"
+    # shellcheck disable=SC2086  # 공백 구분 IP 목록을 인자로 펼친다.
+    up $ips
+}
+
 status() {
     echo "  SOCKS :${SOCKS_PORT} $(nc -z 127.0.0.1 "$SOCKS_PORT" 2>/dev/null && echo 열림 || echo 닫힘)"
     docker ps --filter "name=os-jump-" --format '  터널 {{.Names}} {{.Status}}'
@@ -77,8 +97,9 @@ down() {
 
 case "${1:-status}" in
     up) shift; up "$@" ;;
+    sync) shift; sync "$@" ;;
     attach) attach ;;
     status) status ;;
     down) down ;;
-    *) die "알 수 없는 명령: $1 (up|attach|status|down)" ;;
+    *) die "알 수 없는 명령: $1 (sync|up|attach|status|down)" ;;
 esac
