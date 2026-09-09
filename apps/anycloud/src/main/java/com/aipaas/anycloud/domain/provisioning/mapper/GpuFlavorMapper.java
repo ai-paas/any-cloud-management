@@ -152,6 +152,29 @@ public final class GpuFlavorMapper {
      * @param config   Pulumi config (mutable copy 전달 권장 — 본 메서드가 직접 mutate)
      * @return mutate 발생 여부. true 면 caller 가 log/audit.
      */
+    /**
+     * 요청은 {@code anycloud-k8s:} 접두를 붙여 온다. 접두 없이 읽으면 운영자가 명시한 값을 못 보고
+     * 덮어쓰고, 접두 없이 쓰면 같은 설정이 두 키로 갈린다.
+     */
+    public static String nsKey(String key) {
+        return "anycloud-k8s:" + key;
+    }
+
+    /** 접두가 있든 없든 같은 값으로 읽는다. */
+    private static String read(Map<String, String> config, String key) {
+        String value = config.get(nsKey(key));
+        return value != null ? value : config.get(key);
+    }
+
+    /** 읽을 때 찾은 자리에 쓴다. 접두 없는 값이 이미 있으면 그 자리를 유지한다. */
+    private static void write(Map<String, String> config, String key, String value) {
+        if (config.containsKey(key)) {
+            config.put(key, value);
+        } else {
+            config.put(nsKey(key), value);
+        }
+    }
+
     public static boolean applyGpuDefaults(String provider, Map<String, String> config) {
         if (config == null || provider == null || provider.isBlank()) {
             return false;
@@ -167,14 +190,14 @@ public final class GpuFlavorMapper {
         }
         boolean mutated = false;
 
-        String existing = config.get(CONFIG_KEY_WORKER_INSTANCE_TYPE);
+        String existing = read(config, CONFIG_KEY_WORKER_INSTANCE_TYPE);
         String aliasResolved = null;
         if (existing != null && !existing.isBlank() && existing.startsWith("gpu-")) {
             // 운영자가 CSP-agnostic alias (gpu-small / medium / large / h100) 명시 — CSP 별 실 instance
             // type 으로 변환. 변환 실패 시 default GPU instance 로 fallback.
             aliasResolved = resolveAlias(provider, existing);
             if (aliasResolved != null) {
-                config.put(CONFIG_KEY_WORKER_INSTANCE_TYPE, aliasResolved);
+                write(config, CONFIG_KEY_WORKER_INSTANCE_TYPE, aliasResolved);
                 log.info(
                         "GpuFlavorMapper: provider={} alias={} → {} (auto-resolved)",
                         provider,
@@ -187,14 +210,14 @@ public final class GpuFlavorMapper {
                     Map<String, String> aliasExtra = GCP_ALIAS_EXTRA.get(existing);
                     if (aliasExtra != null) {
                         for (Map.Entry<String, String> e : aliasExtra.entrySet()) {
-                            config.put(e.getKey(), e.getValue());
+                            write(config, e.getKey(), e.getValue());
                             log.info(
                                     "GpuFlavorMapper: gcp alias={} → {}={} (auto)", existing, e.getKey(), e.getValue());
                         }
                     }
                 }
             } else {
-                config.put(CONFIG_KEY_WORKER_INSTANCE_TYPE, defaultInstance);
+                write(config, CONFIG_KEY_WORKER_INSTANCE_TYPE, defaultInstance);
                 log.warn(
                         "GpuFlavorMapper: provider={} alias={} unresolvable → default={}",
                         provider,
@@ -203,7 +226,7 @@ public final class GpuFlavorMapper {
                 mutated = true;
             }
         } else if (existing == null || existing.isBlank()) {
-            config.put(CONFIG_KEY_WORKER_INSTANCE_TYPE, defaultInstance);
+            write(config, CONFIG_KEY_WORKER_INSTANCE_TYPE, defaultInstance);
             log.info("GpuFlavorMapper: provider={} → workerInstanceType={} (auto)", provider, defaultInstance);
             mutated = true;
         } else {
@@ -214,9 +237,9 @@ public final class GpuFlavorMapper {
         }
 
         // 운영자가 명시적으로 끄지 않는 한 GPU cluster 는 driver/runtime 이 반드시 필요하므로 default true.
-        String gpuOpExisting = config.get(CONFIG_KEY_ENABLE_GPU_OPERATOR);
+        String gpuOpExisting = read(config, CONFIG_KEY_ENABLE_GPU_OPERATOR);
         if (gpuOpExisting == null || gpuOpExisting.isBlank()) {
-            config.put(CONFIG_KEY_ENABLE_GPU_OPERATOR, "true");
+            write(config, CONFIG_KEY_ENABLE_GPU_OPERATOR, "true");
             log.info("GpuFlavorMapper: provider={} → enableGpuOperator=true (auto)", provider);
             mutated = true;
         }
