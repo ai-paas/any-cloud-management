@@ -32,9 +32,9 @@ import (
 	agentv1 "anycloud/agent/internal/gen/agent/v1"
 	"anycloud/agent/internal/helm"
 	"anycloud/agent/internal/k8s"
+	"google.golang.org/protobuf/types/known/structpb"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // installObservabilityStack — helm install kube-prometheus-stack. 기존 installAddon 의 specialization.
@@ -88,21 +88,21 @@ func (d *Dispatcher) installObservabilityStack(ctx context.Context, cmd *agentv1
 		Namespace:       namespace,
 		Repo:            repo,
 		Chart:           chart,
-		RepoURL:         repoURL,             // 빈 문자열이면 alias resolve fallback.
+		RepoURL:         repoURL, // 빈 문자열이면 alias resolve fallback.
 		Version:         chartVersion,
 		Values:          values,
 		CreateNamespace: true,
-		Timeout:         15 * time.Minute,     // monitoring stack 은 install 시간 김.
+		Timeout:         15 * time.Minute, // monitoring stack 은 install 시간 김.
 	})
 	if err != nil {
 		return errorResponse(agentv1.Status_FAILED, "HELM_INSTALL_FAILED", err.Error())
 	}
 	result, _ := structpb.NewStruct(map[string]interface{}{
-		"release":       rel.Name,
-		"namespace":     rel.Namespace,
-		"chart_version": rel.Version,
-		"status":        rel.Status,
-		"revision":      float64(rel.Revision),
+		"release":           rel.Name,
+		"namespace":         rel.Namespace,
+		"chart_version":     rel.Version,
+		"status":            rel.Status,
+		"revision":          float64(rel.Revision),
 		"agent_instance_id": d.agentInstanceID,
 	})
 	return okResponse(result)
@@ -258,7 +258,7 @@ func (d *Dispatcher) getDashboardURL(ctx context.Context, cmd *agentv1.CommandRe
 			break
 		}
 		if port == 80 {
-			port = p.Port     // fallback: 첫 포트.
+			port = p.Port // fallback: 첫 포트.
 		}
 	}
 
@@ -355,6 +355,9 @@ var (
 
 const promCacheTTL = 5 * time.Minute
 
+// 우리 카탈로그(addons.yaml)가 설치하는 kube-prometheus-stack 의 service 이름.
+const wellKnownPromService = "kube-prometheus-stack-prometheus"
+
 // discoverPrometheusURL — label-based 자동 발견 + hardcoded fallback.
 //
 // 5분 TTL cache 로 매 metric query 마다 LIST 회피. 1차 selector `app.kubernetes.io/name=prometheus`
@@ -375,7 +378,15 @@ func discoverPrometheusURL(ctx context.Context, d *Dispatcher, ns string) string
 	}
 	promCacheMu.RUnlock()
 
-	// 2) label-based service lookup. ListResources 가 JSON-encoded items 반환.
+	// 2) 이름으로 먼저 본다. 우리 카탈로그가 설치하는 스택의 service 에는
+	// app.kubernetes.io/name 도 prometheus.io/scrape 도 붙지 않아 라벨로는 걸리지 않는다.
+	// 라벨 스캔이 앞에 있으면 흔한 경우마다 헛도는 LIST 를 먼저 낸다.
+	if url := tryFindPromServiceByName(ctx, d, ns, wellKnownPromService); url != "" {
+		cachePromURL(url)
+		return url
+	}
+
+	// 3) label-based service lookup — 직접 올린 prometheus 는 이름이 다르다.
 	candidates := []string{
 		"app.kubernetes.io/name=prometheus",
 		"prometheus.io/scrape=true",
@@ -385,14 +396,39 @@ func discoverPrometheusURL(ctx context.Context, d *Dispatcher, ns string) string
 		if url == "" {
 			continue
 		}
-		promCacheMu.Lock()
-		promCacheV = promCache{url: url, expiresAt: time.Now().Add(promCacheTTL)}
-		promCacheMu.Unlock()
+		cachePromURL(url)
 		return url
 	}
 
-	// 3) fallback
-	return prometheusInClusterURL(ns)
+	// 4) fallback. 못 찾았다는 사실도 기억한다 — 아무것도 없는 클러스터에서 5분마다 같은
+	// 조회를 반복하면 모니터링 화면을 열 때마다 그만큼 기다린다.
+	fallback := prometheusInClusterURL(ns)
+	cachePromURL(fallback)
+	return fallback
+}
+
+func cachePromURL(url string) {
+	promCacheMu.Lock()
+	promCacheV = promCache{url: url, expiresAt: time.Now().Add(promCacheTTL)}
+	promCacheMu.Unlock()
+}
+
+// tryFindPromServiceByName — 이름이 정확히 아는 값일 때. LIST 한 번이지만 field selector 로
+// 좁혀 라벨 전수 스캔보다 싸다.
+func tryFindPromServiceByName(ctx context.Context, d *Dispatcher, ns, name string) string {
+	if d == nil || d.kube == nil {
+		return ""
+	}
+	res, err := d.kube.ListResources(ctx, k8s.ListResourcesOptions{
+		Kind:          "service",
+		Namespace:     ns,
+		Limit:         1,
+		FieldSelector: "metadata.name=" + name,
+	})
+	if err != nil || res == nil || res.Items == "" {
+		return ""
+	}
+	return firstPromURL(res.Items)
 }
 
 func tryFindPromService(ctx context.Context, d *Dispatcher, ns, selector string) string {
@@ -408,11 +444,16 @@ func tryFindPromService(ctx context.Context, d *Dispatcher, ns, selector string)
 	if err != nil || res == nil || res.Items == "" {
 		return ""
 	}
+	return firstPromURL(res.Items)
+}
+
+// firstPromURL — service list JSON 에서 쓸 수 있는 첫 주소.
+func firstPromURL(itemsJSON string) string {
 	// 응답 JSON parse — corev1.Service list 모양. minimal parse 만.
 	var list struct {
 		Items []corev1.Service `json:"items"`
 	}
-	if err := json.Unmarshal([]byte(res.Items), &list); err != nil {
+	if err := json.Unmarshal([]byte(itemsJSON), &list); err != nil {
 		return ""
 	}
 	for _, svc := range list.Items {

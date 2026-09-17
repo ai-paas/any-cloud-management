@@ -300,12 +300,7 @@ public class FleetUpgradeOrchestratorImpl implements FleetUpgradeOrchestrator {
         }
     }
 
-    /**
-     * Step 5 — wave 종결 평가 + threshold 위반 시 ABORT + threshold OK 시 다음 wave / 마지막이면
-     * COMPLETED. wave 진행 중이면 no-op (main 의 final save 가 trigger 변경분 commit).
-     *
-     * <p>ABORT path 만 자체 save (terminal). 다른 path 는 main 의 final save 가 처리.
-     */
+    /** Step 5 — wave 종결 평가 + threshold 위반 시 ABORT + threshold OK 시 다음 wave / 마지막이면 COMPLETED. wave 진행 중이면 no-op (main 의 final save 가 trigger 변경분 commit). */
     private void advanceWaveOrFinishRun(
             FleetUpgradeRunEntity run,
             Map<String, ClusterAgentEntity> primaryByCluster,

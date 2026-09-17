@@ -78,14 +78,7 @@ public class AgentPolicyValidator {
             "serviceaccount",
             "horizontalpodautoscaler");
 
-    /**
-     * request body 의 allowedCommands 가 backend 의 self-management 를 가능
-     * 케 하는지 검증. 누락된 명령이 있으면 HIGH severity warning 반환. caller (controller) 가 force
-     * 없이는 422 로 reject 권장.
-     *
-     * <p>이 검증은 snapshot ({@link #validate}) 검증과 별개 — body 가 agent 에 적용되기 전 단계라
-     * snapshot 이 아직 없는 시점에 호출. Empty / null input 은 빈 list 반환 (caller 가 다른 path 에서 처리).
-     */
+    /** request body 의 allowedCommands 가 backend 의 self-management 를 가능 케 하는지 검증. 누락된 명령이 있으면 HIGH severity warning 반환. caller (controller) 가 force 없이는 422 로 reject 권장. */
     public List<PolicyWarning> validateRequestCommands(List<String> requestedCommands) {
         List<PolicyWarning> out = new ArrayList<>();
         if (requestedCommands == null || requestedCommands.isEmpty()) {

@@ -103,16 +103,7 @@ public class ClusterPolicyBootstrapper {
         broadcastHelmRepoChange();
     }
 
-    /**
-     * (+ +) — 모든 ACTIVE cluster 에 fresh helm_repositories broadcast.
-     *
-     * <p><b> parallel</b>: per-cluster push 를 KubernetesExecutor 에 fan-out. 10+ cluster 환경
-     * 에서 latency = max(per-cluster) 가 되어 sequential 누적 회피.
-     *
-     * <p><b> retry</b>: transient KubeRoutingException 발생 시 exponential backoff (100/300/900ms)
-     * 로 최대 3회 retry. NoActiveSession (agent 미접속) 은 retry 무의미 — 즉시 skip + 다음 ACTIVE
-     * 전환 시 회복.
-     */
+    /** (+ +) — 모든 ACTIVE cluster 에 fresh helm_repositories broadcast. */
     @Async
     public void broadcastHelmRepoChange() {
         List<com.aipaas.anycloud.domain.cluster.ClusterEntity> active =

@@ -16,15 +16,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Cluster Agent registration_token (JWT) 서명용 HMAC 키 영구 저장.
- *
- * <p>backend 재시작마다 random 키가 생성되어 기존 등록된 cluster-agent 의 JWT 가 invalid 가 되는
- * critical bug 해소용 (V21). instance 간 + 재시작 간 동일한 키를 공유하기 위한 single source.
- *
- * <p>Rotation: 새 키는 새 row insert + 이전 row {@code active=false} 마킹. resolver 는 {@code
- * active=true} 중 가장 최근 (id DESC) 을 primary 로 선택.
- */
+/** Cluster Agent registration_token (JWT) 서명용 HMAC 키 영구 저장. */
 @Entity
 @Getter
 @Setter

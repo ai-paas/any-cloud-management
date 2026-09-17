@@ -7,19 +7,9 @@ import java.util.List;
 /**
  * Agent policy PUT / PATCH 요청 body. backend 가 본 payload 를 agent 의 ConfigMap 으로 push.
  *
- * <p><b>설계 메모</b>: DB 저장 없음 — ConfigMap 이 single source of truth. 변경 audit 은 {@code
- * audit_log} 테이블에 기록.
- *
- * <p>모든 필드 nullable — PUT 은 controller 가 필수 (allowedNamespaces / allowedCommands /
- * allowedCharts) 강제 검증, PATCH 는 null 필드를 "변경 안 함" 으로 처리해 현재 snapshot 값 유지.
- *
- * <p>{@code force=true} 면 {@link com.aipaas.anycloud.domain.agent.policy.AgentPolicyValidator}
- * 의 HIGH severity warning 도 무시하고 강제 적용. 기본 false — HIGH warning 발견 시 422 반환.
- *
  * @param allowedNamespaces      명시 namespace list. {@code ["*"]} 도 가능 (모든 ns 허용).
  * @param allowedCommands        RPC 종류 list (예: "LIST_PODS").
  * @param allowedCharts          Helm chart rule list (format: "repo/name:min-max" 또는
- *                               "repo/*:min-max" wildcard).
  * @param allowedExecNamespaces  PodExec 전용 namespace list.
  * @param resourcePolicy         resource_policy 구조 (옵션, null 이면 변경 안 함 — PATCH 의미).
  * @param force                  true 면 HIGH severity warning 도 무시하고 적용.

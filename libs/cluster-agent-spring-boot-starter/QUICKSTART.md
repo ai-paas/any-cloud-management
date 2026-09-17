@@ -303,7 +303,7 @@ A. K8s Secret 에 identity_token 영구 저장 — restart 후에도 같은 toke
 A. starter 만으로는 NO (in-memory default 동작). production multi-instance / persistent audit
    필요하면 YES.
 
-**Q. cluster-agent-observability-spring-boot-starter 는?**
+**Q. observability 기능은?**
 A. cluster-agent starter 위에 build — Prometheus 쿼리 / Grafana ingress URL 노출 / Alert 조회.
    monitoring 기능 원하면 같이 추가. `api 'cluster-agent-spring-boot-starter'` 라 transitive.
 

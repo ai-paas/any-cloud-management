@@ -31,99 +31,88 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AgentHealthService {
 
-	/**
-	 * Heartbeat 가 이 기간보다 오래되면 unhealthy (default 30s heartbeat 기준 3배).
-	 *
-	 * <p>{@code volatile} — runtime 에 {@link #setHeartbeatStalenessThreshold} 로 변경 가능.
-	 * 운영자가 admin endpoint 로 false-positive 임계치 튜닝 시 재시작 없이 즉시 적용.
-	 */
-	private volatile Duration heartbeatStalenessThreshold;
+    /** Heartbeat 가 이 기간보다 오래되면 unhealthy (default 30s heartbeat 기준 3배). */
+    private volatile Duration heartbeatStalenessThreshold;
 
-	private final AgentIdentityStore identityStore;
-	private final AgentSessionRegistry sessionRegistry;
-	private final Clock clock;
+    private final AgentIdentityStore identityStore;
+    private final AgentSessionRegistry sessionRegistry;
+    private final Clock clock;
 
-	public AgentHealthService(Duration heartbeatStalenessThreshold,
-			AgentIdentityStore identityStore,
-			AgentSessionRegistry sessionRegistry,
-			Clock clock) {
-		this.heartbeatStalenessThreshold = Objects.requireNonNull(heartbeatStalenessThreshold,
-				"heartbeatStalenessThreshold");
-		this.identityStore = identityStore;
-		this.sessionRegistry = sessionRegistry;
-		this.clock = clock;
-	}
+    public AgentHealthService(
+            Duration heartbeatStalenessThreshold,
+            AgentIdentityStore identityStore,
+            AgentSessionRegistry sessionRegistry,
+            Clock clock) {
+        this.heartbeatStalenessThreshold =
+                Objects.requireNonNull(heartbeatStalenessThreshold, "heartbeatStalenessThreshold");
+        this.identityStore = identityStore;
+        this.sessionRegistry = sessionRegistry;
+        this.clock = clock;
+    }
 
-	/** 현재 적용 중인 threshold. */
-	public Duration getHeartbeatStalenessThreshold() {
-		return heartbeatStalenessThreshold;
-	}
+    /** 현재 적용 중인 threshold. */
+    public Duration getHeartbeatStalenessThreshold() {
+        return heartbeatStalenessThreshold;
+    }
 
-	/**
-	 * Runtime tunable — 기본 90s 가 false-positive 발생 시 운영자가 즉시 늘려 잡을 수 있음.
-	 * {@link Duration#isZero()} / {@link Duration#isNegative()} 는 거부 (모든 agent unhealthy 가 됨).
-	 *
-	 * @throws IllegalArgumentException null 또는 zero/negative
-	 */
-	public void setHeartbeatStalenessThreshold(Duration next) {
-		if (next == null || next.isZero() || next.isNegative()) {
-			throw new IllegalArgumentException(
-					"heartbeatStalenessThreshold must be positive: " + next);
-		}
-		Duration previous = this.heartbeatStalenessThreshold;
-		this.heartbeatStalenessThreshold = next;
-		log.warn("AgentHealthService heartbeatStalenessThreshold: {} → {} (in-memory, instance-local)",
-				previous, next);
-	}
+    /**
+     * Runtime tunable — 기본 90s 가 false-positive 발생 시 운영자가 즉시 늘려 잡을 수 있음.
+     * {@link Duration#isZero()} / {@link Duration#isNegative()} 는 거부 (모든 agent unhealthy 가 됨).
+     *
+     * @throws IllegalArgumentException null 또는 zero/negative
+     */
+    public void setHeartbeatStalenessThreshold(Duration next) {
+        if (next == null || next.isZero() || next.isNegative()) {
+            throw new IllegalArgumentException("heartbeatStalenessThreshold must be positive: " + next);
+        }
+        Duration previous = this.heartbeatStalenessThreshold;
+        this.heartbeatStalenessThreshold = next;
+        log.warn("AgentHealthService heartbeatStalenessThreshold: {} → {} (in-memory, instance-local)", previous, next);
+    }
 
-	public ClusterHealth getHealth(String clusterName) {
-		List<AgentIdentity> agents = identityStore.findByClusterName(clusterName);
-		if (agents.isEmpty()) {
-			return ClusterHealth.noAgent(clusterName);
-		}
+    public ClusterHealth getHealth(String clusterName) {
+        List<AgentIdentity> agents = identityStore.findByClusterName(clusterName);
+        if (agents.isEmpty()) {
+            return ClusterHealth.noAgent(clusterName);
+        }
 
-		// HA: 같은 cluster 여러 agent instance 가능 — last_seen_at 가장 최신을 primary 로 선택.
-		AgentIdentity primary = agents.stream()
-				.max(Comparator.comparing(AgentIdentity::lastSeenAt,
-						Comparator.nullsFirst(Comparator.naturalOrder())))
-				.orElse(agents.get(0));
+        // HA: 같은 cluster 여러 agent instance 가능 — last_seen_at 가장 최신을 primary 로 선택.
+        AgentIdentity primary = agents.stream()
+                .max(Comparator.comparing(AgentIdentity::lastSeenAt, Comparator.nullsFirst(Comparator.naturalOrder())))
+                .orElse(agents.get(0));
 
-		boolean streamActive = sessionRegistry.find(clusterName).isPresent();
-		Instant now = clock.instant();
-		Long secondsAgo = primary.lastSeenAt() == null
-				? null
-				: Duration.between(primary.lastSeenAt(), now).getSeconds();
-		boolean heartbeatFresh = secondsAgo != null
-				&& secondsAgo <= heartbeatStalenessThreshold.getSeconds();
+        boolean streamActive = sessionRegistry.find(clusterName).isPresent();
+        Instant now = clock.instant();
+        Long secondsAgo = primary.lastSeenAt() == null
+                ? null
+                : Duration.between(primary.lastSeenAt(), now).getSeconds();
+        boolean heartbeatFresh = secondsAgo != null && secondsAgo <= heartbeatStalenessThreshold.getSeconds();
 
-		boolean healthy = primary.status() == AgentStatus.ACTIVE
-				&& streamActive
-				&& heartbeatFresh;
+        boolean healthy = primary.status() == AgentStatus.ACTIVE && streamActive && heartbeatFresh;
 
-		String summary = buildSummary(primary, streamActive, heartbeatFresh, secondsAgo);
-		return new ClusterHealth(
-				clusterName,
-				healthy,
-				summary,
-				primary.status() == null ? "UNKNOWN" : primary.status().name(),
-				streamActive,
-				primary.lastSeenAt(),
-				primary.lastK8sApiOkAt(),
-				secondsAgo);
-	}
+        String summary = buildSummary(primary, streamActive, heartbeatFresh, secondsAgo);
+        return new ClusterHealth(
+                clusterName,
+                healthy,
+                summary,
+                primary.status() == null ? "UNKNOWN" : primary.status().name(),
+                streamActive,
+                primary.lastSeenAt(),
+                primary.lastK8sApiOkAt(),
+                secondsAgo);
+    }
 
-	private String buildSummary(AgentIdentity agent, boolean streamActive, boolean heartbeatFresh,
-			Long secondsAgo) {
-		if (agent.status() != AgentStatus.ACTIVE) {
-			return "agent status=" + agent.status() + " (not ACTIVE)";
-		}
-		if (!streamActive) {
-			return "agent ACTIVE in store but no live stream — likely backend restart or network issue";
-		}
-		if (!heartbeatFresh) {
-			return "heartbeat stale (" + secondsAgo + "s ago, threshold "
-					+ heartbeatStalenessThreshold.getSeconds() + "s)";
-		}
-		return "stream up, heartbeat " + secondsAgo + "s ago";
-	}
+    private String buildSummary(AgentIdentity agent, boolean streamActive, boolean heartbeatFresh, Long secondsAgo) {
+        if (agent.status() != AgentStatus.ACTIVE) {
+            return "agent status=" + agent.status() + " (not ACTIVE)";
+        }
+        if (!streamActive) {
+            return "agent ACTIVE in store but no live stream — likely backend restart or network issue";
+        }
+        if (!heartbeatFresh) {
+            return "heartbeat stale (" + secondsAgo + "s ago, threshold " + heartbeatStalenessThreshold.getSeconds()
+                    + "s)";
+        }
+        return "stream up, heartbeat " + secondsAgo + "s ago";
+    }
 }
