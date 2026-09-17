@@ -13,12 +13,7 @@ import java.time.ZoneId;
  */
 public interface ClusterFleetHealthService {
 
-    /**
-     * 모든 등록 cluster 의 agent health 집계 + per-cluster 상세 정렬.
-     *
-     * <p>정렬: unhealthy with agent → noAgent → healthy. 같은 그룹 안에서는 clusterId 사전순.
-     * 운영자가 문제 cluster 를 dashboard 상단에서 즉시 확인할 수 있도록.
-     */
+    /** 모든 등록 cluster 의 agent health 집계 + per-cluster 상세 정렬. */
     FleetAgentHealthResponse getFleetHealth();
 
     /**

@@ -38,7 +38,19 @@ public class ChartParser {
      * <p>워크어라운드: Spring Boot 가 제공하는 {@code org.yaml:snakeyaml} 2.2 를 직접 호출 → Map/List
      * 로 받은 뒤 Jackson 으로 JsonNode 변환. 결과는 동일하지만 reserved-character check 우회.
      */
-    private static final Yaml SNAKE_YAML = new Yaml(new SafeConstructor(new LoaderOptions()));
+    /**
+     * 공개 저장소의 index.yaml 은 크다 — prometheus-community 6.4MB, bitnami 는 더 크다.
+     * snakeyaml 기본 상한 3MiB 로는 거부되는데, 화면에는 차트가 없는 것처럼 보인다.
+     */
+    private static final int INDEX_CODE_POINT_LIMIT = 64 * 1024 * 1024;
+
+    private static final Yaml SNAKE_YAML = new Yaml(new SafeConstructor(indexLoaderOptions()));
+
+    private static LoaderOptions indexLoaderOptions() {
+        LoaderOptions options = new LoaderOptions();
+        options.setCodePointLimit(INDEX_CODE_POINT_LIMIT);
+        return options;
+    }
 
     private final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
     private final ObjectMapper jsonMapper = new ObjectMapper();

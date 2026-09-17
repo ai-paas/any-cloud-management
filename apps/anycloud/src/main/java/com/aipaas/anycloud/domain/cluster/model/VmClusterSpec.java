@@ -21,12 +21,7 @@ public record VmClusterSpec(
         @Schema(description = "Pulumi config map. 키는 'anycloud-k8s:xxx' 형식 또는 단순 키 (workerCount 등). 값은 모두 문자열.")
                 Map<String, String> config,
 
-        /**
-         * GPU 노드 포함 여부. true 이면 Pulumi 가 GPU flavor 의 워커 노드를 프로비저닝하고,
-         * agent ACTIVE 시 cluster-observability auto-installer 가 dcgm-exporter 자동 설치.
-         *
-         * <p>null/false 면 일반 cluster. agent 가 나중에 GPU 노드 감지하면 C5 backfill 로 자동 true 전환.
-         */
+        /** GPU 노드 포함 여부. true 이면 Pulumi 가 GPU flavor 의 워커 노드를 프로비저닝하고, agent ACTIVE 시 cluster-observability auto-installer 가 dcgm-exporter 자동 설치. */
         @Schema(
                         description = "GPU 노드 포함 cluster (Pulumi 가 GPU flavor 노드 프로비저닝 + dcgm-exporter 자동 설치)",
                         example = "false",
@@ -78,16 +73,7 @@ public record VmClusterSpec(
                         nullable = true)
                 String osImage,
 
-        /**
-         * 노드 root(boot) 디스크 크기 (GB). 미지정(null)/0 이하면 provider 별 기본값
-         * (Go model.defaults 의 50GB) 적용. master/worker 동일.
-         *
-         * <p>너무 작으면 kubelet ephemeral-storage eviction (NodeHasDiskPressure) — 기본 ~8GB 의
-         * AMI/이미지로는 컨테이너 런타임 + 로그만으로 임계 초과. k8s 노드 권장 최소 50GB.
-         *
-         * <p>VmClusterProvider 가 본 필드를 config map 의 {@code rootDiskSizeGb} 키로 주입 — Pulumi
-         * provider 가 root block device / boot disk / system disk 크기로 사용.
-         */
+        /** 노드 root(boot) 디스크 크기 (GB). 미지정(null)/0 이하면 provider 별 기본값 (Go model.defaults 의 50GB) 적용. master/worker 동일. */
         @Schema(
                         description = "노드 root 디스크 크기(GB). 미지정 시 provider 기본 50GB. NodeHasDiskPressure 방지.",
                         example = "50",

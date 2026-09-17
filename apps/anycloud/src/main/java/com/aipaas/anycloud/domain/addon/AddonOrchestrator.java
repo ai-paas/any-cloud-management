@@ -40,9 +40,6 @@ public class AddonOrchestrator {
     /**
      * Cluster 의 모든 enqueue-eligible addon 을 install queue 로 publish.
      *
-     * <p>대상: enabled=true AND state ∈ {PENDING, FAILED}. INSTALLING/SUCCEEDED/DELETING 은 skip.
-     * cluster ACTIVE listener 가 호출 — 신규 cluster + 기존 cluster (backfill) 동일 동작.
-     *
      * @return enqueue 된 addon row 개수.
      */
     @Transactional

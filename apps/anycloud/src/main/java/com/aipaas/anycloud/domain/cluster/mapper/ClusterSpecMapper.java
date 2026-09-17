@@ -7,11 +7,7 @@ import com.aipaas.anycloud.domain.cluster.model.VmClusterSpec;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * {@link CreateClusterRequest#getSpec()} 의 약타입 {@code Map<String, Object>} 를 service layer 의
- * typed record ({@link VmClusterSpec} / {@link RegisteredClusterSpec}) 로 변환.
- * mapper 가 단일 변환 지점 — typo / 누락 field 는 즉시 fail.
- */
+/** {@link CreateClusterRequest#getSpec()} 의 약타입 {@code Map<String, Object>} 를 service layer 의 typed record ({@link VmClusterSpec} / {@link RegisteredClusterSpec}) 로 변환. */
 public final class ClusterSpecMapper {
 
     private ClusterSpecMapper() {}
@@ -33,11 +29,7 @@ public final class ClusterSpecMapper {
                 provider, region, environment, credentialId, config, hasGpuNodes, useSpot, osImage, rootDiskSizeGb);
     }
 
-    /**
-     * config 의 master/worker instance type 으로 GPU 여부 derive 후 client 가 보낸 값과 OR — UI 우회 /
-     * 누락 방어. client 가 명시 true 보냈으면 그대로 유지, instance type 이 GPU 인데 false 보냈으면 true
-     * 로 override.
-     */
+    /** config 의 master/worker instance type 으로 GPU 여부 derive 후 client 가 보낸 값과 OR — UI 우회 / 누락 방어. client 가 명시 true 보냈으면 그대로 유지, instance type 이 GPU 인데 false 보냈으면 true 로 override. */
     private static Boolean deriveHasGpu(String provider, Map<String, String> config, Boolean clientValue) {
         if (config == null) return clientValue;
         String master = config.get("anycloud-k8s:masterInstanceType");
@@ -48,12 +40,7 @@ public final class ClusterSpecMapper {
         return clientValue;
     }
 
-    /**
-     * registered source spec 변환. provider/clusterType 필수, 나머지 선택.
-     *
-     * <p>apiServerUrl/IP, serverCA, clientCA/Key/Token, monitServerURL
-     * 모두 제거. cluster-agent dial-in 이 source-of-truth — 등록 body 는 metadata 만.
-     */
+    /** registered source spec 변환. provider/clusterType 필수, 나머지 선택. */
     public static RegisteredClusterSpec toRegistered(Map<String, Object> spec) {
         String provider = requireString(spec, "provider");
         String clusterType = requireString(spec, "clusterType");

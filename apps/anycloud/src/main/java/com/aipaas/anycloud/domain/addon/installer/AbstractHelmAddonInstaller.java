@@ -9,15 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
-/**
- * Base implementation — 모든 helm-based addon installer 의 공통 install/uninstall 흐름.
- *
- * <p>구현체는 보통 {@link #type()} 만 override. 도메인-특화 후속 로직 (예: monitoring 의 GPU detect)
- * 이 필요하면 {@link #onAfterInstall} hook 활용.
- *
- * <p>Helm install path: {@link HelmReleaseService#install} — agent gRPC INSTALL_ADDON.
- * RepoURL 명시 alias resolve 의존 제거.
- */
+/** Base implementation — 모든 helm-based addon installer 의 공통 install/uninstall 흐름. */
 @Slf4j
 @RequiredArgsConstructor
 public abstract class AbstractHelmAddonInstaller implements AddonInstaller {
@@ -33,11 +25,7 @@ public abstract class AbstractHelmAddonInstaller implements AddonInstaller {
     @Autowired(required = false)
     private ObjectProvider<KindResolver> kindResolverProvider;
 
-    /**
-     * Catalog rbac.groupBindings 자동 적용/cleanup hook. starter 의 BindingApplyClient 통해
-     * cluster 에 ClusterRoleBinding apply, uninstall 시 label 매칭 일괄 삭제. starter 미설치
-     * 환경에서는 ObjectProvider lazy 가 noop 보장.
-     */
+    /** Catalog rbac.groupBindings 자동 적용/cleanup hook. starter 의 BindingApplyClient 통해 cluster 에 ClusterRoleBinding apply, uninstall 시 label 매칭 일괄 삭제. starter 미설치 환경에서는 ObjectProvider lazy 가 noop 보장. */
     @Autowired(required = false)
     private ObjectProvider<AddonRbacBindingHook> rbacBindingHookProvider;
 

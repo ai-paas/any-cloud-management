@@ -5,14 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/**
- * Addon catalog YAML binding — addons.yaml 의 declarative spec.
- *
- * <p>catalog-driven install 의 source-of-truth. 새 addon 추가는
- * YAML entry 1개만 추가 — 코드 변경 불필요.
- *
- * <p>spring.config.import 또는 classpath:config/addons.yaml 자동 load.
- */
+/** Addon catalog YAML binding — addons.yaml 의 declarative spec. */
 @ConfigurationProperties(prefix = "addon-catalog")
 public record AddonCatalogProperties(boolean enabled, List<Entry> addons) {
 
@@ -87,11 +80,7 @@ public record AddonCatalogProperties(boolean enabled, List<Entry> addons) {
         }
     }
 
-    /**
-     * OIDC group 매칭 정책. matchExact (정확 일치) only. dynamic team naming 은 Keycloak group
-     * hierarchy 또는 group attribute 활용을 권장 (regex tier-2 폐기 결정, 참조:
-     * {@code docs/architecture/design/oidc-binding-multi-idp.md}).
-     */
+    /** OIDC group 매칭 정책. matchExact (정확 일치) only. dynamic team naming 은 Keycloak group hierarchy 또는 group attribute 활용을 권장 (regex tier-2 폐기 결정, 참조: {@code docs/architecture/design/oidc-binding-multi-idp.md}). */
     public record AddonOidcGroupSelector(List<String> matchExact) {
         public AddonOidcGroupSelector {
             matchExact = matchExact == null ? Collections.emptyList() : List.copyOf(matchExact);

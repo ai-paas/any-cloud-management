@@ -13,14 +13,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * ApplicationReady 시점에 {@link HelmRepoSeedProperties#repos} 에 정의된
- * 외부 public helm repo 들을 DB 에 자동 등록.
- *
- * <p>멱등 — name 충돌 시 skip (사용자 수동 등록 우선). 부팅마다 매번 실행되어도 안전.
- *
- * <p>Disable: {@code helm-repo.auto-seed.enabled=false} (air-gapped 환경).
- */
+/** ApplicationReady 시점에 {@link HelmRepoSeedProperties#repos} 에 정의된 외부 public helm repo 들을 DB 에 자동 등록. */
 @Slf4j
 @Component
 @RequiredArgsConstructor

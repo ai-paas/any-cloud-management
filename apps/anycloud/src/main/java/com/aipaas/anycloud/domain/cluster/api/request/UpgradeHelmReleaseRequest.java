@@ -8,12 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * PUT /v1/clusters/{cluster}/helm-releases/{releaseName} body — -3.
- *
- * <p>InstallHelmReleaseRequest 와 거의 동일 — release name 은 URL path, atomic/reuseValues/
- * resetValues 만 upgrade 특화.
- */
+/** PUT /v1/clusters/{cluster}/helm-releases/{releaseName} body — -3. */
 @Data
 @Builder
 @NoArgsConstructor

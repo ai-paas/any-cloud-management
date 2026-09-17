@@ -37,6 +37,8 @@ public class NodeDebugPodServiceImpl implements NodeDebugPodService {
                 .putFields(
                         "ttl_seconds",
                         strVal(String.valueOf(request.ttlSeconds() == null ? 1800 : request.ttlSeconds())))
+                .putFields("tools_shell", strVal(String.valueOf(request.toolsShell())))
+                .putFields("service_account", strVal(request.serviceAccount() == null ? "" : request.serviceAccount()))
                 .build();
 
         ControlMessage.Builder builder = ControlMessage.newBuilder()

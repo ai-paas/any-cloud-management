@@ -18,9 +18,11 @@ import io.aipaas.cluster.agent.runtime.AgentHealthService;
 import io.aipaas.cluster.agent.runtime.ClusterHealth;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -92,6 +94,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
 
         List<UnifiedClusterResponse> merged = new ArrayList<>(listVm(provider, environment, status));
         merged.addAll(listRegistered(provider));
+        merged = collapseByName(merged, status == null);
         merged.sort(Comparator.comparing(
                 UnifiedClusterResponse::createdAt, Comparator.nullsLast(Comparator.reverseOrder())));
 
@@ -123,6 +126,69 @@ public class ClusterFacadeImpl implements ClusterFacade {
         return new PagedClusters(items.subList(from, to), nextToken, (long) items.size());
     }
 
+    /** 운영할 수 없는 상태. 여기 걸린 VM 시도만 있는 이름은 클러스터 목록에서 뺀다. */
+    private static final Set<String> DEAD_VM_STATUS = Set.of("FAILED", "DELETED", "BLOCKED");
+
+    /**
+     * 이름이 같은 행을 한 줄로 합친다.
+     *
+     * <p>VM 으로 만든 클러스터는 agent 가 등록하는 순간 vm 행과 registered 행을 동시에 갖고, 같은
+     * 이름으로 재시도하면 실패한 vm 행이 계속 남는다. 합치지 않으면 클러스터 하나가 화면에 여러 줄로
+     * 보인다.
+     *
+     * @param hideDeadOnly status 필터가 없을 때만 true — 사용자가 FAILED 를 직접 조회하면 숨기지 않는다.
+     */
+    private List<UnifiedClusterResponse> collapseByName(List<UnifiedClusterResponse> rows, boolean hideDeadOnly) {
+        Map<String, List<UnifiedClusterResponse>> byName = rows.stream()
+                .collect(Collectors.groupingBy(
+                        UnifiedClusterResponse::clusterName, LinkedHashMap::new, Collectors.toList()));
+
+        List<UnifiedClusterResponse> out = new ArrayList<>();
+        for (List<UnifiedClusterResponse> group : byName.values()) {
+            UnifiedClusterResponse row = mergeGroup(group);
+            if (row != null && !(hideDeadOnly && isDeadVmOnly(row))) {
+                out.add(row);
+            }
+        }
+        return out;
+    }
+
+    private boolean isDeadVmOnly(UnifiedClusterResponse row) {
+        return !row.sources().contains("registered") && DEAD_VM_STATUS.contains(String.valueOf(row.status()));
+    }
+
+    /**
+     * 대표 행은 살아 있는 VM 행을 우선하고, 없으면 최신 VM 행을 쓴다. agent 정보는 registered 행에만
+     * 있어 옮겨 담지 않으면 합치는 순간 사라진다.
+     */
+    private UnifiedClusterResponse mergeGroup(List<UnifiedClusterResponse> group) {
+        UnifiedClusterResponse vm = group.stream()
+                .filter(c -> "vm".equals(c.source()))
+                .min(Comparator.comparingInt((UnifiedClusterResponse c) ->
+                                DEAD_VM_STATUS.contains(String.valueOf(c.status())) ? 1 : 0)
+                        .thenComparing(
+                                UnifiedClusterResponse::createdAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .orElse(null);
+        UnifiedClusterResponse registered = group.stream()
+                .filter(c -> "registered".equals(c.source()))
+                .findFirst()
+                .orElse(null);
+
+        if (vm == null) {
+            return registered;
+        }
+        if (registered == null) {
+            return vm;
+        }
+        return vm.toBuilder()
+                .sources(List.of("vm", "registered"))
+                .agentConnectivity(registered.agentConnectivity())
+                .agentHeartbeatSecondsAgo(registered.agentHeartbeatSecondsAgo())
+                .agentHealthSummary(registered.agentHealthSummary())
+                .hasGpuNodes(vm.hasGpuNodes() != null ? vm.hasGpuNodes() : registered.hasGpuNodes())
+                .build();
+    }
+
     private static int parseOffsetToken(String token) {
         if (token == null || token.isBlank()) {
             return 0;
@@ -142,6 +208,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
         return vmClusterService.listVmClusters(provider, environment, status).stream()
                 .map(item -> UnifiedClusterResponse.builder()
                         .source("vm")
+                        .sources(List.of("vm"))
                         .clusterName(item.getClusterName())
                         // VM provision cluster 자체가 linked vm — UI cross-link 일관성.
                         .linkedVmName(item.getClusterName())
@@ -149,6 +216,9 @@ public class ClusterFacadeImpl implements ClusterFacade {
                         .region(item.getRegion())
                         .environment(item.getEnvironment())
                         .status(item.getStatus())
+                        .workerCount(item.getWorkerCount())
+                        .masterCount(item.getMasterCount())
+                        .masterPrivateIp(item.getMasterPrivateIp())
                         .createdAt(item.getCreatedAt())
                         .lastError(item.getLastError())
                         .workflowProgress(UnifiedClusterResponse.WorkflowProgress.builder()
@@ -239,11 +309,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
                         () -> new com.aipaas.anycloud.common.error.exception.ClusterNotFoundException(clusterName));
     }
 
-    /**
-     * source ("vm" | "registered") 별 ClusterProvider 에 위임. 알 수 없는 source 는 즉시
-     * {@link IllegalArgumentException} 으로 400. 신규 source 추가 시 {@link ClusterProvider}
-     * 구현체만 등록하면 별도 코드 변경 없음.
-     */
+    /** source ("vm" | "registered") 별 ClusterProvider 에 위임. 알 수 없는 source 는 즉시 {@link IllegalArgumentException} 으로 400. 신규 source 추가 시 {@link ClusterProvider} 구현체만 등록하면 별도 코드 변경 없음. */
     @Override
     public OperationEntity create(CreateClusterRequest request) {
         String sourceKey =
@@ -368,6 +434,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
                 : null;
         return UnifiedClusterResponse.builder()
                 .source("registered")
+                .sources(List.of("registered"))
                 .clusterName(c.id())
                 .linkedVmName(linkedVm)
                 .provider(c.clusterProvider())

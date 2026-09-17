@@ -13,12 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Addon catalog REST.
- *
- * <p>Frontend 가 cluster 생성 dialog 에서 checkbox 렌더 시 GET /v1/addons 로 catalog 받아 사용.
- * 각 entry 의 id 를 {@code AddonSpec.catalogId} 로 보내면 backend 가 chart spec resolve.
- */
+/** Addon catalog REST. */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1")

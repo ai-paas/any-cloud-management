@@ -8,13 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
-/**
- * Velero backup stack installer.
- *
- * <p>post-install hook — Velero release deploy 직후 default
- * BackupPolicy 카탈로그 install (BackupPolicyInstaller.installAll). policy YAML 은 cluster-backup
- * starter 가 bundled (velero-policies/). starter bean 부재 시 (운영자가 lifecycle 제거) skip.
- */
+/** Velero backup stack installer. */
 @Slf4j
 @Component
 public class VeleroAddonInstaller extends AbstractHelmAddonInstaller {

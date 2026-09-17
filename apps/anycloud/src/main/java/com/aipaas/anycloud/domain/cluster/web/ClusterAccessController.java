@@ -119,8 +119,9 @@ public class ClusterAccessController {
             @PathVariable @NotBlank @Pattern(regexp = CLUSTER_REGEXP) @Size(max = CLUSTER_MAX) String clusterName,
             @PathVariable @NotBlank String nodeName,
             @RequestBody(required = false) DebugPodBody body) {
-        CreateRequest req =
-                body == null ? new CreateRequest(nodeName, null, null, null, null) : body.toRequest(nodeName);
+        CreateRequest req = body == null
+                ? new CreateRequest(nodeName, null, null, null, null, false, null)
+                : body.toRequest(nodeName);
         DebugPodResult result = nodeDebugPodService.create(clusterName, req);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiSuccessResponse.of(HttpStatus.CREATED.value(), "debug pod created", result));
@@ -131,10 +132,13 @@ public class ClusterAccessController {
             @Schema(description = "pod 가 생성될 namespace. default kube-system.") String namespace,
             @Schema(description = "container image. default agnhost (nsenter 포함).") String image,
             @Schema(description = "pod 이름. default aipaas-node-debug-{ts}.") String podName,
-            @Schema(description = "TTL annotation. default 1800.") Long ttlSeconds) {
+            @Schema(description = "TTL annotation. default 1800.") Long ttlSeconds,
+            @Schema(description = "true 면 호스트 대신 클러스터를 보는 kubectl/k9s 셸.") Boolean toolsShell,
+            @Schema(description = "toolsShell 이 사용할 ServiceAccount.") String serviceAccount) {
 
         CreateRequest toRequest(String nodeName) {
-            return new CreateRequest(nodeName, namespace, image, podName, ttlSeconds);
+            return new CreateRequest(
+                    nodeName, namespace, image, podName, ttlSeconds, Boolean.TRUE.equals(toolsShell), serviceAccount);
         }
     }
 

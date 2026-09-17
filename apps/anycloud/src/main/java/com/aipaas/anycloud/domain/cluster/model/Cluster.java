@@ -5,16 +5,6 @@ import java.time.ZonedDateTime;
 /**
  * Registered cluster 의 immutable 도메인 표현.
  *
- * <p>JPA / persistence 와 분리된 순수 자바 record. {@code @Entity}, {@code @Column} 등 어떤
- * infrastructure 어노테이션도 참조하지 않는다. 도메인 로직과 테스트는 이 타입만으로 동작 가능.
- *
- * <p>도메인 ↔ JPA 변환은 {@link com.aipaas.anycloud.domain.cluster.mapper.ClusterMapper} 가 단방향
- * boundary 에서 처리한다 (Hexagonal pattern 의 adapter 경계).
- *
- * <p>K8s admin 자격 (apiServerUrl/IP, server/client CA, client key/token) 과
- * monitServerUrl 모두 제거 — cluster-agent 가 in-cluster 에서 K8s API + Prometheus discover 대행.
- * Backend 는 cluster 자체에 직접 dial 하지 않음. ArgoCD/Flux/OCM 표준 pull-based pattern.
- *
  * @param id                  cluster id (= 사용자 지정 name). 변경 불가.
  * @param description         사용자 지정 설명.
  * @param status              status text (예: ACTIVE, PENDING_AGENT, INACTIVE).
