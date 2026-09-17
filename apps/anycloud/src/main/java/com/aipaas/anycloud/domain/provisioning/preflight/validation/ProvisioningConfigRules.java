@@ -20,12 +20,14 @@ public final class ProvisioningConfigRules {
     private static final String ENABLE_INGRESS = "anycloud-k8s:enableIngress";
     private static final String ENABLE_GPU_OPERATOR = "anycloud-k8s:enableGpuOperator";
     private static final String DB_ENABLED = "anycloud-k8s:dbEnabled";
+    private static final String ENABLE_MONITORING = "anycloud-k8s:enableMonitoring";
 
     /**
      * Boolean 의미 키들 — strict parser 대상. {@link Boolean#parseBoolean} 의 silent
      * false (대문자 "True", "1", "yes" → false) 이 발견-안 되는 오타를 차단.
      */
-    private static final List<String> BOOLEAN_FLAG_KEYS = List.of(ENABLE_INGRESS, ENABLE_GPU_OPERATOR, DB_ENABLED);
+    private static final List<String> BOOLEAN_FLAG_KEYS =
+            List.of(ENABLE_INGRESS, ENABLE_GPU_OPERATOR, DB_ENABLED, ENABLE_MONITORING);
 
     private ProvisioningConfigRules() {}
 
@@ -44,10 +46,10 @@ public final class ProvisioningConfigRules {
                 config.putIfAbsent(WORKER_VM_SPEC, "ecs.g6.large");
             }
             case OPENSTACK -> {
-                config.putIfAbsent("anycloud-k8s:openstackImageName", "ubuntu-24.04");
-                config.putIfAbsent("anycloud-k8s:openstackFlavorName", "m1.large");
-                config.putIfAbsent(MASTER_VM_SPEC, config.get("anycloud-k8s:openstackFlavorName"));
-                config.putIfAbsent(WORKER_VM_SPEC, config.get("anycloud-k8s:openstackFlavorName"));
+                config.putIfAbsent("anycloud-k8s:providerSpec.imageName", "ubuntu-24.04");
+                config.putIfAbsent("anycloud-k8s:providerSpec.flavorName", "m1.large");
+                config.putIfAbsent(MASTER_VM_SPEC, config.get("anycloud-k8s:providerSpec.flavorName"));
+                config.putIfAbsent(WORKER_VM_SPEC, config.get("anycloud-k8s:providerSpec.flavorName"));
             }
             case OCI -> {
                 config.putIfAbsent(MASTER_VM_SPEC, "VM.Standard.E4.Flex");
@@ -66,7 +68,7 @@ public final class ProvisioningConfigRules {
         config.putIfAbsent(MASTER_COUNT, "1");
         config.putIfAbsent(WORKER_COUNT, "2");
         config.putIfAbsent(KUBERNETES_VERSION, "1.31");
-        config.putIfAbsent(POD_CIDR, "192.168.0.0/16");
+        config.putIfAbsent(POD_CIDR, "10.244.0.0/16");
         config.putIfAbsent(SERVICE_CIDR, "10.96.0.0/12");
         // 정상 경로 (VmClusterProviderImpl.toProvisionDto) 는 항상 backend 생성 token 을 set —
         // 여기 도달 시점엔 이미 존재. 우회 경로 (직접 ProvisionClusterRequest 구성) 대비 방어선으로
@@ -74,6 +76,8 @@ public final class ProvisioningConfigRules {
         config.putIfAbsent(JOIN_TOKEN, com.aipaas.anycloud.domain.provisioning.bootstrap.KubeadmJoinTokens.generate());
         config.putIfAbsent(ENABLE_INGRESS, "false");
         config.putIfAbsent(ENABLE_GPU_OPERATOR, "false");
+        // 클러스터를 만든 직후 모니터링 화면을 여는 것이 보통이다. 없으면 빈 그래프만 나온다.
+        config.putIfAbsent(ENABLE_MONITORING, "true");
     }
 
     public static void validateRequiredConfig(SupportedProvisioningProvider provider, Map<String, String> config) {
@@ -86,17 +90,26 @@ public final class ProvisioningConfigRules {
         validateBooleanFlags(config);
 
         switch (provider) {
-            case GCP -> requireConfigKeys(config, missingKeys, "anycloud-k8s:gcpProject");
-            case AZURE -> requireConfigKeys(config, missingKeys, "anycloud-k8s:azureResourceGroup");
+            case GCP -> requireConfigKeys(config, missingKeys, "anycloud-k8s:providerSpec.project");
+            case AZURE -> requireConfigKeys(config, missingKeys, "anycloud-k8s:providerSpec.resourceGroup");
             case OPENSTACK -> {
                 requireConfigKeys(
-                        config, missingKeys, "anycloud-k8s:openstackImageName", "anycloud-k8s:openstackFlavorName");
-                requireAnyConfigKey(
                         config,
                         missingKeys,
-                        List.of("anycloud-k8s:openstackExternalNetworkId", "anycloud-k8s:openstackFloatingIpPool"));
+                        "anycloud-k8s:providerSpec.imageName",
+                        "anycloud-k8s:providerSpec.flavorName");
+                // emitter 가 둘 다 요구한다. 하나만 검사하면 preflight 를 통과한 뒤 PROVISION 에서 죽는다.
+                requireConfigKeys(
+                        config,
+                        missingKeys,
+                        "anycloud-k8s:providerSpec.externalNetworkId",
+                        "anycloud-k8s:providerSpec.floatingIpPool");
             }
-            case OCI -> requireConfigKeys(config, missingKeys, "anycloud-k8s:ociCompartmentId");
+                // OCI 이미지 OCID 는 리전마다 따로 발급돼 추측할 수 없다.
+            case OCI -> requireConfigKeys(
+                    config, missingKeys, "anycloud-k8s:providerSpec.compartmentId", "anycloud-k8s:osImage");
+            case PROXMOX -> requireConfigKeys(config, missingKeys, "anycloud-k8s:providerSpec.nodeName");
+            case IBM -> requireConfigKeys(config, missingKeys, "anycloud-k8s:providerSpec.zone");
             default -> {}
         }
 

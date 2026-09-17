@@ -18,11 +18,7 @@ public final class ProvisioningSelectionRules {
                 provider, vmOptionsSelectionValidator, cluster.getCredentialId(), cluster.getRegion(), config);
     }
 
-    /**
-     * Worker step 에서 호출되는 overload — {@link ProvisionClusterRequest} 의존성 없이
-     * 영속화된 {@link io.aipaas.cluster.provisioning.api.ProvisioningRequest}
-     * 의 field 만으로 동작.
-     */
+    /** Worker step 에서 호출되는 overload — {@link ProvisionClusterRequest} 의존성 없이 영속화된 {@link io.aipaas.cluster.provisioning.api.ProvisioningRequest} 의 field 만으로 동작. */
     public static void validateSelections(
             SupportedProvisioningProvider provider,
             VmOptionsSelectionValidator vmOptionsSelectionValidator,

@@ -50,11 +50,7 @@ public class VmClusterEntity implements Serializable {
     @Column(name = "cluster_name", nullable = false, length = 45)
     private String clusterName;
 
-    /**
-     * 매칭된 K8s ClusterEntity 의 id (FK). VERIFY / cluster-agent self-register 시점에 SET.
-     * 미설정 = 아직 K8s cluster 등록 전 (provisioning 중). ON DELETE SET NULL — cluster row 삭제 시
-     * vm_cluster 의 audit 보존을 위해 FK 만 끊는다.
-     */
+    /** 매칭된 K8s ClusterEntity 의 id (FK). VERIFY / cluster-agent self-register 시점에 SET. */
     @Size(max = 45)
     @Column(name = "cluster_id", length = 45)
     private String clusterId;
@@ -90,10 +86,19 @@ public class VmClusterEntity implements Serializable {
     @Column(name = "active_request_key", length = 45, unique = true)
     private String activeRequestKey;
 
+    /** 살아있는 자격증명을 가리키는 참조. 자격증명이 지워지면 아무데도 닿지 않는 값이 된다. */
     @Size(max = 36)
     @Column(name = "credential_id", length = 36)
     private String credentialId;
 
+    /*
+     * 요청 당시 이름의 스냅샷. credential_id 와 같은 값을 두 번 저장한 것이 아니다 —
+     * 하나는 참조고 이것은 기록이다.
+     *
+     * 자격증명 이름이 바뀌어도 따라가지 않는다. 따라가면 "그때 무엇으로 만들었나" 를 잃는다.
+     * DELETED 후 request_config 는 비밀 때문에 통째로 지우므로, 삭제된 클러스터가 무엇으로
+     * 만들어졌는지는 이 컬럼에만 남는다.
+     */
     @Size(max = 100)
     @Column(name = "credential_name", length = 100)
     private String credentialName;
@@ -121,11 +126,7 @@ public class VmClusterEntity implements Serializable {
     @Column(name = "bootstrap_log", columnDefinition = "MEDIUMTEXT")
     private String bootstrapLog;
 
-    /**
-     * BOOTSTRAP 단계 내부의 sub-step label — MASTER_INIT / WORKER_JOIN / NODES_READY 등.
-     * BOOTSTRAP 은 20~30분 걸려 "어디서 멈췄나" 가시성이 핵심. progress reporter 가 갱신,
-     * markReady 가 클리어.
-     */
+    /** BOOTSTRAP 단계 내부의 sub-step label — MASTER_INIT / WORKER_JOIN / NODES_READY 등. */
     @Column(name = "current_sub_step", length = 50)
     private String currentSubStep;
 
@@ -153,6 +154,17 @@ public class VmClusterEntity implements Serializable {
      */
     @Column(name = "last_processed_workflow_message_id", length = 36)
     private String lastProcessedWorkflowMessageId;
+
+    /**
+     * 지금 이 클러스터를 처리 중인 워크플로 메시지. 처리 시작 시점에 조건부 UPDATE 로 잡고
+     * 끝나면 비운다. {@link #lastProcessedWorkflowMessageId} 는 처리가 끝난 뒤에야 기록돼
+     * 처리 도중 도착한 재전달을 막지 못한다.
+     */
+    @Column(name = "processing_message_id", length = 36)
+    private String processingMessageId;
+
+    @Column(name = "processing_started_at")
+    private LocalDateTime processingStartedAt;
 
     @Column(name = "requested_at")
     private LocalDateTime requestedAt;

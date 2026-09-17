@@ -4,6 +4,7 @@ import com.aipaas.anycloud.common.error.enums.ErrorCode;
 import com.aipaas.anycloud.common.error.exception.ClusterNotFoundException;
 import com.aipaas.anycloud.common.error.exception.CustomException;
 import com.aipaas.anycloud.common.error.exception.provisioning.StateConflictException;
+import com.aipaas.anycloud.domain.audit.Audited;
 import com.aipaas.anycloud.domain.cluster.ClusterEntity;
 import com.aipaas.anycloud.domain.cluster.ClusterRepository;
 import com.aipaas.anycloud.domain.credential.CspCredentialService;
@@ -11,7 +12,9 @@ import com.aipaas.anycloud.domain.credential.ResolvedCspCredential;
 import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
 import com.aipaas.anycloud.domain.provisioning.VmClusterRepository;
 import com.aipaas.anycloud.domain.provisioning.api.request.ProvisionClusterRequest;
+import com.aipaas.anycloud.domain.provisioning.command.ForceDeleteResult;
 import com.aipaas.anycloud.domain.provisioning.command.VmClusterCommandService;
+import com.aipaas.anycloud.domain.provisioning.command.VmClusterDeletionTargets;
 import com.aipaas.anycloud.domain.provisioning.model.VmClusterStatus;
 import com.aipaas.anycloud.domain.provisioning.payload.VmClusterPayloadService;
 import com.aipaas.anycloud.domain.provisioning.preflight.validation.ProvisioningProviderValidator;
@@ -23,6 +26,7 @@ import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowStep;
 import io.aipaas.cluster.provisioning.api.ProvisioningRequest;
 import io.aipaas.cluster.provisioning.api.ProvisioningService;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,6 +37,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@lombok.extern.slf4j.Slf4j
 @RequiredArgsConstructor
 @Transactional
 public class VmClusterCommandServiceImpl implements VmClusterCommandService {
@@ -220,11 +225,19 @@ public class VmClusterCommandServiceImpl implements VmClusterCommandService {
         VmClusterEntity vmCluster = getVmCluster(clusterName);
         Optional<ClusterEntity> cluster = clusterRepository.findById(clusterName);
 
+        // 같은 이름의 옛 세대까지 대상으로 삼는다. 최신 1건만 보면 재시도로 쌓인 FAILED 행이
+        // 목록에 남는데 삭제 버튼이 아무 일도 하지 않는다 — 최신 행이 이미 DELETED 면 멱등 분기가
+        // 먼저 걸려 옛 행에 닿지도 못했다.
+        List<VmClusterEntity> generations = vmClusterRepository.findAllByClusterNameOrderByCreatedAtDesc(clusterName);
+        List<VmClusterEntity> pending = VmClusterDeletionTargets.pending(generations);
+        // 이미 DELETING 인데 멈춘 세대도 다시 걸어야 한다 — destroy 가 죽으면 그대로 남는다.
+        boolean needsRun = VmClusterDeletionTargets.needsDestroyRun(generations);
+
         //  DELETE 멱등성. 이미 DELETED 인 history row 에 재삭제 요청이 오면 strict state
         // machine 이 DELETED → DELETING 전환을 거부해 400 이 났었다 — REST DELETE 는 멱등이어야
         // 하므로 no-op 성공으로 처리. history row 는 보존, 잔존 cluster row 만 정리. sensitive 페이로드가
         // 남아 있으면 이번 호출에 sanitize (이전 빌드의 DELETED row 마이그레이션 대비).
-        if (vmCluster.getProvisioningStatus() == VmClusterStatus.DELETED) {
+        if (pending.isEmpty() && !needsRun) {
             cluster.ifPresent(clusterRepository::delete);
             if (vmCluster.getRequestConfig() != null
                     || vmCluster.getRawOutputs() != null
@@ -237,19 +250,48 @@ public class VmClusterCommandServiceImpl implements VmClusterCommandService {
             return HttpStatus.OK;
         }
 
-        if (vmCluster.getStackName() != null && !vmCluster.getStackName().isBlank()) {
-            vmCluster.transitionTo(VmClusterStatus.DELETING, "command.delete");
-            vmCluster.setCurrentWorkflowStep(
-                    com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowStep.DESTROY);
-            vmCluster.setDeletingStartedAt(LocalDateTime.now());
-            vmClusterRepository.save(vmCluster);
-            vmClusterAsyncService.destroyClusterAsync(clusterName);
-            return HttpStatus.ACCEPTED;
+        boolean destroyStarted = false;
+        for (VmClusterEntity row : pending) {
+            if (VmClusterDeletionTargets.needsDestroy(row)) {
+                row.transitionTo(VmClusterStatus.DELETING, "command.delete");
+                row.setCurrentWorkflowStep(
+                        com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowStep.DESTROY);
+                row.setDeletingStartedAt(LocalDateTime.now());
+                vmClusterRepository.save(row);
+                destroyStarted = true;
+            } else {
+                // 스택이 없으면 지울 인프라도 없다. 기록만 걷어낸다.
+                vmClusterRepository.delete(row);
+            }
         }
 
         cluster.ifPresent(clusterRepository::delete);
-        vmClusterRepository.delete(vmCluster);
+        if (destroyStarted || needsRun) {
+            vmClusterAsyncService.destroyClusterAsync(clusterName);
+            return HttpStatus.ACCEPTED;
+        }
         return HttpStatus.OK;
+    }
+
+    @Override
+    @Audited(
+            action = "vmCluster.forceDelete",
+            resourceType = "cluster",
+            resourceId = "#clusterName",
+            // 어떤 스택이 남을 수 있는지가 기록의 핵심이다.
+            summary = "'removed=' + #result.removedRecords() + ', orphanedStacks=' + #result.orphanedStacks()")
+    public ForceDeleteResult forceDeleteVmCluster(String clusterName) {
+        List<VmClusterEntity> generations = vmClusterRepository.findAllByClusterNameOrderByCreatedAtDesc(clusterName);
+        if (generations.isEmpty()) {
+            throw new ClusterNotFoundException(clusterName);
+        }
+        // destroy 를 돌리지 않으므로 무엇이 남을 수 있는지 먼저 계산한다. 지우고 나면 알 수 없다.
+        List<String> orphaned = VmClusterDeletionTargets.orphanedStacks(generations);
+
+        clusterRepository.findById(clusterName).ifPresent(clusterRepository::delete);
+        vmClusterRepository.deleteAll(generations);
+        log.warn("강제 삭제 — 기록만 지웠다 cluster={} rows={} 남을 수 있는 스택={}", clusterName, generations.size(), orphaned);
+        return new ForceDeleteResult(generations.size(), orphaned);
     }
 
     private VmClusterEntity getVmCluster(String clusterName) {

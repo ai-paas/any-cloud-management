@@ -53,6 +53,18 @@ class VmClusterRepositoryIntegrationTest extends AbstractIntegrationTest {
                 .isEmpty();
     }
 
+    @Test
+    void degradedStatusPersistsToEnumColumn() {
+        // provisioning_status 는 varchar 가 아니라 MySQL enum 이다. V8 로 값을 추가하지 않으면
+        // Java 만 고쳤을 때 컴파일과 단위 테스트는 통과하고 여기서 깨진다.
+        VmClusterEntity entity = newCluster("degraded-round-trip");
+        entity.setProvisioningStatus(VmClusterStatus.DEGRADED);
+        VmClusterEntity saved = repository.saveAndFlush(entity);
+
+        assertThat(repository.findById(saved.getId()).orElseThrow().getProvisioningStatus())
+                .isEqualTo(VmClusterStatus.DEGRADED);
+    }
+
     private VmClusterEntity newCluster(String name) {
         // id 는 넣지 않는다. @GeneratedValue(UUID) 가 채운다.
         // 미리 넣으면 Hibernate 6.6 이 detached 로 판정해 INSERT 대신 UPDATE 를 보내고,

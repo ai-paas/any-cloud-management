@@ -35,9 +35,6 @@ import org.springframework.stereotype.Service;
  *       {@code asyncTaskExecutor}. 다음 step (VERIFY) publish + state mutation.</li>
  * </ol>
  *
- * <p>가장 명백한 분해 candidate 는 4 의 post-bootstrap registration — SSH path 의 best-effort
- * agent install 이 BOOTSTRAP 단계의 핵심 경로와 분리되어 있어 별도 {@code AgentInstaller} class
- * 로 추출 가능. 분해 후 deps 7 으로 감소.
  */
 @Slf4j
 @Service
@@ -53,7 +50,6 @@ public class VmClusterBootstrapStepServiceImpl implements VmClusterBootstrapStep
     private final VmClusterWorkflowPublisher vmClusterWorkflowPublisher;
     private final VmClusterWorkflowSupportService workflowSupportService;
     private final VmClusterBootstrapLogService vmClusterBootstrapLogService;
-    private final VmClusterAgentInstaller agentInstaller;
 
     @Override
     public void execute(String vmClusterId, String clusterName) {
@@ -87,8 +83,6 @@ public class VmClusterBootstrapStepServiceImpl implements VmClusterBootstrapStep
             vmCluster.setRawOutputs(vmClusterPayloadService.serializeSanitizedOutputs(outputs));
             vmCluster.setClusterRegistered(true);
             vmClusterRepository.save(vmCluster);
-
-            agentInstaller.installViaSsh(vmCluster, outputs);
 
             workflowSupportService.markStepSucceeded(vmCluster, VmClusterWorkflowStep.BOOTSTRAP);
 

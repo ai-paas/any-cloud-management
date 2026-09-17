@@ -14,8 +14,6 @@ import com.aipaas.anycloud.domain.provisioning.preflight.VmClusterPreflightServi
 import com.aipaas.anycloud.domain.provisioning.preflight.validation.ProvisioningConfigRules;
 import com.aipaas.anycloud.domain.provisioning.preflight.validation.ProvisioningCredentialRules;
 import com.aipaas.anycloud.domain.provisioning.preflight.validation.ProvisioningProviderValidator;
-import com.aipaas.anycloud.domain.provisioning.pricing.CostEstimate;
-import com.aipaas.anycloud.domain.provisioning.pricing.CostEstimator;
 import com.aipaas.anycloud.domain.provisioning.properties.PulumiProperties;
 import com.aipaas.anycloud.domain.vmoptions.VmOptionsQueryService;
 import com.aipaas.anycloud.domain.vmoptions.validation.VmOptionsSelectionValidator;
@@ -61,7 +59,6 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
     private final VmOptionsQueryService vmOptionsQueryService;
     private final VmOptionsSelectionValidator vmOptionsSelectionValidator;
     private final PulumiProperties pulumiProperties;
-    private final CostEstimator costEstimator;
     private final ProvisioningProviderValidator provisioningProviderValidator;
 
     /**
@@ -183,16 +180,6 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
             }
         }
 
-        // 정적 catalog 기반 예상 비용.
-        String useSpotRaw = normalizedConfig.get("useSpot");
-        if (useSpotRaw == null) {
-            useSpotRaw = normalizedConfig.getOrDefault("anycloud-k8s:useSpot", "false");
-        }
-        CostEstimate costEstimate = costEstimator.estimate(
-                provider == null ? cluster.getClusterProvider() : provider.getCanonicalName(),
-                normalizedConfig,
-                Boolean.parseBoolean(useSpotRaw));
-
         return VmClusterPreflightResponse.builder()
                 .readyToProvision(errors.isEmpty() && missingCredentialKeys.isEmpty())
                 .existingClusterConflict(existingClusterConflict)
@@ -226,16 +213,10 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
                 .errors(errors)
                 .warningItems(warningItems)
                 .errorItems(errorItems)
-                .costEstimate(costEstimate)
                 .build();
     }
 
-    /**
-     * Step 1 helper. provider normalize + config defaults 적용. defaults 가 raw config 에 없던
-     * key 면 appliedDefaults 에 누적 (응답으로 사용자에게 노출).
-     *
-     * <p>provider 가 invalid 면 result.error() 가 non-null — caller 가 errors 에 추가.
-     */
+    /** Step 1 helper. provider normalize + config defaults 적용. defaults 가 raw config 에 없던 key 면 appliedDefaults 에 누적 (응답으로 사용자에게 노출). */
     private ProviderNormalizationResult normalizeProviderAndDefaults(
             ProvisionClusterRequest cluster, Map<String, String> rawConfig, Map<String, String> normalizedConfig) {
         List<String> applied = new ArrayList<>();
@@ -254,12 +235,7 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
         }
     }
 
-    /**
-     * Step 2 helper. cluster name 이 이미 등록된 cluster (clusters) 또는 진행 중인 VM workflow
-     * (vm_clusters.active_request_key) 와 충돌하는지 확인.
-     *
-     * <p>cluster 또는 clusterName blank 면 conflict false (caller 가 name 검증 별도).
-     */
+    /** Step 2 helper. cluster name 이 이미 등록된 cluster (clusters) 또는 진행 중인 VM workflow (vm_clusters.active_request_key) 와 충돌하는지 확인. */
     private boolean checkClusterNameConflict(ProvisionClusterRequest cluster) {
         if (cluster == null
                 || cluster.getClusterName() == null
@@ -344,11 +320,7 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
         }
     }
 
-    /**
-     * Step 7 helper. Pulumi 가 사용할 stackName 미리 계산. credential 이 미해결인 경우
-     * dummy ResolvedCspCredential (ENV / Application Environment) 로 채워 stackName builder 가
-     * 어쨌든 동작하.
-     */
+    /** Step 7 helper. Pulumi 가 사용할 stackName 미리 계산. credential 이 미해결인 경우 dummy ResolvedCspCredential (ENV / Application Environment) 로 채워 stackName builder 가 어쨌든 동작하. */
     private StackNamePreview buildStackNamePreview(
             SupportedProvisioningProvider provider,
             ProvisionClusterRequest cluster,

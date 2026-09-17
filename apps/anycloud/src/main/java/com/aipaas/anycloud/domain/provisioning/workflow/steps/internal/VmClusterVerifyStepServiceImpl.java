@@ -22,6 +22,8 @@ public class VmClusterVerifyStepServiceImpl implements VmClusterVerifyStepServic
     private final VmClusterWorkflowSupportService workflowSupportService;
     private final io.aipaas.cluster.provisioning.api.ProvisioningService provisioningService;
     private final com.aipaas.anycloud.domain.provisioning.remote.VmClusterRemoteAccessService remoteAccessService;
+    private final com.aipaas.anycloud.domain.provisioning.convergence.ClusterConvergenceService convergenceService;
+    private final com.aipaas.anycloud.domain.provisioning.convergence.internal.ClusterDegradedNudge degradedNudge;
 
     @Override
     public void execute(String vmClusterId, String clusterName) {
@@ -62,8 +64,17 @@ public class VmClusterVerifyStepServiceImpl implements VmClusterVerifyStepServic
                         "refreshClusterStatus best-effort failed for {} (agent 미설치 가능): {}", clusterName, e.toString());
             }
 
-            workflowSupportService.markReady(vmCluster);
-            log.info("VM cluster workflow completed for cluster {}", clusterName);
+            // 수렴은 여기서 판정한다 — READY 를 결정하는 곳이 VERIFY 이고, agent 설치가
+            // BOOTSTRAP 끝에서 일어나 그 단계에서는 probe 가 항상 이르다.
+            if (convergenceService.convergeWithinBudget(vmCluster)) {
+                workflowSupportService.markReady(vmCluster);
+                log.info("VM cluster workflow completed for cluster {}", clusterName);
+            } else {
+                workflowSupportService.markDegraded(vmCluster);
+                // 정기 조정 주기를 통째로 기다리지 않는다. 애드온이 막 뜨는 시점이라 짧게 한 번 더 본다.
+                degradedNudge.onDegraded(clusterName);
+                log.info("VM cluster {} 는 요청한 구성 요소가 아직 준비되지 않아 DEGRADED — 조정 루프가 이어받습니다", clusterName);
+            }
         } catch (Exception e) {
             workflowSupportService.failWithDiagnostics(vmCluster, clusterName, e);
             throw new VmClusterStepExecutionException("VERIFY step failed for " + clusterName, e);

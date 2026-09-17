@@ -19,16 +19,30 @@ class GpuFlavorMapperTest extends AbstractUnitTest {
         boolean mutated = GpuFlavorMapper.applyGpuDefaults("aws", cfg);
         assertThat(mutated).isTrue();
         assertThat(cfg)
-                .containsEntry(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE, "g5.xlarge")
-                .containsEntry(GpuFlavorMapper.CONFIG_KEY_ENABLE_GPU_OPERATOR, "true");
+                .containsEntry(GpuFlavorMapper.nsKey(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE), "g5.xlarge")
+                .containsEntry(GpuFlavorMapper.nsKey(GpuFlavorMapper.CONFIG_KEY_ENABLE_GPU_OPERATOR), "true");
+    }
+
+    @Test
+    void namespacedOperatorChoiceIsNotOverwritten() {
+        // 요청은 anycloud-k8s: 접두로 온다. 접두 없이 확인하면 운영자 지정 인스턴스 타입을
+        // 못 보고 GPU 기본값으로 덮어쓴다.
+        Map<String, String> cfg = new HashMap<>();
+        cfg.put(GpuFlavorMapper.nsKey(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE), "p4d.24xlarge");
+
+        GpuFlavorMapper.applyGpuDefaults("aws", cfg);
+
+        assertThat(cfg)
+                .containsEntry(GpuFlavorMapper.nsKey(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE), "p4d.24xlarge")
+                .doesNotContainKey(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE);
     }
 
     @Test
     void applyGpuDefaults_operatorDisabledGpuOperator_isPreserved() {
         Map<String, String> cfg = new HashMap<>();
-        cfg.put(GpuFlavorMapper.CONFIG_KEY_ENABLE_GPU_OPERATOR, "false");
+        cfg.put(GpuFlavorMapper.nsKey(GpuFlavorMapper.CONFIG_KEY_ENABLE_GPU_OPERATOR), "false");
         GpuFlavorMapper.applyGpuDefaults("aws", cfg);
-        assertThat(cfg).containsEntry(GpuFlavorMapper.CONFIG_KEY_ENABLE_GPU_OPERATOR, "false");
+        assertThat(cfg).containsEntry(GpuFlavorMapper.nsKey(GpuFlavorMapper.CONFIG_KEY_ENABLE_GPU_OPERATOR), "false");
     }
 
     @Test
@@ -37,7 +51,7 @@ class GpuFlavorMapperTest extends AbstractUnitTest {
         boolean mutated = GpuFlavorMapper.applyGpuDefaults("gcp", cfg);
         assertThat(mutated).isTrue();
         assertThat(cfg)
-                .containsEntry(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE, "n1-standard-4")
+                .containsEntry(GpuFlavorMapper.nsKey(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE), "n1-standard-4")
                 .containsEntry(GpuFlavorMapper.CONFIG_KEY_WORKER_ACCELERATOR_TYPE, "nvidia-tesla-t4")
                 .containsEntry(GpuFlavorMapper.CONFIG_KEY_WORKER_ACCELERATOR_COUNT, "1");
     }
@@ -46,30 +60,35 @@ class GpuFlavorMapperTest extends AbstractUnitTest {
     void applyGpuDefaults_azure_injectsNcv3() {
         Map<String, String> cfg = new HashMap<>();
         GpuFlavorMapper.applyGpuDefaults("azure", cfg);
-        assertThat(cfg).containsEntry(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE, "Standard_NC4as_T4_v3");
+        assertThat(cfg)
+                .containsEntry(
+                        GpuFlavorMapper.nsKey(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE), "Standard_NC4as_T4_v3");
     }
 
     @Test
     void applyGpuDefaults_oci_injectsA10() {
         Map<String, String> cfg = new HashMap<>();
         GpuFlavorMapper.applyGpuDefaults("oci", cfg);
-        assertThat(cfg).containsEntry(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE, "VM.GPU.A10.1");
+        assertThat(cfg)
+                .containsEntry(GpuFlavorMapper.nsKey(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE), "VM.GPU.A10.1");
     }
 
     @Test
     void applyGpuDefaults_operatorSpecified_keepsValue() {
         // 운영자가 명시한 instance type 은 override 안 함.
         Map<String, String> cfg = new HashMap<>();
-        cfg.put(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE, "p4d.24xlarge");
+        cfg.put(GpuFlavorMapper.nsKey(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE), "p4d.24xlarge");
         GpuFlavorMapper.applyGpuDefaults("aws", cfg);
-        assertThat(cfg).containsEntry(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE, "p4d.24xlarge");
+        assertThat(cfg)
+                .containsEntry(GpuFlavorMapper.nsKey(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE), "p4d.24xlarge");
     }
 
     @Test
     void applyGpuDefaults_caseInsensitiveProvider() {
         Map<String, String> cfg = new HashMap<>();
         GpuFlavorMapper.applyGpuDefaults("AWS", cfg);
-        assertThat(cfg).containsEntry(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE, "g5.xlarge");
+        assertThat(cfg)
+                .containsEntry(GpuFlavorMapper.nsKey(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE), "g5.xlarge");
     }
 
     @Test
@@ -95,14 +114,15 @@ class GpuFlavorMapperTest extends AbstractUnitTest {
     @Test
     void applyGpuDefaults_gcp_operatorAcceleratorOverridesKept() {
         Map<String, String> cfg = new HashMap<>();
-        cfg.put(GpuFlavorMapper.CONFIG_KEY_WORKER_ACCELERATOR_TYPE, "nvidia-tesla-a100");
-        cfg.put(GpuFlavorMapper.CONFIG_KEY_WORKER_ACCELERATOR_COUNT, "8");
+        cfg.put(GpuFlavorMapper.nsKey(GpuFlavorMapper.CONFIG_KEY_WORKER_ACCELERATOR_TYPE), "nvidia-tesla-a100");
+        cfg.put(GpuFlavorMapper.nsKey(GpuFlavorMapper.CONFIG_KEY_WORKER_ACCELERATOR_COUNT), "8");
         GpuFlavorMapper.applyGpuDefaults("gcp", cfg);
         // 운영자 값 보존.
         assertThat(cfg)
-                .containsEntry(GpuFlavorMapper.CONFIG_KEY_WORKER_ACCELERATOR_TYPE, "nvidia-tesla-a100")
-                .containsEntry(GpuFlavorMapper.CONFIG_KEY_WORKER_ACCELERATOR_COUNT, "8")
+                .containsEntry(
+                        GpuFlavorMapper.nsKey(GpuFlavorMapper.CONFIG_KEY_WORKER_ACCELERATOR_TYPE), "nvidia-tesla-a100")
+                .containsEntry(GpuFlavorMapper.nsKey(GpuFlavorMapper.CONFIG_KEY_WORKER_ACCELERATOR_COUNT), "8")
                 // instance type 은 default 주입 (운영자 미명시).
-                .containsEntry(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE, "n1-standard-4");
+                .containsEntry(GpuFlavorMapper.nsKey(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE), "n1-standard-4");
     }
 }

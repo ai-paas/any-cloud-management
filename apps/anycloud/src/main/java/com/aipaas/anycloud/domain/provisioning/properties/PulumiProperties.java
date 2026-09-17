@@ -10,12 +10,7 @@ import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-/**
- * anycloud 의 Pulumi 설정 (prefix {@code pulumi}). cluster-provisioning starter 의
- * {@link ExecutionConfig} 포트를 구현 — starter 의 {@link io.aipaas.cluster.provisioning.internal.AutomationProvisioningService}
- * 가 이 bean 을 config 소스로 사용. 추가로 anycloud 도메인 전용 필드 (sshUser / stackPrefix /
- * runtimeDir) 보유.
- */
+/** anycloud 의 Pulumi 설정 (prefix {@code pulumi}). cluster-provisioning starter 의 {@link ExecutionConfig} 포트를 구현 — starter 의 {@link io.aipaas.cluster.provisioning.internal.AutomationProvisioningService} 가 이 bean 을 config 소스로 사용. 추가로 anycloud 도메인 전용 필드 (sshUser / stackPrefix / runtimeDir) 보유. */
 @Getter
 @Setter
 @Component
@@ -28,14 +23,7 @@ public class PulumiProperties implements ExecutionConfig {
     private String passphrase;
     private String sshUser = "ubuntu";
 
-    /**
-     * Pulumi state backend URL. Self-hosted 환경에서는 S3-compatible storage
-     * (예: RustFS / MinIO / Ceph RGW)를 가리킨다.
-     * <p>
-     * 예: {@code s3://pulumi-state?endpoint=https://rustfs:9000&s3ForcePathStyle=true}
-     * <p>
-     * 비어 있으면 Pulumi 의 기본 동작(로컬 파일 또는 Pulumi Cloud)을 따른다.
-     */
+    /** Pulumi state backend URL. Self-hosted 환경에서는 S3-compatible storage (예: RustFS / MinIO / Ceph RGW)를 가리킨다. */
     private String backendUrl;
 
     /**

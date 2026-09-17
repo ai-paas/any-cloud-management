@@ -25,4 +25,14 @@ public interface VmClusterCommandService {
     HttpStatus scaleVmCluster(String clusterName, int workerCount);
 
     HttpStatus deleteVmCluster(String clusterName);
+
+    /**
+     * destroy 없이 기록만 지운다.
+     *
+     * <p>참조하던 자격증명이 사라지면 destroy 가 인증을 못 해 행이 영영 남는다. 마지막 수단이다 —
+     * <b>클라우드에 자원이 남아 있을 수 있다.</b>
+     *
+     * @return 지운 기록 수와, 남아 있을 수 있는 스택 이름들
+     */
+    ForceDeleteResult forceDeleteVmCluster(String clusterName);
 }

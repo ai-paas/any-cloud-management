@@ -29,7 +29,20 @@ anycloud:
     cleanup:
       enabled: ${ANYCLOUD_OPERATION_CLEANUP_ENABLED:true}
       retention-days: ${ANYCLOUD_OPERATION_CLEANUP_DAYS:30}
-      cron: ${ANYCLOUD_OPERATION_CLEANUP_CRON:0 30 3 * * *}     # 매일 03:30
+      cron: ${ANYCLOUD_OPERATION_CLEANUP_CRON:0 15 3 * * *}     # 매일 03:15 (audit 03:30 과 겹치지 않게)
+
+  # 감사 로그 위생. 아래 정리 잡들은 서로 다른 시각에 돈다 — ShedLock 은 같은 이름만 막으므로
+  # 시각이 겹치면 여러 잡이 동시에 같은 DB 를 친다.
+  audit:
+    retention-days: ${ANYCLOUD_AUDIT_RETENTION_DAYS:90}
+    cleanup:
+      cron: ${ANYCLOUD_AUDIT_CLEANUP_CRON:0 30 3 * * *}         # 매일 03:30
+
+  # agent bootstrap 토큰 재사용 방지 기록.
+  bootstrap-jti:
+    cleanup:
+      enabled: ${ANYCLOUD_BOOTSTRAP_JTI_CLEANUP_ENABLED:true}
+      cron: ${ANYCLOUD_BOOTSTRAP_JTI_CLEANUP_CRON:0 0 4 * * *}  # 매일 04:00
 
 # 외부 포털 등에 클러스터 상태 변화를 push 하는 webhook. event-driven 통합용.
 # 비활성 기본. 활성 시 urls 와 (선택) signing-secret 을 채울 것.

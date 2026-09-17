@@ -2,7 +2,6 @@ package com.aipaas.anycloud.domain.provisioning.workflow.internal;
 
 import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowMessage;
 import com.aipaas.anycloud.domain.provisioning.workflow.VmClusterWorkflowOrchestrator;
-import com.aipaas.anycloud.domain.provisioning.workflow.WorkflowMessageGuard;
 import com.aipaas.anycloud.domain.provisioning.workflow.WorkflowMessageLogService;
 import com.aipaas.anycloud.domain.provisioning.workflow.steps.VmClusterBootstrapStepService;
 import com.aipaas.anycloud.domain.provisioning.workflow.steps.VmClusterDestroyStepService;
@@ -22,76 +21,42 @@ public class VmClusterWorkflowOrchestratorImpl implements VmClusterWorkflowOrche
     private final VmClusterBootstrapStepService bootstrapStepService;
     private final VmClusterVerifyStepService verifyStepService;
     private final VmClusterDestroyStepService destroyStepService;
-    private final WorkflowMessageGuard messageGuard;
+    private final WorkflowStepDispatcher dispatcher;
     private final WorkflowMessageLogService workflowMessageLogService;
 
     @Override
     // Provision only creates infrastructure and persists outputs for the next workflow stages.
     public void provisionInfrastructure(VmClusterWorkflowMessage message) {
-        if (!messageGuard.shouldProcess(message)) {
-            return;
-        }
-        LocalDateTime startedAt = LocalDateTime.now();
-        try {
-            provisionStepService.execute(
-                    message.getVmClusterId(), message.getClusterName(), message.getProvisioningRequest());
-            workflowMessageLogService.recordProcessed(message, startedAt);
-        } catch (Exception e) {
-            recordFailureAndSwallow(message, startedAt, e);
-        } finally {
-            messageGuard.markProcessed(message);
-        }
+        dispatcher.dispatch(
+                message,
+                () -> provisionStepService.execute(
+                        message.getVmClusterId(), message.getClusterName(), message.getProvisioningRequest()),
+                this::recordFailureAndSwallow);
     }
 
     @Override
     // Bootstrap assumes nodes are already reachable and prepares the Kubernetes control plane and workers.
     public void bootstrapCluster(VmClusterWorkflowMessage message) {
-        if (!messageGuard.shouldProcess(message)) {
-            return;
-        }
-        LocalDateTime startedAt = LocalDateTime.now();
-        try {
-            bootstrapStepService.execute(message.getVmClusterId(), message.getClusterName());
-            workflowMessageLogService.recordProcessed(message, startedAt);
-        } catch (Exception e) {
-            recordFailureAndSwallow(message, startedAt, e);
-        } finally {
-            messageGuard.markProcessed(message);
-        }
+        dispatcher.dispatch(
+                message,
+                () -> bootstrapStepService.execute(message.getVmClusterId(), message.getClusterName()),
+                this::recordFailureAndSwallow);
     }
 
     @Override
     // Verify is the last gate before registration; it should only check readiness, not mutate infra.
     public void verifyCluster(VmClusterWorkflowMessage message) {
-        if (!messageGuard.shouldProcess(message)) {
-            return;
-        }
-        LocalDateTime startedAt = LocalDateTime.now();
-        try {
-            verifyStepService.execute(message.getVmClusterId(), message.getClusterName());
-            workflowMessageLogService.recordProcessed(message, startedAt);
-        } catch (Exception e) {
-            recordFailureAndSwallow(message, startedAt, e);
-        } finally {
-            messageGuard.markProcessed(message);
-        }
+        dispatcher.dispatch(
+                message,
+                () -> verifyStepService.execute(message.getVmClusterId(), message.getClusterName()),
+                this::recordFailureAndSwallow);
     }
 
     @Override
     // Destroy runs independently from create workflow and must tolerate partially created resources.
     public void destroyCluster(VmClusterWorkflowMessage message) {
-        if (!messageGuard.shouldProcess(message)) {
-            return;
-        }
-        LocalDateTime startedAt = LocalDateTime.now();
-        try {
-            destroyStepService.execute(message.getClusterName());
-            workflowMessageLogService.recordProcessed(message, startedAt);
-        } catch (Exception e) {
-            recordFailureAndSwallow(message, startedAt, e);
-        } finally {
-            messageGuard.markProcessed(message);
-        }
+        dispatcher.dispatch(
+                message, () -> destroyStepService.execute(message.getClusterName()), this::recordFailureAndSwallow);
     }
 
     /**
@@ -102,7 +67,7 @@ public class VmClusterWorkflowOrchestratorImpl implements VmClusterWorkflowOrche
      * RabbitMQ 로 nack 할 불필요. 즉 워크플로우 실패는 entity 와 log 양쪽에 영속되지만
      * 메시지 처리는 정상 종료되어 다음 메시지가 흘러간다.
      */
-    private void recordFailureAndSwallow(VmClusterWorkflowMessage message, LocalDateTime startedAt, Throwable e) {
+    private void recordFailureAndSwallow(VmClusterWorkflowMessage message, LocalDateTime startedAt, Exception e) {
         log.error(
                 "Workflow step {} failed for cluster {} (messageId={}): {}",
                 message.getStep(),
