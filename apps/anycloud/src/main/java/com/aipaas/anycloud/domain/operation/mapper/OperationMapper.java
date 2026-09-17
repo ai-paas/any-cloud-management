@@ -5,12 +5,7 @@ import com.aipaas.anycloud.domain.operation.OperationEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-/**
- * JPA Entity ↔ Domain 변환 boundary.
- *
- * <p>Hexagonal pattern 의 adapter 책임 — service 내부에서만 사용. Controller / domain 코드는 이
- * mapper 를 직접 호출하지 않는다 (Service interface 가 domain 만 노출하는 방향으로 점진 migration).
- */
+/** JPA Entity ↔ Domain 변환 boundary. */
 @Mapper(componentModel = "spring")
 public interface OperationMapper {
 

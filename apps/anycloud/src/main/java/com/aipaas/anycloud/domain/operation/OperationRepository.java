@@ -41,4 +41,15 @@ public interface OperationRepository extends JpaRepository<OperationEntity, Stri
             + "                   com.aipaas.anycloud.domain.operation.model.OperationState.CANCELLED) "
             + "  AND o.createdAt < :cutoff")
     int deleteCompletedBefore(@Param("cutoff") LocalDateTime cutoff);
+
+    /**
+     * 시작한 지 오래됐는데 아직 끝나지 않은 작업.
+     *
+     * <p>워커가 죽거나 워크플로가 멈추면 RUNNING 인 채로 남는다. 화면에서는 진행 중으로 보여
+     * 방치된 것과 구분되지 않는다.
+     */
+    @Query("select o from OperationEntity o where o.state in :states "
+            + "and coalesce(o.startedAt, o.createdAt) < :cutoff")
+    List<OperationEntity> findStaleActive(
+            @Param("states") java.util.Collection<OperationState> states, @Param("cutoff") LocalDateTime cutoff);
 }

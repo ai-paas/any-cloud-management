@@ -1,5 +1,6 @@
 package com.aipaas.anycloud.domain.operation;
 
+import com.aipaas.anycloud.common.logging.SensitiveDataRedactor;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
@@ -19,6 +20,8 @@ public record OperationResponse(
         @Schema(description = "state", example = "RUNNING") String state,
         @Schema(description = "진행 정보") Progress progress,
         @Schema(description = "에러 메시지 (FAILED 시)") String errorMessage,
+        @Schema(description = "이 작업을 만든 요청 본문. 자격증명 값은 가려서 내보낸다. " + "같은 type 의 작업이 많아 무엇을 한 작업인지 구분하는 데 쓴다.")
+                String request,
         @Schema(description = "시작 시각") LocalDateTime startedAt,
         @Schema(description = "종료 시각 (terminal 일 때)") LocalDateTime endedAt,
         @Schema(description = "생성 시각") LocalDateTime createdAt) {
@@ -52,6 +55,8 @@ public record OperationResponse(
                 .state(e.getState() == null ? null : e.getState().name())
                 .progress(p)
                 .errorMessage(e.getErrorMessage())
+                // 요청 본문에 자격증명이 섞여 들어오면 작업 이력이 비밀 저장소가 된다.
+                .request(SensitiveDataRedactor.redact(e.getRequestPayload()))
                 .startedAt(e.getStartedAt())
                 .endedAt(e.getEndedAt())
                 .createdAt(e.getCreatedAt())

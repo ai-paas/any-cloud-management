@@ -5,12 +5,7 @@ import com.aipaas.anycloud.domain.operation.model.OperationType;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Long-Running Operation 의 lifecycle 관리.
- * <p>
- * 비즈니스 코드는 시작 시 {@link #start} 호출 → operation 즉시 PENDING/RUNNING row 생성 + id 반환.
- * 작업 진행 중 {@link #updateProgress}, 완료 시 {@link #complete} / {@link #fail}.
- */
+/** Long-Running Operation 의 lifecycle 관리. */
 public interface OperationService {
 
     /** 새 operation 등록 (state=PENDING). */
@@ -31,13 +26,7 @@ public interface OperationService {
 
     Optional<OperationEntity> findById(String operationId);
 
-    /**
-     * Step 2 (Entity → Domain) pilot — JPA-free immutable view.
-     *
-     * <p>새 consumer 는 이 메서드를 사용해 도메인 record 만 다루도록 하고, 기존
-     * {@link #findById(String)} 는 점진적으로 제거. 자세한 로드맵:
-     * docs/architecture/design/domain-model-roadmap.md.
-     */
+    /** Step 2 (Entity → Domain) pilot — JPA-free immutable view. */
     Optional<Operation> findDomainById(String operationId);
 
     /**
