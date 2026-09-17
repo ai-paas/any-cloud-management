@@ -32,6 +32,7 @@ public class VmClusterInternalRequestSnapshot {
     private String osImage;
     private Boolean enableIngress;
     private Boolean enableGpuOperator;
+    private Boolean enableMonitoring;
     private Boolean dbEnabled;
     private Map<String, String> providerConfig;
 }

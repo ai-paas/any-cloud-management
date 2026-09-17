@@ -53,11 +53,21 @@ public class VmClusterStatusResponse {
     @Schema(description = "환경", example = "dev")
     private String environment;
 
-    @Schema(description = "연결된 자격증명 이름", example = "aws-dev-credential")
+    /*
+     * 이름은 요청 당시의 기록이라 자격증명이 지워지거나 개명돼도 남는다. id 를 함께 보내야 화면이
+     * "아직 있는 자격증명" 과 "사라진 자격증명" 을 구분해 보여줄 수 있다.
+     */
+    @Schema(description = "연결된 자격증명 이름 (요청 당시 기록)", example = "aws-dev-credential")
     private String credentialName;
+
+    @Schema(description = "연결된 자격증명 ID. 자격증명이 삭제됐으면 더는 조회되지 않는다", example = "cred-001")
+    private String credentialId;
 
     @Schema(description = "등록 완료 여부", example = "true")
     private Boolean clusterRegistered;
+
+    @Schema(description = "등록된 클러스터 식별자", example = "aipaas-aws-01")
+    private String clusterId;
 
     @Schema(description = "마지막 오류 메시지", example = "")
     private String lastError;
@@ -94,6 +104,12 @@ public class VmClusterStatusResponse {
 
     @Schema(description = "노드 목록")
     private List<VmClusterNodeResponse> nodes;
+
+    @Schema(description = "구성 요소 상태 — DEGRADED 사유를 여기서 확인한다")
+    private List<VmClusterComponentResponse> components;
+
+    @Schema(description = "요청 addon 설치 상태")
+    private List<VmClusterRequestedAddonResponse> requestedAddons;
 
     @Schema(description = "생성 시각", example = "2026-04-03T14:30:00")
     private LocalDateTime createdAt;

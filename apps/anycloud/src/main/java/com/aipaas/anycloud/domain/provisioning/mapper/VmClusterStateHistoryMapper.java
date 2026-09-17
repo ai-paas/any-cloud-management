@@ -5,12 +5,7 @@ import com.aipaas.anycloud.domain.provisioning.model.VmClusterStateHistory;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-/**
- * VmClusterStateHistoryEntity ↔ VmClusterStateHistory 도메인 변환 boundary.
- *
- * <p>{@code valid} 가 null 인 경우 Boolean.TRUE 기본값을 부여하는 룰은 {@link #normalizeValid}
- * default method 로 처리.
- */
+/** VmClusterStateHistoryEntity ↔ VmClusterStateHistory 도메인 변환 boundary. */
 @Mapper(componentModel = "spring")
 public interface VmClusterStateHistoryMapper {
 

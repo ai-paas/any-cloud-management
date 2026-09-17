@@ -2,6 +2,7 @@ package com.aipaas.anycloud.domain.provisioning.api.request;
 
 import com.aipaas.anycloud.common.validation.ApiValidationConstants;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -11,12 +12,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * POST /v1/vms body — VM (CSP 인스턴스) 생성 요청. cluster 등록과 분리된 단일 책임.
- *
- * <p>K8s cluster 의 registered/imported 경로는 별도 {@code POST /v1/clusters} 에서 다룬다.
- * 본 요청은 Pulumi 통한 VM 인프라 provision 만 트리거.
- */
+/** POST /v1/vms body — VM (CSP 인스턴스) 생성 요청. cluster 등록과 분리된 단일 책임. */
 @Data
 @Builder
 @NoArgsConstructor
@@ -36,7 +32,7 @@ public class VmCreateRequest {
     private String vmGroupName;
 
     @NotBlank
-    @Schema(description = "CSP — aws | gcp | azure | openstack | alibaba | oci | digitalocean", example = "aws")
+    @Schema(description = "CSP — aws | gcp | azure | openstack | oci | proxmox | ibm", example = "aws")
     private String provider;
 
     @NotBlank
@@ -53,10 +49,18 @@ public class VmCreateRequest {
     @Schema(description = "설명 (선택)")
     private String description;
 
+    @Valid
+    @Schema(description = "CSP 무관 클러스터 사양")
+    private ClusterSpecRequest spec;
+
+    /**
+     * provider 별 설정. 스키마가 provider 마다 달라 서버가 키를 미리 알 수 없다. 필요한 키는
+     * {@code GET /v1/providers/{provider}/config-schema} 로 조회한다.
+     */
     @Schema(
-            description = "Pulumi config — workerCount, instanceType 등 CSP-별 key/value",
-            example = "{\"workerCount\": \"3\", \"instanceType\": \"t3.medium\"}")
-    private Map<String, String> config;
+            description = "provider 전용 설정. provider 마다 스키마가 다르다",
+            example = "{\"externalNetworkId\": \"3f8d3f36-...\", \"floatingIpPool\": \"external\"}")
+    private Map<String, Object> providerSpec;
 
     @Schema(description = "GPU 노드 포함 여부 — cluster-observability 가 dcgm-exporter 설치 결정에 활용", example = "false")
     private Boolean hasGpuNodes;
