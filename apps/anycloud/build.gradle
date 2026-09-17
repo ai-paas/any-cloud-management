@@ -109,7 +109,7 @@ test {
 }
 
 dependencies {
-    implementation platform('software.amazon.awssdk:bom:2.54.12')
+    implementation platform('software.amazon.awssdk:bom:2.54.17')
     implementation 'org.springframework.boot:spring-boot-starter-web'
     // P1-1 (tech-debt review) — @Audited annotation 의 AOP. AspectJ 자동 proxy 활성화.
     implementation 'org.springframework.boot:spring-boot-starter-aop'
