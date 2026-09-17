@@ -8,6 +8,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serial;
@@ -27,7 +28,14 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "csp_credential")
+@Table(
+        name = "csp_credential",
+        // 이름만으로는 구분이 안 돼 프로비저닝에서 어느 것을 고른 건지 알 수 없었다.
+        // provider 가 다르면 같은 이름을 허용한다 — "dev" 를 AWS 와 GCP 에 각각 쓰는 건 자연스럽다.
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uk_csp_credential_provider_name",
+                        columnNames = {"provider", "name"}))
 public class CspCredentialEntity implements Serializable {
 
     @Serial
@@ -50,6 +58,22 @@ public class CspCredentialEntity implements Serializable {
     private String name;
 
     @Size(max = 255)
+    /**
+     * 마지막 확인 결과. 화면 상태로만 두면 새로고침하면 사라지고 사용자마다 각자 확인해야 한다.
+     * null 이면 한 번도 확인한 적이 없다는 뜻이다 — "정상" 과 구분되어야 한다.
+     */
+    @Column(name = "health_status", length = 20)
+    private String healthStatus;
+
+    @Column(name = "health_kind", length = 40)
+    private String healthKind;
+
+    @Column(name = "health_detail", length = 1000)
+    private String healthDetail;
+
+    @Column(name = "health_checked_at")
+    private LocalDateTime healthCheckedAt;
+
     @Column(name = "description")
     private String description;
 

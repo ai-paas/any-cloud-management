@@ -35,6 +35,18 @@ public class CspCredentialResponse {
     @Schema(description = "저장된 credential key 목록", example = "[\"AWS_ACCESS_KEY_ID\",\"AWS_SECRET_ACCESS_KEY\"]")
     private List<String> credentialKeys;
 
+    @Schema(description = "마지막 확인 결과. null 이면 확인한 적 없음", example = "HEALTHY")
+    private String healthStatus;
+
+    @Schema(description = "실패 원인 분류", example = "PERMISSION_DENIED")
+    private String healthKind;
+
+    @Schema(description = "CSP 원본 메시지")
+    private String healthDetail;
+
+    @Schema(description = "확인 시각")
+    private java.time.LocalDateTime healthCheckedAt;
+
     @Schema(description = "생성 시각", example = "2026-04-03T14:00:00")
     private LocalDateTime createdAt;
 

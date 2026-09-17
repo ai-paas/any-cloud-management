@@ -36,7 +36,8 @@ class AuditLogServiceImplTest {
 
     @Test
     void search_delegatesAllParamsToRepository() {
-        when(repository.search(any(), any(), any(), any(), any(), any(), any())).thenReturn(List.of());
+        when(repository.search(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of()));
 
         LocalDateTime since = LocalDateTime.of(2026, 6, 1, 0, 0);
         LocalDateTime until = LocalDateTime.of(2026, 6, 9, 23, 59);
@@ -74,9 +75,11 @@ class AuditLogServiceImplTest {
                 .createdAt(created)
                 .build();
 
-        when(repository.search(any(), any(), any(), any(), any(), any(), any())).thenReturn(List.of(entity));
+        when(repository.search(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(entity)));
 
-        List<AuditLogResponse> result = service.search(null, null, null, null, null, null, PageRequest.of(0, 10));
+        List<AuditLogResponse> result = service.search(null, null, null, null, null, null, PageRequest.of(0, 10))
+                .getContent();
 
         assertThat(result).hasSize(1);
         AuditLogResponse dto = result.get(0);
@@ -104,18 +107,22 @@ class AuditLogServiceImplTest {
         AuditLogEntity e3 =
                 AuditLogEntity.builder().id("third").action("DELETE").build();
 
-        when(repository.search(any(), any(), any(), any(), any(), any(), any())).thenReturn(List.of(e1, e2, e3));
+        when(repository.search(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(e1, e2, e3)));
 
-        List<AuditLogResponse> result = service.search(null, null, null, null, null, null, PageRequest.of(0, 10));
+        List<AuditLogResponse> result = service.search(null, null, null, null, null, null, PageRequest.of(0, 10))
+                .getContent();
 
         assertThat(result).extracting(AuditLogResponse::getId).containsExactly("first", "second", "third");
     }
 
     @Test
     void search_emptyResult_returnsEmptyList() {
-        when(repository.search(any(), any(), any(), any(), any(), any(), any())).thenReturn(List.of());
+        when(repository.search(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of()));
 
-        List<AuditLogResponse> result = service.search(null, null, null, null, null, null, PageRequest.of(0, 10));
+        List<AuditLogResponse> result = service.search(null, null, null, null, null, null, PageRequest.of(0, 10))
+                .getContent();
 
         assertThat(result).isEmpty();
     }
@@ -130,9 +137,11 @@ class AuditLogServiceImplTest {
                 .errorMessage("AGENT_NAMESPACE_NOT_ALLOWED")
                 .build();
 
-        when(repository.search(any(), any(), any(), any(), any(), any(), any())).thenReturn(List.of(entity));
+        when(repository.search(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(entity)));
 
-        List<AuditLogResponse> result = service.search(null, null, null, null, null, null, PageRequest.of(0, 10));
+        List<AuditLogResponse> result = service.search(null, null, null, null, null, null, PageRequest.of(0, 10))
+                .getContent();
 
         assertThat(result.get(0).getStatusCode()).isEqualTo(403);
         assertThat(result.get(0).getErrorMessage()).isEqualTo("AGENT_NAMESPACE_NOT_ALLOWED");

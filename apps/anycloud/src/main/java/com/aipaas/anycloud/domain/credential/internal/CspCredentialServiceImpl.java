@@ -2,12 +2,15 @@ package com.aipaas.anycloud.domain.credential.internal;
 
 import com.aipaas.anycloud.common.error.enums.ErrorCode;
 import com.aipaas.anycloud.common.error.exception.CustomException;
+import com.aipaas.anycloud.domain.audit.Audited;
+import com.aipaas.anycloud.domain.credential.CredentialUpdateRules;
 import com.aipaas.anycloud.domain.credential.CspCredentialCryptoService;
 import com.aipaas.anycloud.domain.credential.CspCredentialEntity;
 import com.aipaas.anycloud.domain.credential.CspCredentialRepository;
 import com.aipaas.anycloud.domain.credential.CspCredentialService;
 import com.aipaas.anycloud.domain.credential.ResolvedCspCredential;
 import com.aipaas.anycloud.domain.credential.api.request.CreateCspCredentialRequest;
+import com.aipaas.anycloud.domain.credential.api.request.UpdateCspCredentialRequest;
 import com.aipaas.anycloud.domain.credential.api.response.CspCredentialResponse;
 import com.aipaas.anycloud.domain.provisioning.VmClusterRepository;
 import com.aipaas.anycloud.domain.provisioning.model.SupportedProvisioningProvider;
@@ -49,6 +52,14 @@ public class CspCredentialServiceImpl implements CspCredentialService {
         Map<String, String> payload =
                 new LinkedHashMap<>(request.getCredentials() == null ? Map.of() : request.getCredentials());
         ProvisioningProviderValidator.validateCredentialValues(provider, payload);
+        // DB 제약이 먼저 터지면 SQL 오류가 그대로 올라가 무엇이 문제인지 알 수 없다.
+        if (cspCredentialRepository.existsByProviderAndName(provider.getCanonicalName(), request.getName())) {
+            throw new CustomException(
+                    ErrorCode.INVALID_INPUT_VALUE,
+                    "name",
+                    request.getName(),
+                    provider.getCanonicalName() + " 에 같은 이름의 자격증명이 이미 있습니다.");
+        }
         String encryptedPayload = cspCredentialCryptoService.encrypt(writeJson(payload));
         List<String> credentialKeys = payload.keySet().stream().sorted().toList();
 
@@ -60,6 +71,45 @@ public class CspCredentialServiceImpl implements CspCredentialService {
                 .credentialKeys(writeJson(credentialKeys))
                 .active(true)
                 .build();
+
+        return toResponse(cspCredentialRepository.save(entity));
+    }
+
+    @Override
+    @Audited(
+            action = "credential.update",
+            resourceType = "credential",
+            resourceId = "#credentialId",
+            // 무엇으로 바꿨는지는 남기지 않는다. 남기면 감사 로그가 비밀 저장소가 된다.
+            summary = "'updated'")
+    public CspCredentialResponse updateCredential(String credentialId, UpdateCspCredentialRequest request) {
+        CspCredentialEntity entity = getEntity(credentialId);
+
+        if (request.getDescription() != null) {
+            entity.setDescription(request.getDescription());
+        }
+
+        Map<String, String> values = request.getCredentials();
+        if (CredentialUpdateRules.replacesValues(values)) {
+            if (CredentialUpdateRules.hasBlankValue(values)) {
+                throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "credentials", null, "빈 값으로는 바꿀 수 없습니다.");
+            }
+            SupportedProvisioningProvider provider = SupportedProvisioningProvider.from(entity.getProvider());
+            Map<String, String> payload = new LinkedHashMap<>(values);
+            ProvisioningProviderValidator.validateCredentialValues(provider, payload);
+
+            entity.setEncryptedPayload(cspCredentialCryptoService.encrypt(writeJson(payload)));
+            entity.setCredentialKeys(
+                    writeJson(payload.keySet().stream().sorted().toList()));
+        }
+
+        if (CredentialUpdateRules.shouldRecheckHealth(values)) {
+            // 저장된 결과는 더 이상 이 값에 대한 것이 아니다. 남겨두면 바뀐 키가 틀려도 정상으로 보인다.
+            entity.setHealthStatus(null);
+            entity.setHealthKind(null);
+            entity.setHealthDetail(null);
+            entity.setHealthCheckedAt(null);
+        }
 
         return toResponse(cspCredentialRepository.save(entity));
     }
@@ -86,6 +136,18 @@ public class CspCredentialServiceImpl implements CspCredentialService {
                 .credentialName(entity.getName())
                 .environment(resolveEnvironment(entity.getProvider(), entity.getId()))
                 .build();
+    }
+
+    @Override
+    @Audited(
+            action = "credential.reveal",
+            resourceType = "credential",
+            resourceId = "#credentialId",
+            // summary 에 #result 를 넣으면 감사 로그가 비밀 저장소가 된다. 어떤 키를 봤는지만 남긴다.
+            summary = "'revealed'")
+    public Map<String, String> revealCredential(String credentialId) {
+        CspCredentialEntity entity = getEntity(credentialId);
+        return readJsonMap(cspCredentialCryptoService.decrypt(entity.getEncryptedPayload()));
     }
 
     @Override
@@ -129,6 +191,10 @@ public class CspCredentialServiceImpl implements CspCredentialService {
                 .credentialKeys(readJsonList(entity.getCredentialKeys()))
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
+                .healthStatus(entity.getHealthStatus())
+                .healthKind(entity.getHealthKind())
+                .healthDetail(entity.getHealthDetail())
+                .healthCheckedAt(entity.getHealthCheckedAt())
                 .build();
     }
 

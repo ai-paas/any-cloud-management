@@ -12,7 +12,6 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpHeaders;
@@ -24,13 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * 감사 로그 조회 API. mutation HTTP 요청 (POST/PUT/PATCH/DELETE) 의 자동 기록을 시간/리소스/액션/
- * principal 별로 검색.
- * <p>
- * layering 위반 해소 — controller 는 더 이상 repository 를 직접 import 하지 않고 service 만
- * 의존. 향후 audit policy (마스킹, RBAC, multi-tenancy) 가 service 계층에서 일원화 가능.
- */
+/** 감사 로그 조회 API. mutation HTTP 요청 (POST/PUT/PATCH/DELETE) 의 자동 기록을 시간/리소스/액션/ principal 별로 검색. */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/audit-logs")
@@ -68,11 +61,17 @@ public class AuditLogController {
                     @RequestParam(required = false, defaultValue = "100")
                     @Min(1)
                     @Max(500)
-                    int limit) {
-        List<AuditLogResponse> body = auditLogService.search(
-                since, until, resourceType, resourceId, action, principal, PageRequest.of(0, limit));
+                    int limit,
+            @Parameter(description = "0-based page 번호. 감사 로그는 계속 쌓이므로 첫 페이지만으로는 부족하다.")
+                    @RequestParam(required = false, defaultValue = "0")
+                    @Min(0)
+                    int page) {
+        var found = auditLogService.search(
+                since, until, resourceType, resourceId, action, principal, PageRequest.of(page, limit));
         return new ResponseEntity<>(
-                ApiSuccessResponse.of(HttpStatus.OK.value(), "Audit logs loaded", PagedData.of(body)),
+                ApiSuccessResponse.of(HttpStatus.OK.value(), "Audit logs loaded", PagedData.of(found.getContent()))
+                        // 총 건수를 모르면 화면이 마지막 페이지를 계산할 수 없다.
+                        .withPagedMeta(limit, null, found.getTotalElements()),
                 new HttpHeaders(),
                 HttpStatus.OK);
     }
