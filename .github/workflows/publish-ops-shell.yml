@@ -1,0 +1,108 @@
+name: Publish Ops Shell Image (GHCR)
+
+# 웹 터미널이 붙는 관리 파드 이미지 — kubectl + k9s.
+# 둘 다 담긴 공식 이미지가 없어 직접 만든다.
+#
+# 발동 조건:
+#   - tag push (ops-shell-vX.Y.Z) → :vX.Y.Z, :sha-<short>, :latest(main only)
+#   - workflow_dispatch           → 도구 버전을 입력으로 받아 즉시 배포
+#
+# 도구 버전은 build-arg 로 고정한다. latest 를 그대로 끌어오면 같은 태그가 어느 날 다른 것을
+# 받아와, 터미널이 깨졌을 때 무엇이 바뀌었는지 알 수 없다.
+
+on:
+  push:
+    tags: ['ops-shell-v*.*.*']
+  workflow_dispatch:
+    inputs:
+      kubectl_version:
+        description: 'kubectl version (예: v1.37.0)'
+        required: false
+        default: 'v1.37.0'
+      k9s_version:
+        description: 'k9s version (예: v0.51.0)'
+        required: false
+        default: 'v0.51.0'
+      tag:
+        description: 'Optional manual tag (예: v0.1.0-rc1)'
+        required: false
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-ops-shell-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-push:
+    name: Build & push ops-shell
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine source branch
+        id: branch
+        run: |
+          BRANCH=$(git branch -r --contains ${{ github.sha }} \
+            | grep -v 'HEAD' \
+            | sed 's|^\s*origin/||' \
+            | grep -E '^(main|hotfix/|release/)' \
+            | head -1 \
+            | xargs)
+          if [ -z "$BRANCH" ]; then BRANCH="detached"; fi
+          if [ "$BRANCH" = "main" ]; then
+            echo "is_main=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_main=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up QEMU (cross-arch)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/ops-shell
+          tags: |
+            type=match,pattern=ops-shell-(v.*),group=1
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable=${{ steps.branch.outputs.is_main == 'true' }}
+            type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '' }}
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/ops-shell
+          file: apps/ops-shell/Dockerfile
+          build-args: |
+            KUBECTL_VERSION=${{ github.event.inputs.kubectl_version || 'v1.37.0' }}
+            K9S_VERSION=${{ github.event.inputs.k9s_version || 'v0.51.0' }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=ops-shell
+          cache-to: type=gha,scope=ops-shell,mode=max
+
+      - name: Verify both tools are in the image
+        run: |
+          # 한쪽만 들어가도 이미지는 만들어진다. 터미널에서야 없는 것을 알게 된다.
+          docker run --rm --platform linux/amd64 \
+            ghcr.io/${{ github.repository_owner }}/ops-shell:sha-$(git rev-parse --short HEAD) \
+            sh -c 'kubectl version --client && k9s version --short'

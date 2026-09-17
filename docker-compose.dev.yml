@@ -32,6 +32,11 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-anycloud}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-dev-only-pass-do-not-use-in-prod}
+      # 워크플로는 메시지를 받자마자 ack 하고 실행은 스레드풀로 넘긴다(WorkflowStepDispatcher).
+      # 리스너가 작업을 붙잡지 않으므로 ack 창이 제약이 아니다. 기본값으로 둔다 — 늘려두면
+      # 다음 사람이 "여기가 상한이구나" 하고 잘못 읽는다.
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: >-
+        -rabbit consumer_timeout ${RABBITMQ_CONSUMER_TIMEOUT_MS:-1800000}
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
@@ -67,8 +72,10 @@ services:
     image: rustfs/rustfs:1.0.0-alpha.99
     container_name: anycloud-rustfs-dev
     ports:
-      - "9000:9000"   # S3 API
-      - "9001:9001"   # console
+      # 9000 은 흔한 포트다. 다른 프로젝트와 겹치면 호스트 쪽만 옮긴다 — 컨테이너끼리는
+      # compose 네트워크 이름으로 붙으므로 이 값과 무관하다.
+      - "${RUSTFS_PORT:-9000}:9000"       # S3 API
+      - "${RUSTFS_CONSOLE_PORT:-9001}:9001"  # console
     environment:
       RUSTFS_ACCESS_KEY: ${RUSTFS_ROOT_USER:-anycloud}
       RUSTFS_SECRET_KEY: ${RUSTFS_ROOT_PASSWORD:-dev-only-rustfs-password-replace-in-real-use}
@@ -187,6 +194,8 @@ services:
       # gRPC public endpoint (cluster-agent dial-in)
       ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT: ${ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT:-127.0.0.1:9090}
       ANYCLOUD_AGENT_IMAGE: ${ANYCLOUD_AGENT_IMAGE:-aipaas/cluster-agent:dev}
+      # dev 태그는 같은 이름으로 다시 밀린다. IfNotPresent 면 노드가 옛 이미지를 계속 쓴다.
+      ANYCLOUD_AGENT_IMAGE_PULL_POLICY: ${ANYCLOUD_AGENT_IMAGE_PULL_POLICY:-IfNotPresent}
       # backend ↔ chartmuseum 은 docker network alias 로 연결 (host:8080 X)
       ANYCLOUD_AGENT_HELM_REPO_URL: ${ANYCLOUD_AGENT_HELM_REPO_URL:-http://chartmuseum:8080}
       # Cluster 등록 응답의 kubectl apply 명령 base URL. 미설정 시 HTTP 요청 host 자동 사용.
@@ -256,6 +265,8 @@ services:
       VM_CLUSTER_WORKFLOW_MAX_ATTEMPTS: "3"
       ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT: ${ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT:-127.0.0.1:9090}
       ANYCLOUD_AGENT_IMAGE: ${ANYCLOUD_AGENT_IMAGE:-aipaas/cluster-agent:dev}
+      # dev 태그는 같은 이름으로 다시 밀린다. IfNotPresent 면 노드가 옛 이미지를 계속 쓴다.
+      ANYCLOUD_AGENT_IMAGE_PULL_POLICY: ${ANYCLOUD_AGENT_IMAGE_PULL_POLICY:-IfNotPresent}
     volumes:
       - pulumi-home:/app/.pulumi
       - pulumi-runtime:/app/runtime

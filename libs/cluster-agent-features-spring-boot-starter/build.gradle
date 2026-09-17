@@ -33,7 +33,6 @@ bootJar { enabled = false }
 jar { enabled = true }
 
 spotless {
-    enforceCheck false
     ratchetFrom 'origin/main'
     java {
         target 'src/**/*.java'

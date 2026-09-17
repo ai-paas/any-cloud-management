@@ -53,5 +53,12 @@ else
   export SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE:-docker}"
 fi
 
+# 레이어 분리 후 실행 대상은 추출된 애플리케이션 jar 이다. 이름에 버전이 붙어 glob 으로 찾는다.
+APP_JAR=$(ls /app/anycloud-*.jar 2>/dev/null | head -1)
+if [ -z "$APP_JAR" ]; then
+  echo "FATAL: /app 에 anycloud-*.jar 가 없음 — layered 추출 실패한 이미지." >&2
+  exit 1
+fi
+
 # shellcheck disable=SC2086  # JAVA_OPTS / SPRING_ARGS intentional word-split.
-exec java ${JAVA_OPTS} -jar /app/app.jar ${SPRING_ARGS} "$@"
+exec java ${JAVA_OPTS} -jar "$APP_JAR" ${SPRING_ARGS} "$@"
