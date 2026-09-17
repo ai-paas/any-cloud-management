@@ -94,7 +94,7 @@ spotless {
 dependencyManagement {
     imports {
         mavenBom "io.fabric8:kubernetes-client-bom:7.8.0"
-        mavenBom "org.testcontainers:testcontainers-bom:1.21.4"
+        mavenBom "org.testcontainers:testcontainers-bom:2.0.5"
     }
 }
 
@@ -109,7 +109,7 @@ test {
 }
 
 dependencies {
-    implementation platform('software.amazon.awssdk:bom:2.25.53')
+    implementation platform('software.amazon.awssdk:bom:2.54.12')
     implementation 'org.springframework.boot:spring-boot-starter-web'
     // P1-1 (tech-debt review) — @Audited annotation 의 AOP. AspectJ 자동 proxy 활성화.
     implementation 'org.springframework.boot:spring-boot-starter-aop'
@@ -133,14 +133,14 @@ dependencies {
     implementation "org.mapstruct:mapstruct:${rootProject.ext.mapstructVersion}"
     annotationProcessor "org.mapstruct:mapstruct-processor:${rootProject.ext.mapstructVersion}"
     annotationProcessor "org.projectlombok:lombok-mapstruct-binding:${rootProject.ext.lombokMapstructBindingVersion}"
-    implementation "org.json:json:20230618"
+    implementation "org.json:json:20260814"
     implementation "com.google.code.gson:gson"
     implementation 'com.google.auth:google-auth-library-oauth2-http:1.51.0'
     implementation "com.fasterxml.jackson.core:jackson-core"
     implementation "com.fasterxml.jackson.core:jackson-databind"
     implementation 'org.apache.httpcomponents.client5:httpclient5'
     // Helm chart .tgz unpacking — gzip + tar 파서 (subprocess `helm show` 대체).
-    implementation 'org.apache.commons:commons-compress:1.27.1'
+    implementation 'org.apache.commons:commons-compress:1.28.0'
     implementation 'io.hypersistence:hypersistence-utils-hibernate-60:3.9.4'
     implementation "com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations"
     implementation "org.bouncycastle:bcprov-jdk18on:${rootProject.ext.bouncyCastleVersion}"
@@ -191,5 +191,5 @@ dependencies {
 
     // ArchUnit — convention (folder-structure.md) 자동 enforce. internal/ 외부 import 차단,
     // Controller 가 web/ 거주, @Mapper 가 mapper/ 거주 등 architecture rule 회귀 방지.
-    testImplementation 'com.tngtech.archunit:archunit-junit5:1.3.0'
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.5.0'
 }
