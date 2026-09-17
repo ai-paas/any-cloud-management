@@ -1,0 +1,15 @@
+meta {
+  name: provider config 스키마 (GET)
+  type: http
+  seq: 91
+}
+
+get {
+  url: {{baseUrl}}/v1/providers/openstack/config-schema
+  body: none
+  auth: none
+}
+
+docs {
+  `GET /v1/providers/{provider}/config-schema`
+}

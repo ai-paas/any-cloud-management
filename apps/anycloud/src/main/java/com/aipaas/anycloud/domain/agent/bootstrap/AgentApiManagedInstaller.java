@@ -52,11 +52,7 @@ public class AgentApiManagedInstaller {
     @Value("${agent.manifest.namespace:aipaas-system}")
     private String agentNamespace;
 
-    /**
-     * BootstrapInfo.kubectlApplyCommand 의 curl base URL override. 운영에서 backend 가
-     * reverse-proxy 뒤에 있을 때 외부 접근 가능한 URL 명시 (e.g., https://api.aipaas.example.com).
-     * 비어있으면 현재 HTTP 요청의 host (X-Forwarded-* 포함) 또는 localhost:8888 fallback.
-     */
+    /** BootstrapInfo.kubectlApplyCommand 의 curl base URL override. 운영에서 backend 가 reverse-proxy 뒤에 있을 때 외부 접근 가능한 URL 명시 (e.g., https://api.aipaas.example.com). */
     @Value("${anycloud.public-url:}")
     private String configuredPublicUrl;
 
@@ -87,9 +83,6 @@ public class AgentApiManagedInstaller {
 
     /**
      * 지정 cluster 에 agent 를 설치. install_mode=API_MANAGED 로 token 발급.
-     *
-     * <p>{@code @Audited} 추가. cluster 최초 등록 (auto) 과 admin reinstall
-     * endpoint (manual) 양쪽에서 호출되므로 audit_log 에 install attempt 추적.
      *
      * @param clusterName 대상 cluster (ClusterEntity.id)
      * @return 발급된 token 정보 (호출 측이 결과 로깅 / DB 보관)
@@ -149,12 +142,7 @@ public class AgentApiManagedInstaller {
             String clusterId, String registrationJti, String tokenExpiresAt, int manifestBytes) {}
 
     /**
-     * Agent-led registration 의 핵심 — token 만 발급하고 manifest apply 는
-     * 사용자에게 위임. {@link #install} 의 (1) JWT 발급 부분만 분리 + helm install / kubectl apply
-     * 명령 문자열 빌드.
-     *
-     * <p>backend 가 cluster 의 K8s API 를 직접 치지 않으므로 fabric8 path 의존성 없음 — apiServerUrl /
-     * CA / clientKey 자격이 없어도 동작. install 책임은 사용자에게.
+     * Agent-led registration 의 핵심 — token 만 발급하고 manifest apply 는 사용자에게 위임. {@link #install} 의 (1) JWT 발급 부분만 분리 + helm install / kubectl apply 명령 문자열 빌드.
      *
      * @param clusterName 대상 cluster (ClusterEntity.id)
      * @return Bootstrap 정보 — POST /v1/clusters 응답에 포함되어 사용자가 즉시 install 실행 가능.
@@ -164,14 +152,7 @@ public class AgentApiManagedInstaller {
             resourceType = "clusterAgent",
             resourceId = "#clusterName",
             summary = "'expires=' + #result?.expiresAt()")
-    /**
-     * GET /v1/clusters/{id}/agent-manifest.yaml 가 호출하는 helper.
-     * 이미 발급된 token 으로 helm chart 를 렌더해 raw YAML 반환.
-     *
-     * <p> fix: helm chart 는 namespace 를 만들지 않음 (helm 의 --create-namespace 는
-     * install command 옵션). {@code kubectl apply -f -} path 에서 manifest 가 self-contained 여야
-     * 하므로 Namespace resource 를 manifest 앞에 prepend.
-     */
+    /** GET /v1/clusters/{id}/agent-manifest.yaml 가 호출하는 helper. */
     public String renderManifest(String clusterName, String registrationToken) {
         String chart = chartRenderer.render(registrationToken, adminKubeconfigEnabled(clusterName));
         String namespaceYaml = ""

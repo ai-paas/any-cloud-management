@@ -66,8 +66,7 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listRegionsFallback")
     public List<VmOptionRegion> listRegions() {
         List<OciRecords.RegionSubscription> items = listItems(
-                exchange(identityBaseUrl(defaultRegion()) + "/20160918/regionSubscriptions/" + tenancyOcid()),
-                OciRecords.RegionSubscription.class);
+                exchange(regionSubscriptionsUrl(defaultRegion(), tenancyOcid())), OciRecords.RegionSubscription.class);
         List<VmOptionRegion> regions = new ArrayList<>();
         for (OciRecords.RegionSubscription sub : items) {
             if (!StringUtils.hasText(sub.regionName())) {
@@ -176,13 +175,21 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * L1: OCI response 의 {@code {"items":[...]}} array 를 typed record 리스트로 변환.
-     * {@link ObjectMapper#convertValue} 로 element 단위 deserialize — schema mismatch 가
+     * OCI 목록 응답을 typed record 리스트로 변환.
+     *
+     * <p>껍데기가 두 가지다. availabilityDomains, shapes, images 는 최상위가 배열이고, 페이지네이션을
+     * 쓰는 엔드포인트만 {@code {"items":[...]}} 로 감싼다. 감싼 형태만 읽으면 배열 응답이 빈 목록이
+     * 되어 "자원이 없다" 로 잘못 보고된다.
+     *
+     * <p>{@link ObjectMapper#convertValue} 로 element 단위 deserialize — schema mismatch 가
      * Jackson 의 명시적 에러로 잡힘 (JsonNode silent miss 와 대조적).
      */
-    private <T> List<T> listItems(JsonNode response, Class<T> type) {
-        JsonNode items = response == null ? null : response.path("items");
-        if (items == null || !items.isArray()) {
+    <T> List<T> listItems(JsonNode response, Class<T> type) {
+        if (response == null) {
+            return List.of();
+        }
+        JsonNode items = response.isArray() ? response : response.path("items");
+        if (!items.isArray()) {
             return List.of();
         }
         List<T> out = new ArrayList<>(items.size());
@@ -343,6 +350,16 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
                     "TF_VAR_region is required for OCI VM options");
         }
         return region;
+    }
+
+    /**
+     * 구독 리전 조회 URL.
+     *
+     * <p>테넌시 하위 경로다. {@code /regionSubscriptions/{tenancyId}} 로 부르면 404
+     * NotAuthorizedOrNotFound 가 오는데, 메시지가 권한 문제처럼 읽혀 자격증명을 의심하게 만든다.
+     */
+    private String regionSubscriptionsUrl(String region, String tenancyId) {
+        return identityBaseUrl(region) + "/20160918/tenancies/" + tenancyId + "/regionSubscriptions";
     }
 
     private String tenancyOcid() {

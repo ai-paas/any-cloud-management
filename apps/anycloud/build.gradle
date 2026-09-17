@@ -31,10 +31,9 @@ processResources {
     dependsOn 'copyAgentChartResources'
 }
 
-// spotless 의 target 이 src/** 라서 copyAgentChartResources 의 출력 디렉토리
-// (src/main/resources/agent-chart) 와 겹친다. 두 태스크를 한 번에 실행하면
-// (예: ./gradlew build spotlessCheck) Gradle 이 암묵적 의존성으로 판단해 실패한다.
-// CI 는 step 을 나눠 실행해 걸리지 않지만 로컬 검증에서 막히므로 순서를 명시한다.
+// spotless 의 입력 트리가 src/** 라서 copyAgentChartResources 의 출력
+// (src/main/resources/agent-chart) 와 겹친다고 Gradle 이 판정한다. targetExclude 로 실제 검사
+// 대상에서는 빠지지만 트리 탐색은 남으므로 순서를 명시해야 한다.
 tasks.matching { it.name.startsWith('spotless') }.configureEach {
     mustRunAfter 'copyAgentChartResources'
 }
@@ -68,13 +67,15 @@ clean {
 // Spotless: Palantir Java Format
 // 사용:
 //   ./gradlew anycloud:spotlessApply  → 변경 파일 자동 포맷
-//   ./gradlew anycloud:spotlessCheck
+//   ./gradlew anycloud:spotlessCheck  → 검사만
+//
+// spotlessCheck 는 check(=build) 에 딸려 실행된다. pre-commit hook 은 core.hooksPath 라는
+// 로컬 설정에 의존해 조용히 빠질 수 있지만 빌드는 빠지지 않는다.
 spotless {
-    enforceCheck false
-
     ratchetFrom 'origin/main'
     java {
         target 'src/**/*.java'
+        targetExclude 'src/main/resources/agent-chart/**'
         palantirJavaFormat('2.50.0')
         removeUnusedImports()
         trimTrailingWhitespace()
@@ -82,6 +83,9 @@ spotless {
     }
     format 'misc', {
         target 'src/**/*.gradle', 'src/**/*.md', 'src/**/*.yaml', 'src/**/*.yml'
+        // copyAgentChartResources 가 만들어 넣는 생성물. 검사 대상에 두면 spotless 와
+        // 그 태스크가 같은 디렉토리를 놓고 다투고, 포맷을 고쳐도 다음 복사에 덮인다.
+        targetExclude 'src/main/resources/agent-chart/**'
         trimTrailingWhitespace()
         endWithNewline()
     }
@@ -90,7 +94,7 @@ spotless {
 dependencyManagement {
     imports {
         mavenBom "io.fabric8:kubernetes-client-bom:7.8.0"
-        mavenBom "org.testcontainers:testcontainers-bom:1.21.4"
+        mavenBom "org.testcontainers:testcontainers-bom:2.0.5"
     }
 }
 
@@ -105,7 +109,7 @@ test {
 }
 
 dependencies {
-    implementation platform('software.amazon.awssdk:bom:2.25.53')
+    implementation platform('software.amazon.awssdk:bom:2.54.12')
     implementation 'org.springframework.boot:spring-boot-starter-web'
     // P1-1 (tech-debt review) — @Audited annotation 의 AOP. AspectJ 자동 proxy 활성화.
     implementation 'org.springframework.boot:spring-boot-starter-aop'
@@ -129,14 +133,14 @@ dependencies {
     implementation "org.mapstruct:mapstruct:${rootProject.ext.mapstructVersion}"
     annotationProcessor "org.mapstruct:mapstruct-processor:${rootProject.ext.mapstructVersion}"
     annotationProcessor "org.projectlombok:lombok-mapstruct-binding:${rootProject.ext.lombokMapstructBindingVersion}"
-    implementation "org.json:json:20230618"
+    implementation "org.json:json:20260814"
     implementation "com.google.code.gson:gson"
     implementation 'com.google.auth:google-auth-library-oauth2-http:1.51.0'
     implementation "com.fasterxml.jackson.core:jackson-core"
     implementation "com.fasterxml.jackson.core:jackson-databind"
     implementation 'org.apache.httpcomponents.client5:httpclient5'
     // Helm chart .tgz unpacking — gzip + tar 파서 (subprocess `helm show` 대체).
-    implementation 'org.apache.commons:commons-compress:1.27.1'
+    implementation 'org.apache.commons:commons-compress:1.28.0'
     implementation 'io.hypersistence:hypersistence-utils-hibernate-60:3.9.4'
     implementation "com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations"
     implementation "org.bouncycastle:bcprov-jdk18on:${rootProject.ext.bouncyCastleVersion}"
@@ -187,5 +191,5 @@ dependencies {
 
     // ArchUnit — convention (folder-structure.md) 자동 enforce. internal/ 외부 import 차단,
     // Controller 가 web/ 거주, @Mapper 가 mapper/ 거주 등 architecture rule 회귀 방지.
-    testImplementation 'com.tngtech.archunit:archunit-junit5:1.3.0'
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.5.0'
 }

@@ -24,7 +24,13 @@ spec:
     matchLabels:
       {{- include "cluster-agent.selectorLabels" . | nindent 6 }}
   template:
-    {{- include "cluster-agent.podTemplate" (dict "Values" .Values "Release" .Release "Chart" .Chart "podRole" "single" "serviceAccountName" (include "cluster-agent.serviceAccountName" .) "agentMode" .Values.agent.mode) | nindent 4 }}
+    {{- /*
+      single 은 한 pod 가 모든 명령을 처리한다 — SA 도 installer 다. 그런데 AGENT_MODE 에
+      agent.mode(기본 core)를 넣으면 그 pod 가 스스로를 core 라 선언해 APPLY_MANIFEST 같은
+      쓰기 명령을 거부한다. 파드 생성도 애드온 설치도 되지 않는다.
+      agent.mode 는 split 에서 각 pod 의 역할을 정하는 값이다. single 에서는 "single" 이다.
+    */}}
+    {{- include "cluster-agent.podTemplate" (dict "Values" .Values "Release" .Release "Chart" .Chart "podRole" "single" "serviceAccountName" (include "cluster-agent.serviceAccountName" .) "agentMode" "single") | nindent 4 }}
 {{- else if eq $mode "split" }}
 ---
 apiVersion: apps/v1

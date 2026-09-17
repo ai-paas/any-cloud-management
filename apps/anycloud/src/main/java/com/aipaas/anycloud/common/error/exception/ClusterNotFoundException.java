@@ -7,7 +7,7 @@ import lombok.Getter;
  * 클러스터를 찾을 수 없을 때 발생하는 예외
  */
 @Getter
-public class ClusterNotFoundException extends RuntimeException {
+public class ClusterNotFoundException extends RuntimeException implements ErrorCodeAware {
 
     private final ErrorCode errorCode;
     private final String clusterName;

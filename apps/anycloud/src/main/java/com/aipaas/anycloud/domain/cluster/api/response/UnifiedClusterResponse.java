@@ -5,23 +5,22 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import lombok.Builder;
 
-/**
- * 통합 cluster 응답. source 가 vm 인지 registered 인지를 동일한 schema 로 표현.
- *
- * <p><b>Deprecated</b> — VM 인프라 자원과 K8s cluster 자원이 별도 API namespace 로 분리됐다 ({@code /v1/vms},
- * {@code /v1/clusters}). 신규 caller 는 {@code VmClusterListItemResponse} / {@code VmClusterStatusResponse}
- * (VM 측) 또는 cluster 전용 응답 (registered side) 을 사용. 본 통합 응답은 backward-compat 유지 동안만 존속.
- */
+/** 통합 cluster 응답. source 가 vm 인지 registered 인지를 동일한 schema 로 표현. */
 @Deprecated
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(description = "통합 cluster 응답 (vm + registered 공통 schema) — deprecated, /v1/vms 와 /v1/clusters 분리")
-@Builder
+@Builder(toBuilder = true)
 public record UnifiedClusterResponse(
         @Schema(
                         description = "source",
                         allowableValues = {"vm", "registered"},
                         example = "vm")
                 String source,
+        @Schema(
+                        description = "이 클러스터를 이루는 출처 전부. VM 으로 만들고 agent 가 등록하면 두 개가 "
+                                + "모두 들어간다. source 는 대표 출처 하나라 UI 배지에는 이쪽을 쓴다.",
+                        example = "[\"vm\", \"registered\"]")
+                java.util.List<String> sources,
         @Schema(description = "클러스터 이름", example = "demo-aws-01") String clusterName,
         @Schema(
                         description = "연결된 VM 자원의 이름 (1:1). null 이면 manual 등록 cluster. VM provisioning 으로 "
@@ -34,6 +33,8 @@ public record UnifiedClusterResponse(
         @Schema(description = "상태 (PROVISIONING / READY / FAILED / BLOCKED / DELETING / DELETED / IMPORTED)")
                 String status,
         @Schema(description = "VM cluster 의 워커 수 (registered 면 null)") Integer workerCount,
+        @Schema(description = "VM cluster 의 master 수 (registered 면 null)") Integer masterCount,
+        @Schema(description = "첫 master 의 사설 IP (registered 면 null)", example = "10.0.0.1") String masterPrivateIp,
         @Schema(description = "생성 시각") LocalDateTime createdAt,
         @Schema(description = "READY 도달 시각 (해당 시)") LocalDateTime readyAt,
         @Schema(description = "마지막 에러 메시지 (있을 때만)") String lastError,
@@ -93,8 +94,8 @@ public record UnifiedClusterResponse(
                                 "BOOTSTRAP_MASTER_INIT",
                                 "BOOTSTRAP_EXTRA_MASTER_JOIN",
                                 "BOOTSTRAP_WORKER_JOIN",
-                                "BOOTSTRAP_NODES_READY",
-                                "BOOTSTRAP_ADDONS"
+                                "BOOTSTRAP_ADDONS",
+                                "BOOTSTRAP_NODES_READY"
                             },
                             example = "BOOTSTRAP_MASTER_INIT")
                     String subStep,

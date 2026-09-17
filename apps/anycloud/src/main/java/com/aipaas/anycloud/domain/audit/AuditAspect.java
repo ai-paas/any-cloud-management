@@ -26,8 +26,8 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 /**
  * {@link Audited} 처리 aspect.
  *
- * <p>Around advice — 성공 시 statusCode=200 + #result 평가, 예외 시 statusCode=500 +
- * errorMessage 기록. SpEL 평가 실패는 swallow (audit 은 best-effort).
+ * <p>Around advice — 성공 시 statusCode=200 + #result 평가, 예외 시 {@link AuditStatus} 가 고른
+ * statusCode + errorMessage 기록. SpEL 평가 실패는 swallow (audit 은 best-effort).
  *
  * <p>Method args 는 {@link DefaultParameterNameDiscoverer} 로 이름 추출 (Java 8+ {@code -parameters}
  * 컴파일 옵션 필요). Spring Boot starter 가 기본 활성화.
@@ -41,11 +41,7 @@ public class AuditAspect {
     private static final ParameterNameDiscoverer PARAM_DISCOVERER = new DefaultParameterNameDiscoverer();
 
     private final AuditLogger auditLogger;
-    /**
-     * Impersonation 활성화 시 audit 의 principal 자동 채우기. starter 가
-     * default ThreadLocalImpersonationContext bean 을 등록 → 항상 주입 가능 (toggle OFF 면 current()
-     * 가 empty Optional 반환). ObjectProvider 로 받아 bean 부재 시도 안전.
-     */
+    /** Impersonation 활성화 시 audit 의 principal 자동 채우기. starter 가 default ThreadLocalImpersonationContext bean 을 등록 → 항상 주입 가능 (toggle OFF 면 current() 가 empty Optional 반환). ObjectProvider 로 받아 bean 부재 시도 안전. */
     private final ObjectProvider<ImpersonationContext> impersonationContextProvider;
 
     public AuditAspect(AuditLogger auditLogger, ObjectProvider<ImpersonationContext> impersonationContextProvider) {
@@ -84,7 +80,7 @@ public class AuditAspect {
                         .action(audited.action())
                         .resourceType(audited.resourceType())
                         .resourceId(resourceId)
-                        .statusCode(error == null ? 200 : 500)
+                        .statusCode(AuditStatus.of(error))
                         .errorMessage(error == null ? null : error.getMessage())
                         .durationMs(durationMs)
                         .requestSummary(summary)

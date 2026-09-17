@@ -16,14 +16,16 @@ async:
     queue-capacity: ${ASYNC_K8S_QUEUE:100}
     thread-name-prefix: k8s-
   provisioning:
-    core-size: ${ASYNC_PROVISIONING_CORE:3}
-    max-size: ${ASYNC_PROVISIONING_MAX:6}
-    queue-capacity: ${ASYNC_PROVISIONING_QUEUE:30}
+    core-size: ${ASYNC_PROVISIONING_CORE:16}
+    max-size: ${ASYNC_PROVISIONING_MAX:24}
+    queue-capacity: ${ASYNC_PROVISIONING_QUEUE:8}
     thread-name-prefix: pulumi-
+  # 워크플로 4단계가 이 풀 하나를 같이 쓴다. 동시 프로비저닝 수가 곧 필요한 스레드 수다.
+  # 큐는 max 이하로 — 큐가 크면 core 를 넘겨 늘어나지 않아 max 가 쓰이지 않는다.
   bootstrap:
-    core-size: ${ASYNC_BOOTSTRAP_CORE:3}
-    max-size: ${ASYNC_BOOTSTRAP_MAX:6}
-    queue-capacity: ${ASYNC_BOOTSTRAP_QUEUE:30}
+    core-size: ${ASYNC_BOOTSTRAP_CORE:16}
+    max-size: ${ASYNC_BOOTSTRAP_MAX:24}
+    queue-capacity: ${ASYNC_BOOTSTRAP_QUEUE:8}
     thread-name-prefix: bootstrap-
 
 vm-cluster-workflow:
@@ -115,3 +117,75 @@ pulumi:
     TF_VAR_private_key_password: ${TF_VAR_private_key_password:}
     DIGITALOCEAN_TOKEN: ${DIGITALOCEAN_TOKEN:}
     DIGITALOCEAN_ACCESS_TOKEN: ${DIGITALOCEAN_ACCESS_TOKEN:}
+
+# VM cluster 구성 요소 수렴 — VERIFY 단계의 시간 제한 루프 + 주기 조정 루프.
+# 자세한 설계: docs/architecture/vmcluster-convergence.md
+anycloud:
+  # 에이전트가 ACTIVE 로 올라가는 길은 있는데 내려오는 길이 없었다. 클러스터가 삭제돼
+  # 하트비트가 끊겨도 행은 ACTIVE 로 남아, 업그레이드 대상과 카탈로그가 죽은 에이전트를 센다.
+  # cluster-agent.health.heartbeat-staleness-threshold(90s)는 표시용 판정이고,
+  # 여기는 상태를 실제로 내리는 기준이라 더 보수적으로 잡는다.
+  agent:
+    liveness:
+      enabled: ${ANYCLOUD_AGENT_LIVENESS_ENABLED:true}
+      timeout: ${ANYCLOUD_AGENT_LIVENESS_TIMEOUT:5m}
+      cron: ${ANYCLOUD_AGENT_LIVENESS_CRON:0 * * * * *}
+
+  # 노드 SSH 터미널. 노드 root 셸이 웹으로 열리는 통로라 필요 없는 배포에서는 끈다.
+  node-ssh:
+    enabled: ${ANYCLOUD_NODE_SSH_ENABLED:true}
+
+  vm-cluster:
+    workflow:
+      # 단계 실행은 소비자 스레드에서 떼어내 즉시 ack 한다. 그래서 크래시가 나면 되돌아올 것이
+      # 없다 — 아래 재구동 루프가 그 안전망이다.
+      # stale 창은 단계의 최악 예산(BOOTSTRAP 170분)보다 길어야 한다. 짧으면 아직 도는 작업을
+      # 두 번 돌린다.
+      processing-stale-after: ${ANYCLOUD_VM_CLUSTER_PROCESSING_STALE_AFTER:PT180M}
+      redrive:
+        enabled: ${ANYCLOUD_VM_CLUSTER_REDRIVE_ENABLED:true}
+        cron: ${ANYCLOUD_VM_CLUSTER_REDRIVE_CRON:0 */5 * * * *}
+    component:
+      agent:
+        # agent 미연결을 DEGRADED 사유로 볼지. agent 가 ACTIVE 로 가려면 backend gRPC
+        # endpoint 가 CSP VM 에서 도달 가능해야 한다 — dev 는 도달 불가라 BEST_EFFORT.
+        requirement: ${ANYCLOUD_VM_CLUSTER_AGENT_REQUIREMENT:REQUIRED}
+    convergence:
+      interval-ms: ${ANYCLOUD_VM_CLUSTER_CONVERGENCE_INTERVAL_MS:300000}
+      initial-delay-ms: ${ANYCLOUD_VM_CLUSTER_CONVERGENCE_INITIAL_DELAY_MS:60000}
+      # VERIFY 안에서 도는 수렴 루프의 상한. RabbitMQ consumer 스레드 위에서 실행되므로
+      # 오래 붙잡으면 consumer 하나가 통째로 묶인다. 총 예산은 그대로 두고 간격만 줄인다 —
+      # 1분 간격이면 40초에 준비돼도 1분을 채운다. 5회 x 30초 = 최대 2분.
+      verify-max-attempts: ${ANYCLOUD_VM_CLUSTER_CONVERGENCE_VERIFY_MAX_ATTEMPTS:5}
+      verify-interval: ${ANYCLOUD_VM_CLUSTER_CONVERGENCE_VERIFY_INTERVAL:PT30S}
+      # DEGRADED 로 떨어진 뒤 재확인까지의 지연. 정기 주기(interval-ms)를 통째로 기다리는 것을 막는다.
+      degraded-recheck-delay: ${ANYCLOUD_VM_CLUSTER_CONVERGENCE_DEGRADED_RECHECK_DELAY:PT30S}
+    destroy:
+      # 지우기 전에 CSP 의 실제 상태를 본다. 화면에서만 상태가 바뀌는 것이 아니다 —
+      # 누가 콘솔에서 직접 지우면 우리 기록과 어긋나는데, 확인하지 않으면 모른 채 destroy 를 돌린다.
+      # 확인하지 못해도 삭제는 진행한다. 막으면 CSP 장애 때 정리할 방법이 없어진다.
+      precheck: ${ANYCLOUD_VM_CLUSTER_DESTROY_PRECHECK:true}
+
+    # 삭제 이력 보관. 삭제는 감사, 비용 정산, 원인 분석을 위해 행을 남기는데 정리하는 곳이
+    # 없으면 영원히 쌓인다. 0 이하는 "정리하지 않음" 이다.
+    # 다른 정리 잡과 같은 규약을 쓴다 — <도메인>.retention-days + <도메인>.cleanup.cron.
+    deleted:
+      retention-days: ${ANYCLOUD_VM_CLUSTER_DELETED_RETENTION_DAYS:90}
+      cleanup:
+        cron: ${ANYCLOUD_VM_CLUSTER_DELETED_CLEANUP_CRON:0 30 4 * * *}   # 매일 04:30
+
+    # 상태 전이 이력 보관. 원인 분석에 쓰이므로 삭제 이력보다 길게 둔다.
+    state-history:
+      retention-days: ${ANYCLOUD_VM_CLUSTER_STATE_HISTORY_RETENTION_DAYS:180}
+      cleanup:
+        cron: ${ANYCLOUD_VM_CLUSTER_STATE_HISTORY_CLEANUP_CRON:0 45 3 * * *}   # 매일 03:45
+
+  # 워크플로 메시지 처리 기록. 메시지마다 한 행씩 쌓이는데 정리하는 곳이 없었다.
+  # 이 표는 멱등성에도 쓰인다 — messageId 가 있으면 재처리를 건너뛴다. 보관 기간이
+  # 재전달 창(AMQP ack 타임아웃 30분)보다 짧으면 지워진 뒤 도착한 재전달이 같은 단계를
+  # 두 번 돌린다. 실패 메시지 조회도 겸하므로 작업 이력과 같은 30일로 둔다.
+  workflow-message-log:
+    retention-days: ${ANYCLOUD_WORKFLOW_MESSAGE_LOG_RETENTION_DAYS:30}
+    cleanup:
+      enabled: ${ANYCLOUD_WORKFLOW_MESSAGE_LOG_CLEANUP_ENABLED:true}
+      cron: ${ANYCLOUD_WORKFLOW_MESSAGE_LOG_CLEANUP_CRON:0 15 4 * * *}   # 매일 04:15

@@ -1,7 +1,6 @@
 package com.aipaas.anycloud.domain.audit;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -31,7 +30,8 @@ public interface AuditLogRepository extends JpaRepository<AuditLogEntity, String
             + "  AND (:action IS NULL OR a.action = :action) "
             + "  AND (:principal IS NULL OR a.principal = :principal) "
             + "ORDER BY a.createdAt DESC")
-    List<AuditLogEntity> search(
+    // Page 로 받으면 Spring Data 가 count 쿼리를 함께 만들어 총 건수를 알 수 있다.
+    org.springframework.data.domain.Page<AuditLogEntity> search(
             @Param("since") LocalDateTime since,
             @Param("until") LocalDateTime until,
             @Param("resourceType") String resourceType,

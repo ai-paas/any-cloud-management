@@ -44,7 +44,7 @@ public class OperationCleanupSweeper {
      * <p>ShedLock — 같은 cluster 안의 backend 가 multi-replica 여도 한 노드에서만 실행.
      * lockAtMostFor 1h (RDB throttle 안전), lockAtLeastFor 5m (race-resistant).
      */
-    @Scheduled(cron = "${anycloud.operation.cleanup.cron:0 30 3 * * *}")
+    @Scheduled(cron = "${anycloud.operation.cleanup.cron:0 15 3 * * *}")
     @SchedulerLock(name = "operationCleanupSweep", lockAtMostFor = "PT1H", lockAtLeastFor = "PT5M")
     @Transactional
     public void sweep() {

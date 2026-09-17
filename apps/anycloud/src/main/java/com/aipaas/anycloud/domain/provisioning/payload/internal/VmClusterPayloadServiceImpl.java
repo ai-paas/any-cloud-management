@@ -3,11 +3,19 @@ package com.aipaas.anycloud.domain.provisioning.payload.internal;
 import com.aipaas.anycloud.domain.credential.ResolvedCspCredential;
 import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
 import com.aipaas.anycloud.domain.provisioning.api.request.ProvisionClusterRequest;
+import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterComponentResponse;
 import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterListItemResponse;
 import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterNodeResponse;
+import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterRequestedAddonResponse;
 import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterStatusResponse;
+import com.aipaas.anycloud.domain.provisioning.convergence.ConvergenceSignal;
+import com.aipaas.anycloud.domain.provisioning.convergence.RequestedAddonInspector;
+import com.aipaas.anycloud.domain.provisioning.convergence.VmClusterComponentEntity;
+import com.aipaas.anycloud.domain.provisioning.convergence.VmClusterComponentRepository;
 import com.aipaas.anycloud.domain.provisioning.model.VmClusterInternalRequestSnapshot;
+import com.aipaas.anycloud.domain.provisioning.payload.NodeCountFallback;
 import com.aipaas.anycloud.domain.provisioning.payload.VmClusterPayloadService;
+import com.aipaas.anycloud.domain.provisioning.query.VmClusterNodeRows;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,9 +24,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
 
@@ -26,17 +36,20 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
     private static final String CONFIG_WORKER_VM_SPEC = "anycloud-k8s:workerInstanceType";
     private static final String CONFIG_WORKER_COUNT = "anycloud-k8s:workerCount";
     private static final String CONFIG_ENABLE_INGRESS = "anycloud-k8s:enableIngress";
+    private static final String CONFIG_ENABLE_MONITORING = "anycloud-k8s:enableMonitoring";
     private static final String CONFIG_ENABLE_GPU_OPERATOR = "anycloud-k8s:enableGpuOperator";
     private static final String CONFIG_DB_ENABLED = "anycloud-k8s:dbEnabled";
     private static final String CONFIG_KUBERNETES_VERSION = "anycloud-k8s:kubernetesVersion";
     private static final String CONFIG_POD_CIDR = "anycloud-k8s:podCidr";
     private static final String CONFIG_SERVICE_CIDR = "anycloud-k8s:serviceCidr";
-    private static final String CONFIG_OPENSTACK_IMAGE_NAME = "anycloud-k8s:openstackImageName";
+    private static final String CONFIG_OPENSTACK_IMAGE_NAME = "anycloud-k8s:providerSpec.imageName";
     private static final String CONFIG_AWS_IMAGE_NAME = "anycloud-k8s:awsImageName";
     private static final String CONFIG_GCP_IMAGE = "anycloud-k8s:gcpImage";
     private static final String CONFIG_AZURE_IMAGE = "anycloud-k8s:azureImage";
 
     private final ObjectMapper objectMapper;
+    private final VmClusterComponentRepository componentRepository;
+    private final RequestedAddonInspector addonInspector;
 
     @Override
     public ProvisioningRequest restoreProvisioningRequest(VmClusterEntity vmCluster, ResolvedCspCredential credential) {
@@ -74,9 +87,9 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
                 .credentialId(credential.getCredentialId())
                 .credentialName(credential.getCredentialName())
                 .masterVmSpec(firstNonBlank(
-                        config.get(CONFIG_MASTER_VM_SPEC), config.get("anycloud-k8s:openstackFlavorName")))
+                        config.get(CONFIG_MASTER_VM_SPEC), config.get("anycloud-k8s:providerSpec.flavorName")))
                 .workerVmSpec(firstNonBlank(
-                        config.get(CONFIG_WORKER_VM_SPEC), config.get("anycloud-k8s:openstackFlavorName")))
+                        config.get(CONFIG_WORKER_VM_SPEC), config.get("anycloud-k8s:providerSpec.flavorName")))
                 .workerCount(parseInteger(config.get(CONFIG_WORKER_COUNT), 2))
                 .kubernetesVersion(config.get(CONFIG_KUBERNETES_VERSION))
                 .podCidr(config.get(CONFIG_POD_CIDR))
@@ -84,6 +97,7 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
                 .osImage(resolveRequestedOsImage(config))
                 .enableIngress(parseBoolean(config.get(CONFIG_ENABLE_INGRESS)))
                 .enableGpuOperator(parseBoolean(config.get(CONFIG_ENABLE_GPU_OPERATOR)))
+                .enableMonitoring(parseBoolean(config.get(CONFIG_ENABLE_MONITORING)))
                 .dbEnabled(parseBoolean(config.get(CONFIG_DB_ENABLED)))
                 .providerConfig(config)
                 .build();
@@ -94,6 +108,10 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
     public VmClusterListItemResponse buildListItemResponse(VmClusterEntity vmCluster) {
         Map<String, Object> outputMap = readJsonMap(vmCluster.getRawOutputs());
         VmClusterInternalRequestSnapshot requestSnapshot = readRequestSnapshot(vmCluster.getRequestConfig());
+        // 실제로 만들어진 노드가 기준이다. 아직 없으면 요청값으로 보여준다 — 목록이 빈칸이면
+        // 규모를 가늠할 수 없다.
+        VmClusterNodeRows.Summary nodes = VmClusterNodeRows.summarize(VmClusterNodeRows.of(objectMapper, vmCluster));
+        boolean provisioned = nodes.masterCount() > 0;
 
         return VmClusterListItemResponse.builder()
                 .id(vmCluster.getId())
@@ -113,12 +131,18 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
                 .region(vmCluster.getRegion())
                 .credentialName(firstNonBlank(vmCluster.getCredentialName(), requestSnapshot.getCredentialName()))
                 .clusterRegistered(vmCluster.getClusterRegistered())
+                .clusterId(vmCluster.getClusterId())
                 .masterVmSpec(
                         firstNonBlank(stringValue(outputMap.get("masterVmSpec")), requestSnapshot.getMasterVmSpec()))
                 .workerVmSpec(
                         firstNonBlank(stringValue(outputMap.get("workerVmSpec")), requestSnapshot.getWorkerVmSpec()))
                 .osImage(firstNonBlank(stringValue(outputMap.get("osImage")), requestSnapshot.getOsImage()))
                 .lastError(vmCluster.getLastError())
+                .masterCount(provisioned ? nodes.masterCount() : 1)
+                .workerCount(NodeCountFallback.workerCount(
+                        provisioned, nodes.workerCount(), requestSnapshot.getWorkerCount()))
+                .masterPrivateIp(firstNonBlank(nodes.masterPrivateIp(), stringValue(outputMap.get("masterPrivateIp"))))
+                .masterPublicIp(firstNonBlank(nodes.masterPublicIp(), stringValue(outputMap.get("masterPublicIp"))))
                 .createdAt(vmCluster.getCreatedAt())
                 .updatedAt(vmCluster.getUpdatedAt())
                 .build();
@@ -143,7 +167,9 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
                 .region(vmCluster.getRegion())
                 .environment(vmCluster.getEnvironment())
                 .credentialName(firstNonBlank(vmCluster.getCredentialName(), requestSnapshot.getCredentialName()))
+                .credentialId(vmCluster.getCredentialId())
                 .clusterRegistered(vmCluster.getClusterRegistered())
+                .clusterId(vmCluster.getClusterId())
                 .lastError(vmCluster.getLastError())
                 .bootstrapLog(vmCluster.getBootstrapLog())
                 .apiServerUrl(stringValue(outputMap.get("apiServerUrl")))
@@ -158,6 +184,8 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
                 .kubeconfigFetchCommand(stringValue(outputMap.get("kubeconfigFetchCommand")))
                 .masterSshCommand(stringValue(outputMap.get("masterSshCommand")))
                 .nodes(toVmClusterNodes(outputMap.get("nodes")))
+                .components(toComponents(vmCluster))
+                .requestedAddons(toRequestedAddons(vmCluster))
                 .createdAt(vmCluster.getCreatedAt())
                 .updatedAt(vmCluster.getUpdatedAt())
                 .requestedAt(vmCluster.getRequestedAt())
@@ -171,21 +199,49 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
                 .build();
     }
 
+    /** 저장된 관측 결과만 읽는다. 조회 API 가 매 요청마다 SSH 를 열면 안 된다. */
+    private java.util.List<VmClusterComponentResponse> toComponents(VmClusterEntity vmCluster) {
+        try {
+            return componentRepository.findByVmClusterId(vmCluster.getId()).stream()
+                    .map(VmClusterPayloadServiceImpl::toComponentResponse)
+                    .toList();
+        } catch (Exception e) {
+            log.warn("구성 요소 조회 실패 cluster={}: {}", vmCluster.getClusterName(), e.toString());
+            return java.util.List.of();
+        }
+    }
+
+    private static VmClusterComponentResponse toComponentResponse(VmClusterComponentEntity row) {
+        return VmClusterComponentResponse.builder()
+                .type(row.getComponentType().name())
+                .requirement(row.getRequirement().name())
+                .health(row.getHealth().name())
+                .attempts(row.getAttempts())
+                .nextAttemptAt(row.getNextAttemptAt())
+                .lastProbedAt(row.getLastProbedAt())
+                .lastError(row.getLastError())
+                .build();
+    }
+
+    private java.util.List<VmClusterRequestedAddonResponse> toRequestedAddons(VmClusterEntity vmCluster) {
+        java.util.List<ConvergenceSignal> signals = addonInspector.inspect(vmCluster);
+        return signals.stream()
+                .map(signal -> VmClusterRequestedAddonResponse.builder()
+                        .catalogId(signal.source())
+                        .requirement(signal.requirement().name())
+                        .health(signal.health().name())
+                        .detail(signal.detail())
+                        .build())
+                .toList();
+    }
+
     /**
      * 명시적으로 redaction 대상인 stack output 키 — case-sensitive (Pulumi 출력 키는 camelCase
      * 관례). 사용자 응답 DTO 에 노출되는 필드 (예: masterSshCommand) 는 제외.
      */
     private static final java.util.Set<String> ALWAYS_REDACT_KEYS = java.util.Set.of("sshPrivateKeyPem");
 
-    /**
-     * 키 이름에 포함되면 자동 redact — defense-in-depth. 미래에 Pulumi/provider 가 새 secret 필드를
-     * 추가하더라도 명시적 화이트리스트 없이 통과 못하게 함. 대소문자 무시.
-     *
-     * <p>{@code privateKey}, {@code password}, {@code secret}, {@code token}, {@code credential},
-     * {@code apiKey}, {@code bearerToken} 중 하나라도 키 이름에 포함되면 redact.
-     *
-     * <p>예외: 화이트리스트로 사용자 응답에 명시적으로 필요한 키는 별도 제외 (현재 없음).
-     */
+    /** 키 이름에 포함되면 자동 redact — defense-in-depth. 미래에 Pulumi/provider 가 새 secret 필드를 추가하더라도 명시적 화이트리스트 없이 통과 못하게 함. 대소문자 무시. */
     private static final java.util.regex.Pattern SECRET_KEY_PATTERN =
             java.util.regex.Pattern.compile("(?i)(privateKey|password|secret|token|credential|apiKey|bearerToken)");
 
@@ -269,11 +325,7 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
         }
     }
 
-    /**
-     * Boolean flag 파싱 — strict 검증은 {@code ProvisioningConfigRules.validateBooleanFlags}
-     * 에서 끝나므로 여기서는 trim+lowercase 만 적용 (defense-in-depth). 검증을 우회한
-     * 경로로 들어오면 "true" / "false" 외엔 모두 null 반환.
-     */
+    /** Boolean flag 파싱 — strict 검증은 {@code ProvisioningConfigRules.validateBooleanFlags} 에서 끝나므로 여기서는 trim+lowercase 만 적용 (defense-in-depth). 검증을 우회한 경로로 들어오면 "true" / "false" 외엔 모두 null 반환. */
     private Boolean parseBoolean(String raw) {
         if (raw == null || raw.isBlank()) {
             return null;

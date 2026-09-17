@@ -3,12 +3,15 @@
 # 기존 root/application.properties_docker 의 대체.
 # - DB 접속은 env-driven (compose 의 ${DB_*} variable).
 # - JPA ddl-auto=validate (schema 는 Flyway 가 담당, JPA 는 매핑 검증만).
-# - show-sql=true 는 컨테이너 로그 디버깅 편의 — 운영 환경에선 SPRING_JPA_SHOW_SQL=false 로 끄기.
+# - show-sql 은 기본 off. 켜면 워크플로 로그가 SQL 에 묻혀 장애 원인을 찾기 어렵다.
+#   디버깅이 필요할 때만 SPRING_JPA_SHOW_SQL=true 로 켠다.
 
 spring:
   datasource:
     driver-class-name: org.mariadb.jdbc.Driver
-    url: jdbc:mariadb://${DATABASE_HOST:aipaas-db}:${DATABASE_PORT:3306}/${DATABASE_NAME:aipaas}
+    # connectionTimeZone — 애플리케이션은 LocalDateTime 을 UTC 로 쓴다. 세션이 KST 면
+    # current_timestamp() 기본값으로 들어간 행만 9시간 미래로 기록된다.
+    url: jdbc:mariadb://${DATABASE_HOST:aipaas-db}:${DATABASE_PORT:3306}/${DATABASE_NAME:aipaas}?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
     username: ${DATABASE_USERID:aipaas}
     password: ${DATABASE_USERPASS:aipaas}
     # ---------------------------------------------------------------------
@@ -30,7 +33,7 @@ spring:
       pool-name: anycloud-hikari
   jpa:
     open-in-view: false
-    show-sql: ${SPRING_JPA_SHOW_SQL:true}
+    show-sql: ${SPRING_JPA_SHOW_SQL:false}
     hibernate:
       ddl-auto: ${SPRING_JPA_DDL_AUTO:validate}
 

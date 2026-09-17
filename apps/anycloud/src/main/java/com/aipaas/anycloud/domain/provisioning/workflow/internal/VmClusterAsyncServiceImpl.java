@@ -55,9 +55,14 @@ public class VmClusterAsyncServiceImpl implements VmClusterAsyncService {
 
     @Override
     public CompletableFuture<Void> destroyClusterAsync(String clusterName) {
-        var provisioning = vmClusterRepository
-                .findFirstByClusterNameOrderByCreatedAtDesc(clusterName)
-                .orElseThrow(() -> new ClusterNotFoundException(clusterName));
+        var generations = vmClusterRepository.findAllByClusterNameOrderByCreatedAtDesc(clusterName);
+        if (generations.isEmpty()) {
+            throw new ClusterNotFoundException(clusterName);
+        }
+        // 최신 행이 이미 DELETED 면 워크플로 가드가 메시지를 건너뛴다. 삭제 중인 행을 가리킨다.
+        var provisioning =
+                com.aipaas.anycloud.domain.provisioning.command.VmClusterDeletionTargets.destroyMessageTarget(
+                        generations);
         var destroyMsg = VmClusterWorkflowMessage.builder()
                 .vmClusterId(provisioning.getId())
                 .clusterName(clusterName)

@@ -44,7 +44,7 @@ class NodeDebugPodServiceTest extends AbstractUnitTest {
                         "node_name", "node-1",
                         "expires_at", "2026-12-31T23:59:59Z")));
 
-        DebugPodResult result = svc.create("c1", new CreateRequest("node-1", null, null, null, null));
+        DebugPodResult result = svc.create("c1", new CreateRequest("node-1", null, null, null, null, false, null));
 
         assertThat(result.clusterName()).isEqualTo("c1");
         assertThat(result.namespace()).isEqualTo("kube-system");
@@ -62,7 +62,8 @@ class NodeDebugPodServiceTest extends AbstractUnitTest {
                         .setErrorMessage("kube-system not in allowlist")
                         .build());
 
-        assertThatThrownBy(() -> svc.create("c1", new CreateRequest("node-1", "kube-system", null, null, null)))
+        assertThatThrownBy(() ->
+                        svc.create("c1", new CreateRequest("node-1", "kube-system", null, null, null, false, null)))
                 .isInstanceOf(NodeDebugPodException.class)
                 .satisfies(ex ->
                         assertThat(((NodeDebugPodException) ex).errorCode()).isEqualTo("NAMESPACE_NOT_ALLOWED"));
@@ -75,9 +76,28 @@ class NodeDebugPodServiceTest extends AbstractUnitTest {
         when(registry.sendCommand(eq("c1"), any(ControlMessage.Builder.class), anyInt()))
                 .thenReturn(failed);
 
-        assertThatThrownBy(() -> svc.create("c1", new CreateRequest("node-1", null, null, null, null)))
+        assertThatThrownBy(() -> svc.create("c1", new CreateRequest("node-1", null, null, null, null, false, null)))
                 .satisfies(ex ->
                         assertThat(((NodeDebugPodException) ex).errorCode()).isEqualTo("NO_ACTIVE_AGENT"));
+    }
+
+    /**
+     * 파라미터 이름은 agent 와의 계약이다. 틀리면 도구 셸을 요청해도 조용히 호스트 셸이 뜬다 —
+     * 화면에는 터미널이 열리므로 실패로 보이지도 않는다.
+     */
+    @Test
+    void toolsShellRequestReachesTheAgentByContractName() {
+        org.mockito.ArgumentCaptor<ControlMessage.Builder> captor =
+                org.mockito.ArgumentCaptor.forClass(ControlMessage.Builder.class);
+        stub("c1", okResponse(Map.of("namespace", "aipaas-system", "pod_name", "p", "node_name", "n")));
+
+        svc.create("c1", new CreateRequest("n", null, null, null, null, true, "aipaas-agent-installer"));
+
+        Mockito.verify(registry).sendCommand(eq("c1"), captor.capture(), anyInt());
+        Map<String, Value> params =
+                captor.getValue().build().getCommand().getParams().getFieldsMap();
+        assertThat(params.get("tools_shell").getStringValue()).isEqualTo("true");
+        assertThat(params.get("service_account").getStringValue()).isEqualTo("aipaas-agent-installer");
     }
 
     private void stub(String clusterName, CommandResponse response) {

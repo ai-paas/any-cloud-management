@@ -45,16 +45,22 @@ public final class SensitiveDataRedactor {
                     "PRIVATE_KEY"));
 
     /**
-     * 입력 문자열에서 알려진 sensitive 패턴을 마스킹. null/blank 는 그대로 반환.
+     * JSON 키 이름으로 값을 가린다.
      *
-     * <p>현재 마스킹: AWS Access Key ID, AWS ARN, AWS Account ID (12-digit), UUID (Azure
-     * subscription/tenant), OCI fingerprint, OCI OCID, PEM private key block.
+     * <p>{@link #RULES} 는 값의 생김새만 본다. AWS 시크릿 키처럼 형식이 없는 값은 그대로 새어
+     * 나간다. 어떤 값인지는 옆에 붙은 키 이름이 말해주므로 이름으로 판단한다. 키 이름은 남겨
+     * 무엇이 가려졌는지 알 수 있게 한다.
      */
+    private static final Pattern SECRET_FIELD = Pattern.compile(
+            "(?i)(\"[^\"]*(?:secret|password|passwd|pwd|token|private_key|privatekey|api_key|apikey)[^\"]*\"\\s*:\\s*)"
+                    + "\"(?:[^\"\\\\]|\\\\.)*\"");
+
+    /** 입력 문자열에서 알려진 sensitive 패턴을 마스킹. null/blank 는 그대로 반환. */
     public static String redact(String input) {
         if (input == null || input.isEmpty()) {
             return input;
         }
-        String result = input;
+        String result = SECRET_FIELD.matcher(input).replaceAll("$1\"<REDACTED>\"");
         for (RedactRule rule : RULES) {
             result = rule.apply(result);
         }

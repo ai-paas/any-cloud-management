@@ -1,0 +1,15 @@
+meta {
+  name: install-all (POST)
+  type: http
+  seq: 103
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/observability/alert-rules/install-all
+  body: none
+  auth: none
+}
+
+docs {
+  `POST /v1/clusters/{clusterName}/observability/alert-rules/install-all`
+}

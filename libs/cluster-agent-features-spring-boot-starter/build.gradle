@@ -33,7 +33,6 @@ bootJar { enabled = false }
 jar { enabled = true }
 
 spotless {
-    enforceCheck false
     ratchetFrom 'origin/main'
     java {
         target 'src/**/*.java'
@@ -57,7 +56,7 @@ dependencies {
     implementation 'org.yaml:snakeyaml:2.7'
 
     // Caffeine — RBAC 의 SimpleBindingFleetView TTL cache.
-    api 'com.github.ben-manes.caffeine:caffeine:3.1.8'
+    api 'com.github.ben-manes.caffeine:caffeine:3.2.4'
 
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:3.5.16'
 

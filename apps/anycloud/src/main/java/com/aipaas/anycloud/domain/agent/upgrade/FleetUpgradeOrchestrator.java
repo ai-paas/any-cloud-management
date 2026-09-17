@@ -3,15 +3,7 @@ package com.aipaas.anycloud.domain.agent.upgrade;
 import com.aipaas.anycloud.domain.agent.model.ClusterAgentUpgradeWave;
 import java.util.List;
 
-/**
- * Fleet-wide upgrade 의 wave 순차 처리 진입점.
- *
- * <p>운영자 trigger ({@code submit}) + 강제 중단 ({@code abort}) 두 가지 API. 실제 background
- * scheduler ({@code @Scheduled drive()}) 는 구현체의 책임 — interface 노출 안 함.
- *
- * <p>구현체: {@link FleetUpgradeOrchestratorImpl}. mock 기반 controller test 는 본 interface 의
- * submit/abort 만 stub 가능 (scheduler 는 production runtime 에서만 동작).
- */
+/** Fleet-wide upgrade 의 wave 순차 처리 진입점. */
 public interface FleetUpgradeOrchestrator {
 
     /**

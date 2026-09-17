@@ -1,0 +1,15 @@
+meta {
+  name: agent 헬스 일괄 조회 (GET)
+  type: http
+  seq: 91
+}
+
+get {
+  url: {{baseUrl}}/v1/agents/health
+  body: none
+  auth: none
+}
+
+docs {
+  `GET /v1/agents/health`
+}

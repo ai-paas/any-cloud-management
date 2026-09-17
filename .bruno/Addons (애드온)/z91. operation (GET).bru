@@ -1,0 +1,15 @@
+meta {
+  name: operation (GET)
+  type: http
+  seq: 92
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/addons/{{addon_id}}/operation
+  body: none
+  auth: none
+}
+
+docs {
+  `GET /v1/clusters/{clusterName}/addons/{addonId}/operation`
+}

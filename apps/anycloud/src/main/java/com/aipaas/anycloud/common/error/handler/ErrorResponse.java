@@ -52,11 +52,7 @@ public class ErrorResponse {
     @Schema(description = "필드 단위 상세 오류 목록")
     private List<FieldError> errors;
 
-    /**
-     * 특정 에러에 대한 추가 context (예: UNSUPPORTED_KIND 의 suggestions, RATE_LIMIT 의 retryAfter 등).
-     * 핸들러별 정의 — 일반 caller 는 {@code code} 로 분기 후 metadata 의 key 를 해석.
-     * null/empty 시 직렬화에서 제외 ({@code @JsonInclude(NON_EMPTY)}).
-     */
+    /** 특정 에러에 대한 추가 context (예: UNSUPPORTED_KIND 의 suggestions, RATE_LIMIT 의 retryAfter 등). */
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     @Schema(description = "핸들러별 추가 context — code 따라 의미 다름. UNSUPPORTED_KIND 면 'input', 'suggestions' 키 포함.")
     private Map<String, Object> metadata;
@@ -74,11 +70,7 @@ public class ErrorResponse {
     @Schema(description = "권장 다음 행동", example = "IAM policy 에 ec2:Describe* 추가 후 재시도하세요.")
     private String hint;
 
-    /**
-     * 복구/관련 동작 경로 — 성공 응답의 {@code ApiSuccessResponse.links} 와 동형.
-     * 404 면 목록, agent 미연결이면 manifest, 상태 충돌이면 현재 상태 조회 등 frontend 가
-     * 바로 이동할 수 있는 URL. null/empty 면 직렬화 제외.
-     */
+    /** 복구/관련 동작 경로 — 성공 응답의 {@code ApiSuccessResponse.links} 와 동형. */
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     @Schema(description = "복구/관련 동작 URL (HATEOAS-lite). 예: clusterList, agentManifest, status.")
     private Map<String, String> links;

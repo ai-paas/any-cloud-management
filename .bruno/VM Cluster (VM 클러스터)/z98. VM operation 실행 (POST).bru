@@ -1,0 +1,26 @@
+meta {
+  name: VM operation 실행 (POST)
+  type: http
+  seq: 99
+}
+
+post {
+  url: {{baseUrl}}/v1/vms/{{provision_cluster_name}}/operations
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+}
+
+body:json {
+  {
+    "type": "retryWorkflow"
+  }
+}
+
+docs {
+  `POST /v1/vms/{vmName}/operations`
+}

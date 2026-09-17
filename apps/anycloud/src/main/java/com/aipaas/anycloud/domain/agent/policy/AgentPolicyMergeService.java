@@ -15,12 +15,7 @@ import io.aipaas.cluster.agent.runtime.AgentPolicySnapshot;
  */
 public interface AgentPolicyMergeService {
 
-    /**
-     * Legacy PATCH 의 merge — null 필드를 현재 snapshot 으로 fill-in. force flag 는 request 의 것 유지.
-     *
-     * <p>{@code allowedNamespaces / allowedExecNamespaces} 는 snapshot 의 wildcard flag
-     * ({@code allowAllNamespaces / allowAllExecNamespaces}) 를 list 에 {@code "*"} 항목으로 복원.
-     */
+    /** Legacy PATCH 의 merge — null 필드를 현재 snapshot 으로 fill-in. force flag 는 request 의 것 유지. */
     AgentPolicyUpdateRequest mergeWithCurrent(AgentPolicyUpdateRequest req, AgentPolicySnapshot current);
 
     /**

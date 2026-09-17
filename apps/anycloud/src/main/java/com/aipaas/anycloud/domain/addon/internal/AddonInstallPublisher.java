@@ -9,15 +9,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-/**
- * RabbitMQ publisher — addon install/uninstall enqueue.
- *
- * <p>caller (REST API, ClusterStatusChangedEvent listener, retry endpoint) 가 본 publisher 호출
- * → broker 에 message 적재 → {@code RabbitMqAddonInstallListener} 가 consume.
- *
- * <p>publish 자체는 사실상 trivial — 본 클래스는 logging/MDC/metric 통합 + caller 가 RabbitTemplate
- * 의존 안 갖도록 캡슐화.
- */
+/** RabbitMQ publisher — addon install/uninstall enqueue. */
 @Slf4j
 @Component
 @RequiredArgsConstructor

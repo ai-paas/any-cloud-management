@@ -223,6 +223,11 @@ rules:
 - apiGroups: [""]
   resources: ["namespaces"]
   verbs: ["get", "list", "watch", "create"]
+# 노드 셸용 임시 파드. nsenter 로 호스트 네임스페이스에 들어가므로 노드에 직접 들어간 것과 같다.
+# 없으면 터미널 기능 전체가 forbidden 으로 죽는다. TTL sweeper 가 걷어가므로 delete 도 필요하다.
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "create", "delete"]
 - apiGroups: ["apps"]
   resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
   verbs: ["*"]

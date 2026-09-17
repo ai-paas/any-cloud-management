@@ -91,12 +91,7 @@ public class KubeServiceImpl implements KubeService {
 
     private final KubeDegradedMetricsRecorder degradedMetricsRecorder;
 
-    /**
-     * Secret.data / stringData redact toggle.wildcard read RBAC 트레이드오프
-     * mitigation. default ON — production 환경에서 secret base64 value 가 backend
-     * response 에 노출되지
-     * 않게. compliance 가 secret value 표시를 명시적으로 허용하는 환경에선 false 로 비활성.
-     */
+    /** Secret.data / stringData redact toggle.wildcard read RBAC 트레이드오프 mitigation. default ON — production 환경에서 secret base64 value 가 backend response 에 노출되지 않게. compliance 가 secret value 표시를 명시적으로 허용하는 환경에선 false 로 비활성. */
     @org.springframework.beans.factory.annotation.Value("${security.kube.redact-secrets:true}")
     private boolean redactSecrets;
 
@@ -205,11 +200,7 @@ public class KubeServiceImpl implements KubeService {
         }
     }
 
-    /**
-     * Manifest apply (server-side apply) — agent-only. multi-doc YAML / JSON 둘 다
-     * agent 가
-     * in-cluster 에서 parse + apply. backend 는 manifest 텍스트를 통과만 시킴.
-     */
+    /** Manifest apply (server-side apply) — agent-only. multi-doc YAML / JSON 둘 다 agent 가 in-cluster 에서 parse + apply. backend 는 manifest 텍스트를 통과만 시킴. */
     @Override
     public JsonNode applyResource(String clusterName, String namespace, String manifest) {
         return applyResource(clusterName, namespace, manifest, false);
@@ -650,7 +641,7 @@ public class KubeServiceImpl implements KubeService {
     // ClusterNotFoundException 은 4xx 로 그대로 전파해야 하므로 분기 처리.
 
     @SuppressWarnings("unused")
-    private JsonNode getResourcesFallback(String clusterName, String namespace, String kind, Throwable t) {
+    JsonNode getResourcesFallback(String clusterName, String namespace, String kind, Throwable t) {
         if (t instanceof ClusterNotFoundException cnf) {
             throw cnf;
         }
@@ -660,11 +651,13 @@ public class KubeServiceImpl implements KubeService {
                 kind,
                 namespace,
                 t.toString());
-        return objectMapper.valueToTree(Collections.emptyList());
+        // 빈 배열은 "리소스 0 개" 와 구분되지 않는다. paginated 경로처럼 degraded 를 실을 자리가
+        // 없는 반환 타입이라, 성공으로 위장하는 대신 실패로 드러낸다.
+        throw agentUnavailable("getResources", clusterName, t);
     }
 
     @SuppressWarnings("unused")
-    private JsonNode getResourceFallback(String clusterName, String namespace, String kind, String name, Throwable t) {
+    JsonNode getResourceFallback(String clusterName, String namespace, String kind, String name, Throwable t) {
         if (t instanceof ClusterNotFoundException cnf) {
             throw cnf;
         }
@@ -674,7 +667,7 @@ public class KubeServiceImpl implements KubeService {
                 kind,
                 name,
                 t.toString());
-        return objectMapper.nullNode();
+        throw agentUnavailable("getResource", clusterName, t);
     }
 
     @SuppressWarnings("unused")

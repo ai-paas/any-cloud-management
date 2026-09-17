@@ -1,7 +1,6 @@
 package com.aipaas.anycloud.domain.provisioning.api.response;
 
 import com.aipaas.anycloud.domain.provisioning.model.VmClusterPreflightIssue;
-import com.aipaas.anycloud.domain.provisioning.pricing.CostEstimate;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import java.util.Map;
@@ -100,11 +99,4 @@ public class VmClusterPreflightResponse {
 
     @Schema(description = "구조화된 오류 목록")
     private List<VmClusterPreflightIssue> errorItems;
-
-    /**
-     * 정적 catalog 기반 예상 비용. on-demand list price (정확도 ±10-30%).
-     * UNKNOWN provider 또는 catalog 누락 instance type 은 부분/null 응답 — frontend 가 status 필드로 분기.
-     */
-    @Schema(description = "예상 비용 (정확도 ±10-30%). 자세한 한계는 estimate.accuracyNote 참조.")
-    private CostEstimate costEstimate;
 }

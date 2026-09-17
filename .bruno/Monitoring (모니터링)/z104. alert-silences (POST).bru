@@ -1,0 +1,15 @@
+meta {
+  name: alert-silences (POST)
+  type: http
+  seq: 105
+}
+
+post {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/observability/alert-silences
+  body: none
+  auth: none
+}
+
+docs {
+  `POST /v1/clusters/{clusterName}/observability/alert-silences`
+}

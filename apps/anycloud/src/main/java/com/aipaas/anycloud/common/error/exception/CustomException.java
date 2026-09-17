@@ -4,7 +4,7 @@ import com.aipaas.anycloud.common.error.enums.ErrorCode;
 import lombok.Getter;
 
 @Getter
-public class CustomException extends RuntimeException {
+public class CustomException extends RuntimeException implements ErrorCodeAware {
 
     private final ErrorCode errorCode;
     private final String field;

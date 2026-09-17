@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	authnv1 "k8s.io/api/authentication/v1"
@@ -35,14 +36,14 @@ func (c *realClient) ListPodsRaw(ctx context.Context, namespace, labelSelector s
 // ============================================================================
 
 type TokenRequestOptions struct {
-	Namespace          string
-	ServiceAccount     string
-	ExpirationSeconds  int64    // 60 미만이면 60 으로 clamp. 0 이면 default 3600.
+	Namespace         string
+	ServiceAccount    string
+	ExpirationSeconds int64 // 60 미만이면 60 으로 clamp. 0 이면 default 3600.
 }
 
 type TokenRequestResult struct {
-	Token              string
-	ExpirationTimestamp time.Time     // server 가 부여한 실제 만료 시각.
+	Token               string
+	ExpirationTimestamp time.Time // server 가 부여한 실제 만료 시각.
 }
 
 func (c *realClient) IssueServiceAccountToken(ctx context.Context, opts TokenRequestOptions) (TokenRequestResult, error) {
@@ -100,11 +101,19 @@ func (c *realClient) APIServerURL() string {
 // Node debug pod
 // ============================================================================
 
+// kubectl 과 k9s 가 들어 있는 이미지. 노드에 이 도구들이 깔려 있으리라 기대할 수 없다.
+const defaultToolsImage = "ghcr.io/ai-paas/ops-shell:latest"
+
 type NodeDebugPodOptions struct {
-	NodeName   string
-	Namespace  string     // default "kube-system"
-	Image      string     // default "registry.k8s.io/e2e-test-images/agnhost:2.40"
-	PodName    string     // default "aipaas-node-debug-<ts>"
+	NodeName  string
+	Namespace string // default "kube-system"
+	Image     string // default "registry.k8s.io/e2e-test-images/agnhost:2.40"
+	PodName   string // default "aipaas-node-debug-<ts>"
+	// ToolsShell — 호스트가 아니라 클러스터를 보는 셸. nsenter 없이 이미지를 그대로 실행하므로
+	// kubectl, k9s 가 이미지에서 온다. 노드에 그 도구들이 깔려 있으리라 기대할 수 없다.
+	ToolsShell bool
+	// ToolsShell 일 때 붙일 SA. 없으면 kubectl 이 모든 호출에서 forbidden 을 받는다.
+	ServiceAccount string
 	// 생성된 debug pod 의 활성 기간 (cleanup 은 호출자/운영자 책임 — TTL 만 정보 제공).
 	TTLSeconds int64
 }
@@ -127,7 +136,11 @@ func (c *realClient) CreateNodeDebugPod(ctx context.Context, opts NodeDebugPodOp
 	}
 	image := opts.Image
 	if image == "" {
-		image = "registry.k8s.io/e2e-test-images/agnhost:2.40"
+		if opts.ToolsShell {
+			image = defaultToolsImage
+		} else {
+			image = "registry.k8s.io/e2e-test-images/agnhost:2.40"
+		}
 	}
 	name := opts.PodName
 	if name == "" {
@@ -140,9 +153,26 @@ func (c *realClient) CreateNodeDebugPod(ctx context.Context, opts NodeDebugPodOp
 
 	t := true
 	priv := true
-	hostPid := true
-	hostNet := true
-	hostIpc := true
+	host := !opts.ToolsShell
+
+	container := corev1.Container{
+		Name:  "debug",
+		Image: image,
+		Stdin: true,
+		TTY:   true,
+	}
+	if opts.ToolsShell {
+		// 셸을 붙일 때까지 살아 있기만 하면 된다. exec 가 들어와 bash 를 연다.
+		container.Command = []string{"sleep"}
+		container.Args = []string{strconv.FormatInt(ttl, 10)}
+	} else {
+		container.Command = []string{"nsenter"}
+		container.Args = []string{"-t", "1", "-m", "-u", "-i", "-n", "-p", "--", "bash"}
+		container.SecurityContext = &corev1.SecurityContext{
+			Privileged:               &priv,
+			AllowPrivilegeEscalation: &t,
+		}
+	}
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -157,25 +187,15 @@ func (c *realClient) CreateNodeDebugPod(ctx context.Context, opts NodeDebugPodOp
 			},
 		},
 		Spec: corev1.PodSpec{
-			NodeName:      opts.NodeName,
-			HostPID:       hostPid,
-			HostNetwork:   hostNet,
-			HostIPC:       hostIpc,
-			RestartPolicy: corev1.RestartPolicyNever,
+			NodeName:           opts.NodeName,
+			ServiceAccountName: opts.ServiceAccount,
+			HostPID:            host,
+			HostNetwork:        host,
+			HostIPC:            host,
+			RestartPolicy:      corev1.RestartPolicyNever,
 			// 모든 노드 (master/taint 포함) 에 스케줄.
 			Tolerations: []corev1.Toleration{{Operator: corev1.TolerationOpExists}},
-			Containers: []corev1.Container{{
-				Name:    "debug",
-				Image:   image,
-				Stdin:   true,
-				TTY:     true,
-				Command: []string{"nsenter"},
-				Args:    []string{"-t", "1", "-m", "-u", "-i", "-n", "-p", "--", "bash"},
-				SecurityContext: &corev1.SecurityContext{
-					Privileged:               &priv,
-					AllowPrivilegeEscalation: &t,
-				},
-			}},
+			Containers:  []corev1.Container{container},
 		},
 	}
 

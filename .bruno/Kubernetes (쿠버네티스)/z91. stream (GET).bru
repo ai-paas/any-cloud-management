@@ -1,0 +1,15 @@
+meta {
+  name: stream (GET)
+  type: http
+  seq: 92
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/namespaces/{{namespace}}/pods/{{pod_name}}/logs/stream
+  body: none
+  auth: none
+}
+
+docs {
+  `GET /v1/clusters/{clusterName}/namespaces/{namespace}/pods/{podName}/logs/stream`
+}

@@ -90,7 +90,7 @@ if (selected.namespaced) {
 ```
 
 **Path 컨벤션** (RESTful 유지) 은 다음과 같습니다.
-- `namespaces/<ns>` — 특정 namespace 입니다.
+- `namespaces/<ns>` — 특정 namespace
 - `namespaces/_all` — all-namespaces 입니다 (선택).
 - `namespaces/-` — cluster-scoped resource 입니다 (필수).
 

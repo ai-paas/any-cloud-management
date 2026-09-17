@@ -64,15 +64,7 @@ public class ClusterHealthController {
         return ResponseEntity.ok(ApiSuccessResponse.of(HttpStatus.OK.value(), "Cluster health", dto));
     }
 
-    /**
-     * Fleet-wide health. 모든 등록 cluster 를 iterate 해 single-cluster endpoint 와 동일 DTO 의
-     * 리스트 + 집계(total/healthy/unhealthy/noAgent) 반환.
-     *
-     * <p>cluster 수가 많을 때(1000+) 100건 단위 페이징 — service 가 처리.
-     *
-     * <p>HA: 한 cluster 에 여러 agent instance 있어도 {@link AgentHealthService#getHealth}
-     * 가 {@code last_seen_at} 최신을 primary 로 선택 — fleet 응답은 cluster 단위 1 row.
-     */
+    /** Fleet-wide health. 모든 등록 cluster 를 iterate 해 single-cluster endpoint 와 동일 DTO 의 리스트 + 집계(total/healthy/unhealthy/noAgent) 반환. */
     @GetMapping("/agents/health")
     @Operation(
             summary = "Fleet-wide agent health 요약",

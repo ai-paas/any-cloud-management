@@ -4,6 +4,7 @@ import com.aipaas.anycloud.common.error.exception.ClusterNotFoundException;
 import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
 import com.aipaas.anycloud.domain.provisioning.VmClusterRepository;
 import com.aipaas.anycloud.domain.provisioning.properties.PulumiProperties;
+import com.aipaas.anycloud.domain.provisioning.remote.SshJump;
 import com.aipaas.anycloud.domain.provisioning.remote.VmClusterSshAccessService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,6 +28,7 @@ public class VmClusterSshAccessServiceImpl implements VmClusterSshAccessService 
     private final ProvisioningService provisioningService;
     private final PulumiProperties pulumiProperties;
     private final ObjectMapper objectMapper;
+    private final ClusterSshJumpResolver sshJumpResolver;
 
     @Override
     @Transactional(readOnly = true)
@@ -39,7 +41,12 @@ public class VmClusterSshAccessServiceImpl implements VmClusterSshAccessService 
                     "No node outputs yet — cluster has not finished PROVISION (status="
                             + vmCluster.getProvisioningStatus() + ")");
         }
-        return new NodeListResult(clusterName, vmCluster.getClusterProvider(), pulumiProperties.getSshUser(), nodes);
+        // 화면이 'ssh -J …' 를 만들려면 점프 주소가 필요하다. 비밀번호는 내려보내지 않는다.
+        SshJump jump = sshJumpResolver.resolve(vmCluster);
+        String jumpTarget =
+                jump == null ? null : jump.user() + "@" + jump.host() + (jump.port() == 22 ? "" : ":" + jump.port());
+        return new NodeListResult(
+                clusterName, vmCluster.getClusterProvider(), pulumiProperties.getSshUser(), jumpTarget, nodes);
     }
 
     /**
@@ -91,6 +98,11 @@ public class VmClusterSshAccessServiceImpl implements VmClusterSshAccessService 
         try {
             JsonNode root = objectMapper.readTree(rawOutputs);
             JsonNode nodes = root.path("nodes");
+            // YAML 프로그램은 nodes 를 fn::toJSON 으로 내보낸다. 배열 그대로 내보내면
+            // WorkspaceStack.up 이 gson 단계에서 죽어서다. 그래서 문자열로 올 수 있다.
+            if (nodes.isTextual()) {
+                nodes = objectMapper.readTree(nodes.asText());
+            }
             List<Map<String, Object>> result = new ArrayList<>();
             for (JsonNode node : nodes) {
                 result.add(objectMapper.convertValue(node, LinkedHashMap.class));
@@ -105,6 +117,15 @@ public class VmClusterSshAccessServiceImpl implements VmClusterSshAccessService 
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> nodesFromOutputs(Map<String, Object> outputs) {
         Object nodes = outputs.get("nodes");
+        // YAML 프로그램은 fn::toJSON 으로 내보내 문자열로 온다.
+        if (nodes instanceof String json) {
+            try {
+                nodes = objectMapper.readValue(json, List.class);
+            } catch (Exception e) {
+                log.warn("Failed to parse nodes JSON: {}", e.toString());
+                return List.of();
+            }
+        }
         if (!(nodes instanceof List<?> list)) {
             return List.of();
         }

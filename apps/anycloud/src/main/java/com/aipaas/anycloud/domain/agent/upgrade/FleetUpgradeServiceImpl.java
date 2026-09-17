@@ -40,12 +40,7 @@ public class FleetUpgradeServiceImpl implements FleetUpgradeService {
 
     private final ClusterAgentRepository clusterAgentRepository;
 
-    /**
-     * Fleet upgrade 가시화. wave 별로 cluster 를 그룹화 + 각 cluster 의 현재 agent_version.
-     *
-     * <p>HA replica (같은 cluster_name 의 여러 row) 는 dedup — version 이 다르면 정상 (rolling
-     * 중) 인지 stuck 인지 운영자 판단. preview 는 모든 instance 의 version 을 set 으로 노출.
-     */
+    /** Fleet upgrade 가시화. wave 별로 cluster 를 그룹화 + 각 cluster 의 현재 agent_version. */
     @Override
     @Transactional(readOnly = true)
     public FleetPreview preview() {

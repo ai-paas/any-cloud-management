@@ -29,12 +29,7 @@ public interface ClusterService {
 
     ClusterEntity getClusterEntity(String clusterName);
 
-    /**
-     * Step 2 (Entity → Domain) — JPA-free immutable view. 새 consumer 는 본 메서드를 사용하고,
-     * 기존 {@link #getClusterEntity(String)} 는 점진 deprecate.
-     *
-     * <p>자세한 로드맵: {@code docs/architecture/design/domain-model-roadmap.md}.
-     */
+    /** Step 2 (Entity → Domain) — JPA-free immutable view. 새 consumer 는 본 메서드를 사용하고, 기존 {@link #getClusterEntity(String)} 는 점진 deprecate. */
     Optional<Cluster> findDomainById(String clusterName);
 
     /** {@link #getClusterEntities()} 의 domain 변형. */
@@ -42,10 +37,6 @@ public interface ClusterService {
 
     /**
      * Paged variant — 1000+ cluster 환경의 heap pressure 회피용.
-     *
-     * <p>{@link #findAllDomain()} 는 전체 로드라 admin 도구 / 작은 환경에서만 안전. 신규 사용처는
-     * 본 메서드 사용 권장. 기존 호출자는 점진 마이그레이션 (ClusterFacadeImpl 의 list/getOne
-     * 가 우선 후보).
      *
      * @param pageable {@code PageRequest.of(page, size)} — 기본 limit 권장 100.
      * @return 도메인 record 의 Spring Data Page.

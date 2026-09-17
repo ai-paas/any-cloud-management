@@ -13,7 +13,8 @@ spring:
       enabled: true
   datasource:
     driver-class-name: org.mariadb.jdbc.Driver
-    url: jdbc:mariadb://127.0.0.1:3306/anycloud
+    # connectionTimeZone — 애플리케이션은 LocalDateTime 을 UTC 로 쓴다.
+    url: jdbc:mariadb://127.0.0.1:3306/anycloud?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
     username: root
     password: dev-only-root-do-not-use-in-prod
     # dev profile 의 HikariCP. 단일 개발자 환경 — pool 작게.
@@ -52,3 +53,11 @@ vm-cluster-workflow:
 helm-repo:
   auto-seed:
     enabled: ${ANYCLOUD_HELM_REPO_AUTO_SEED:true}
+
+# 개발 기본 gRPC endpoint (host.docker.internal) 는 CSP VM 에서 도달 불가라 agent 가
+# ACTIVE 로 전환되지 않는다. 이를 DEGRADED 사유로 삼으면 모든 dev 클러스터가 DEGRADED 가 된다.
+anycloud:
+  vm-cluster:
+    component:
+      agent:
+        requirement: BEST_EFFORT

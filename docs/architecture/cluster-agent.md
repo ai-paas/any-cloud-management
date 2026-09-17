@@ -65,7 +65,7 @@ Cross-instance forward / ownership 분산은 backend instance 가 10+ 또는 sti
 ```
 any-cloud-management/
 ├── anycloud/          # Spring backend (Java) — REST + gRPC server + RabbitMQ workflow
-├── infra/pulumi/      # Pulumi (Go) — VM/K8s provisioning
+├── libs/             # Spring Boot starter (agent, features, provisioning)
 ├── agent/             # Cluster Agent (Go) — in-cluster Pod
 │   ├── cmd/cluster-agent/
 │   ├── internal/

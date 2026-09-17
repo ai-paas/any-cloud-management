@@ -3,6 +3,9 @@ package com.aipaas.anycloud.domain.provisioning.remote.internal;
 import com.aipaas.anycloud.common.util.CommandExecutionSupport;
 import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
 import com.aipaas.anycloud.domain.provisioning.properties.PulumiProperties;
+import com.aipaas.anycloud.domain.provisioning.remote.SshJump;
+import com.aipaas.anycloud.domain.provisioning.remote.SshJumpEnvironment;
+import com.aipaas.anycloud.domain.provisioning.remote.SshJumpOptions;
 import com.aipaas.anycloud.domain.provisioning.remote.VmClusterRemoteAccessService;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -20,6 +23,7 @@ import org.springframework.stereotype.Service;
 public class VmClusterRemoteAccessServiceImpl implements VmClusterRemoteAccessService {
 
     private final PulumiProperties pulumiProperties;
+    private final ClusterSshJumpResolver sshJumpResolver;
 
     @Override
     public String runOnHost(
@@ -70,13 +74,18 @@ public class VmClusterRemoteAccessServiceImpl implements VmClusterRemoteAccessSe
             sshCommand.add("StrictHostKeyChecking=no");
             sshCommand.add("-o");
             sshCommand.add("UserKnownHostsFile=/dev/null");
+            // 노드가 사설망이면 직접 닿지 못한다. 켜져 있을 때만 붙는다.
+            SshJump jump = sshJumpResolver.resolve(vmCluster);
+            sshCommand.addAll(SshJumpOptions.args(jump));
             sshCommand.add("-i");
             sshCommand.add(privateKeyPath.toString());
             sshCommand.add(pulumiProperties.getSshUser() + "@" + host);
             sshCommand.add("bash -lc " + shellQuote(command));
 
-            CommandExecutionSupport.CommandExecutionResult result =
-                    CommandExecutionSupport.execute(sshCommand, null, Map.of(), timeout);
+            CommandExecutionSupport.CommandExecutionResult result;
+            try (SshJumpEnvironment jumpEnv = SshJumpEnvironment.prepare(jump, pulumiProperties.resolveRuntimeDir())) {
+                result = CommandExecutionSupport.execute(sshCommand, null, jumpEnv.env(), timeout);
+            }
             if (!result.isSuccess()) {
                 throw new IllegalStateException("Remote command failed on host " + host + " stderr=" + result.stderr()
                         + " stdout=" + result.stdout());

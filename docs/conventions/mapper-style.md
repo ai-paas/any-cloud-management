@@ -1,6 +1,6 @@
 # Mapper 컨벤션 (Entity ↔ DTO ↔ Domain)
 
-> 단일 진실 — DTO 변환 컨벤션의 상세.
+> 기준 문서 — DTO 변환 컨벤션의 상세.
 
 ## 배경
 

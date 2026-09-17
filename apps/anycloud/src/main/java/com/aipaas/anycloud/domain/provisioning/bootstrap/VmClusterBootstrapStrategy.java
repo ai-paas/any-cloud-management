@@ -12,11 +12,7 @@ public interface VmClusterBootstrapStrategy {
 
     String resolveCaHashCommand();
 
-    /**
-     * HA control-plane (MasterCount >= 2) 에서 extra master 들을 join 시킬 때 lead master 에
-     * 새 certificate-key 발급. {@code kubeadm init phase upload-certs --upload-certs} 출력의
-     * 마지막 줄 — caller 가 trim 후 buildControlPlaneJoinCommand 에 전달.
-     */
+    /** HA control-plane (MasterCount >= 2) 에서 extra master 들을 join 시킬 때 lead master 에 새 certificate-key 발급. {@code kubeadm init phase upload-certs --upload-certs} 출력의 마지막 줄 — caller 가 trim 후 buildControlPlaneJoinCommand 에 전달. */
     default String uploadCertsCommand() {
         return "sudo kubeadm init phase upload-certs --upload-certs 2>/dev/null | tail -n 1";
     }

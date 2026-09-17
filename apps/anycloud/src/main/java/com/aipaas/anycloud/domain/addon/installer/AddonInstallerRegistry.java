@@ -7,12 +7,7 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-/**
- * {@link AddonType} → {@link AddonInstaller} bean lookup.
- *
- * <p>Spring DI 가 모든 AddonInstaller 구현체를 inject → constructor 가 type 별 indexing.
- * 동일 type 의 bean 이 2개 이상이면 fail-fast — duplicate strategy registration 차단.
- */
+/** {@link AddonType} → {@link AddonInstaller} bean lookup. */
 @Slf4j
 @Component
 public class AddonInstallerRegistry {

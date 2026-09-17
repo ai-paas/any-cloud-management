@@ -1,0 +1,15 @@
+meta {
+  name: VM SSH 키 발급 (POST)
+  type: http
+  seq: 100
+}
+
+post {
+  url: {{baseUrl}}/v1/vms/{{provision_cluster_name}}/ssh-key
+  body: none
+  auth: none
+}
+
+docs {
+  `POST /v1/vms/{vmName}/ssh-key`
+}

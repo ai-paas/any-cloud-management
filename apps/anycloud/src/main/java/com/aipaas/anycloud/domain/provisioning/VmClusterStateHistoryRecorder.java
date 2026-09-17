@@ -1,11 +1,13 @@
 package com.aipaas.anycloud.domain.provisioning;
 
 import com.aipaas.anycloud.common.logging.LoggingMdc;
+import com.aipaas.anycloud.domain.events.ResourceChangedEvent;
 import com.aipaas.anycloud.domain.provisioning.model.VmClusterStatus;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,9 +31,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class VmClusterStateHistoryRecorder {
 
     private final VmClusterStateHistoryRepository repository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void record(VmClusterEntity entity, VmClusterStatus from, VmClusterStatus to, String reason) {
+        // 이력 저장보다 먼저 알린다. 저장은 best-effort 라 실패해도 화면은 최신이어야 한다.
+        eventPublisher.publishEvent(new ResourceChangedEvent("vmCluster", entity.getClusterName()));
         try {
             boolean valid = from == null || from.canTransitionTo(to);
             VmClusterStateHistoryEntity row = VmClusterStateHistoryEntity.builder()

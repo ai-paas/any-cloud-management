@@ -14,14 +14,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
-/**
- * Fleet upgrade run — 운영자가 한 번 trigger 한 fleet-wide agent upgrade 의 진행 상태.
- *
- * <p>운영자가 {@code POST /v1/fleet/upgrade} 호출 시 row 생성 (status=PLANNED). Background
- * {@code FleetUpgradeScheduler} 가 PLANNED row 발견 → RUNNING 전환 → wave 순차 처리.
- *
- * <p>HA replica 의 backend pod 중 한 노드만 처리하도록 ShedLock 사용.
- */
+/** Fleet upgrade run — 운영자가 한 번 trigger 한 fleet-wide agent upgrade 의 진행 상태. */
 @Entity
 @Table(name = "fleet_upgrade_run")
 @Getter

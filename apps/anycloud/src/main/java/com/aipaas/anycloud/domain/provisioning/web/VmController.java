@@ -14,11 +14,15 @@ import com.aipaas.anycloud.domain.operation.OperationService;
 import com.aipaas.anycloud.domain.provisioning.VmClusterStateHistoryQueryService;
 import com.aipaas.anycloud.domain.provisioning.api.request.VmCreateRequest;
 import com.aipaas.anycloud.domain.provisioning.api.request.VmPatchRequest;
+import com.aipaas.anycloud.domain.provisioning.api.response.ForceDeleteResponse;
 import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterListItemResponse;
 import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterStatusResponse;
+import com.aipaas.anycloud.domain.provisioning.command.VmClusterCommandService;
 import com.aipaas.anycloud.domain.provisioning.query.VmClusterQueryService;
 import com.aipaas.anycloud.domain.provisioning.remote.VmClusterSshAccessService;
+import com.aipaas.anycloud.domain.provisioning.support.ProvisioningConfigFlattener;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -50,15 +54,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * VM 인프라 자원 전용 API. {@code /v1/clusters} 의 source=vm 변형을 별도 namespace 로 노출.
- *
- * <p>책임 — Pulumi 통한 CSP VM provision 라이프사이클: create / scale / destroy / state history /
- * SSH 키 발급 / kubeconfig 다운로드 / 노드 목록 조회.
- *
- * <p>K8s cluster 의 registered/agent-led 등록은 별도 {@code ClusterController} 에서 다룬다 —
- * 두 라이프사이클의 책임 분리를 명시적으로 표현.
- */
+/** VM 인프라 자원 전용 API. {@code /v1/clusters} 의 source=vm 변형을 별도 namespace 로 노출. */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/vms")
@@ -74,8 +70,11 @@ public class VmController {
     private final OperationService operationService;
     private final VmClusterStateHistoryQueryService stateHistoryQueryService;
     private final VmClusterSshAccessService vmClusterSshAccessService;
+    private final VmClusterCommandService vmClusterCommandService;
     private final KubeconfigExportService kubeconfigExportService;
     private final KubeconfigIdentityResolver kubeconfigIdentityResolver;
+    private final com.aipaas.anycloud.domain.provisioning.convergence.internal.ClusterComponentRepairFacade
+            componentRepairFacade;
 
     // =============== Collection ===============
 
@@ -89,8 +88,11 @@ public class VmController {
             @RequestParam(required = false) @Pattern(regexp = ApiValidationConstants.PROVIDER_PATTERN) String provider,
             @RequestParam(required = false) @Pattern(regexp = ApiValidationConstants.ENVIRONMENT_PATTERN)
                     String environment,
-            @RequestParam(required = false) @Pattern(regexp = ApiValidationConstants.STATUS_PATTERN) String status) {
-        var items = vmClusterQueryService.listVmClusters(provider, environment, status);
+            @RequestParam(required = false) @Pattern(regexp = ApiValidationConstants.STATUS_PATTERN) String status,
+            @Parameter(description = "삭제된 항목도 함께 반환. status 를 명시하면 그 필터가 우선한다.")
+                    @RequestParam(required = false, defaultValue = "false")
+                    boolean includeDeleted) {
+        var items = vmClusterQueryService.listVmClusters(provider, environment, status, includeDeleted);
         return ResponseEntity.ok(ApiSuccessResponse.of(HttpStatus.OK.value(), "VMs loaded", PagedData.of(items)));
     }
 
@@ -130,20 +132,67 @@ public class VmController {
                                             schema = @Schema(implementation = VmCreateRequest.class),
                                             examples = {
                                                 @ExampleObject(
-                                                        name = "VM (AWS) provision",
+                                                        name = "AWS — providerSpec 불요",
                                                         value =
                                                                 """
-												{
-												  "vmGroupName": "demo-aws-01",
-												  "provider": "aws",
-												  "region": "ap-northeast-2",
-												  "environment": "dev",
-												  "credentialId": "cred-aws-001",
-												  "config": {
-												    "workerCount": "3",
-												    "instanceType": "t3.medium"
-												  }
-												}""")
+								{
+								  "vmGroupName": "demo-aws-01",
+								  "provider": "aws",
+								  "region": "ap-northeast-2",
+								  "environment": "dev",
+								  "credentialId": "cred-aws-001",
+								  "spec": {
+								    "kubernetesVersion": "1.31",
+								    "workerCount": 2,
+								    "masterInstanceType": "t3.large",
+								    "workerInstanceType": "t3.large",
+								    "network": { "vpcCidr": "10.42.0.0/16" }
+								  }
+								}"""),
+                                                @ExampleObject(
+                                                        name = "OpenStack — providerSpec 4개 필수",
+                                                        value =
+                                                                """
+								{
+								  "vmGroupName": "demo-openstack-01",
+								  "provider": "openstack",
+								  "region": "RegionOne",
+								  "credentialId": "cred-openstack-001",
+								  "spec": {
+								    "kubernetesVersion": "1.31",
+								    "workerCount": 1,
+								    "masterInstanceType": "4-8-50",
+								    "workerInstanceType": "4-8-50",
+								    "network": { "vpcCidr": "10.90.0.0/24" }
+								  },
+								  "providerSpec": {
+								    "imageName": "ubuntu-24.04",
+								    "flavorName": "4-8-50",
+								    "externalNetworkId": "3f8d3f36-8582-482c-ba8f-d2ea2e2c4147",
+								    "floatingIpPool": "external"
+								  }
+								}"""),
+                                                @ExampleObject(
+                                                        name = "Proxmox — 인스턴스 타입은 코어-메모리MiB",
+                                                        value =
+                                                                """
+								{
+								  "vmGroupName": "demo-proxmox-01",
+								  "provider": "proxmox",
+								  "region": "pve",
+								  "credentialId": "cred-proxmox-001",
+								  "spec": {
+								    "workerCount": 2,
+								    "masterInstanceType": "4-8192",
+								    "workerInstanceType": "2-4096"
+								  },
+								  "providerSpec": {
+								    "nodeName": "pve1",
+								    "datastoreId": "local-lvm",
+								    "snippetDatastoreId": "local",
+								    "networkBridge": "vmbr0"
+								  }
+								}""")
                                             }))
                     @Valid
                     @RequestBody
@@ -188,8 +237,22 @@ public class VmController {
         @ApiResponse(responseCode = "202", description = "삭제 수락 — Operation"),
         @ApiResponse(responseCode = "404", description = "VM not found")
     })
-    public ResponseEntity<ApiSuccessResponse<OperationResponse>> delete(
-            @PathVariable @NotBlank @Pattern(regexp = VM_NAME_PATTERN) @Size(max = VM_NAME_MAX) String vmName) {
+    public ResponseEntity<ApiSuccessResponse<?>> delete(
+            @PathVariable @NotBlank @Pattern(regexp = VM_NAME_PATTERN) @Size(max = VM_NAME_MAX) String vmName,
+            @Parameter(
+                            description = "destroy 없이 기록만 삭제. 자격증명이 사라져 destroy 가 인증하지 못할 때의 "
+                                    + "마지막 수단이다. 클라우드에 자원이 남아 있을 수 있으며 응답의 orphanedStacks 로 "
+                                    + "어떤 스택인지 알려준다.")
+                    @RequestParam(required = false, defaultValue = "false")
+                    boolean force) {
+        if (force) {
+            // destroy 를 돌리지 않는다. Operation 도 만들지 않는다 — 진행할 작업이 없다.
+            var result = vmClusterCommandService.forceDeleteVmCluster(vmName);
+            return ResponseEntity.ok(ApiSuccessResponse.of(
+                    HttpStatus.OK.value(),
+                    "VM records force-deleted",
+                    ForceDeleteResponse.of(result.removedRecords(), result.orphanedStacks())));
+        }
         var op = clusterFacade.deleteDomain(vmName);
         return ResponseEntity.accepted()
                 .location(URI.create("/v1/operations/" + op.id()))
@@ -198,6 +261,25 @@ public class VmController {
     }
 
     // =============== Sub-resources ===============
+
+    @PostMapping("/{vmName}/components/{componentType}/repair")
+    @Operation(
+            summary = "구성 요소 재적용",
+            description = "백오프를 무시하고 즉시 재적용합니다. 조정 루프가 다음 시도까지 기다리는 동안 " + "원인을 고친 뒤 바로 확인할 때 사용합니다.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "재적용 실행"),
+        @ApiResponse(responseCode = "400", description = "알 수 없는 구성 요소"),
+        @ApiResponse(responseCode = "404", description = "VM not found")
+    })
+    public ResponseEntity<ApiSuccessResponse<Void>> repairComponent(
+            @PathVariable @NotBlank @Pattern(regexp = VM_NAME_PATTERN) @Size(max = VM_NAME_MAX) String vmName,
+            @PathVariable @NotBlank String componentType) {
+        componentRepairFacade.repairByClusterName(
+                vmName,
+                com.aipaas.anycloud.domain.provisioning.convergence.ComponentType.valueOf(
+                        componentType.toUpperCase(java.util.Locale.ROOT)));
+        return ResponseEntity.ok(ApiSuccessResponse.of(HttpStatus.OK.value(), "component repair triggered", null));
+    }
 
     @PostMapping("/{vmName}/operations")
     @Operation(
@@ -305,7 +387,7 @@ public class VmController {
         if (request.getEnvironment() != null) spec.put("environment", request.getEnvironment());
         spec.put("credentialId", request.getCredentialId());
         if (request.getDescription() != null) spec.put("description", request.getDescription());
-        if (request.getConfig() != null) spec.put("config", request.getConfig());
+        spec.put("config", ProvisioningConfigFlattener.flatten(request));
         if (request.getHasGpuNodes() != null) spec.put("hasGpuNodes", request.getHasGpuNodes());
         return CreateClusterRequest.builder()
                 .source(CreateClusterRequest.Source.vm)

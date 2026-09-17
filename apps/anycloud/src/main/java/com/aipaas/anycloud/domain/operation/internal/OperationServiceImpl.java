@@ -1,6 +1,7 @@
 package com.aipaas.anycloud.domain.operation.internal;
 
 import com.aipaas.anycloud.common.logging.LoggingMdc;
+import com.aipaas.anycloud.domain.events.ResourceChangedEvent;
 import com.aipaas.anycloud.domain.operation.Operation;
 import com.aipaas.anycloud.domain.operation.OperationEntity;
 import com.aipaas.anycloud.domain.operation.OperationRepository;
@@ -13,6 +14,7 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -25,7 +27,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class OperationServiceImpl implements OperationService {
 
     private final OperationRepository repository;
+    private final ApplicationEventPublisher eventPublisher;
     private final com.aipaas.anycloud.domain.operation.mapper.OperationMapper operationMapper;
+
+    /** 한 자원에 동시 작업은 드물다. 그보다 깊이 쌓였다면 오래된 것은 시간 기반 정리가 걷어간다. */
+    private static final int SUPERSEDE_SCAN_SIZE = 5;
 
     // lifecycle 메서드들 (start/markRunning/complete/fail/cancel) 은 REQUIRES_NEW 로
     // 격리 — caller (RabbitMqAddonInstallListener 등) 의 outer @Transactional 안에서 호출 시,
@@ -48,7 +54,30 @@ public class OperationServiceImpl implements OperationService {
                 .principal(MDC.get("principal"))
                 .build();
         log.info("Operation start: id={}, type={}, resource={}/{}", op.getId(), type, resourceType, resourceId);
-        return repository.save(op);
+        supersedeActive(type, resourceType, resourceId);
+        return saveAndAnnounce(op);
+    }
+
+    /**
+     * 같은 자원에 새 작업이 뜨면 앞선 작업은 다시 진행될 수 없다. 남겨두면 자원은 READY 인데
+     * 화면은 중간 단계에 멈춰 있다. 시간 기반 정리로는 그 사이를 메우지 못한다.
+     *
+     * <p>정리에 실패해도 새 작업은 시작한다 — 기록 때문에 자원 생성을 막을 이유가 없다.
+     */
+    private void supersedeActive(OperationType type, String resourceType, String resourceId) {
+        try {
+            List<OperationEntity> recent = repository.findByResourceTypeAndResourceIdOrderByCreatedAtDesc(
+                    resourceType, resourceId, PageRequest.of(0, SUPERSEDE_SCAN_SIZE));
+            for (OperationEntity previous : recent) {
+                if (previous.getState() != null && previous.getState().isTerminal()) {
+                    continue;
+                }
+                previous.setErrorMessage("%s 작업이 시작되어 더 진행되지 않음".formatted(type));
+                cancel(previous.getId());
+            }
+        } catch (Exception e) {
+            log.warn("이전 작업을 닫지 못함 resource={}/{}: {}", resourceType, resourceId, e.toString());
+        }
     }
 
     @Override
@@ -61,7 +90,7 @@ public class OperationServiceImpl implements OperationService {
         if (op.getState() == OperationState.PENDING) {
             op.setState(OperationState.RUNNING);
             op.setStartedAt(LocalDateTime.now());
-            repository.save(op);
+            saveAndAnnounce(op);
         }
         return op;
     }
@@ -72,7 +101,7 @@ public class OperationServiceImpl implements OperationService {
         if (currentStep != null) op.setCurrentStep(currentStep);
         if (stepIndex != null) op.setStepIndex(stepIndex);
         if (percent != null) op.setPercent(Math.max(0, Math.min(100, percent)));
-        return repository.save(op);
+        return saveAndAnnounce(op);
     }
 
     @Override
@@ -89,7 +118,7 @@ public class OperationServiceImpl implements OperationService {
                 op.getType(),
                 op.getResourceType(),
                 op.getResourceId());
-        return repository.save(op);
+        return saveAndAnnounce(op);
     }
 
     @Override
@@ -106,7 +135,7 @@ public class OperationServiceImpl implements OperationService {
                 op.getResourceType(),
                 op.getResourceId(),
                 errorMessage);
-        return repository.save(op);
+        return saveAndAnnounce(op);
     }
 
     @Override
@@ -114,7 +143,17 @@ public class OperationServiceImpl implements OperationService {
         OperationEntity op = mustFind(operationId);
         op.setState(OperationState.CANCELLED);
         op.setEndedAt(LocalDateTime.now());
-        return repository.save(op);
+        return saveAndAnnounce(op);
+    }
+
+    /**
+     * 저장과 알림을 한 통로로 묶는다. 저장 지점이 여섯 곳이라 따로 두면 언젠가 하나를 빠뜨리고,
+     * 그 화면만 옛 상태로 남는다.
+     */
+    private OperationEntity saveAndAnnounce(OperationEntity op) {
+        OperationEntity saved = repository.save(op);
+        eventPublisher.publishEvent(new ResourceChangedEvent("operation", saved.getResourceId()));
+        return saved;
     }
 
     @Override

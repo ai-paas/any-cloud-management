@@ -7,16 +7,7 @@ import com.aipaas.anycloud.domain.operation.Operation;
 import com.aipaas.anycloud.domain.operation.OperationEntity;
 import java.util.List;
 
-/**
- * 통합 cluster facade. {@code /v1/clusters} 컨트롤러가 사용하는 단일 진입점.
- * <p>
- * 내부적으로는 {@link com.aipaas.anycloud.domain.provisioning.VmClusterService} 또는
- * {@link ClusterService} 로 위임. source 필드로 분기.
- *
- * <p>CRUD 메서드가 {@code OperationEntity} 와 {@code Operation} 두 변형을 양립합니다.
- * 새 caller (controller / tests) 는 domain 변형 사용 권장. entity 변형은 점진 deprecate.
- * 자세한 로드맵: {@code docs/architecture/design/domain-model-roadmap.md}.
- */
+/** 통합 cluster facade. {@code /v1/clusters} 컨트롤러가 사용하는 단일 진입점. */
 public interface ClusterFacade {
 
     /**

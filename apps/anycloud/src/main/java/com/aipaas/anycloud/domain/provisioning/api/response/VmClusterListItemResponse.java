@@ -67,6 +67,9 @@ public class VmClusterListItemResponse {
     @Schema(description = "등록 완료 여부")
     private Boolean clusterRegistered;
 
+    @Schema(description = "등록된 클러스터 식별자", example = "aipaas-aws-01")
+    private String clusterId;
+
     @Schema(description = "Master VM 스펙")
     private String masterVmSpec;
 
@@ -78,6 +81,18 @@ public class VmClusterListItemResponse {
 
     @Schema(description = "마지막 오류 메시지")
     private String lastError;
+
+    @Schema(description = "master 노드 수", example = "1")
+    private Integer masterCount;
+
+    @Schema(description = "worker 노드 수", example = "2")
+    private Integer workerCount;
+
+    @Schema(description = "첫 master 의 사설 IP", example = "10.0.0.1")
+    private String masterPrivateIp;
+
+    @Schema(description = "첫 master 의 공인 IP", example = "1.2.3.4")
+    private String masterPublicIp;
 
     @Schema(description = "생성 시각")
     private LocalDateTime createdAt;

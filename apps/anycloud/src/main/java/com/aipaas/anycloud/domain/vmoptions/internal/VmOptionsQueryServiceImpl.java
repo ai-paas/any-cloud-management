@@ -168,6 +168,8 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
                     case ALIBABA -> equalsIgnoreCase(spec.getName(), "ecs.g6.large");
                     case OCI -> equalsIgnoreCase(spec.getName(), "VM.Standard.E4.Flex");
                     case DIGITALOCEAN -> equalsIgnoreCase(spec.getName(), "s-2vcpu-4gb");
+                    case PROXMOX -> equalsIgnoreCase(spec.getName(), "2-4096");
+                    case IBM -> equalsIgnoreCase(spec.getName(), "bx2-2x8");
                 };
 
         return VmOptionSpec.builder()
@@ -196,7 +198,7 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
                             && containsIgnoreCase(image.getName(), "2404");
                     case AZURE -> containsIgnoreCase(image.getName(), "ubuntu")
                             && containsIgnoreCase(image.getName(), "24.04");
-                    case ALIBABA, OCI, DIGITALOCEAN -> containsIgnoreCase(image.getName(), "ubuntu");
+                    case ALIBABA, OCI, DIGITALOCEAN, PROXMOX, IBM -> containsIgnoreCase(image.getName(), "ubuntu");
                 };
 
         return VmOptionImage.builder()

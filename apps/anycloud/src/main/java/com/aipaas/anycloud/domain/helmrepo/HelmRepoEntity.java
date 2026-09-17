@@ -77,11 +77,7 @@ public class HelmRepoEntity implements Serializable {
     // auto_allowlist column 폐기.
     // Chart 제한 원하면 ConfigMap (allowed_charts) 에 직접 명시.
 
-    /**
-     * Hybrid helm-repo. INTERNAL | EXTERNAL.
-     * Default EXTERNAL — 대부분의 chart 는 public repo. 동작 무관 (URL 로만 fetch).
-     * Mirror 처럼 외부 chart 의 internal cache 는 사용 시점에서 INTERNAL 과 동일 — tags 로 출처 추적.
-     */
+    /** Hybrid helm-repo. INTERNAL | EXTERNAL. */
     @Enumerated(EnumType.STRING)
     @Column(name = "source", nullable = false, length = 20)
     @ColumnDefault("'EXTERNAL'")

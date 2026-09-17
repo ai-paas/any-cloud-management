@@ -53,12 +53,10 @@ ProvisioningResult typed = provisioningService.typedStackOutputs(
   - `ProvisioningResultMapper` (raw Map → ProvisioningResult + jakarta validation)
   - `CspCredentialPulumiConfigMapper` (env var → stack config key)
 - `program/` — Pulumi 프로그램 본체.
-  - `ProvisionerOrchestrator` (inline program, ProviderRegistry dispatch)
-  - `ClusterSpec` (Builder + normalize), `Defaults`, `DatabaseSpec`, `JoinTokens`, `ResourceNames`,
-    `ProviderName`, `K8sConstants`, `KubeadmUserData`
-  - `program/provisioner/`: `ProviderProvisioner` (contract), `ProviderRegistry`,
-    `AbstractKubeadmProvisioner` (template), 7개 CSP impl (Aws/Gcp/Azure/Oci/Alibaba/DigitalOcean/
-    Openstack), 공용 record (`ProvisionedCluster`, `InstanceOutput`, `NodeSpec`, `InstanceRole`).
+  - `ClusterSpec` (Builder + normalize), `ProviderSpec` (CSP 전용 설정), `Defaults`, `DatabaseSpec`,
+    `JoinTokens`, `ResourceNames`, `ProviderName`, `K8sConstants`, `KubeadmUserData`
+  - `program/yaml/`: `PulumiProgram` (YAML 트리), `YamlRef` (참조/함수), `StandardOutputs` (출력 계약),
+    `YamlEmitters` (등록), CSP별 `{Csp}YamlEmitter` — AWS/GCP/Azure/OCI/OpenStack.
 - `autoconfigure/` — `ClusterProvisioningAutoConfiguration` + `ProvisioningProperties`.
 
 ## 호출 흐름
@@ -67,35 +65,29 @@ ProvisioningResult typed = provisioningService.typedStackOutputs(
 
 1. `AutomationProvisioningService` 가 `LocalWorkspaceOptions` (envVars + stack config) 구성.
 2. `CspCredentialPulumiConfigMapper` 가 credential env 를 secret stack config 로 변환.
-3. `LocalWorkspace.createOrSelectStack(ProvisionerOrchestrator)` 로 stack 준비 후 `stack.up()`.
-4. `ProvisionerOrchestrator.run(ctx, req)` — `ClusterSpec.load(ctx).normalize()` → registry dispatch.
-5. `{Csp}Provisioner.provisionResources(ctx, spec)` — VPC/subnet/SG/instances/extras 생성.
-   base class 가 결과 받아 표준 output map (provider/clusterName/masterIp/...nodes) 조립.
+3. `YamlProgramAssembler` 가 `Pulumi.yaml` 을 만들어 임시 workDir 에 쓰고 `stack.up()`.
+4. `{Csp}YamlEmitter.emit(builder, spec)` — 네트워크, 보안그룹, 인스턴스를 `resources` 에 선언.
+5. `StandardOutputs.apply` 가 표준 output (provider/clusterName/masterPublicIp/...nodes) 조립.
 6. `ProvisioningResultMapper.map(raw)` 가 host 에 반환할 typed record 로 매핑.
 7. lifecycle 중 발생한 EngineEvent 는 `EngineEventAdapter` → `ProvisionEventBus` 로 publish.
 
 ## 새 CSP 추가
 
-1. `com.pulumi:<provider>` Maven coordinate 확인.
-2. 루트 `build.gradle` 의 `pulumi<Provider>Version` ext 추가 + starter `build.gradle` 의
-   `api 'com.pulumi:<provider>:${...}'` 추가.
-3. `program/provisioner/<Csp>Provisioner.java` 작성 — `extends AbstractKubeadmProvisioner`,
-   `provisionResources()` 만 구현 (네트워크 + 인스턴스 + extras 반환).
-4. `program/Defaults.java` 의 `TABLE` 에 `ProviderDefaults` entry 1줄 추가. CSP 고유 필드 (예:
-   Azure resource group, OpenStack image/flavor, AWS database) 가 있으면 `applyProviderSpecific`
-   switch case 추가.
-5. `program/ProviderName.java` 의 alias 분기에 canonical 토큰 추가.
-6. `internal/CspCredentialPulumiConfigMapper.MAPPERS` 에 env → stack config 매핑 추가.
-7. `autoconfigure/ClusterProvisioningAutoConfiguration.java` 에 `@Bean(name="<csp>Provisioner")` 등록.
-8. `Dockerfile.pulumi` 에 `pulumi plugin install resource <csp> <version>` 추가 — image build 시
-   pre-cache.
-9. `src/test/.../SmokeMocks.java` 에 getZones/getImage/getAvailabilityZones 등 CSP lookup mock 추가.
-10. `ProvisionerSmokeTest` 에 새 CSP 케이스 추가.
+1. `pulumi package get-schema <provider>@<version>` 으로 타입 토큰과 속성 이름을 확인. 추측하면
+   `pulumi preview` 가 자격증명 단계에서 먼저 죽어 오타가 드러나지 않는다.
+2. CSP 고유 설정이 있으면 `program/ProviderSpec.java` 에 record 를 추가하고 `from()` 분기에 등록.
+3. `program/yaml/<Csp>YamlEmitter.java` 작성 — `ProviderYamlEmitter` 구현, `NodeRefs` 반환.
+4. `program/yaml/YamlEmitters.EMITTERS` 에 등록.
+5. `program/Defaults.java` 의 `TABLE` 에 `ProviderDefaults` entry 추가.
+6. `program/ProviderName.java` 의 alias 분기에 canonical 토큰 추가.
+7. `internal/CspCredentialPulumiConfigMapper.MAPPERS` 에 env → stack config 매핑 추가.
+8. `Dockerfile.pulumi` 에 `pulumi plugin install resource <csp> <version>` 추가.
+9. `<Csp>YamlEmitterTest` 작성 — 타입 토큰, CSP 고유 제약, 필수 config 누락 시 fail-fast.
 
 ## Tests
 
-- `ProvisionerSmokeTest` — `PulumiTest.withMocks(new SmokeMocks())` 로 7 CSP provisioner 의 wiring
-  (resource graph + 표준 output keys) 을 in-memory 검증. 실 CSP API 호출 없음.
+- `{Csp}YamlEmitterTest` — 생성된 YAML 을 파싱해 타입 토큰과 속성을 검증. 실 CSP API 호출 없음.
+- `YamlProgramDumpTest` — `ANYCLOUD_DUMP_YAML` 로 실제 `Pulumi.yaml` 을 내보내 CLI 검증에 쓴다.
 - `ProvisionEventBusTest` — multicast / null safety / late-subscriber replay.
 
 ## License

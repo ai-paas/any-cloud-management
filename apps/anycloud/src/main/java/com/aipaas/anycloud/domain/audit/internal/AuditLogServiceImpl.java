@@ -5,7 +5,6 @@ import com.aipaas.anycloud.domain.audit.AuditLogRepository;
 import com.aipaas.anycloud.domain.audit.AuditLogResponse;
 import com.aipaas.anycloud.domain.audit.AuditLogService;
 import java.time.LocalDateTime;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -19,7 +18,7 @@ public class AuditLogServiceImpl implements AuditLogService {
     private final AuditLogRepository repository;
 
     @Override
-    public List<AuditLogResponse> search(
+    public org.springframework.data.domain.Page<AuditLogResponse> search(
             LocalDateTime since,
             LocalDateTime until,
             String resourceType,
@@ -27,9 +26,9 @@ public class AuditLogServiceImpl implements AuditLogService {
             String action,
             String principal,
             Pageable pageable) {
-        List<AuditLogEntity> rows =
-                repository.search(since, until, resourceType, resourceId, action, principal, pageable);
-        return rows.stream().map(AuditLogServiceImpl::toDto).toList();
+        return repository
+                .search(since, until, resourceType, resourceId, action, principal, pageable)
+                .map(AuditLogServiceImpl::toDto);
     }
 
     private static AuditLogResponse toDto(AuditLogEntity e) {

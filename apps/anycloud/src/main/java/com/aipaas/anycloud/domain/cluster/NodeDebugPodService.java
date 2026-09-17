@@ -1,19 +1,22 @@
 package com.aipaas.anycloud.domain.cluster;
 
-/**
- * Node debug shell 위한 임시 priviledged pod 생성.
- *
- * <p>kubectl debug node 등가. host PID/Net/IPC namespace + privileged 의 nsenter pod 을 생성.
- * 사용자는 반환된 (namespace, pod_name) 으로 기존 PodExec WebSocket 으로 연결 — 새 RPC 추가 없이
- * 재사용.
- *
- * <p>Cleanup: 운영자 책임. TTL annotation 만 부여 — 미래 sweeper job 이 cleanup 가능.
- */
+/** Node debug shell 위한 임시 priviledged pod 생성. */
 public interface NodeDebugPodService {
 
     DebugPodResult create(String clusterName, CreateRequest request);
 
-    record CreateRequest(String nodeName, String namespace, String image, String podName, Long ttlSeconds) {}
+    /**
+     * @param toolsShell 호스트가 아니라 클러스터를 보는 셸. kubectl, k9s 가 이미지에서 온다.
+     * @param serviceAccount toolsShell 이 클러스터를 볼 자격. 없으면 kubectl 이 forbidden 을 받는다.
+     */
+    record CreateRequest(
+            String nodeName,
+            String namespace,
+            String image,
+            String podName,
+            Long ttlSeconds,
+            boolean toolsShell,
+            String serviceAccount) {}
 
     record DebugPodResult(String clusterName, String nodeName, String namespace, String podName, String expiresAt) {}
 

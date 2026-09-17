@@ -26,9 +26,9 @@ consumer 활용 + publish 운영 안내입니다.
 ```
 
 산출물은 각 artifact 마다 4 file 입니다.
-- `cluster-agent-spring-boot-starter-0.1.0.jar` — 클래스 + 리소스 + proto 입니다.
-- `cluster-agent-spring-boot-starter-0.1.0-sources.jar` — sources 입니다.
-- `cluster-agent-spring-boot-starter-0.1.0-javadoc.jar` — javadoc 입니다.
+- `cluster-agent-spring-boot-starter-0.1.0.jar` — 클래스 + 리소스 + proto
+- `cluster-agent-spring-boot-starter-0.1.0-sources.jar` — sources
+- `cluster-agent-spring-boot-starter-0.1.0-javadoc.jar` — javadoc
 - `cluster-agent-spring-boot-starter-0.1.0.pom` — POM 입니다 (의존성 + license + SCM).
 
 ### 2.2 Consumer build.gradle
@@ -62,9 +62,9 @@ dependencies {
 | `cluster-provisioning` (scaffold) | `ClusterProvisioningSink`, `PulumiCredentialProvider` (service migration 완료 시 활성화) |
 
 자세한 사항은 각 starter 의 design doc 을 참조합니다.
-- `docs/architecture/cluster-agent.md` 입니다.
-- `docs/architecture/starters/cluster-backup-starter.md` 입니다.
-- `docs/architecture/starters/cluster-provisioning-starter.md` 입니다.
+- `docs/architecture/cluster-agent.md`
+- `docs/architecture/starters/cluster-backup-starter.md`
+- `docs/architecture/starters/cluster-provisioning-starter.md`
 - `docs/architecture/identity/k8s-impersonation-auth.md` (Impersonation SPI) 입니다.
 
 ### 2.4 Feature toggle
@@ -107,8 +107,7 @@ publishPassword=<token>
 ```bash
 ./gradlew \
   :cluster-agent-spring-boot-starter:publish \
-  :cluster-agent-observability-spring-boot-starter:publish \
-  :cluster-agent-backup-spring-boot-starter:publish \
+  :cluster-agent-features-spring-boot-starter:publish \
   :cluster-provisioning-spring-boot-starter:publish
 ```
 
@@ -117,7 +116,7 @@ publishPassword=<token>
 ## 4. Maven Central — 추가 준비
 
 각 starter 의 POM 은 license / SCM / developers 가 완비되어 있습니다. Maven Central publish 추가 요구사항은 다음과 같습니다.
-1. **GPG signing** — `signing` plugin + key pair 입니다.
+1. **GPG signing** — `signing` plugin + key pair
 2. **Sonatype OSS 계정** — `central-publishing-maven-plugin` 또는 `nexus-publish` 플러그인 입니다.
 3. **Domain 소유 검증** — `io.aipaas.cluster` 도메인 (aipaas.io? innogrid.com?) DNS TXT 또는 GitHub repo 검증입니다.
 
@@ -125,9 +124,9 @@ Maven Central 정식 release 도입은 향후 결정합니다 (현재 publishToM
 
 ## 5. SemVer 정책
 
-- **MAJOR** — SPI breaking, proto wire-format breaking 입니다.
+- **MAJOR** — SPI breaking, proto wire-format breaking
 - **MINOR** — 새 SPI 추가, 새 proto field 추가 (backward-compatible), 새 CommandType 입니다.
-- **PATCH** — bug fix, internal 개선입니다.
+- **PATCH** — bug fix, internal 개선
 
 현재 `0.1.0` 은 impersonation 통합 + cluster_addon async workflow + 4-starter split 안정화 시점입니다.
 

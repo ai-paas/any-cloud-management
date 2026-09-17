@@ -7,16 +7,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
-/**
- * JPA Entity ↔ Domain 변환 boundary.
- *
- * <p>Hexagonal pattern 의 adapter 책임 — service 내부에서만 사용. Controller / domain 코드는 이
- * mapper 를 직접 호출하지 않는다 (Service interface 가 점진적으로 domain 만 노출하는 방향으로
- * migration).
- *
- * <p>ClusterStatus enum ↔ String 변환은 default method 로 처리 (entity.status enum →
- * domain.status string / domain.status string → entity.status enum via fromOrUnknown).
- */
+/** JPA Entity ↔ Domain 변환 boundary. */
 @Mapper(componentModel = "spring")
 public interface ClusterMapper {
 

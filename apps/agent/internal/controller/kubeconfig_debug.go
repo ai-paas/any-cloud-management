@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"os"
 	"strconv"
 
 	agentv1 "anycloud/agent/internal/gen/agent/v1"
@@ -20,10 +21,11 @@ import (
 //   - 대상 namespace 가 allowed_namespaces 안에 있을 것
 //
 // params:
-//   namespace, service_account (필수)
-//   ttl_seconds (default 3600, max enforced by K8s ~24h)
-//   cluster_name (kubeconfig 의 cluster name, default "aipaas-cluster")
-//   context_namespace (kubeconfig context 의 default namespace, default same as namespace)
+//
+//	namespace, service_account (필수)
+//	ttl_seconds (default 3600, max enforced by K8s ~24h)
+//	cluster_name (kubeconfig 의 cluster name, default "aipaas-cluster")
+//	context_namespace (kubeconfig context 의 default namespace, default same as namespace)
 func (d *Dispatcher) generateKubeconfig(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {
 	if d.kube == nil {
 		return errorResponse(agentv1.Status_AGENT_UNAVAILABLE, "K8S_CLIENT_NIL", "K8s client not initialized")
@@ -72,10 +74,10 @@ func (d *Dispatcher) generateKubeconfig(ctx context.Context, cmd *agentv1.Comman
 	yaml := composeKubeconfigYAML(clusterName, server, caData, serviceAccount, tok.Token, contextNs)
 
 	result, _ := structpb.NewStruct(map[string]interface{}{
-		"kubeconfig_yaml":  yaml,
-		"expires_at":       tok.ExpirationTimestamp.Format("2006-01-02T15:04:05Z07:00"),
-		"service_account":  serviceAccount,
-		"namespace":        namespace,
+		"kubeconfig_yaml":   yaml,
+		"expires_at":        tok.ExpirationTimestamp.Format("2006-01-02T15:04:05Z07:00"),
+		"service_account":   serviceAccount,
+		"namespace":         namespace,
 		"agent_instance_id": d.agentInstanceID,
 	})
 	return okResponse(result)
@@ -139,7 +141,8 @@ func (d *Dispatcher) createNodeDebugPod(ctx context.Context, cmd *agentv1.Comman
 	if nodeName == "" {
 		return errorResponse(agentv1.Status_INVALID_PARAMS, "MISSING_PARAM", "node_name required")
 	}
-	namespace := defaultStr(getStringParam(cmd, "namespace"), "kube-system")
+	toolsShell := getStringParam(cmd, "tools_shell") == "true"
+	namespace := debugPodNamespace(getStringParam(cmd, "namespace"), toolsShell)
 	policy := d.allowlist.Snapshot()
 	if !policy.IsNamespaceAllowed(namespace) {
 		return errorResponse(agentv1.Status_PERMISSION_DENIED, "NAMESPACE_NOT_ALLOWED",
@@ -153,6 +156,9 @@ func (d *Dispatcher) createNodeDebugPod(ctx context.Context, cmd *agentv1.Comman
 		Image:      getStringParam(cmd, "image"),
 		PodName:    getStringParam(cmd, "pod_name"),
 		TTLSeconds: ttl,
+		// 터미널은 호스트가 아니라 클러스터를 본다. 기본은 기존 노드 셸이다.
+		ToolsShell:     toolsShell,
+		ServiceAccount: getStringParam(cmd, "service_account"),
 	})
 	if err != nil {
 		return errorResponse(agentv1.Status_FAILED, "DEBUG_POD_CREATE_FAILED", err.Error())
@@ -165,4 +171,18 @@ func (d *Dispatcher) createNodeDebugPod(ctx context.Context, cmd *agentv1.Comman
 		"agent_instance_id": d.agentInstanceID,
 	})
 	return okResponse(result)
+}
+
+// debugPodNamespace — 파드가 뜰 namespace.
+//
+// 도구 셸은 agent 의 SA 로 뜨는데 SA 는 자기 namespace 안에서만 참조된다. kube-system 에 만들면
+// "serviceaccount not found" 로 거부된다.
+func debugPodNamespace(requested string, toolsShell bool) string {
+	if requested != "" {
+		return requested
+	}
+	if toolsShell {
+		return defaultStr(os.Getenv("AGENT_NAMESPACE"), "aipaas-system")
+	}
+	return "kube-system"
 }

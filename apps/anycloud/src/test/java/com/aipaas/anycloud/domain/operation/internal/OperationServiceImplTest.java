@@ -15,6 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.context.ApplicationEventPublisher;
 
 /**
  * Operation lifecycle 상태 머신 + 영속 흐름 회귀 방지.
@@ -25,6 +26,9 @@ class OperationServiceImplTest extends AbstractUnitTest {
 
     @Mock
     OperationRepository repository;
+
+    @Mock
+    ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     OperationServiceImpl service;

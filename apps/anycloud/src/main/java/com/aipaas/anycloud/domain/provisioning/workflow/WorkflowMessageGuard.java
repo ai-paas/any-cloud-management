@@ -64,7 +64,10 @@ public class WorkflowMessageGuard {
                 .findFirstByClusterNameOrderByCreatedAtDesc(entity.getClusterName())
                 .map(latest -> !Objects.equals(latest.getId(), entity.getId()))
                 .orElse(false);
-        if (superseded || entity.getDeletedAt() != null) {
+        // DESTROY 는 부활이 아니라 정리다. 막으면 같은 이름으로 재시도하며 쌓인 옛 세대를
+        // 지울 방법이 사라진다 — 실제로 FAILED 두 건이 목록에 영영 남았다.
+        if ((superseded || entity.getDeletedAt() != null)
+                && SupersededPolicy.blocks(message.getStep(), entity.getProvisioningStatus())) {
             log.warn(
                     "Workflow message targets superseded/deleted vm_cluster row (vmClusterId={}, cluster={}, "
                             + "messageId={}, step={}, status={}); skipping",

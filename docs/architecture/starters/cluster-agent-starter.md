@@ -55,8 +55,7 @@ build.gradle 기준 주요 좌표는 다음과 같습니다.
 | Cache | `com.github.ben-manes.caffeine:caffeine` (`AgentSessionRegistry.pendingByRequest` bounded cache) |
 | Metrics | `io.micrometer:micrometer-core` (compileOnly — consumer 가 actuator 추가하면 자동 동작) |
 
-본 starter 는 다른 starter 에 의존하지 않으며, **다른 starter (e.g. `cluster-agent-observability-spring-boot-starter`,
-`cluster-agent-backup-spring-boot-starter`) 가 본 모듈 위에 build** 됩니다.
+본 starter 는 다른 starter 에 의존하지 않으며, **Layer 2 인 `cluster-agent-features-spring-boot-starter` 가 본 모듈 위에 build** 됩니다.
 
 `group = io.aipaas.cluster`, `version = 0.1.0` 으로 publish 됩니다. proto 원본 (`agent/v1/*.proto`) 은
 jar 안에 포함되어 외부 consumer 가 다른 언어 client 를 생성할 때 사용할 수 있습니다.

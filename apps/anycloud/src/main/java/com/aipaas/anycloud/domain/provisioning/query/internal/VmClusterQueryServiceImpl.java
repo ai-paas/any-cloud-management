@@ -7,10 +7,14 @@ import com.aipaas.anycloud.domain.provisioning.api.request.ProvisionClusterReque
 import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterListItemResponse;
 import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterPreflightResponse;
 import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterStatusResponse;
+import com.aipaas.anycloud.domain.provisioning.api.response.VmNodeListItemResponse;
 import com.aipaas.anycloud.domain.provisioning.model.VmClusterStatus;
 import com.aipaas.anycloud.domain.provisioning.payload.VmClusterPayloadService;
 import com.aipaas.anycloud.domain.provisioning.preflight.VmClusterPreflightService;
+import com.aipaas.anycloud.domain.provisioning.query.VmClusterListFilter;
+import com.aipaas.anycloud.domain.provisioning.query.VmClusterNodeRows;
 import com.aipaas.anycloud.domain.provisioning.query.VmClusterQueryService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -36,16 +40,39 @@ public class VmClusterQueryServiceImpl implements VmClusterQueryService {
     private final VmClusterRepository vmClusterRepository;
     private final VmClusterPayloadService vmClusterPayloadService;
     private final VmClusterPreflightService preflightService;
+    private final ObjectMapper objectMapper;
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VmNodeListItemResponse> listNodes(String provider, String clusterName) {
+        Specification<VmClusterEntity> specification = Specification.where(
+                        equalsIgnoreCase("clusterProvider", provider))
+                .and(equalsIgnoreCase("clusterName", clusterName))
+                .and(notEqualsEnum("provisioningStatus", VmClusterStatus.DELETED));
+
+        return vmClusterRepository.findAll(specification, Sort.by(Sort.Direction.DESC, "createdAt")).stream()
+                .flatMap(cluster -> VmClusterNodeRows.of(objectMapper, cluster).stream())
+                .map(VmNodeListItemResponse::from)
+                .toList();
+    }
 
     @Override
     public List<VmClusterListItemResponse> listVmClusters(String provider, String environment, String status) {
+        return listVmClusters(provider, environment, status, false);
+    }
+
+    @Override
+    public List<VmClusterListItemResponse> listVmClusters(
+            String provider, String environment, String status, boolean includeDeleted) {
         VmClusterStatus normalizedStatus = normalizeStatus(status);
-        // status 미지정 시 DELETED 자동 제외 — delete 가 audit/history 위해 row 를 보존하므로 list 에서
-        // 누적되는 noise 차단. status=DELETED 명시 요청 시는 그대로 표시.
+        // delete 가 audit/history 위해 row 를 보존하므로 기본 목록에서는 감춘다. includeDeleted 는
+        // "함께 보기" 다 — 삭제된 것만 남기면 살아 있는 것을 보려고 두 번 조회해야 한다.
         Specification<VmClusterEntity> baseSpec = Specification.where(equalsIgnoreCase("clusterProvider", provider))
                 .and(equalsIgnoreCase("environment", environment));
         Specification<VmClusterEntity> specification = normalizedStatus == null
-                ? baseSpec.and(notEqualsEnum("provisioningStatus", VmClusterStatus.DELETED))
+                ? (VmClusterListFilter.hidesDeleted(null, includeDeleted)
+                        ? baseSpec.and(notEqualsEnum("provisioningStatus", VmClusterStatus.DELETED))
+                        : baseSpec)
                 : baseSpec.and(equalsEnum("provisioningStatus", normalizedStatus));
 
         return vmClusterRepository.findAll(specification, Sort.by(Sort.Direction.DESC, "createdAt")).stream()

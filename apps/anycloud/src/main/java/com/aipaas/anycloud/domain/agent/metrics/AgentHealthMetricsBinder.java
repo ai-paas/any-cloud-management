@@ -93,13 +93,7 @@ public class AgentHealthMetricsBinder {
                 .register(meterRegistry);
     }
 
-    /**
-     * 30 초 주기. heartbeat 기본 cadence(30s) 와 동일 — 너무 잦으면 DB 부하, 너무 늦으면 알람 지연.
-     *
-     * <p>{@link SchedulerLock} 으로 multi-instance 운영 시 한 노드만 scan — DB read 와 metric
-     * register 가 노드별로 중복되지 않도록. {@code lockAtMostFor} 는 scan 멈춤 시 안전한 unlock
-     * 시한, {@code lockAtLeastFor} 는 빠른 재실행을 막아 thrash 방지.
-     */
+    /** 30 초 주기. heartbeat 기본 cadence(30s) 와 동일 — 너무 잦으면 DB 부하, 너무 늦으면 알람 지연. */
     /**
      * 추가 최적화 불요 — 다음 안전장치로 1000+ cluster 환경에서도 안정 동작:
      * <ul>

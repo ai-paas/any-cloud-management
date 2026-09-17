@@ -41,13 +41,7 @@ public class CreateHelmRepoRequest {
     @Schema(description = "헬름 저장소 CA 정보")
     private String caFile;
 
-    /**
-     * Hybrid helm-repo source. 미지정 시 EXTERNAL (default).
-     *
-     * <p>INTERNAL: 사용자가 운영하는 chart 저장소 (ChartMuseum / Harbor / OCI). 외부 chart 의 internal
-     * mirror 도 endpoint 가 internal 이면 INTERNAL 로 분류.<br>
-     * EXTERNAL: public chart 저장소 (helm.sh / github pages).
-     */
+    /** Hybrid helm-repo source. 미지정 시 EXTERNAL (default). */
     @Schema(
             description = "저장소 종류 (INTERNAL/EXTERNAL) — default EXTERNAL",
             example = "EXTERNAL",
