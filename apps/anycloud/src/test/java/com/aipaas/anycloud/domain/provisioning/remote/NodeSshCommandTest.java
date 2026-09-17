@@ -59,4 +59,19 @@ class NodeSshCommandTest extends AbstractUnitTest {
         assertThatThrownBy(() -> NodeSshCommand.build("/tmp/key.pem", " ", "10.0.0.1"))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void theHostCheckIsCallableBeforeBuilding() {
+        // 호출부에서 먼저 거르면 명령을 만들기 전에 끊긴다.
+        assertThat(NodeSshCommand.requireSafeHost("node-1.example.com")).isEqualTo("node-1.example.com");
+    }
+
+    @Test
+    void theHostCheckRejectsAnythingThatSshWouldReadAsAnOption() {
+        assertThatThrownBy(() -> NodeSshCommand.requireSafeHost("-oProxyCommand=touch /tmp/pwn"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> NodeSshCommand.requireSafeHost("10.0.0.1 -oProxyCommand=x"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> NodeSshCommand.requireSafeHost(null)).isInstanceOf(IllegalArgumentException.class);
+    }
 }

@@ -18,15 +18,27 @@ public final class NodeSshCommand {
 
     private NodeSshCommand() {}
 
+    /**
+     * ssh 인자로 쓸 수 있는 host 만 통과시킨다.
+     *
+     * <p>{@code ProcessBuilder} 는 셸을 거치지 않으므로 메타문자는 문제가 아니지만, {@code -}
+     * 로 시작하는 값은 ssh 가 옵션으로 읽는다. {@code -oProxyCommand=...} 가 들어오면 임의의
+     * 명령이 실행된다.
+     */
+    public static String requireSafeHost(String host) {
+        if (host == null || !SAFE_HOST.matcher(host).matches()) {
+            throw new IllegalArgumentException("사용할 수 없는 host: " + host);
+        }
+        return host;
+    }
+
     public static List<String> build(String privateKeyPath, String sshUser, String host) {
         return build(privateKeyPath, sshUser, host, null);
     }
 
     /** 노드가 사설망이면 점프 호스트를 거친다. 프로비저닝과 같은 길을 쓴다. */
     public static List<String> build(String privateKeyPath, String sshUser, String host, SshJump jump) {
-        if (host == null || !SAFE_HOST.matcher(host).matches()) {
-            throw new IllegalArgumentException("사용할 수 없는 host: " + host);
-        }
+        requireSafeHost(host);
         if (sshUser == null || !SAFE_USER.matcher(sshUser).matches()) {
             throw new IllegalArgumentException("사용할 수 없는 sshUser: " + sshUser);
         }

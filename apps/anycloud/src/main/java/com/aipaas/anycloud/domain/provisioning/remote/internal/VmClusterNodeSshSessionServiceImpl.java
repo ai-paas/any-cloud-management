@@ -18,7 +18,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -59,20 +61,23 @@ public class VmClusterNodeSshSessionServiceImpl implements VmClusterNodeSshSessi
         // 요청받은 host 가 이 클러스터의 노드인지 확인한다. 확인하지 않으면 임의의 주소로
         // 백엔드가 ssh 를 걸어주는 통로가 된다.
         List<VmClusterNodeRows.Row> nodes = VmClusterNodeRows.of(objectMapper, cluster);
-        boolean known = nodes.stream()
-                .anyMatch(n -> host.equals(n.publicIp()) || host.equals(n.privateIp()) || host.equals(n.publicDns()));
-        if (!known) {
-            throw new IllegalStateException("이 클러스터의 노드가 아닙니다: " + host);
-        }
+        String matched = nodes.stream()
+                .flatMap(n -> Stream.of(n.publicIp(), n.privateIp(), n.publicDns()))
+                .filter(Objects::nonNull)
+                .filter(host::equals)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("이 클러스터의 노드가 아닙니다: " + host));
+        // 노드 목록에 있다고 ssh 인자로 안전하지는 않다. 옵션처럼 생긴 값은 여기서 막는다.
+        String target = NodeSshCommand.requireSafeHost(matched);
 
         String privateKeyPem = privateKeyOf(cluster);
-        Path keyPath = writeKey(vmName, privateKeyPem);
+        Path keyPath = writeKey(privateKeyPem);
 
         try {
             // 노드가 사설망이면 점프 없이는 닿지 않는다. 프로비저닝과 같은 길을 쓴다.
             SshJump jump = sshJumpResolver.resolve(cluster);
             ProcessBuilder builder = new ProcessBuilder(
-                    NodeSshCommand.build(keyPath.toString(), pulumiProperties.getSshUser(), host, jump));
+                    NodeSshCommand.build(keyPath.toString(), pulumiProperties.getSshUser(), target, jump));
             builder.redirectErrorStream(true);
             // 비밀번호 bastion 은 프롬프트를 띄우는데 여기엔 터미널이 없다. askpass 로 넘긴다.
             // ssh 는 비밀번호가 필요해질 때 스크립트를 읽는다. 시작 직후 지우면 인증할 것이 없어
@@ -170,11 +175,11 @@ public class VmClusterNodeSshSessionServiceImpl implements VmClusterNodeSshSessi
         return pem.toString();
     }
 
-    private Path writeKey(String vmName, String pem) {
+    private Path writeKey(String pem) {
         try {
             Path dir = pulumiProperties.resolveRuntimeDir();
             Files.createDirectories(dir);
-            Path keyPath = dir.resolve(vmName + "-term-" + System.nanoTime() + ".pem");
+            Path keyPath = createKeyFile(dir);
             Files.writeString(keyPath, pem, StandardCharsets.UTF_8);
             keyPath.toFile().setReadable(false, false);
             keyPath.toFile().setReadable(true, true);
@@ -182,6 +187,17 @@ public class VmClusterNodeSshSessionServiceImpl implements VmClusterNodeSshSessi
         } catch (IOException e) {
             throw new IllegalStateException("SSH 키를 저장하지 못했습니다", e);
         }
+    }
+
+    /**
+     * 개인키를 담을 빈 파일을 런타임 디렉터리 안에 만든다.
+     *
+     * <p>이름에 클러스터 이름을 넣지 않는다. 그 값은 요청 경로에서 오므로 파일명에 섞으면
+     * 디렉터리를 벗어날 여지가 생기고, 그대로 ssh 인자로도 흘러간다. 진단에 쓰려고 넣었던
+     * 것이라 잃는 것이 없다.
+     */
+    static Path createKeyFile(Path dir) throws IOException {
+        return Files.createTempFile(dir, "node-term-", ".pem");
     }
 
     private void deleteQuietly(Path path) {
