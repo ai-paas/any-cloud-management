@@ -7,6 +7,7 @@ import com.aipaas.anycloud.common.error.exception.EntityNotFoundException;
 import com.aipaas.anycloud.common.error.exception.HelmChartNotFoundException;
 import com.aipaas.anycloud.common.error.exception.HelmDeploymentException;
 import com.aipaas.anycloud.common.error.exception.HelmRepositoryNotFoundException;
+import com.aipaas.anycloud.common.error.exception.provisioning.CredentialFailureKind;
 import com.aipaas.anycloud.common.error.exception.provisioning.ProvisioningException;
 import com.aipaas.anycloud.common.web.ApiSuccessResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -137,11 +138,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
-    /**
-     * javax.validation.Valid or @Validated 으로 binding error 발생시 발생.
-     * HttpMessageConverter 에서 등록한 HttpMessageConverter binding 못할경우 발생
-     * 주로 @RequestBody, @RequestPart 어노테이션에서 발생
-     */
+    /** javax.validation.Valid or @Validated 으로 binding error 발생시 발생. */
     @ExceptionHandler({MethodArgumentNotValidException.class, BindException.class})
     protected ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         log.error("Handler exception: {}", e.getMessage(), e);
@@ -243,6 +240,16 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
+    /** 필수 query parameter 누락. 핸들러가 없으면 최종 Exception 으로 떨어져 500 이 나간다. */
+    @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
+    protected ResponseEntity<ErrorResponse> handleMissingServletRequestParameterException(
+            org.springframework.web.bind.MissingServletRequestParameterException e) {
+        log.warn("Handler exception: {}", e.getMessage());
+        final ErrorResponse response =
+                ErrorResponse.of(ErrorCode.INVALID_INPUT_VALUE, "필수 파라미터 누락: " + e.getParameterName());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
     /**
      * 지원하지 않은 HTTP method 호출 할 경우 발생
      */
@@ -326,6 +333,10 @@ public class GlobalExceptionHandler {
         if (e.getField() != null) {
             response = ErrorResponse.of(
                     e.getErrorCode(), ErrorResponse.FieldError.of(e.getField(), e.getValue(), e.getReason()));
+            // CSP 원문은 provider 마다 표현이 달라 그대로 보면 무엇을 고쳐야 하는지 알 수 없다.
+            // 화면이 원문을 접어두고 할 일부터 보여줄 수 있게 분류 결과를 실어 보낸다.
+            response =
+                    response.withHint(CredentialFailureKind.from(e.getReason()).hint());
         } else if (hasDetail) {
             //  장문 (Pulumi stderr 등) 은 message=요약 + detail=원문 으로 자동 분할.
             response = ErrorResponse.ofSummarized(errorCode, detail);
@@ -462,12 +473,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
-    /**
-     * Agent 의 RESTMapper 가 입력 kind 를 resolve 못한 경우.
-     *
-     * <p>404 + metadata 에 {@code input} 과 {@code suggestions} (Levenshtein top-3) 노출.
-     * caller 는 type-ahead UI 에서 suggestions 활용 또는 사용자에게 오타 보정 제시.
-     */
+    /** Agent 의 RESTMapper 가 입력 kind 를 resolve 못한 경우. */
     @ExceptionHandler(UnsupportedKindException.class)
     protected ResponseEntity<ErrorResponse> handleUnsupportedKind(UnsupportedKindException e) {
         log.info("Unsupported kind: input={}, suggestions={}", e.input(), e.suggestions());

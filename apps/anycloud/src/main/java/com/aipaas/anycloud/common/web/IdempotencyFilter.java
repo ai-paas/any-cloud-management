@@ -174,11 +174,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         }
     }
 
-    /**
-     * Request body 를 byte[] 로 미리 cache 해두고, getInputStream() 호출마다 새
-     * ByteArrayInputStream
-     * 을 반환. Spring 의 ContentCachingRequestWrapper 와 달리 stream 재read 안전.
-     */
+    /** Request body 를 byte[] 로 미리 cache 해두고, getInputStream() 호출마다 새 ByteArrayInputStream 을 반환. */
     private static final class CachedBodyHttpServletRequest extends HttpServletRequestWrapper {
         private final byte[] cachedBody;
 

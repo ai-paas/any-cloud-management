@@ -8,16 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
-/**
- * GlobalExceptionHandler 에서 응답 직렬화 / SSE 포맷팅 / Accept 협상에 쓰는 helper.
- *
- * <p>핸들러 본문은 "어떤 ErrorCode 로 매핑할지" 결정에만 집중하게 하고, 직렬화 / content-type
- * 분기는 본 helper 가 담당. 동일 패턴 (JSON vs SSE 응답) 이 controller advisor 여러 곳에서
- * 반복되지 않도록 추출.
- *
- * <p>본 클래스는 stateless — Spring bean 으로 등록하지 않고 정적 사용 또는 인스턴스 주입 모두
- * 가능. ObjectMapper 만 필요하므로 instance method 로 둠.
- */
+/** GlobalExceptionHandler 에서 응답 직렬화 / SSE 포맷팅 / Accept 협상에 쓰는 helper. */
 public class ErrorResponseFormatter {
 
     private final ObjectMapper objectMapper;

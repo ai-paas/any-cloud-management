@@ -1,11 +1,6 @@
 package com.aipaas.anycloud.common.validation;
 
-/**
- * 공통 Bean Validation 정규식/길이 상수. controller path/query parameter 및 DTO 필드에 일관되게
- * 적용하여 잘못된 입력이 서비스 레이어로 흘러가는 것을 차단.
- * <p>
- * 정규식은 보수적으로 잡고, 운영하면서 false-positive 발생 시 필요한 케이스만 확장.
- */
+/** 공통 Bean Validation 정규식/길이 상수. controller path/query parameter 및 DTO 필드에 일관되게 적용하여 잘못된 입력이 서비스 레이어로 흘러가는 것을 차단. */
 public final class ApiValidationConstants {
 
     /** K8s RFC 1123 label 형식 (소문자, 숫자, hyphen). 노드/리소스 이름 표준. */

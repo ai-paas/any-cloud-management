@@ -60,13 +60,7 @@ public final class CspStderrClassifier {
             "timeout",
             "connection refused");
 
-    /**
-     * stderr 를 분류 후 적절한 ProvisioningException 생성.
-     *
-     * <p>{@code summary} 는 운영자에게 노출되는 짧은 설명 (예: "Pulumi up failed"). raw stderr 는
-     * {@code rawStderr} — 응답 detail 로 보존되지만 redaction 정책 (credential-failure-policy.md § 3)
-     * 적용 후 사용 권장. 본 분류기는 redaction 을 수행하지 않는다 — 호출자 책임.
-     */
+    /** stderr 를 분류 후 적절한 ProvisioningException 생성. */
     public static ProvisioningException classify(String summary, String rawStderr) {
         String detail = blankToNull(rawStderr);
         String message = summary + (detail == null ? "" : ": " + detail);
@@ -89,11 +83,7 @@ public final class CspStderrClassifier {
         return new PulumiExecutionException(message);
     }
 
-    /**
-     * stderr 가 비면 stdout 으로 fallback. Pulumi 는 비-JSON 모드에서 진단/diff 를 stdout 에도
-     * 출력하므로, stderr 만 보면 {@code "Pulumi up failed: "} 처럼 detail 이 비어 원인을 잃는다.
-     * 둘 다 비면 {@code exitHint} (보통 exit code) 를 detail 로 사용.
-     */
+    /** stderr 가 비면 stdout 으로 fallback. */
     public static ProvisioningException classifyPulumi(String action, String stderr, String stdout, String exitHint) {
         String detail = blankToNull(stderr);
         if (detail == null) {
