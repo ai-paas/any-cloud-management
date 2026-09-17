@@ -1,6 +1,7 @@
 package com.aipaas.anycloud.domain.provisioning.bootstrap.internal;
 
 import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
+import com.aipaas.anycloud.domain.provisioning.bootstrap.BootstrapRetryPolicy;
 import com.aipaas.anycloud.domain.provisioning.bootstrap.VmClusterBootstrapProgressReporter;
 import com.aipaas.anycloud.domain.provisioning.bootstrap.VmClusterBootstrapProgressReporter.BootstrapSubStep;
 import com.aipaas.anycloud.domain.provisioning.bootstrap.VmClusterBootstrapService;
@@ -25,12 +26,9 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
     private static final Duration WORKER_JOIN_TIMEOUT = Duration.ofMinutes(10);
     private static final Duration NODE_READY_TIMEOUT = Duration.ofMinutes(10);
     private static final Duration ADDON_TIMEOUT = Duration.ofMinutes(15);
-    private static final int PREPARATION_ATTEMPTS = 3;
-    private static final int MASTER_INIT_ATTEMPTS = 2;
     private static final int WORKER_JOIN_ATTEMPTS = 2;
     private static final int NODE_READY_ATTEMPTS = 3;
     private static final int ADDON_ATTEMPTS = 2;
-    private static final Duration RETRY_DELAY = Duration.ofSeconds(10);
 
     private final VmClusterRemoteAccessService vmClusterRemoteAccessService;
     private final VmClusterBootstrapStrategyResolver strategyResolver;
@@ -70,11 +68,7 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
         waitForNodesReady(vmCluster, outputs, strategy);
     }
 
-    /**
-     * HA control-plane join: extra master 들이 lead master 의 init 결과 (cert key + token + CA
-     * hash) 를 받아 {@code kubeadm join --control-plane} 수행. lead master IP / token / cert key
-     * 가 필요. single-master 면 no-op.
-     */
+    /** HA control-plane join: extra master 들이 lead master 의 init 결과 (cert key + token + CA hash) 를 받아 {@code kubeadm join --control-plane} 수행. lead master IP / token / cert key 가 필요. single-master 면 no-op. */
     private void joinExtraMasters(
             VmClusterEntity vmCluster,
             Map<String, Object> outputs,
@@ -91,7 +85,7 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
                         outputs,
                         strategy.resolveCaHashCommand(),
                         Duration.ofMinutes(2),
-                        MASTER_INIT_ATTEMPTS,
+                        BootstrapRetryPolicy.MASTER_INIT_ATTEMPTS,
                         "CA hash resolution for HA")
                 .trim();
         String certificateKey = runOnMasterWithRetry(
@@ -99,7 +93,7 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
                         outputs,
                         strategy.uploadCertsCommand(),
                         Duration.ofMinutes(2),
-                        MASTER_INIT_ATTEMPTS,
+                        BootstrapRetryPolicy.MASTER_INIT_ATTEMPTS,
                         "upload-certs key generation")
                 .trim();
 
@@ -110,7 +104,7 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
                     extra,
                     strategy.buildControlPlaneJoinCommand(snapshot, leadPrivateIp, caHash, certificateKey),
                     MASTER_BOOTSTRAP_TIMEOUT,
-                    MASTER_INIT_ATTEMPTS,
+                    BootstrapRetryPolicy.MASTER_INIT_ATTEMPTS,
                     "extra master join (control-plane)");
         }
     }
@@ -125,7 +119,7 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
                     node.host(),
                     strategy.waitForPreparationCommand(),
                     CLOUD_INIT_TIMEOUT,
-                    PREPARATION_ATTEMPTS,
+                    BootstrapRetryPolicy.PREPARATION_ATTEMPTS,
                     "node preparation");
         }
     }
@@ -141,7 +135,7 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
                 outputs,
                 strategy.initializeMasterCommand(snapshot),
                 MASTER_BOOTSTRAP_TIMEOUT,
-                MASTER_INIT_ATTEMPTS,
+                BootstrapRetryPolicy.MASTER_INIT_ATTEMPTS,
                 "master initialization");
     }
 
@@ -233,7 +227,7 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
                 if (attempt == maxAttempts) {
                     break;
                 }
-                sleepBeforeRetry();
+                sleepBeforeRetry(attempt);
             }
         }
         throw new IllegalStateException(
@@ -241,9 +235,9 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
                 lastException);
     }
 
-    private void sleepBeforeRetry() {
+    private void sleepBeforeRetry(int attempt) {
         try {
-            Thread.sleep(RETRY_DELAY.toMillis());
+            Thread.sleep(BootstrapRetryPolicy.delayBeforeRetry(attempt).toMillis());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Bootstrap retry interrupted", e);

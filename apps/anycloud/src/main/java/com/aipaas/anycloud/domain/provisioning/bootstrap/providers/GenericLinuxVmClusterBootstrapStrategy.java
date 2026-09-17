@@ -9,6 +9,21 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
 
     private static final String CONFIG_JOIN_TOKEN = "anycloud-k8s:joinToken";
 
+    /**
+     * 준비 대기 상한 — 5초 간격 60회로 유닛당 5분, 두 유닛 합쳐 최대 10분.
+     *
+     * <p>RabbitMQ 의 delivery ack 타임아웃(30분)보다 충분히 짧아야 한다. 넘기면 채널이 끊기고
+     * 메시지가 재전달되어 같은 노드에 부트스트랩이 중복으로 붙는다. 실제로 그렇게 됐다.
+     */
+    private static final int PREPARATION_WAIT_ATTEMPTS = 60;
+
+    /** apiserver 대기 상한 — 10초 간격 30회로 5분. 준비 대기와 같은 이유로 ack 타임아웃보다 짧게 둔다. */
+    private static final int API_SERVER_WAIT_ATTEMPTS = 30;
+
+    private static final int API_SERVER_WAIT_INTERVAL_SEC = 10;
+
+    private static final int PREPARATION_WAIT_INTERVAL_SEC = 5;
+
     @Override
     public boolean supports(String provider) {
         return provider == null || provider.isBlank();
@@ -16,14 +31,26 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
 
     @Override
     public String waitForPreparationCommand() {
+        // cloud-init 이 실패하면 containerd 와 kubelet 은 영영 오지 않는다. 상한이 없으면 SSH 세션이
+        // 살아 있는 채로 워크플로가 BOOTSTRAPPING 에 멈추고 로그도 남지 않아, 사람이 알아챌 때까지
+        // 원인을 알 수 없다. 포기할 때 cloud-init 상태를 같이 뱉어 원인을 바로 보여준다.
         return "sudo cloud-init status --wait || cloud-init status --wait || true; "
-                + "until systemctl is-active --quiet containerd; do sleep 5; done; "
-                + "until systemctl is-enabled --quiet kubelet; do sleep 5; done";
+                + "wait_unit() { "
+                + "  for _ in $(seq 1 " + PREPARATION_WAIT_ATTEMPTS + "); do "
+                + "    \"$@\" && return 0; sleep " + PREPARATION_WAIT_INTERVAL_SEC + "; "
+                + "  done; "
+                + "  echo \"timed out waiting for $*\" >&2; "
+                + "  sudo cloud-init status --long >&2 2>/dev/null || true; "
+                + "  sudo tail -40 /var/log/cloud-init-output.log >&2 2>/dev/null || true; "
+                + "  return 1; "
+                + "}; "
+                + "wait_unit systemctl is-active --quiet containerd; "
+                + "wait_unit systemctl is-enabled --quiet kubelet";
     }
 
     @Override
     public String initializeMasterCommand(VmClusterInternalRequestSnapshot snapshot) {
-        String podCidr = firstNonBlank(snapshot.getPodCidr(), "192.168.0.0/16");
+        String podCidr = firstNonBlank(snapshot.getPodCidr(), DEFAULT_POD_CIDR);
         String serviceCidr = firstNonBlank(snapshot.getServiceCidr(), "10.96.0.0/12");
         String joinToken = requiredJoinToken(snapshot);
         // HA mode (masterCount >= 2) — kubeadm init 에 --control-plane-endpoint + --upload-certs.
@@ -57,7 +84,7 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
             String caHash,
             String certificateKey) {
         String joinToken = requiredJoinToken(snapshot);
-        return "until nc -z " + shellWord(leadMasterPrivateIp) + " 6443; do sleep 10; done; "
+        return waitForApiServer(leadMasterPrivateIp)
                 + "if [ ! -f /etc/kubernetes/kubelet.conf ]; then "
                 + "sudo kubeadm join "
                 + shellWord(leadMasterPrivateIp) + ":6443 " + "--token="
@@ -82,6 +109,22 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
         }
     }
 
+    /**
+     * 마스터의 apiserver 가 열릴 때까지 기다린다.
+     *
+     * <p>상한이 없으면 마스터가 영영 안 열릴 때 워커가 무한히 기다리고, SSH 세션이 살아 있어
+     * 워크플로가 멈춘다. AMQP delivery ack 타임아웃까지 가면 메시지가 재전달되어 같은 노드에
+     * 부트스트랩이 중복으로 붙는다.
+     */
+    private String waitForApiServer(String privateIp) {
+        return "for _ in $(seq 1 " + API_SERVER_WAIT_ATTEMPTS + "); do "
+                + "  nc -z " + shellWord(privateIp) + " 6443 && break; "
+                + "  sleep " + API_SERVER_WAIT_INTERVAL_SEC + "; "
+                + "done; "
+                + "nc -z " + shellWord(privateIp) + " 6443 || "
+                + "{ echo 'timed out waiting for apiserver at " + privateIp + ":6443' >&2; exit 1; }; ";
+    }
+
     @Override
     public String resolveCaHashCommand() {
         return "sudo openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | "
@@ -93,7 +136,7 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
     public String buildWorkerJoinCommand(
             VmClusterInternalRequestSnapshot snapshot, String masterPrivateIp, String caHash) {
         String joinToken = requiredJoinToken(snapshot);
-        return "until nc -z " + shellWord(masterPrivateIp) + " 6443; do sleep 10; done; "
+        return waitForApiServer(masterPrivateIp)
                 + "if [ ! -f /etc/kubernetes/kubelet.conf ]; then "
                 + "sudo kubeadm join "
                 + shellWord(masterPrivateIp) + ":6443 " + "--token="
@@ -106,73 +149,51 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
         return "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl wait --for=condition=Ready node --all --timeout=10m";
     }
 
+    /**
+     * CNI 만 남긴다. GPU 와 ingress 는 컴포넌트가 소유한다 — 셸에서 설치하면 실패가 {@code || true}
+     * 로 사라지고, 재시도할 주체도 없다.
+     */
     @Override
     public String buildAddonInstallCommand(VmClusterInternalRequestSnapshot snapshot) {
         StringBuilder commands = new StringBuilder();
-        append(commands, cniInstallCommand());
-
-        if (Boolean.TRUE.equals(snapshot.getEnableIngress())) {
-            append(commands, ingressInstallCommand(snapshot));
-            append(
-                    commands,
-                    "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl wait --namespace ingress-nginx "
-                            + "--for=condition=available deployment/ingress-nginx-controller --timeout=10m || true");
-        }
-
-        if (Boolean.TRUE.equals(snapshot.getEnableGpuOperator())) {
-            append(
-                    commands,
-                    "command -v helm >/dev/null 2>&1 || curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash");
-            append(
-                    commands,
-                    "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl get namespace gpu-operator >/dev/null 2>&1 || "
-                            + "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl create namespace gpu-operator");
-            append(commands, gpuPreparationCommand(snapshot));
-            append(commands, "helm repo add nvidia https://helm.ngc.nvidia.com/nvidia >/dev/null 2>&1 || true");
-            append(commands, "helm repo update >/dev/null 2>&1");
-            append(
-                    commands,
-                    "helm upgrade --install gpu-operator nvidia/gpu-operator --namespace gpu-operator "
-                            + "--set driver.enabled=true --set toolkit.enabled=true --set dcgmExporter.serviceMonitor.enabled=true");
-            append(
-                    commands,
-                    "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl wait --namespace gpu-operator "
-                            + "--for=condition=available deployment/gpu-operator --timeout=15m || true");
-        }
-
+        append(commands, cniInstallCommand(firstNonBlank(snapshot.getPodCidr(), DEFAULT_POD_CIDR)));
         return commands.toString();
     }
 
-    protected String cniInstallCommand() {
-        return "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl get daemonset calico-node -n kube-system >/dev/null 2>&1 || "
-                + "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.2/manifests/calico.yaml";
+    /**
+     * Calico 의 stock manifest 는 pool CIDR 이 주석 처리돼 있고, 그 상태의 내장 기본값이
+     * {@code 192.168.0.0/16} 이다. 온프레미스 망이 대부분 그 안에 들어가 파드가 게이트웨이와
+     * DNS 로 나가지 못한다 — kubeadm 에 넘긴 {@code --pod-network-cidr} 은 Calico 가 보지 않는다.
+     *
+     * <p>주석을 풀어 실제 pod CIDR 을 심는다. upstream 이 문구를 바꾸면 치환이 조용히 빗나가
+     * 같은 장애가 재현되므로, 적용 전에 치환 결과를 확인하고 아니면 중단한다.
+     */
+    protected String cniInstallCommand(String podCidr) {
+        String kubectl = "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl";
+        return kubectl + " get daemonset calico-node -n kube-system >/dev/null 2>&1 || { "
+                + "set -e; "
+                + "CALICO_MANIFEST=$(mktemp); "
+                + "curl -fsSL " + CALICO_MANIFEST_URL + " -o \"$CALICO_MANIFEST\"; "
+                + "sed -i " + calicoSedArgs(podCidr) + " \"$CALICO_MANIFEST\"; "
+                + "grep -q '^ *- name: CALICO_IPV4POOL_CIDR' \"$CALICO_MANIFEST\" || "
+                + "{ echo 'calico manifest: CALICO_IPV4POOL_CIDR 주석 해제 실패' >&2; exit 1; }; "
+                + "grep -q '^ *value: \"" + podCidr + "\"' \"$CALICO_MANIFEST\" || "
+                + "{ echo 'calico manifest: pod CIDR 치환 실패' >&2; exit 1; }; "
+                + kubectl + " apply -f \"$CALICO_MANIFEST\"; "
+                + "rm -f \"$CALICO_MANIFEST\"; }";
     }
 
-    protected String ingressInstallCommand(VmClusterInternalRequestSnapshot snapshot) {
-        return "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl get deployment ingress-nginx-controller -n ingress-nginx >/dev/null 2>&1 || "
-                + "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl apply -f "
-                + shellWord(ingressManifestUrl(snapshot));
+    /** upstream 문구에 의존하는 유일한 지점. 테스트가 실제 sed 로 이 인자를 검증한다. */
+    static String calicoSedArgs(String podCidr) {
+        return "-e 's|^\\( *\\)# - name: CALICO_IPV4POOL_CIDR|\\1- name: CALICO_IPV4POOL_CIDR|'"
+                + " -e 's|^\\( *\\)#   value: \"192.168.0.0/16\"|\\1  value: \"" + podCidr + "\"|'";
     }
 
-    protected String ingressManifestUrl(VmClusterInternalRequestSnapshot snapshot) {
-        return "https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/deploy/static/provider/cloud/deploy.yaml";
-    }
+    /** {@code Defaults.DEFAULT_POD_CIDR} 과 같은 값. 어긋나면 Calico 와 kubeadm 이 다른 대역을 쓴다. */
+    protected static final String DEFAULT_POD_CIDR = "10.244.0.0/16";
 
-    protected String gpuPreparationCommand(VmClusterInternalRequestSnapshot snapshot) {
-        if (isUbuntuLike(snapshot)) {
-            return "sudo apt-get update && sudo apt-get install -y ubuntu-drivers-common && sudo ubuntu-drivers install --gpgpu || true";
-        }
-        return "echo 'Skipping automatic GPU driver install for non-Ubuntu image' >/tmp/anycloud-gpu-driver-skip.log";
-    }
-
-    protected boolean isUbuntuLike(VmClusterInternalRequestSnapshot snapshot) {
-        String osImage = snapshot.getOsImage();
-        if (osImage == null) {
-            return false;
-        }
-        String normalized = osImage.toLowerCase();
-        return normalized.contains("ubuntu") || normalized.contains("jammy") || normalized.contains("noble");
-    }
+    private static final String CALICO_MANIFEST_URL =
+            "https://raw.githubusercontent.com/projectcalico/calico/v3.28.2/manifests/calico.yaml";
 
     /**
      * Snapshot 의 joinToken — 없으면 fail-fast. 과거엔 공유 하드코딩 token
