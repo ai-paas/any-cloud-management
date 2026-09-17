@@ -2,6 +2,9 @@ package com.aipaas.anycloud.domain.vmoptions.web;
 
 import com.aipaas.anycloud.common.web.ApiSuccessResponse;
 import com.aipaas.anycloud.common.web.PagedData;
+import com.aipaas.anycloud.domain.credential.CredentialSchema;
+import com.aipaas.anycloud.domain.credential.api.CredentialFieldSchema;
+import com.aipaas.anycloud.domain.provisioning.model.SupportedProvisioningProvider;
 import com.aipaas.anycloud.domain.vmoptions.ProviderConfigSchemaService;
 import com.aipaas.anycloud.domain.vmoptions.VmOptionsService;
 import com.aipaas.anycloud.domain.vmoptions.api.ProviderConfigKey;
@@ -84,6 +87,24 @@ public class VmOptionsController {
                         "VM specs loaded",
                         PagedData.of(
                                 vmOptionsService.getSpecs(provider, credentialId, region, keyword, gpuOnly, limit))),
+                new HttpHeaders(),
+                HttpStatus.OK);
+    }
+
+    @GetMapping("/{provider}/credential-schema")
+    @Operation(
+            summary = "자격증명 입력 필드 schema",
+            description = "프로바이더별로 자격증명에 무엇을 받아야 하는지 — key, label, required, secret, "
+                    + "multiline, group 포함. 화면이 KEY=VALUE 를 직접 받지 않도록 입력 폼을 만드는 데 쓴다.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Schema 조회 성공"),
+        @ApiResponse(responseCode = "400", description = "지원하지 않는 provider")
+    })
+    public ResponseEntity<ApiSuccessResponse<PagedData<CredentialFieldSchema>>> getCredentialSchema(
+            @Parameter(description = "클라우드 제공자", example = "AWS") @PathVariable String provider) {
+        List<CredentialFieldSchema> schema = CredentialSchema.of(SupportedProvisioningProvider.from(provider));
+        return new ResponseEntity<>(
+                ApiSuccessResponse.of(HttpStatus.OK.value(), "Credential schema loaded", PagedData.of(schema)),
                 new HttpHeaders(),
                 HttpStatus.OK);
     }

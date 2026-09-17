@@ -219,6 +219,17 @@ public class AwsVmOptionsProvider extends AbstractVmOptionsProvider {
         }
     }
 
+    /**
+     * DescribeRegions 는 어느 리전에서 불러도 같은 답을 준다. 자격증명에 리전이 있으면 그것을 쓰고,
+     * 없으면 기본 리전으로 부른다 — 리전이 없다고 확인 자체를 못 하면 검증의 의미가 없다.
+     */
+    private static final String DESCRIBE_REGIONS_DEFAULT_REGION = "us-east-1";
+
+    private String describeRegionsRegion(Map<String, String> credentials) {
+        String region = credentials == null ? null : credentials.get("AWS_REGION");
+        return StringUtils.hasText(region) ? region : DESCRIBE_REGIONS_DEFAULT_REGION;
+    }
+
     private Region resolveRegion(String region) {
         if (!StringUtils.hasText(region)) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "region", region, "AWS region is required");
@@ -237,6 +248,29 @@ public class AwsVmOptionsProvider extends AbstractVmOptionsProvider {
      * <p>둘 중 하나라도 비어있으면 default chain 으로 fallback — env 변수 또는 EC2 instance role 활용.
      * 외부 deploy 환경에서는 default chain 으로 충분히 동작 (호스트 머신에 권한 부여).
      */
+    /**
+     * 등록된 자격증명으로 실제 AWS 에 묻는다.
+     *
+     * <p>{@link #listRegions()} 의 {@code Region.regions()} 는 SDK 에 컴파일된 목록이라 AWS 를
+     * 호출조차 하지 않는다 — 완전히 가짜인 키가 '정상'으로 나왔다. DescribeRegions 는 인증이
+     * 필요하고, 계정이 실제로 쓸 수 있는 리전만 돌려준다.
+     */
+    @Override
+    public List<VmOptionRegion> listRegions(Map<String, String> credentials) {
+        try (Ec2Client client = buildClient(describeRegionsRegion(credentials), credentials)) {
+            return client.describeRegions().regions().stream()
+                    .map(region -> VmOptionRegion.builder()
+                            .provider(getProvider().getCanonicalName())
+                            .id(region.regionName())
+                            .name(region.regionName())
+                            // opt-in 리전은 활성화하지 않으면 못 쓴다. 목록에만 있으면 나중에 실패한다.
+                            .available(!"not-opted-in".equalsIgnoreCase(region.optInStatus()))
+                            .build())
+                    .sorted(Comparator.comparing(VmOptionRegion::getId))
+                    .toList();
+        }
+    }
+
     private Ec2Client buildClient(String region, Map<String, String> credentials) {
         Ec2ClientBuilder builder = Ec2Client.builder()
                 .region(resolveRegion(region))

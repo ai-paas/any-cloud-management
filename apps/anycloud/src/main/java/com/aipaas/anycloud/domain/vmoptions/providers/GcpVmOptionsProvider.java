@@ -195,11 +195,7 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
                 .build();
     }
 
-    /**
-     * L1: GCP REST API 의 paginated list 응답 {@code {"items":[...], "nextPageToken":"..."}}
-     * 의 items array 만 typed record 리스트로 변환. nextPageToken pagination 은 본 prototype 에선
-     * 미적용 (필요 시 향후 별 PR).
-     */
+    /** L1: GCP REST API 의 paginated list 응답 {@code {"items":[...], "nextPageToken":"..."}} 의 items array 만 typed record 리스트로 변환. nextPageToken pagination 은 본 prototype 에선 미적용 (필요 시 향후 별 PR). */
     private <T> List<T> listItems(String url, Class<T> type) {
         ResponseEntity<String> response = exchange(url);
         JsonNode root = parseBody(response.getBody());
