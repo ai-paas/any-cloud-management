@@ -6,11 +6,7 @@ import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Swagger / springdoc-openapi 설정.
- * <p>
- * v1 자원별 group 분리 — Swagger UI 우상단 드롭다운으로 탐색.
- */
+/** Swagger / springdoc-openapi 설정. */
 @Configuration
 public class OpenApiConfig {
 

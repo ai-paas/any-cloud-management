@@ -3,10 +3,10 @@ package com.aipaas.anycloud.configuration.properties;
 import com.aipaas.anycloud.common.logging.LoggingMdc;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
-import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -101,21 +101,58 @@ public class AsyncConfig implements AsyncConfigurer {
         return s.length() <= max ? s : s.substring(0, max) + "…";
     }
 
+    /**
+     * 풀 게이지를 {@link ThreadPoolTaskExecutor} 에 건다.
+     *
+     * <p>내부 {@code ThreadPoolExecutor} 에 직접 걸면 안 된다 — 스프링이 InitializingBean 으로
+     * 초기화를 한 번 더 부르면서 그 객체를 새로 만들고, 버려진 객체는 회수된다. 게이지는 약한
+     * 참조라 그 순간 전부 NaN 이 된다.
+     */
+    private void registerPoolGauges(ThreadPoolTaskExecutor executor, String poolName) {
+        Tags tags = Tags.of("pool", poolName);
+        // 이름과 단위는 Micrometer ExecutorServiceMetrics 규약 그대로 — 대시보드와 기존 검사가
+        // 그 이름을 쓴다.
+        gauge("executor.pool.core", "threads", executor, tags, ThreadPoolExecutor::getCorePoolSize);
+        gauge("executor.pool.max", "threads", executor, tags, ThreadPoolExecutor::getMaximumPoolSize);
+        gauge("executor.pool.size", "threads", executor, tags, ThreadPoolExecutor::getPoolSize);
+        gauge("executor.active", "threads", executor, tags, ThreadPoolExecutor::getActiveCount);
+        gauge("executor.queued", "tasks", executor, tags, tp -> tp.getQueue().size());
+        gauge("executor.queue.remaining", "tasks", executor, tags, tp -> tp.getQueue()
+                .remainingCapacity());
+        gauge("executor.completed", "tasks", executor, tags, ThreadPoolExecutor::getCompletedTaskCount);
+    }
+
+    private void gauge(
+            String name,
+            String baseUnit,
+            ThreadPoolTaskExecutor executor,
+            Tags tags,
+            java.util.function.ToDoubleFunction<ThreadPoolExecutor> read) {
+        io.micrometer.core.instrument.Gauge.builder(name, executor, e -> read.applyAsDouble(e.getThreadPoolExecutor()))
+                .tags(tags)
+                .baseUnit(baseUnit)
+                .register(meterRegistry);
+    }
+
     private ThreadPoolTaskExecutor build(String poolName, AsyncProperties.Pool pool) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(pool.getCoreSize());
         executor.setMaxPoolSize(pool.getMaxSize());
         executor.setQueueCapacity(pool.getQueueCapacity());
         executor.setThreadNamePrefix(pool.getThreadNamePrefix());
-        executor.setRejectedExecutionHandler(new CallerRunsPolicy());
+        executor.setRejectedExecutionHandler(
+                pool.isRunOnCallerWhenFull()
+                        ? new CallerRunsPolicy()
+                        : new java.util.concurrent.ThreadPoolExecutor.AbortPolicy());
+        // 큐가 가득 차야 core 를 넘어 늘어난다 — 실질 동시성은 coreSize 다
+        executor.setAllowCoreThreadTimeOut(true);
+        executor.setKeepAliveSeconds(pool.getKeepAliveSeconds());
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(pool.getAwaitTerminationSeconds());
         // MDC 컨텍스트를 작업 스레드로 propagate — 작업 종료 시 원복 (pool reuse 누수 방지).
         executor.setTaskDecorator(MDC_PROPAGATING_DECORATOR);
         executor.initialize();
-        // Micrometer 메트릭 (executor.active/queued/queue.remaining/pool.size/completed).
-        ExecutorServiceMetrics.monitor(
-                meterRegistry, executor.getThreadPoolExecutor(), poolName, Tags.of("pool", poolName));
+        registerPoolGauges(executor, poolName);
         log.info(
                 "Initialized async pool '{}': core={}, max={}, queue={} (metrics: pool={})",
                 pool.getThreadNamePrefix(),
