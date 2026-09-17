@@ -5,10 +5,10 @@ Spring Boot 백엔드에 `Pulumi Automation API` 계층을 붙여서 여러 CSP 
 
 기준 구현은 다음과 같습니다.
 
-- 백엔드는 Java 21 / Spring Boot 입니다.
-- IaC 엔진은 Pulumi Go 입니다.
-- 현재 실제 구현은 AWS 입니다.
-- 확장 대상은 GCP, Azure, OCI, Alibaba Cloud, DigitalOcean, OpenStack 입니다.
+- 백엔드는 Java 21 / Spring Boot
+- IaC 엔진은 Pulumi Java SDK
+- 현재 실제 구현은 AWS
+- 확장 대상은 GCP, Azure, OCI, Alibaba Cloud, DigitalOcean, OpenStack
 
 ## 1. 디렉터리 구조
 
@@ -56,7 +56,7 @@ ProvisioningService
    ↓
 Pulumi Automation API
    ↓
-infra/pulumi (Go program)
+cluster-provisioning starter (inline program)
    ↓
 Provider-specific resource creation
    ↓
@@ -66,14 +66,14 @@ VM-based kubeadm cluster
 권장 역할 분리는 다음과 같습니다.
 
 - Spring Boot 의 책임은 다음과 같습니다.
-  - 사용자 요청 검증입니다.
-  - 클러스터 메타데이터 저장입니다.
-  - Pulumi stack 생성/업데이트/삭제 오케스트레이션입니다.
+  - 사용자 요청 검증
+  - 클러스터 메타데이터 저장
+  - Pulumi stack 생성/업데이트/삭제 오케스트레이션
   - Output 을 `ClusterEntity` 로 매핑합니다.
-- Pulumi Go Program 의 책임은 다음과 같습니다.
-  - 네트워크/VPC/보안/IAM/VM/DB 생성입니다.
-  - kubeadm user-data 생성입니다.
-  - 접속 정보와 운영 정보 export 입니다.
+- Pulumi program (`*Provisioner`) 의 책임은 다음과 같습니다.
+  - 네트워크/VPC/보안/IAM/VM/DB 생성
+  - kubeadm user-data 생성
+  - 접속 정보와 운영 정보 export
 
 ## 3. Provider 추상화 전략
 
@@ -134,13 +134,13 @@ type ClusterProvisioner interface {
 
 현재 샘플은 과제/PoC 속도를 우선한 구조입니다.
 
-- Master 1대 + Worker N대 입니다.
+- Master 1대 + Worker N대
 - UserData(cloud-init shell) 로 kubeadm 자동 설치합니다.
 - Worker 는 `--discovery-token-unsafe-skip-ca-verification` 을 사용합니다.
   - PoC 에서는 편하지만 운영에서는 권장하지 않습니다.
-- CNI 는 Calico 기준입니다.
-- Ingress 는 ingress-nginx 기준입니다.
-- GPU Operator 는 Helm 기준입니다.
+- CNI 는 Calico 기준
+- Ingress 는 ingress-nginx 기준
+- GPU Operator 는 Helm 기준
 
 운영 전환 시 바꿔야 할 부분은 다음과 같습니다.
 
@@ -153,10 +153,10 @@ type ClusterProvisioner interface {
 
 메타데이터 저장 DB 는 2가지 경로가 있습니다.
 
-- 권장: CSP Managed PostgreSQL 입니다.
-  - AWS RDS / GCP Cloud SQL / Azure Database for PostgreSQL 입니다.
+- 권장: CSP Managed PostgreSQL
+  - AWS RDS / GCP Cloud SQL / Azure Database for PostgreSQL
   - 장애 복구와 백업이 쉽습니다.
-- 대안: K8s 내부 PostgreSQL 입니다.
+- 대안: K8s 내부 PostgreSQL
   - PoC/사내망/오프라인 환경에서 유용합니다.
   - 이 리포지토리에는 예시 manifest 가 포함되어 있습니다.
 
@@ -169,13 +169,13 @@ type ClusterProvisioner interface {
 
 권장 서비스 흐름은 다음과 같습니다.
 
-1. 사용자 요청 수신입니다.
-2. DB 에 `PROVISIONING` 상태 저장입니다.
-3. stack name 생성입니다.
-4. Pulumi config set 입니다.
-5. `up()` 실행입니다.
-6. outputs 수집입니다.
-7. `ClusterEntity` 갱신입니다.
+1. 사용자 요청 수신
+2. DB 에 `PROVISIONING` 상태 저장
+3. stack name 생성
+4. Pulumi config set
+5. `up()` 실행
+6. outputs 수집
+7. `ClusterEntity` 갱신
 8. 상태를 `READY` 또는 `FAILED` 로 반영합니다.
 
 권장 output 매핑은 다음과 같습니다.
@@ -206,7 +206,7 @@ type ClusterProvisioner interface {
 ### 운영
 
 - stack 단위 네이밍 규칙을 표준화합니다.
-  - 예: `org/project/provider-env-cluster` 입니다.
+  - 예: `org/project/provider-env-cluster`
 - Output JSON 을 그대로 저장하지 말고 표준 스키마로 정규화합니다.
 - CSP 별 quota 검사 단계를 선행합니다.
 
@@ -247,10 +247,10 @@ config:
     secure: BASE64_ENCODED_SECRET
 ```
 
-실행 순서는 다음과 같습니다.
+실행 순서는 다음과 같습니다. 아래는 Pulumi CLI 로 stack 을 직접 다룰 때의 예시이며,
+운영 경로에서는 backend 가 Automation API 로 같은 일을 수행합니다.
 
 ```bash
-cd infra/pulumi
 pulumi stack init dev
 pulumi config set anycloud-k8s:provider aws
 pulumi config set anycloud-k8s:name demo-aws
@@ -266,9 +266,9 @@ pulumi stack output
 
 실제 과제 제출 관점에서는 아래 순서를 추천합니다.
 
-1. AWS 완성입니다.
-2. OpenStack 완성입니다.
-3. GCP 또는 Azure 1개 추가입니다.
+1. AWS 완성
+2. OpenStack 완성
+3. GCP 또는 Azure 1개 추가
 4. 나머지 CSP 는 동일 인터페이스와 매핑 표로 확장합니다.
 
 이렇게 하면 "멀티 CSP 구조 설계 + 2~3개 실제 구현 + 7개 확장 가능성" 을 가장 설득력 있게 보여줄 수 있습니다.

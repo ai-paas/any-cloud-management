@@ -170,6 +170,37 @@ RESTful 자원 모델 기반 API 입니다. 모든 endpoint 가 `/v1` prefix 를
 | POST   | `/v1/operations/{operationId}/cancel` | 취소 요청 (best-effort) |
 | GET    | `/v1/operations/{operationId}/events` | SSE — state/progress push |
 
+### VM 구성 요소 (`/v1/vms/{name}/components`)
+
+VM 생성 이후 계층 중 백엔드가 SSH 로 직접 설치하는 것들의 상태입니다. GPU operator 와 ingress 는
+여기가 아니라 addon 으로 다룹니다 — addon 설치는 agent 세션을 전제하므로 agent 만 SSH 가 필요합니다.
+
+| Method | Path | 설명 |
+|---|---|---|
+| POST | `/v1/vms/{name}/components/{type}/repair` | 백오프를 무시하고 즉시 재적용. 시도 회계를 초기화합니다 |
+
+`{type}` 은 현재 `AGENT` 하나입니다.
+
+조회는 별도 엔드포인트가 없습니다. `GET /v1/vms/{name}` 응답에 `components` 와 `requestedAddons`
+배열이 포함됩니다.
+
+```json
+{
+  "provisioningStatus": "DEGRADED",
+  "components": [
+    { "type": "AGENT", "requirement": "REQUIRED", "health": "NOT_READY",
+      "attempts": 4, "nextAttemptAt": "2026-09-04T10:22:00Z",
+      "lastError": "agent 미연결 (cluster status=AGENT_PENDING)" }
+  ],
+  "requestedAddons": [
+    { "catalogId": "nvidia-gpu-operator", "requirement": "REQUIRED",
+      "health": "NOT_READY", "detail": "helm install timed out" }
+  ]
+}
+```
+
+설계는 [vmcluster-convergence.md](../architecture/vmcluster-convergence.md) 를 참고하세요.
+
 ### Monitoring (cluster sub-resource)
 
 | Method | Path | 설명 |
@@ -292,32 +323,90 @@ GET 은 audit 대상이 아닙니다.
 }
 ```
 
-## HA control-plane (multi-master)
+## VM 생성 요청 형태
 
-Pulumi config `anycloud-k8s:masterCount` 로 control-plane 노드 수를 지정합니다. 기본값은 `1`
-(single master, legacy) 입니다. HA 는 etcd quorum 을 위해 **odd-only** (1/3/5/7) 만 허용하며, 짝수
-입력은 400 을 반환합니다. 최댓값은 7 입니다.
+`POST /v1/vms` 는 두 덩어리를 받습니다.
+
+| 필드 | 무엇 | 스키마 |
+|---|---|---|
+| `spec` | 7개 CSP 전부에 대응물이 있는 값 | 고정. OpenAPI 로 검증 |
+| `providerSpec` | provider 마다 다른 값 | provider 별로 다름 |
+
+Cluster API 가 `infrastructureRef` 로, Crossplane 이 Composition 으로 가르는 것과 같은 경계입니다.
+공통 스키마를 넓히면 provider 하나가 늘 때마다 계약이 흔들립니다.
 
 ```json
-POST /v1/clusters
+POST /v1/vms
 {
-  "source": "vm",
-  "clusterName": "demo-prox-ha",
+  "vmGroupName": "demo-openstack-01",
+  "provider": "openstack",
+  "region": "RegionOne",
+  "environment": "dev",
+  "credentialId": "cred-openstack-001",
   "spec": {
-    "provider": "PROXMOX",
-    "config": {
-      "anycloud-k8s:masterCount": "3",
-      "anycloud-k8s:workerCount": "3",
-      ...
+    "kubernetesVersion": "1.31",
+    "masterCount": 1,
+    "workerCount": 2,
+    "masterInstanceType": "4-8-50",
+    "workerInstanceType": "4-8-50",
+    "rootDiskSizeGb": 50,
+    "sshUser": "ubuntu",
+    "network": {
+      "vpcCidr": "10.90.0.0/24",
+      "podCidr": "10.244.0.0/16",
+      "serviceCidr": "10.96.0.0/12"
     }
+  },
+  "providerSpec": {
+    "imageName": "ubuntu-24.04",
+    "flavorName": "4-8-50",
+    "externalNetworkId": "3f8d3f36-8582-482c-ba8f-d2ea2e2c4147",
+    "floatingIpPool": "external"
   }
+}
+```
+
+### provider 별 필수 `providerSpec`
+
+| provider | 필수 | 비고 |
+|---|---|---|
+| aws | 없음 | |
+| gcp | `project` | |
+| azure | `resourceGroup` | `spec.osImage` 는 `publisher:offer:sku:version` |
+| openstack | `imageName`, `flavorName`, `externalNetworkId`, `floatingIpPool` | 네 개 모두 |
+| oci | `compartmentId` | `spec.osImage` 에 리전별 image OCID 필수 |
+| proxmox | `nodeName` | `datastoreId`, `snippetDatastoreId`, `networkBridge` 는 기본값 있음 |
+| ibm | `zone` | region 이 아니라 zone (예: `us-south-1`) |
+
+`GET /v1/providers/{provider}/config-schema` 로 필수 키와 기본값을 조회합니다.
+
+Proxmox 는 인스턴스 타입이 없어 `spec.masterInstanceType` 을 `"코어-메모리MiB"` 형식(예: `4-8192`)
+으로 받습니다. `spec.network.vpcCidr` 도 쓰지 않습니다.
+
+## HA control-plane (multi-master)
+
+`spec.masterCount` 로 control-plane 노드 수를 지정합니다. 기본값은 `1` 입니다. HA 는 etcd quorum 을
+위해 **odd-only** (1/3/5/7) 만 허용하며, 짝수는 홀수로 올림합니다. 최댓값은 7 입니다.
+
+```json
+POST /v1/vms
+{
+  "vmGroupName": "demo-prox-ha",
+  "provider": "proxmox",
+  "region": "pve",
+  "credentialId": "cred-proxmox-001",
+  "spec": {
+    "masterCount": 3,
+    "workerCount": 3
+  },
+  "providerSpec": { "nodeName": "pve1" }
 }
 ```
 
 - `masterCount >= 2` 일 때 lead master 의 `kubeadm init` 에
   `--control-plane-endpoint=<leadIp>:6443` + `--upload-certs` 가 자동으로 추가됩니다.
 - Extra master 들은 `kubeadm join --control-plane --certificate-key` 로 join 합니다.
-- **PoC 한계**: control-plane endpoint 가 lead master IP 자체이며, VIP/LB 는 미적용입니다.
+- **PoC 한계**: control-plane endpoint 가 lead master IP 자체이며, VIP/LB 는 미적용
   lead master 장애 시 신규 join 이 불가능합니다 (기존 컴포넌트는 정상 동작합니다). 실제 HA 는 별도로 구성해야 합니다.
 - Strategy 별 지원: GenericLinux (모든 deb-like) + Proxmox provisioner 입니다. 그 외 7
   providers (AWS, GCP, Azure, OCI, Alibaba, DigitalOcean, OpenStack) 는 multi-master 를 지원하지 않습니다.

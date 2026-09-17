@@ -1,6 +1,6 @@
 # Pulumi E2E Testing — LocalStack (AWS) sandbox
 
-infra/pulumi 의 multi-CSP 프로비저닝 흐름을 **실 cloud 비용 없이** 회귀 검증. LocalStack 가 AWS API
+multi-CSP 프로비저닝 흐름을 **실 cloud 비용 없이** 회귀 검증. LocalStack 가 AWS API
 를 mock — Pulumi 의 `aws.ec2.Instance`, `aws.ec2.Vpc` 등이 LocalStack endpoint 로 routing.
 
 ## 1. 적용 범위 — AWS 만 우선
@@ -41,7 +41,7 @@ services:
 ## 3. Pulumi config 의 endpoint override
 
 ```typescript
-// infra/pulumi 의 AwsProvider 생성 시 (PoC)
+// AwsProvisioner 의 provider 생성 시 (PoC)
 const awsProvider = new aws.Provider("local", {
     accessKey: "test",
     secretKey: "test",
@@ -119,7 +119,7 @@ LocalStack 가 mock 이라 한계:
 | Phase | 작업 |
 |---|---|
 | 1 | docker-compose.pulumi-e2e.yml + LocalStackContainer dependency |
-| 2 | AwsProvider 의 endpoint override env 지원 (infra/pulumi 수정) |
+| 2 | AwsProvisioner 의 endpoint override env 지원 |
 | 3 | PoC test — vpc create / instance launch |
 | 4 | preflight + provision step 의 end-to-end test |
 | 5 | bootstrap step (kubeadm) 는 sandbox AWS 필요 — mock 불가 |

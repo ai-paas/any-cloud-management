@@ -77,9 +77,9 @@ Day-2 path 에서 agent stream 이 없으면 즉시 503 `AGENT_UNAVAILABLE` 을 
 가 single entry 입니다.
 
 사용 site 는 다음과 같습니다.
-- `VmClusterRegistrationServiceImpl` — 신규 cluster 의 K8s API 도달 검증입니다.
+- `VmClusterRegistrationServiceImpl` — 신규 cluster 의 K8s API 도달 검증
 - `KubeServiceImpl.applyManifest` (BOOTSTRAP 전용) — agent 설치 manifest 의 server-side apply 입니다.
-- `KubeconfigParser` — kubeconfig YAML → cluster 인증 필드 추출입니다.
+- `KubeconfigParser` — kubeconfig YAML → cluster 인증 필드 추출
 
 day-2 ops 에서는 호출되지 않습니다.
 

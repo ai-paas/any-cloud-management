@@ -43,7 +43,7 @@ VM Options API의 성공 응답은 공통 envelope를 사용합니다.
 ## 역할 분리
 
 - `VM Options`
-  - 사용자가 VM 기반 클러스터 생성을 위해 선택하는 참조 데이터입니다.
+  - 사용자가 VM 기반 클러스터 생성을 위해 선택하는 참조 데이터
 - `VM Cluster`
   - 실제 VM과 Kubernetes 클러스터의 생성/목록/상태/삭제를 담당합니다.
 - `Registered Cluster`
@@ -71,7 +71,7 @@ VM Options API의 성공 응답은 공통 envelope를 사용합니다.
 
 ## 응답 메모
 
-- 사용자-facing 용어는 `VM Options` 입니다.
+- 사용자-facing 용어는 `VM Options`
 - 내부 구현과 외부 노출 모두 `VM Options` 기준으로 정리합니다.
 - Provider 응답에는 `recommendedRegion`, `recommendedVmSpec`, `recommendedOsImage`, `defaultWorkerCount`, `defaultKubernetesVersion`가 포함됩니다.
 - VM Spec / OS Image 응답에는 `recommended`, `recommendationReason`가 포함됩니다.

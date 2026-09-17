@@ -1,0 +1,26 @@
+meta {
+  name: agent heartbeat 임계값 변경 (POST)
+  type: http
+  seq: 98
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/agent/heartbeat-staleness
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+}
+
+body:json {
+  {
+    "seconds": 180
+  }
+}
+
+docs {
+  `POST /v1/admin/agent/heartbeat-staleness`
+}

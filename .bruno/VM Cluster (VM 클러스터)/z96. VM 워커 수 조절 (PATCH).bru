@@ -1,0 +1,26 @@
+meta {
+  name: VM 워커 수 조절 (PATCH)
+  type: http
+  seq: 97
+}
+
+patch {
+  url: {{baseUrl}}/v1/vms/{{provision_cluster_name}}
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+}
+
+body:json {
+  {
+    "workerCount": 3
+  }
+}
+
+docs {
+  `PATCH /v1/vms/{vmName}`
+}

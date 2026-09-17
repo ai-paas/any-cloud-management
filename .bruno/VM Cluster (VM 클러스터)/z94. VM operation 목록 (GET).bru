@@ -1,0 +1,15 @@
+meta {
+  name: VM operation 목록 (GET)
+  type: http
+  seq: 95
+}
+
+get {
+  url: {{baseUrl}}/v1/vms/{{provision_cluster_name}}/operations
+  body: none
+  auth: none
+}
+
+docs {
+  `GET /v1/vms/{vmName}/operations`
+}

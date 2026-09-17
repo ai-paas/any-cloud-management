@@ -25,7 +25,6 @@ DigitalOceanVmClusterBootstrapStrategy    (14 LOC)
 OpenStackVmClusterBootstrapStrategy       (14 LOC)
 ProxmoxVmClusterBootstrapStrategy         (14 LOC)
 
-PrivateLinuxVmClusterBootstrapStrategy    (11 LOC) — air-gapped variant
 ```
 
 ## 2. 평가 — 응집도 + Template method 적용도

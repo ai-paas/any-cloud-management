@@ -1,10 +1,10 @@
 # Architecture Overview
 
-anycloud monorepo 의 component / package / 의존성 지도입니다. 자세한 API 목록은
+anycloud monorepo 의 component / package / 의존 관계를 정리했습니다. 자세한 API 목록은
 [`api-inventory.md`](./api-inventory.md), 주요 flow 는 [`feature-flows.md`](./feature-flows.md) 를
 참고합니다.
 
-## 1. 거시 구성
+## 1. 전체 구성
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
@@ -198,7 +198,7 @@ Profile 변형은 다음과 같습니다.
 - `application.yaml` — 공통입니다 (import config/*.yaml).
 - `application-dev.yaml` — 로컬용입니다 (`ddl-auto=update`).
 - `application-docker.yaml` — 컨테이너용입니다 (env-driven, `ddl-auto=validate`).
-- `application-test.yaml` — 통합 테스트용입니다.
+- `application-test.yaml` — 통합 테스트용
 
 → tech-debt: cross-file `@Value` 주입이 silent 합니다 — `cluster-agent.jwt.secret` 은 `agent.yaml`, `cluster.cert.*` 는 `runtime.yaml` 에 있습니다. validation 이 부재합니다. `agent.*` 는 단일 `AgentProperties` record 로 type-safe binding 됩니다.
 
@@ -286,7 +286,7 @@ Profile 변형은 다음과 같습니다.
 graph LR
   AC[anycloud] --> ACS[cluster-agent-starter]
   AC --> COS[cluster-observability-starter]
-  AC --> PUL[infra/pulumi via process exec]
+  AC --> PUL[cluster-provisioning starter — Pulumi Java SDK]
   AG[agent Go] -.gRPC.-> AC
   AC -.K8s REST.-> KS[Target K8s clusters]
   AC --> DB[(MariaDB)]
@@ -316,7 +316,7 @@ graph LR
 | anycloud cluster.kubeconfig | 1 신규 (KubeconfigBuilderImpl 9 cases) | cover |
 | agent (Go) `core` | 6 | bootstrap / rotation cover, cert_renewal 미커버 |
 | agent (Go) 외 패키지 | ~10 | `helm`, `leader`, `logstream` 없음 |
-| infra/pulumi | 1 (names_test.go) | **거의 부재** |
+| cluster-provisioning starter | — | **거의 없음** |
 
 → 변경 이력은 `git log` 를 참고합니다.
 
@@ -339,10 +339,10 @@ graph LR
 - **CA health** — `BackendCaHealthIndicator` 가 `/actuator/health/backendCa` 에 mode + notAfter + fingerprint 를 노출합니다.
 - **cert revocation** — DB `revoked_at` 마킹 → 다음 stream 시 PERMISSION_DENIED 가 반환됩니다.
 - **forced disconnect** — `AgentSessionRegistry.evictByCluster` 가 active stream 을 즉시 종료합니다.
-- **fingerprint banner** — startup log 에 CA SHA-256 을 출력합니다 → 운영자 OOB 검증용입니다.
+- **fingerprint banner** — startup log 에 CA SHA-256 을 출력합니다 → 운영자 OOB 검증용
 - **identity token 영구화** — agent 측 `cluster-agent-identity` Secret 입니다. rollout 시 JWT expired 를 회피합니다.
-- **cert UNIQUE 제약** — `cert_serial` UNIQUE + retry safety net 입니다.
-- **cascade cleanup** — cluster 삭제 시 `cluster_agent` 동기 정리입니다.
+- **cert UNIQUE 제약** — `cert_serial` UNIQUE + retry safety net
+- **cascade cleanup** — cluster 삭제 시 `cluster_agent` 동기 정리
 - **idempotency** — `Idempotency-Key` header → 24h 응답 캐시입니다. Spring `ContentCachingResponseWrapper` 기반입니다.
 - **kubeconfig MITM 방어** — `serverCa` 가 있으면 `certificate-authority-data` 를 발급합니다. 없으면 WARN log + insecure fallback 입니다.
 - **`@Audited` AOP** — service method 를 자동으로 audit 합니다. internal callers 도 우회할 수 없습니다.
@@ -351,6 +351,6 @@ graph LR
 
 ## 13. 관련 문서
 
-- [api-inventory.md](./api-inventory.md) — REST + gRPC endpoint 목록입니다.
-- [feature-flows.md](./feature-flows.md) — 등록 / 갱신 / 회수 / 업그레이드 flow 입니다.
+- [api-inventory.md](./api-inventory.md) — REST + gRPC endpoint 목록
+- [feature-flows.md](./feature-flows.md) — 등록 / 갱신 / 회수 / 업그레이드 flow
 - [k8s-impersonation-auth.md](./identity/k8s-impersonation-auth.md) — user RBAC pass-through 디자인입니다.

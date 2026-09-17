@@ -1,0 +1,15 @@
+meta {
+  name: VM 상태 이력 (GET)
+  type: http
+  seq: 96
+}
+
+get {
+  url: {{baseUrl}}/v1/vms/{{provision_cluster_name}}/state-history
+  body: none
+  auth: none
+}
+
+docs {
+  `GET /v1/vms/{vmName}/state-history`
+}

@@ -14,9 +14,9 @@ Multi-cloud VM Kubernetes 클러스터 프로비저닝을 host backend 가 재�
   `up`/`preview`/`destroy`/`refresh` 호출 (`AutomationProvisioningService`).
 - **EngineEvent stream 처리** — `EngineEventAdapter` 가 Pulumi `EngineEvent` 를 `ProvisionEvent` 로
   정규화 후 Reactor `ProvisionEventBus` (multicast Sinks) 로 publish.
-- **7-CSP provider 추상화** — `AbstractKubeadmProvisioner` template 위 `Aws/Gcp/Azure/Oci/Alibaba/DigitalOcean/Openstack`
-  실 구현. 각 provider 는 `provisionResources(ctx, spec) → ProvisionedCluster` 만 책임, 표준 outputs
-  schema 조립은 base class.
+- **CSP 추상화** — `ProviderYamlEmitter` 구현 `Aws/Gcp/Azure/Oci/Openstack`. 각 emitter 는 네트워크,
+  보안그룹, 인스턴스를 `resources` 에 선언하고 `NodeRefs` 만 반환한다. 표준 outputs 조립은
+  `StandardOutputs`.
 - **CSP credential isolation** — `CspCredentialPulumiConfigMapper` 가 env (AWS_ACCESS_KEY_ID) →
   Pulumi stack config secret (aws:accessKey) 변환. state backend (RustFS) env 와 충돌 방지.
 - **표준 output 계약** — `ProvisioningResult` record + jakarta validation. `ProvisioningResultMapper`
@@ -67,18 +67,19 @@ internal/               ← starter 내부 구현 (host 가 직접 import X)
 ├── ProvisioningResultMapper          raw → ProvisioningResult + validation
 └── CspCredentialPulumiConfigMapper   env → stack config Map registry
 
-program/                ← in-JVM Pulumi 프로그램
-├── ProvisionerOrchestrator           Pulumi inline program — ProviderRegistry dispatch
+program/                ← Pulumi YAML 프로그램 생성
 ├── ClusterSpec                       record + Builder + normalize()
+├── ProviderSpec                      sealed — CSP 전용 설정 (Gcp/Azure/Oci/Openstack)
 ├── Defaults                          ProviderDefaults table + cross-cutting (masterCount odd / rootDisk≥50)
 ├── DatabaseSpec, JoinTokens, ResourceNames, ProviderName, K8sConstants, KubeadmUserData
-└── provisioner/
-    ├── ProviderProvisioner           CSP contract
-    ├── ProviderRegistry              canonical name → provisioner
-    ├── AbstractKubeadmProvisioner    공통 lifecycle + 표준 outputs assembly + node array
-    ├── {Aws,Gcp,Azure,Oci,Alibaba,DigitalOcean,Openstack}Provisioner   7 CSP
-    ├── ProvisionedCluster            record — base class 가 받는 결과
-    └── InstanceOutput, NodeSpec, NodeSpecs, InstanceRole
+└── yaml/
+    ├── ProviderYamlEmitter           CSP contract (package-private)
+    ├── YamlEmitters                  canonical name → emitter 등록
+    ├── {Aws,Gcp,Azure,Oci,Openstack}YamlEmitter   5 CSP
+    ├── PulumiProgram                 YAML 트리 + options.version 주입
+    ├── PluginVersions                PULUMI_PLUGINS 파싱 — 플러그인 버전 고정
+    ├── YamlRef                       ${ref}, fn::invoke, fn::secret, fn::toJSON, fn::toBase64
+    └── StandardOutputs               stack output 계약 조립
 
 autoconfigure/
 ├── ClusterProvisioningAutoConfiguration   @AutoConfiguration + @Bean + @ConditionalOnMissingBean
@@ -91,17 +92,19 @@ autoconfigure/
 
 CLI shell-out 시대의 `PulumiCommandService` 는 폐기. 이유:
 
-- **Go runtime 의존 제거** — `pulumi` binary 의 language host 가 Java SDK 안 `ProvisionerOrchestrator`
-  를 invoke. `infra/pulumi/` (Go program) 디렉토리 통째로 삭제.
+- **Go runtime 의존 제거** — `infra/pulumi/` (Go program) 디렉토리 통째로 삭제.
 - **Event stream 풍부도** — `EngineEvent` 가 step-level detail 노출 (raw `--json` 파싱 대비 type-safe).
-- **Inline program** — `LocalWorkspace.createOrSelectStack(program)` 가 stack 별 temp workspace 자동
-  생성 → host 가 `infra/pulumi/` mount 불필요.
+- **workDir 자동 관리** — 호출마다 임시 디렉토리에 `Pulumi.yaml` 을 쓰고 실행 후 지운다. host 가
+  프로그램 디렉토리를 mount 하지 않는다.
 
-### 3.2 AbstractKubeadmProvisioner template
+### 3.2 YAML emitter
 
-7 CSP provisioner 가 80% boilerplate 공유 (TLS keypair 생성, master/worker 분기, 표준 outputs 조립,
-SSH command, nodes array). base class 로 lift → 각 provisioner 는 `provisionResources` (네트워크,
-인스턴스, extras) 만 책임. 새 output 키 추가 = 7곳 → 1곳.
+CSP emitter 가 공통 골격(TLS keypair, master/worker 분기, 표준 outputs, SSH command, nodes 배열)을
+`StandardOutputs` 와 `PulumiProgram` 에 위임한다. 각 emitter 는 네트워크와 인스턴스만 선언한다.
+새 output 키 추가는 한 곳이다.
+
+provider 별 Java SDK 는 쓰지 않는다. 타입 토큰을 YAML 이 선언하고 CLI 플러그인이 해석하므로
+starter 를 가져다 쓰는 프로젝트가 253MB 를 물려받지 않는다.
 
 ### 3.3 ClusterSpec.Builder + normalize()
 

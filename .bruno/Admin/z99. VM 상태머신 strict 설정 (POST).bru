@@ -1,0 +1,26 @@
+meta {
+  name: VM 상태머신 strict 설정 (POST)
+  type: http
+  seq: 100
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/state-machine/vmcluster/strict
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+}
+
+body:json {
+  {
+    "strict": true
+  }
+}
+
+docs {
+  `POST /v1/admin/state-machine/vmcluster/strict`
+}

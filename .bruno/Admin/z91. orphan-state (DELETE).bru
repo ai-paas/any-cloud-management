@@ -1,0 +1,15 @@
+meta {
+  name: orphan-state (DELETE)
+  type: http
+  seq: 92
+}
+
+delete {
+  url: {{baseUrl}}/v1/admin/clusters/{{stack_name}}/orphan-state
+  body: none
+  auth: none
+}
+
+docs {
+  `DELETE /v1/admin/clusters/{stackName}/orphan-state`
+}
