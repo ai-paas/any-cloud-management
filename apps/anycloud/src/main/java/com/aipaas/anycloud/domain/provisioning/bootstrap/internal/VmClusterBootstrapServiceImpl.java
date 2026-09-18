@@ -44,7 +44,7 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
         String clusterName = vmCluster.getClusterName();
 
         progressReporter.reportSubStepStart(clusterName, BootstrapSubStep.NODE_PREPARATION);
-        waitForNodePreparation(vmCluster, outputs, strategy);
+        waitForNodePreparation(vmCluster, outputs, snapshot, strategy);
 
         progressReporter.reportSubStepStart(clusterName, BootstrapSubStep.MASTER_INIT);
         initializeMaster(vmCluster, outputs, snapshot, strategy);
@@ -74,7 +74,7 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
             Map<String, Object> outputs,
             VmClusterInternalRequestSnapshot snapshot,
             VmClusterBootstrapStrategy strategy) {
-        List<String> extras = nodeResolver.extraMasterHosts(outputs);
+        List<VmClusterNodeResolver.VmClusterNode> extras = nodeResolver.extraMasterNodes(outputs);
         if (extras.isEmpty()) {
             return; // single-master cluster
         }
@@ -97,11 +97,12 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
                         "upload-certs key generation")
                 .trim();
 
-        for (String extra : extras) {
+        for (VmClusterNodeResolver.VmClusterNode extra : extras) {
             runOnHostWithRetry(
                     vmCluster,
                     outputs,
-                    extra,
+                    extra.host(),
+                    extra.port(),
                     strategy.buildControlPlaneJoinCommand(snapshot, leadPrivateIp, caHash, certificateKey),
                     MASTER_BOOTSTRAP_TIMEOUT,
                     BootstrapRetryPolicy.MASTER_INIT_ATTEMPTS,
@@ -110,14 +111,18 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
     }
 
     private void waitForNodePreparation(
-            VmClusterEntity vmCluster, Map<String, Object> outputs, VmClusterBootstrapStrategy strategy) {
+            VmClusterEntity vmCluster,
+            Map<String, Object> outputs,
+            VmClusterInternalRequestSnapshot snapshot,
+            VmClusterBootstrapStrategy strategy) {
         // Every node must finish base package preparation before kubeadm commands start.
         for (VmClusterNodeResolver.VmClusterNode node : nodeResolver.readNodes(outputs)) {
             runOnHostWithRetry(
                     vmCluster,
                     outputs,
                     node.host(),
-                    strategy.waitForPreparationCommand(),
+                    node.port(),
+                    strategy.prepareNodeCommand(snapshot, node.role()),
                     CLOUD_INIT_TIMEOUT,
                     BootstrapRetryPolicy.PREPARATION_ATTEMPTS,
                     "node preparation");
@@ -167,6 +172,7 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
                     vmCluster,
                     outputs,
                     worker.host(),
+                    worker.port(),
                     strategy.buildWorkerJoinCommand(snapshot, masterPrivateIp, caHash),
                     WORKER_JOIN_TIMEOUT,
                     WORKER_JOIN_ATTEMPTS,
@@ -206,14 +212,20 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
             Duration timeout,
             int maxAttempts,
             String stepDescription) {
-        String host = nodeResolver.masterHost(outputs);
-        return runOnHostWithRetry(vmCluster, outputs, host, command, timeout, maxAttempts, stepDescription);
+        // nodes 가 비면 master 를 특정하지 못한다. outputs 의 대표 주소로 떨어진다.
+        VmClusterNodeResolver.VmClusterNode master = nodeResolver.masterNode(outputs);
+        String host = master == null || master.host() == null || master.host().isBlank()
+                ? nodeResolver.masterHost(outputs)
+                : master.host();
+        int port = master == null ? VmClusterNodeResolver.DEFAULT_SSH_PORT : master.port();
+        return runOnHostWithRetry(vmCluster, outputs, host, port, command, timeout, maxAttempts, stepDescription);
     }
 
     private String runOnHostWithRetry(
             VmClusterEntity vmCluster,
             Map<String, Object> outputs,
             String host,
+            int port,
             String command,
             Duration timeout,
             int maxAttempts,
@@ -221,7 +233,7 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
         Exception lastException = null;
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
-                return vmClusterRemoteAccessService.runOnHost(vmCluster, outputs, host, command, timeout);
+                return vmClusterRemoteAccessService.runOnHost(vmCluster, outputs, host, port, command, timeout);
             } catch (Exception e) {
                 lastException = e;
                 if (attempt == maxAttempts) {
@@ -231,7 +243,8 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
             }
         }
         throw new IllegalStateException(
-                "Failed during " + stepDescription + " on host " + host + " after " + maxAttempts + " attempts",
+                "Failed during " + stepDescription + " on host " + host + ":" + port + " after " + maxAttempts
+                        + " attempts",
                 lastException);
     }
 

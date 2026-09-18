@@ -27,6 +27,12 @@ class CredentialHealthTest extends AbstractUnitTest {
     VmOptionsService vmOptionsService;
 
     @Mock
+    com.aipaas.anycloud.domain.credential.CspCredentialService credentialService;
+
+    @Mock
+    com.aipaas.anycloud.domain.provisioning.proxmox.ProxmoxApiClient proxmoxApiClient;
+
+    @Mock
     CspCredentialRepository credentialRepository;
 
     private CredentialHealthServiceImpl service;
@@ -34,7 +40,11 @@ class CredentialHealthTest extends AbstractUnitTest {
     @BeforeEach
     void setUp() {
         service = new CredentialHealthServiceImpl(
-                vmOptionsService, credentialRepository, java.time.Duration.ofMinutes(10));
+                vmOptionsService,
+                credentialRepository,
+                credentialService,
+                proxmoxApiClient,
+                java.time.Duration.ofMinutes(10));
     }
 
     @Test

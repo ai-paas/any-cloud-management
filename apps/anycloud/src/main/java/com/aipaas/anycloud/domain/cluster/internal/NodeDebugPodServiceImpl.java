@@ -23,7 +23,13 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class NodeDebugPodServiceImpl implements NodeDebugPodService {
 
-    private static final Duration TIMEOUT = Duration.ofSeconds(20);
+    /**
+     * 에이전트가 컨테이너 Running 까지 기다렸다가 응답한다.
+     *
+     * <p>이름만 받고 곧바로 exec 을 걸면 {@code container not found (debug)} 로 끝난다. 노드에
+     * 이미지가 없으면 pull 에 1분을 넘기므로 20초로는 매번 모자란다.
+     */
+    private static final Duration TIMEOUT = Duration.ofSeconds(180);
 
     private final AgentSessionRegistry sessionRegistry;
 

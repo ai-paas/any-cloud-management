@@ -73,4 +73,21 @@ class PluginVersionsTest {
 
         assertThat(options).containsEntry("dependsOn", "${x}").containsKey("version");
     }
+
+    @Test
+    void thirdPartyPluginsCarryTheirDownloadUrl() {
+        /*
+         * proxmoxve 는 get.pulumi.com 에 없다. 선언이 빠지면 런타임 자동 설치가 기본 주소로 가서
+         * 403 을 받고, 오류가 "플러그인을 설치하라"로만 나와 배포처 문제로 보이지 않는다.
+         */
+        assertThat(PluginVersions.downloadUrlForType("proxmoxve:index/vmLegacy:VmLegacy"))
+                .isEqualTo("github://api.github.com/muhlba91/pulumi-proxmoxve");
+    }
+
+    @Test
+    void pluginsOnTheDefaultRegistryDeclareNoUrl() {
+        assertThat(PluginVersions.downloadUrlForType("aws:ec2/instance:Instance"))
+                .isNull();
+        assertThat(PluginVersions.downloadUrlForType(null)).isNull();
+    }
 }

@@ -126,6 +126,14 @@ func (r *Runner) Run(ctx context.Context, cfg SessionConfig) error {
 	stderrR, stderrW := io.Pipe()
 
 	resizeQ := newResizeQueue(streamCtx)
+	/*
+	 * remotecommand 는 exec 을 시작할 때 큐에서 첫 크기를 읽는다. 비어 있으면 PTY 가 0x0 으로
+	 * 열리고, tcell 로 만든 TUI(k9s)는 그릴 영역이 없어 화면을 지운 뒤 아무것도 그리지 않는다.
+	 * 사용자가 나중에 보내는 resize 로는 복구되지 않는다.
+	 */
+	if cfg.Request.GetTty() {
+		resizeQ.push(initialTerminalSize(cfg.Request.GetInitialSize()))
+	}
 
 	// Recv loop — backend → agent.
 	recvDone := make(chan struct{})
@@ -184,6 +192,18 @@ func (r *Runner) Run(ctx context.Context, cfg SessionConfig) error {
 		<-recvDone
 	}
 	return nil
+}
+
+// initialTerminalSize — 0 이면 80x24. 백엔드가 크기를 못 실어 보낸 예전 세션도 화면이 떠야 한다.
+func initialTerminalSize(size *agentv1.TerminalSize) remotecommand.TerminalSize {
+	cols, rows := size.GetCols(), size.GetRows()
+	if cols == 0 {
+		cols = 80
+	}
+	if rows == 0 {
+		rows = 24
+	}
+	return remotecommand.TerminalSize{Width: uint16(cols), Height: uint16(rows)}
 }
 
 // pumpToBackend — io.Reader (pod stdout/stderr) 에서 읽어 ExecPacket 으로 backend 송신.

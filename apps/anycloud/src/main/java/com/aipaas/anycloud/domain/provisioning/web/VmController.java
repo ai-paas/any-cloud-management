@@ -189,7 +189,7 @@ public class VmController {
 								  "providerSpec": {
 								    "nodeName": "pve1",
 								    "datastoreId": "local-lvm",
-								    "snippetDatastoreId": "local",
+								    "imageDatastoreId": "local",
 								    "networkBridge": "vmbr0"
 								  }
 								}""")

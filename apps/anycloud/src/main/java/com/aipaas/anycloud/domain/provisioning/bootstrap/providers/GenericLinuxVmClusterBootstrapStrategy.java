@@ -213,6 +213,9 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
     /** {@code Defaults.DEFAULT_POD_CIDR} 과 같은 값. 어긋나면 Calico 와 kubeadm 이 다른 대역을 쓴다. */
     protected static final String DEFAULT_POD_CIDR = "10.244.0.0/16";
 
+    /** {@code Defaults.DEFAULT_K8S_VERSION} 과 같은 값. 어긋나면 emitter 와 다른 버전이 깔린다. */
+    protected static final String DEFAULT_K8S_VERSION = "1.31";
+
     private static final String CALICO_MANIFEST_URL =
             "https://raw.githubusercontent.com/projectcalico/calico/v3.28.2/manifests/calico.yaml";
 

@@ -375,7 +375,7 @@ POST /v1/vms
 | azure | `resourceGroup` | `spec.osImage` 는 `publisher:offer:sku:version` |
 | openstack | `imageName`, `flavorName`, `externalNetworkId`, `floatingIpPool` | 네 개 모두 |
 | oci | `compartmentId` | `spec.osImage` 에 리전별 image OCID 필수 |
-| proxmox | `nodeName` | `datastoreId`, `snippetDatastoreId`, `networkBridge` 는 기본값 있음 |
+| proxmox | `nodeName` | `datastoreId`, `imageDatastoreId`, `networkBridge` 는 기본값 있음 |
 | ibm | `zone` | region 이 아니라 zone (예: `us-south-1`) |
 
 `GET /v1/providers/{provider}/config-schema` 로 필수 키와 기본값을 조회합니다.

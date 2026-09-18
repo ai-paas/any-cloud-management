@@ -27,9 +27,25 @@ public class VmClusterNodeResolverImpl implements VmClusterNodeResolver {
                 .map(Map.class::cast)
                 .map(node -> new VmClusterNode(
                         stringValue(node.get("role")),
-                        firstNonBlank(stringValue(node.get("publicDns")), stringValue(node.get("publicIp")))))
+                        firstNonBlank(stringValue(node.get("publicDns")), stringValue(node.get("publicIp"))),
+                        sshPortValue(node.get("sshPort"))))
                 .filter(node -> node.host() != null && !node.host().isBlank())
                 .toList();
+    }
+
+    /** 예전 스택에는 sshPort 가 없다. 그때 만든 클러스터도 계속 접속돼야 한다. */
+    private int sshPortValue(Object value) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value instanceof String text && !text.isBlank()) {
+            try {
+                return Integer.parseInt(text.trim());
+            } catch (NumberFormatException e) {
+                log.warn("nodes[].sshPort 가 숫자가 아니다: {}", text);
+            }
+        }
+        return VmClusterNodeResolver.DEFAULT_SSH_PORT;
     }
 
     /** nodes 는 provisioner 에 따라 배열로도 JSON 문자열로도 온다. */

@@ -30,6 +30,14 @@ public class VmOptionsSelectionValidator {
      * 선택이 "not found" 로 잘못 표시됨.
      */
     public void validateSelections(String provider, String credentialId, String region, Map<String, String> config) {
+        if ("Proxmox".equalsIgnoreCase(provider)) {
+            /*
+             * Proxmox 는 인스턴스 타입이 없다. "코어-메모리MiB" 를 사용자가 직접 정하므로 대조할 목록이
+             * 없고, 조회를 시도하면 등록된 provider 가 없어 프로비저닝이 시작 전에 죽는다. 노드,
+             * datastore, 브리지 존재 여부는 ProxmoxPreflightValidator 가 확인한다.
+             */
+            return;
+        }
         validateSpec(
                 provider, credentialId, region, config.get("anycloud-k8s:masterInstanceType"), "masterInstanceType");
         validateSpec(
