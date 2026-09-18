@@ -1,5 +1,6 @@
 package com.aipaas.anycloud.domain.vmoptions;
 
+import com.aipaas.anycloud.domain.vmoptions.api.ProviderConfigKey;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionImage;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionProvider;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionRegion;
@@ -11,6 +12,9 @@ public interface VmOptionsService {
     List<VmOptionProvider> getProviders();
 
     List<VmOptionRegion> getRegions(String provider, String credentialId);
+
+    /** config 키 schema. credentialId 를 주면 계정에서 고를 수 있는 값이 allowedValues 에 채워진다. */
+    List<ProviderConfigKey> getConfigSchema(String provider, String credentialId, String region);
 
     List<VmOptionSpec> getSpecs(
             String provider, String credentialId, String region, String keyword, Boolean gpuOnly, Integer limit);

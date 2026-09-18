@@ -5,8 +5,10 @@ import com.aipaas.anycloud.common.error.exception.CustomException;
 import com.aipaas.anycloud.domain.credential.CspCredentialRepository;
 import com.aipaas.anycloud.domain.credential.CspCredentialService;
 import com.aipaas.anycloud.domain.provisioning.model.SupportedProvisioningProvider;
+import com.aipaas.anycloud.domain.vmoptions.ProviderConfigSchemaService;
 import com.aipaas.anycloud.domain.vmoptions.VmOptionsProperties;
 import com.aipaas.anycloud.domain.vmoptions.VmOptionsProvider;
+import com.aipaas.anycloud.domain.vmoptions.api.ProviderConfigKey;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionImage;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionProvider;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionRegion;
@@ -16,23 +18,29 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmoptions.VmOptionsQueryService {
+
+    private static final String CONFIG_PREFIX = "anycloud-k8s:";
 
     private final Map<SupportedProvisioningProvider, VmOptionsProvider> providers;
     private final VmOptionsProperties properties;
     private final CspCredentialService cspCredentialService;
     private final CspCredentialRepository cspCredentialRepository;
+    private final ProviderConfigSchemaService providerConfigSchemaService;
 
     public VmOptionsQueryServiceImpl(
             List<VmOptionsProvider> providerImplementations,
             VmOptionsProperties properties,
             CspCredentialService cspCredentialService,
-            CspCredentialRepository cspCredentialRepository) {
+            CspCredentialRepository cspCredentialRepository,
+            ProviderConfigSchemaService providerConfigSchemaService) {
         this.properties = properties;
         this.cspCredentialService = cspCredentialService;
         this.cspCredentialRepository = cspCredentialRepository;
+        this.providerConfigSchemaService = providerConfigSchemaService;
         this.providers = new EnumMap<>(SupportedProvisioningProvider.class);
         for (VmOptionsProvider providerImplementation : providerImplementations) {
             this.providers.put(providerImplementation.getProvider(), providerImplementation);
@@ -63,6 +71,40 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
                 .map(VmOptionsProvider::describe)
                 .sorted(Comparator.comparing(VmOptionProvider::getDisplayName))
                 .toList();
+    }
+
+    @Override
+    public List<ProviderConfigKey> listConfigSchema(String provider, String credentialId, String region) {
+        List<ProviderConfigKey> schema = providerConfigSchemaService.getSchema(provider);
+        if (!StringUtils.hasText(credentialId)) {
+            return schema;
+        }
+        Map<String, String> creds = resolveCredentials(provider, credentialId);
+        VmOptionsProvider vmOptionsProvider = resolve(provider);
+        return schema.stream()
+                .map(key -> withOptions(vmOptionsProvider, creds, key, region))
+                .toList();
+    }
+
+    /** 이미 허용값이 적힌 키는 그대로 둔다. 정적 제약을 조회 결과로 덮으면 안 된다. */
+    private ProviderConfigKey withOptions(
+            VmOptionsProvider vmOptionsProvider, Map<String, String> creds, ProviderConfigKey key, String region) {
+        if (key.allowedValues() != null && !key.allowedValues().isEmpty()) {
+            return key;
+        }
+        String shortKey = key.key().startsWith(CONFIG_PREFIX) ? key.key().substring(CONFIG_PREFIX.length()) : key.key();
+        List<String> options = vmOptionsProvider.listConfigOptions(creds, shortKey, region);
+        if (options.isEmpty()) {
+            return key;
+        }
+        return ProviderConfigKey.builder()
+                .key(key.key())
+                .type(key.type())
+                .required(key.required())
+                .defaultValue(key.defaultValue())
+                .description(key.description())
+                .allowedValues(options)
+                .build();
     }
 
     @Override
