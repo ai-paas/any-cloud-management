@@ -151,14 +151,14 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                     ProviderConfigKey.builder()
                             .key("anycloud-k8s:providerSpec.externalNetworkId")
                             .type("string")
-                            .required(false)
-                            .description("External network ID (floating IP 발급용). FloatingIpPool 과 하나 필수.")
+                            .required(true)
+                            .description("라우터를 붙일 external network ID.")
                             .build(),
                     ProviderConfigKey.builder()
                             .key("anycloud-k8s:providerSpec.floatingIpPool")
                             .type("string")
-                            .required(false)
-                            .description("Floating IP pool 이름. ExternalNetworkId 와 하나 필수.")
+                            .required(true)
+                            .description("Floating IP 를 발급할 pool 이름.")
                             .build());
             case PROXMOX -> List.of(
                     ProviderConfigKey.builder()
@@ -201,12 +201,20 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                             .required(false)
                             .description("리소스 그룹 ID. 생략하면 계정 기본 그룹.")
                             .build());
-            case OCI -> List.of(ProviderConfigKey.builder()
-                    .key("anycloud-k8s:providerSpec.compartmentId")
-                    .type("string")
-                    .required(true)
-                    .description("OCI compartment OCID.")
-                    .build());
+            case OCI -> List.of(
+                    ProviderConfigKey.builder()
+                            .key("anycloud-k8s:providerSpec.compartmentId")
+                            .type("string")
+                            .required(true)
+                            .description("OCI compartment OCID.")
+                            .build(),
+                    // 이미지 OCID 는 리전마다 따로 발급돼 추측할 수 없다. emitter 도 preflight 도 요구한다.
+                    ProviderConfigKey.builder()
+                            .key("anycloud-k8s:osImage")
+                            .type("string")
+                            .required(true)
+                            .description("OCI image OCID. 리전마다 다르므로 이미지 목록에서 고른 값을 그대로 보낸다.")
+                            .build());
             case AWS -> List.of(
                     osImage("anycloud-k8s:awsImageName", "AWS AMI 이름 또는 ID (예: ubuntu-jammy-22.04-amd64)."));
             case ALIBABA, DIGITALOCEAN -> List.of();
