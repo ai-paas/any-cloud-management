@@ -20,7 +20,12 @@ class SshKeyInjectionTest {
     private static final Map<String, Map<String, String>> PROVIDER_CONFIG = Map.of(
             "aws", Map.of(),
             "gcp", Map.of("providerSpec.project", "demo"),
-            "azure", Map.of("providerSpec.resourceGroup", "demo-rg"),
+            "alibaba",
+                    Map.of(
+                            "providerSpec.zone",
+                            "ap-northeast-2a",
+                            "osImage",
+                            "ubuntu_24_04_x64_20G_alibase_20260828.vhd"),
             "oci", Map.of("providerSpec.compartmentId", "ocid1.compartment.oc1..demo", "osImage", "ocid1.image.demo"),
             "openstack",
                     Map.of(

@@ -25,6 +25,7 @@ public class VmClusterRemoteAccessServiceImpl implements VmClusterRemoteAccessSe
 
     private final PulumiProperties pulumiProperties;
     private final ClusterSshJumpResolver sshJumpResolver;
+    private final ClusterSshUserResolver sshUserResolver;
     private final VmClusterNodeResolver nodeResolver;
 
     @Override
@@ -106,7 +107,7 @@ public class VmClusterRemoteAccessServiceImpl implements VmClusterRemoteAccessSe
                 sshCommand.add("-p");
                 sshCommand.add(String.valueOf(port));
             }
-            sshCommand.add(pulumiProperties.getSshUser() + "@" + host);
+            sshCommand.add(sshUserResolver.resolve(outputs) + "@" + host);
             sshCommand.add("bash -lc " + shellQuote(command));
 
             CommandExecutionSupport.CommandExecutionResult result;

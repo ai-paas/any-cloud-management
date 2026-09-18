@@ -108,6 +108,11 @@ public final class StandardOutputs {
                 // 현재 구현이 publicIp 를 그대로 넣는다. 계약 유지가 목적이라 동작을 바꾸지 않는다.
                 .output("masterPublicDns", masterPublicIp)
                 .output("apiServerUrl", "https://" + masterPublicIp + ":" + K8sConstants.PORT_KUBE_API_SERVER)
+                /*
+                 * 기본 사용자는 CSP 마다 다르다 — Alibaba 의 Ubuntu 이미지에는 ubuntu 계정이 없고
+                 * 키가 root 에 들어간다. 백엔드가 전역 기본값으로 붙으면 그 CSP 만 조용히 막힌다.
+                 */
+                .output("sshUser", spec.sshUser())
                 .output("sshPrivateKeyPem", YamlRef.secret(YamlRef.of(refs.sshKeyResource(), "privateKeyPem")))
                 .output("kubeconfigRemotePath", "/etc/kubernetes/admin.conf")
                 .output("masterSshCommand", YamlRef.secret(sshCommand(spec, masterPublicIp)))
