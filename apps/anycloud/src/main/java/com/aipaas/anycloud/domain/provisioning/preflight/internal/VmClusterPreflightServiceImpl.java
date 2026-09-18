@@ -296,8 +296,11 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
             SupportedProvisioningProvider provider, ProvisionClusterRequest cluster) {
         List<String> messages = new ArrayList<>();
         try {
+            // credentialId 를 버리면 조회가 환경변수 fallback 으로 떨어진다. 등록한 자격증명으로
+            // 만들려는 요청인데 preflight 는 "조회 불가"로 답해 readyToProvision 이 false 가 된다.
+            String credentialId = cluster == null ? null : cluster.getCredentialId();
             List<com.aipaas.anycloud.domain.vmoptions.api.VmOptionRegion> regions =
-                    vmOptionsQueryService.listRegions(provider.getCanonicalName(), null);
+                    vmOptionsQueryService.listRegions(provider.getCanonicalName(), credentialId);
             if (cluster != null
                     && cluster.getRegion() != null
                     && !cluster.getRegion().isBlank()) {
