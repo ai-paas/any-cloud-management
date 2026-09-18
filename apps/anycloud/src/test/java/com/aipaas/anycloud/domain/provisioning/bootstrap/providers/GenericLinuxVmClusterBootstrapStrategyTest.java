@@ -57,6 +57,46 @@ class GenericLinuxVmClusterBootstrapStrategyTest {
     Path tmp;
 
     /** 문자열 비교로는 sed 가 실제로 먹는지 알 수 없다. 진짜 sed 로 돌린다. */
+    /** upstream calico.yaml 의 캡슐화 구간을 그대로 옮긴 fixture. */
+    private static final String ENCAP_SNIPPET = "            # Enable IPIP\n"
+            + "            - name: CALICO_IPV4POOL_IPIP\n"
+            + "              value: \"Always\"\n"
+            + "            # Enable or Disable VXLAN on the default IP pool.\n"
+            + "            - name: CALICO_IPV4POOL_VXLAN\n"
+            + "              value: \"Never\"\n";
+
+    private String runCalicoSed(String podCidr, boolean vxlan, String snippet) throws Exception {
+        Path manifest = tmp.resolve("calico-encap.yaml");
+        Files.writeString(manifest, snippet, StandardCharsets.UTF_8);
+        Path out = tmp.resolve("calico-encap-out.yaml");
+        Process p = new ProcessBuilder(
+                        "sh",
+                        "-c",
+                        "sed " + GenericLinuxVmClusterBootstrapStrategy.calicoSedArgs(podCidr, vxlan) + " \""
+                                + manifest.toAbsolutePath() + "\" > \"" + out.toAbsolutePath() + "\"")
+                .redirectErrorStream(true)
+                .start();
+        assertThat(p.waitFor()).as("sed 종료 코드").isZero();
+        return Files.readString(out, StandardCharsets.UTF_8);
+    }
+
+    @Test
+    void calicoSed_switchesToVxlanWhenTheFabricDropsIpInIp() throws Exception {
+        // IBM VPC 는 프로토콜 4 를 전달하지 않는다. 그대로 두면 노드 간 파드 통신만 조용히 끊긴다.
+        String out = runCalicoSed("10.244.0.0/16", true, ENCAP_SNIPPET);
+
+        assertThat(out).contains("- name: CALICO_IPV4POOL_IPIP\n              value: \"Never\"");
+        assertThat(out).contains("- name: CALICO_IPV4POOL_VXLAN\n              value: \"Always\"");
+    }
+
+    @Test
+    void calicoSed_leavesIpInIpAloneByDefault() throws Exception {
+        String out = runCalicoSed("10.244.0.0/16", false, ENCAP_SNIPPET);
+
+        assertThat(out).contains("- name: CALICO_IPV4POOL_IPIP\n              value: \"Always\"");
+        assertThat(out).contains("- name: CALICO_IPV4POOL_VXLAN\n              value: \"Never\"");
+    }
+
     private String runCalicoSed(String podCidr) throws Exception {
         Path manifest = tmp.resolve("calico.yaml");
         Files.writeString(manifest, CALICO_SNIPPET, StandardCharsets.UTF_8);
