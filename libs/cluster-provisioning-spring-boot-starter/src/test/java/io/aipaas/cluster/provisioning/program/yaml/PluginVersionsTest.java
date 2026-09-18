@@ -12,11 +12,11 @@ class PluginVersionsTest {
 
     @Test
     void resolvesPackageFromTypeToken() {
-        PluginVersions v = PluginVersions.parse("aws:7.44.0 azure-native:3.27.0 tls:5.6.0");
+        PluginVersions v = PluginVersions.parse("aws:7.44.0 terraform-provider:1.4.0 tls:5.6.0");
 
         assertThat(v.forType("aws:ec2/instance:Instance")).isEqualTo("7.44.0");
-        // 패키지 이름에 하이픈이 들어간다.
-        assertThat(v.forType("azure-native:network:Subnet")).isEqualTo("3.27.0");
+        // 패키지 이름에 하이픈이 들어간다 — IBM 이 쓰는 terraform-provider 가 그렇다.
+        assertThat(v.forType("terraform-provider:index/resource:Resource")).isEqualTo("1.4.0");
         assertThat(v.forType("tls:index/privateKey:PrivateKey")).isEqualTo("5.6.0");
     }
 
@@ -43,7 +43,7 @@ class PluginVersionsTest {
         Map<String, String> defaults =
                 PluginVersions.parse(PluginVersions.DEFAULT).asMap();
 
-        assertThat(defaults).containsKeys("aws", "gcp", "azure-native", "oci", "openstack", "tls");
+        assertThat(defaults).containsKeys("aws", "gcp", "oci", "openstack", "proxmoxve", "alicloud", "tls");
     }
 
     @Test

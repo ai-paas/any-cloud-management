@@ -7,7 +7,7 @@ import java.util.Set;
  * 리전 조회가 자격증명을 실제로 검증하지 못하는 프로바이더.
  *
  * <p>가용성 확인은 리전 목록 길이로 판정한다. 대부분은 리전 조회가 곧 인증 호출이라 그것으로
- * 충분하다 — OpenStack 은 Keystone 토큰을 받고, Azure/Alibaba/GCP/OCI/DigitalOcean 은 각자
+ * 충분하다 — OpenStack 은 Keystone 토큰을 받고, Alibaba/GCP/OCI 는 각자
  * API 를 친다.
  *
  * <p>AWS 만 SDK 에 컴파일된 목록을 쓰고 있었다 — 완전히 가짜인 키가 '정상'으로 나왔다.

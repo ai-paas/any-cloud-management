@@ -57,15 +57,6 @@ class GpuFlavorMapperTest extends AbstractUnitTest {
     }
 
     @Test
-    void applyGpuDefaults_azure_injectsNcv3() {
-        Map<String, String> cfg = new HashMap<>();
-        GpuFlavorMapper.applyGpuDefaults("azure", cfg);
-        assertThat(cfg)
-                .containsEntry(
-                        GpuFlavorMapper.nsKey(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE), "Standard_NC4as_T4_v3");
-    }
-
-    @Test
     void applyGpuDefaults_oci_injectsA10() {
         Map<String, String> cfg = new HashMap<>();
         GpuFlavorMapper.applyGpuDefaults("oci", cfg);
@@ -94,7 +85,7 @@ class GpuFlavorMapperTest extends AbstractUnitTest {
     @Test
     void applyGpuDefaults_unsupportedProvider_returnsFalseNoMutation() {
         Map<String, String> cfg = new HashMap<>();
-        boolean mutated = GpuFlavorMapper.applyGpuDefaults("digitalocean", cfg);
+        boolean mutated = GpuFlavorMapper.applyGpuDefaults("proxmox", cfg);
         assertThat(mutated).isFalse();
         assertThat(cfg).isEmpty();
     }

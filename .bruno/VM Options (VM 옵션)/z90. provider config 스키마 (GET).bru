@@ -36,7 +36,6 @@ tests {
       OCI: ["anycloud-k8s:providerSpec.compartmentId", "anycloud-k8s:osImage"],
       Proxmox: ["anycloud-k8s:providerSpec.nodeName"],
       GCP: ["anycloud-k8s:providerSpec.project"],
-      Azure: ["anycloud-k8s:providerSpec.resourceGroup"]
     };
     const expected = requiredByProvider[bru.getEnvVar("vm_options_provider")] || [];
     expected.forEach((key) => {
