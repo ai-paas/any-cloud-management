@@ -44,6 +44,7 @@ public class VmClusterNodeSshSessionServiceImpl implements VmClusterNodeSshSessi
     private final VmClusterRepository vmClusterRepository;
     private final PulumiProperties pulumiProperties;
     private final ClusterSshJumpResolver sshJumpResolver;
+    private final ClusterSshUserResolver sshUserResolver;
     private final ObjectMapper objectMapper;
     private final com.aipaas.anycloud.domain.credential.CspCredentialService cspCredentialService;
     private final io.aipaas.cluster.provisioning.api.ProvisioningService provisioningService;
@@ -77,7 +78,7 @@ public class VmClusterNodeSshSessionServiceImpl implements VmClusterNodeSshSessi
             // 노드가 사설망이면 점프 없이는 닿지 않는다. 프로비저닝과 같은 길을 쓴다.
             SshJump jump = sshJumpResolver.resolve(cluster);
             ProcessBuilder builder = new ProcessBuilder(NodeSshCommand.build(
-                    keyPath.toString(), pulumiProperties.getSshUser(), target, jump, matchedRow.sshPort()));
+                    keyPath.toString(), sshUserResolver.resolve(cluster), target, jump, matchedRow.sshPort()));
             builder.redirectErrorStream(true);
             // 비밀번호 bastion 은 프롬프트를 띄우는데 여기엔 터미널이 없다. askpass 로 넘긴다.
             // ssh 는 비밀번호가 필요해질 때 스크립트를 읽는다. 시작 직후 지우면 인증할 것이 없어

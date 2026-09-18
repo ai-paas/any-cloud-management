@@ -53,6 +53,7 @@ class StandardOutputsTest {
                         "masterPrivateIp",
                         "masterPublicDns",
                         "apiServerUrl",
+                        "sshUser",
                         "sshPrivateKeyPem",
                         "kubeconfigRemotePath",
                         "masterSshCommand",
