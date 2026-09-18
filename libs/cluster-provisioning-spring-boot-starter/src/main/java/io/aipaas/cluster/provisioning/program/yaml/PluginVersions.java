@@ -16,9 +16,19 @@ public final class PluginVersions {
 
     /** Dockerfile 의 {@code PULUMI_PLUGINS} 기본값과 같아야 한다. */
     static final String DEFAULT =
-            "aws:7.44.0 gcp:9.36.1 azure-native:3.27.0 oci:4.22.0 openstack:5.5.1 proxmoxve:8.6.0 tls:5.6.0";
+            "aws:7.44.0 gcp:9.36.1 azure-native:3.27.0 oci:4.22.0 openstack:5.5.1 proxmoxve:8.6.0 alicloud:3.108.0 tls:5.6.0";
 
     private static final String ENV_KEY = "PULUMI_PLUGINS";
+
+    /**
+     * get.pulumi.com 에 없는 플러그인의 배포처. {@code Dockerfile.pulumi} 의
+     * {@code PULUMI_PLUGIN_SERVERS} 와 같은 값이다.
+     *
+     * <p>플러그인 캐시는 볼륨이라 이미지에 구운 것이 남지 않는다. 선언이 없으면 런타임 자동 설치가
+     * 기본 주소로 가서 403 을 받고, 오류가 "플러그인을 설치하라"로만 나와 배포처 문제로 보이지 않는다.
+     */
+    private static final Map<String, String> DOWNLOAD_URLS =
+            Map.of("proxmoxve", "github://api.github.com/muhlba91/pulumi-proxmoxve");
 
     private final Map<String, String> byPackage;
 
@@ -55,6 +65,13 @@ public final class PluginVersions {
         if (typeToken == null) return null;
         int sep = typeToken.indexOf(':');
         return sep <= 0 ? null : byPackage.get(typeToken.substring(0, sep));
+    }
+
+    /** 타입 토큰이 속한 패키지의 배포처. 기본 주소로 받을 수 있으면 {@code null}. */
+    static String downloadUrlForType(String typeToken) {
+        if (typeToken == null) return null;
+        int sep = typeToken.indexOf(':');
+        return sep <= 0 ? null : DOWNLOAD_URLS.get(typeToken.substring(0, sep));
     }
 
     Map<String, String> asMap() {

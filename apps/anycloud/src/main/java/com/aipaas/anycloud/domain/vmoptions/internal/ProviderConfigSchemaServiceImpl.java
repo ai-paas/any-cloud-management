@@ -175,11 +175,11 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                             .description("디스크와 cloud-init 디스크를 만들 datastore.")
                             .build(),
                     ProviderConfigKey.builder()
-                            .key("anycloud-k8s:providerSpec.snippetDatastoreId")
+                            .key("anycloud-k8s:providerSpec.imageDatastoreId")
                             .type("string")
                             .required(false)
                             .defaultValue("local")
-                            .description("user-data 스니펫을 올릴 datastore. snippets content type 이 켜져 있어야 한다.")
+                            .description("내려받은 cloud 이미지를 둘 datastore. import content type 이 켜져 있어야 한다.")
                             .build(),
                     ProviderConfigKey.builder()
                             .key("anycloud-k8s:providerSpec.networkBridge")

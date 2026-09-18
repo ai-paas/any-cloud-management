@@ -16,7 +16,7 @@ public record CredentialFieldSchema(
         /* 값의 생김새를 보여주는 예시. 그대로 복사해 쓰는 사람이 있으므로 진짜처럼 보이면 안 된다. */
         @Schema(description = "입력 예시", example = "AKIAIOSFODNN7EXAMPLE") String placeholder,
         /*
-         * 같은 group 의 필드는 하나만 채우면 된다. GCP 는 JSON 본문이나 파일 경로 중 하나,
-         * Proxmox 는 API 토큰이나 사용자/비밀번호 중 하나다. 둘 다 필수로 물으면 채울 수 없다.
+         * 같은 group 의 필드는 하나만 채우면 된다. DigitalOcean 은 두 토큰 키 중 하나다.
+         * 둘 다 필수로 물으면 채울 수 없다.
          */
         @Schema(description = "택일 묶음 이름. 같은 값끼리 하나만 채우면 된다", example = "auth") String group) {}

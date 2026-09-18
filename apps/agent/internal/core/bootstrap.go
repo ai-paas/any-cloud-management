@@ -8,9 +8,12 @@ package core
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	agentv1 "anycloud/agent/internal/gen/agent/v1"
@@ -55,6 +58,11 @@ type BootstrapResult struct {
 	AgentIdentityToken string
 	ExpiresAt          string
 	ClusterStatus      agentv1.ClusterStatus
+	/*
+	 * identity 가 Secret 에 남았는지. false 면 이 파드는 메모리 token 으로만 돌고, 다음 재시작
+	 * 때 새 등록 토큰이 없으면 기동하지 못한다.
+	 */
+	IdentityPersisted bool
 }
 
 // BootstrapIdentity — agent startup 의 single entry point.
@@ -79,6 +87,7 @@ func BootstrapIdentity(ctx context.Context, cfg BootstrapConfig, store IdentityS
 				slog.String("cluster_id", existing.ClusterId),
 				slog.String("expires_at", existing.ExpiresAt))
 			return &BootstrapResult{
+				IdentityPersisted:  true,
 				ClusterID:          existing.ClusterId,
 				AgentIdentityToken: existing.IdentityToken,
 				ExpiresAt:          existing.ExpiresAt,
@@ -103,11 +112,18 @@ func BootstrapIdentity(ctx context.Context, cfg BootstrapConfig, store IdentityS
 			ClusterId:     result.ClusterID,
 		}
 		if saveErr := store.Save(ctx, material); saveErr != nil {
-			// Save 실패는 fatal 아님 — 메모리 token 으로 계속 동작. 다만 다음 부팅 때 다시 Register
-			// 필요 (10분 TTL JWT 가 있어야). 운영자 인지 위해 warn.
-			slog.Warn("identity store Save failed — token only in memory; next pod restart will need fresh REGISTRATION_TOKEN",
-				slog.String("error", saveErr.Error()))
+			/*
+			 * 지금은 메모리 token 으로 잘 돈다. 문제는 다음 재시작 때 드러나는데, 그때는 등록
+			 * 토큰(10분 TTL)이 이미 만료돼 있어 파드가 CrashLoop 으로 빠진다. 지금 눈에 띄지
+			 * 않으면 아무도 모르므로 error 로 올린다.
+			 */
+			slog.Error("identity store Save failed — 다음 재시작 때 새 REGISTRATION_TOKEN 이 없으면 기동하지 못한다",
+				slog.String("error", saveErr.Error()),
+				slog.String("secret", "cluster-agent-identity"))
+			result.IdentityPersisted = false
+			return result, nil
 		}
+		result.IdentityPersisted = true
 	}
 	return result, nil
 }
@@ -182,4 +198,26 @@ func Run(ctx context.Context, cfg BootstrapConfig) (*BootstrapResult, error) {
 		ExpiresAt:          resp.GetExpiresAt(),
 		ClusterStatus:      resp.GetClusterStatus(),
 	}, nil
+}
+
+// RegistrationTokenExpired — JWT 의 exp 가 지났는지.
+//
+// 서명은 검증하지 않는다. 서버가 거부할 이유를 미리 알려 주려는 것이지 인증이 목적이 아니다.
+// 형식을 못 읽으면 만료로 단정하지 않는다 — 멀쩡한 토큰을 만료라 부르면 진단이 더 꼬인다.
+func RegistrationTokenExpired(token string, now time.Time) bool {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return false
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return false
+	}
+	var claims struct {
+		Exp int64 `json:"exp"`
+	}
+	if err := json.Unmarshal(payload, &claims); err != nil || claims.Exp == 0 {
+		return false
+	}
+	return now.After(time.Unix(claims.Exp, 0))
 }

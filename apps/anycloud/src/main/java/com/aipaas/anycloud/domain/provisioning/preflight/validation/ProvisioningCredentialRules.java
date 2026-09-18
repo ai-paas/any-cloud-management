@@ -35,17 +35,8 @@ public final class ProvisioningCredentialRules {
                     "TF_VAR_private_key",
                     "TF_VAR_private_key_path");
             case DIGITALOCEAN -> List.of("DIGITALOCEAN_TOKEN", "DIGITALOCEAN_ACCESS_TOKEN");
-                // API 토큰과 username/password 는 배타적이다. 하나만 있으면 된다.
-                // ssh 항목이 필요한 이유 — cloud-init 스니펫은 SSH 로만 올라간다. Proxmox API 의 upload 가
-                // snippets content 를 거부한다. 없으면 VM 은 뜨고 user-data 에서 죽는다.
-                // ssh.username 은 기본값 root 라 필수가 아니다.
-            case PROXMOX -> List.of(
-                    "PROXMOX_VE_ENDPOINT",
-                    "PROXMOX_VE_API_TOKEN",
-                    "PROXMOX_VE_USERNAME",
-                    "PROXMOX_VE_PASSWORD",
-                    "PROXMOX_VE_SSH_PASSWORD",
-                    "PROXMOX_VE_SSH_PRIVATE_KEY");
+                // PVE 호스트 SSH 는 받지 않는다. 패키지 설치는 부트스트랩이 노드 SSH 로 처리한다.
+            case PROXMOX -> List.of("PROXMOX_VE_ENDPOINT", "PROXMOX_VE_API_TOKEN_ID", "PROXMOX_VE_API_TOKEN_SECRET");
             case IBM -> List.of("IBMCLOUD_API_KEY");
         };
     }

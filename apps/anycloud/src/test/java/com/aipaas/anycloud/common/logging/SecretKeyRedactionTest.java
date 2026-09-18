@@ -21,7 +21,7 @@ class SecretKeyRedactionTest extends AbstractUnitTest {
                 "AWS_SECRET_ACCESS_KEY",
                 "ARM_CLIENT_SECRET",
                 "OS_PASSWORD",
-                "PROXMOX_VE_API_TOKEN",
+                "PROXMOX_VE_API_TOKEN_SECRET",
                 "IBMCLOUD_API_KEY",
                 "TF_VAR_private_key",
                 "password",

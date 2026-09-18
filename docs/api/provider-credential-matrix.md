@@ -19,7 +19,7 @@
 | --- | --- | --- |
 | OpenStack | `OS_AUTH_URL`, `OS_USERNAME`, `OS_PASSWORD`, `OS_PROJECT_NAME`, `OS_USER_DOMAIN_NAME`, `OS_PROJECT_DOMAIN_NAME`, `OS_REGION_NAME` | `providerSpec.externalNetworkId`, `providerSpec.floatingIpPool` (둘 다), `providerSpec.flavorName` |
 | IBM | `IBMCLOUD_API_KEY`, `IBMCLOUD_REGION` | `providerSpec.zone` |
-| Proxmox | `PROXMOX_VE_ENDPOINT`, 그리고 `PROXMOX_VE_API_TOKEN` 또는 `PROXMOX_VE_USERNAME`+`PROXMOX_VE_PASSWORD` | `providerSpec.nodeName` |
+| Proxmox | `PROXMOX_VE_ENDPOINT`, `PROXMOX_VE_API_TOKEN_ID`, `PROXMOX_VE_API_TOKEN_SECRET` | `providerSpec.nodeName` |
 
 ## 운영 메모
 
@@ -29,14 +29,13 @@
 - 실제 `Pulumi` 실행과 `delete/retry`는 같은 `credentialId`를 다시 사용합니다.
 - `IBM`의 `providerSpec.zone`은 region이 아니라 zone입니다(예: `us-south-1`). 계정마다 활성 zone이 달라 region에서 유도하지 않습니다.
 - `IBM`은 사전 컴파일된 Pulumi 플러그인이 없습니다. `terraform-provider` 베이스가 OpenTofu provider를 붙이므로 프로그램에 `packages` 선언과 `sdks/` 스키마가 함께 필요합니다. 이미지 빌드 때 만들어 두고 workDir로 복사합니다.
-- `Proxmox`의 `providerSpec.datastoreId`(기본 `local-lvm`), `providerSpec.snippetDatastoreId`(기본 `local`), `providerSpec.networkBridge`(기본 `vmbr0`)는 생략하면 기본값을 씁니다.
+- `Proxmox`의 `providerSpec.datastoreId`(기본 `local-lvm`), `providerSpec.imageDatastoreId`(기본 `local`), `providerSpec.networkBridge`(기본 `vmbr0`)는 생략하면 기본값을 씁니다. 디스크는 블록 스토리지, 내려받은 이미지는 `import` content를 받는 디렉터리 스토리지로 가기 때문에 둘을 같은 곳에 둘 수 없습니다.
+- `Proxmox`는 **PVE 8.2.8 이상**이 필요합니다. 이미지 다운로드가 쓰는 `import` content type이 그 버전에서 들어왔고, `download-url` API는 `iso`, `vztmpl`, `import`만 받아 우회할 방법이 없습니다.
+- `Proxmox`의 `providerSpec.datastoreId` 기본값 `local-lvm`은 ext4/xfs 설치 기준입니다. ZFS로 설치한 호스트는 `local-zfs`라 직접 지정해야 합니다.
+- `Proxmox`의 `providerSpec.nodeName`은 설치할 때 정한 호스트명입니다. 문서 예시의 `pve1`은 기본값이 아닙니다.
 - `Proxmox`는 인스턴스 타입이 없습니다. `masterInstanceType`을 `"코어-메모리MiB"` 형식(예: `4-8192`)으로 받습니다.
-- `Proxmox`는 API 토큰과 username/password가 배타적입니다. 둘 다 넘기면 provider가 거부합니다.
-- `Proxmox`는 **API 토큰만으로는 부족합니다.** cloud-init user-data는 `snippets` content type인데, Proxmox API의 업로드 엔드포인트는 `content`를 `iso`, `vztmpl`, `import`로만 받습니다([bugzilla #2208](https://lists.proxmox.com/pipermail/pve-devel/2022-April/052548.html) 미해결). provider가 SSH로 파일을 밀어 넣습니다. SSH 자격증명이 없으면 VM은 만들어지고 user-data 단계에서 실패합니다.
-- `Proxmox`의 `PROXMOX_VE_SSH_USERNAME`은 생략하면 `root`입니다. API 토큰 인증에서는 provider가 SSH 사용자를 상속하지 못해 명시적 기본값이 필요합니다. 전용 계정을 쓰면 반드시 지정합니다 — [proxmox-setup.md](../operations/proxmox-setup.md) 참고.
-- `Proxmox`의 스니펫 업로드는 기본 `sftp` 모드라 sudo가 필요 없습니다. SFTP subsystem이 꺼진 호스트에서만 `providerSpec.snippetUploadMode=stream`으로 바꿉니다.
-- `Proxmox`에서 PVE API가 알려주는 노드 IP가 백엔드에서 닿지 않으면 `PROXMOX_VE_SSH_NODE_ADDRESS_SOURCE=dns` 또는 `PROXMOX_VE_SSH_NODES=[{"name":"pve1","address":"10.0.0.11"}]`로 지정합니다.
-- `Proxmox`는 cloud-init snippet 업로드가 가능한 datastore 설정을 권장합니다.
+- `Proxmox`는 API 토큰으로만 인증합니다. PVE 토큰 생성 화면이 Token ID와 Secret을 따로 보여주므로 두 칸으로 받고, provider가 받는 `user@realm!name=uuid` 한 줄은 백엔드가 만듭니다. 토큰 만료일을 지정했다면 그 이후 첫 API 호출이 401로 실패합니다.
+- `Proxmox`는 cloud-init user-data를 쓰지 않습니다. user-data는 `snippets` content type인데 Proxmox API의 업로드 엔드포인트가 `content`를 `iso`, `vztmpl`, `import`로만 받습니다([bugzilla #2208](https://lists.proxmox.com/pipermail/pve-devel/2022-April/052548.html) 미해결). 전달하려면 PVE 호스트 SSH 권한이 필요해지므로, VM에는 API로 공개키만 넣고 패키지 설치는 부트스트랩이 노드 SSH로 수행합니다. 자격증명은 API 토큰만으로 끝납니다.
 - `OpenStack`의 `externalNetworkId`와 `floatingIpPool`은 **둘 다** 필요합니다. emitter가 각각 라우터 게이트웨이와 플로팅 IP 할당에 쓰므로 하나만 넘기면 즉시 실패합니다.
 - `OpenStack`의 `imageName`은 생략하면 `spec.osImage`, 그다음 기본 이미지 순으로 떨어집니다. `flavorName`은 생략하면 `spec.workerInstanceType`을 쓰는데 OpenStack은 기본 인스턴스 타입이 없어 둘 다 비우면 플레이버가 정해지지 않습니다.
 - `OCI`는 image OCID를 리전마다 따로 발급하고 이름으로 찾는 안정된 필터가 없습니다. `osImage`를 필수로 받아 `pulumi preview` 전에 실패시킵니다.

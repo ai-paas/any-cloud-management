@@ -19,6 +19,8 @@ public final class VmClusterNodeRows {
 
     private VmClusterNodeRows() {}
 
+    private static final int DEFAULT_SSH_PORT = 22;
+
     public record Row(
             String nodeName,
             String role,
@@ -30,7 +32,9 @@ public final class VmClusterNodeRows {
             String clusterProvider,
             String region,
             String environment,
-            String infraStatus) {}
+            String infraStatus,
+            /* NAT 뒤 노드는 공유기가 노드마다 다른 포트를 연다. 예전 스택에는 없어 22 로 떨어진다. */
+            int sshPort) {}
 
     /**
      * 목록에 세울 대표값.
@@ -87,7 +91,8 @@ public final class VmClusterNodeRows {
                     cluster.getClusterProvider(),
                     cluster.getRegion(),
                     cluster.getEnvironment(),
-                    status));
+                    status,
+                    node.path("sshPort").asInt(DEFAULT_SSH_PORT)));
         }
         return rows;
     }
