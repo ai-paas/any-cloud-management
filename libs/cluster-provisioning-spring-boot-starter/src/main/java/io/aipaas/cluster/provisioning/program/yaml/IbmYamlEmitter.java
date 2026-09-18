@@ -140,8 +140,12 @@ final class IbmYamlEmitter implements ProviderYamlEmitter {
                 "sg-nodeport",
                 T_SECURITY_GROUP_RULE,
                 rule("inbound", "0.0.0.0/0", "tcp", K8sConstants.NODE_PORT_MIN, K8sConstants.NODE_PORT_MAX));
-        // Calico 기본값 ipipMode=Always 가 노드 간 파드 트래픽을 IP protocol 4 로 감싼다. IBM 은
-        // protocol 을 tcp/udp/icmp/all 로만 받아 VPC 내부를 all 로 연다.
+        /*
+         * 노드 간 파드 트래픽(Calico VXLAN, UDP 4789)과 kubelet, etcd 를 한 번에 연다.
+         *
+         * IP-in-IP 는 이 규칙으로도 통하지 않는다 — IBM VPC 패브릭이 프로토콜 4 를 아예 전달하지
+         * 않아 보안그룹과 무관하게 버려진다. 그래서 부트스트랩이 VXLAN 을 쓴다.
+         */
         b.resource("sg-intra", T_SECURITY_GROUP_RULE, rule("inbound", spec.vpcCidr(), null, 0, 0));
     }
 

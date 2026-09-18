@@ -174,7 +174,7 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
                 + "set -e; "
                 + "CALICO_MANIFEST=$(mktemp); "
                 + "curl -fsSL " + CALICO_MANIFEST_URL + " -o \"$CALICO_MANIFEST\"; "
-                + "sed -i " + calicoSedArgs(podCidr) + " \"$CALICO_MANIFEST\"; "
+                + "sed -i " + calicoSedArgs(podCidr, usesVxlanEncapsulation()) + " \"$CALICO_MANIFEST\"; "
                 + "grep -q '^ *- name: CALICO_IPV4POOL_CIDR' \"$CALICO_MANIFEST\" || "
                 + "{ echo 'calico manifest: CALICO_IPV4POOL_CIDR 주석 해제 실패' >&2; exit 1; }; "
                 + "grep -q '^ *value: \"" + podCidr + "\"' \"$CALICO_MANIFEST\" || "
@@ -185,8 +185,29 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
 
     /** upstream 문구에 의존하는 유일한 지점. 테스트가 실제 sed 로 이 인자를 검증한다. */
     static String calicoSedArgs(String podCidr) {
-        return "-e 's|^\\( *\\)# - name: CALICO_IPV4POOL_CIDR|\\1- name: CALICO_IPV4POOL_CIDR|'"
+        return calicoSedArgs(podCidr, false);
+    }
+
+    static String calicoSedArgs(String podCidr, boolean vxlan) {
+        String args = "-e 's|^\\( *\\)# - name: CALICO_IPV4POOL_CIDR|\\1- name: CALICO_IPV4POOL_CIDR|'"
                 + " -e 's|^\\( *\\)#   value: \"192.168.0.0/16\"|\\1  value: \"" + podCidr + "\"|'";
+        if (!vxlan) {
+            return args;
+        }
+        // 두 값은 매니페스트에서 붙어 있고 기본이 IPIP=Always / VXLAN=Never 다. 맞바꾼다.
+        return args
+                + " -e '/name: CALICO_IPV4POOL_IPIP/{n;s|value: \"Always\"|value: \"Never\"|;}'"
+                + " -e '/name: CALICO_IPV4POOL_VXLAN/{n;s|value: \"Never\"|value: \"Always\"|;}'";
+    }
+
+    /**
+     * 파드 트래픽을 IP-in-IP 대신 VXLAN 으로 감쌀지.
+     *
+     * <p>IBM VPC 는 프로토콜 4(IP-in-IP)를 전달하지 않는다. 보안그룹이 허용해도 패브릭이 버려서
+     * 노드 간 파드 통신만 조용히 끊긴다 — 노드 통신과 파드의 인터넷 접속은 멀쩡해 원인이 늦게 드러난다.
+     */
+    protected boolean usesVxlanEncapsulation() {
+        return false;
     }
 
     /** {@code Defaults.DEFAULT_POD_CIDR} 과 같은 값. 어긋나면 Calico 와 kubeadm 이 다른 대역을 쓴다. */
