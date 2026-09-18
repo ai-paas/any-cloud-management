@@ -66,7 +66,9 @@ func (d *Dispatcher) generateKubeconfig(ctx context.Context, cmd *agentv1.Comman
 	if caErr != nil {
 		return errorResponse(agentv1.Status_FAILED, "CA_DATA_UNAVAILABLE", caErr.Error())
 	}
-	server := d.kube.APIServerURL()
+	// 클러스터 안에서 본 주소는 서비스 IP 라 내려받은 kubeconfig 가 밖에서는 닿지 않는다.
+	// 백엔드가 외부 주소를 아는 경우에만 보내온다 — BYO 클러스터는 비어 있다.
+	server := defaultStr(getStringParam(cmd, "api_server_url"), d.kube.APIServerURL())
 	if server == "" {
 		return errorResponse(agentv1.Status_FAILED, "API_SERVER_URL_UNAVAILABLE", "no API server URL")
 	}
