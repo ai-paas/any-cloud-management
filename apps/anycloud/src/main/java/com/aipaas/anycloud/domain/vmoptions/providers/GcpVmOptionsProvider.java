@@ -42,6 +42,9 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(GcpVmOptionsProvider.class);
 
     private static final String COMPUTE_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
+    /** 한 프로젝트에서 받아올 개수. 걸러내기는 이 목록 안에서 한다. */
+    private static final int IMAGE_PAGE_SIZE = 200;
+
     private static final List<String> DEFAULT_IMAGE_PROJECTS =
             List.of("ubuntu-os-cloud", "debian-cloud", "cos-cloud", "rocky-linux-cloud", "centos-cloud");
 
@@ -116,8 +119,13 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
     public List<VmOptionImage> listImages(String region, String keyword, String architecture, String owner, int limit) {
         List<VmOptionImage> images = new ArrayList<>();
         for (String imageProject : resolveImageProjects(owner)) {
+            /*
+             * 최신순으로 받는다. 기본 정렬은 이름순이라 ubuntu-os-cloud 처럼 폐기 이미지가 많은
+             * 프로젝트는 첫 페이지가 통째로 폐기본이고, 여기서 다 걸러져 결과가 0 이 된다.
+             */
             List<GcpRecords.Image> items = listItems(
-                    "https://compute.googleapis.com/compute/v1/projects/" + imageProject + "/global/images",
+                    "https://compute.googleapis.com/compute/v1/projects/" + imageProject
+                            + "/global/images?orderBy=creationTimestamp%20desc&maxResults=" + IMAGE_PAGE_SIZE,
                     GcpRecords.Image.class);
             for (GcpRecords.Image image : items) {
                 if (!matchesKeyword(image.name(), keyword)) {
@@ -216,7 +224,11 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(accessToken());
-        return restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+        /*
+         * URI 로 넘긴다. String 오버로드는 URI 템플릿으로 취급해 이미 인코딩된 값을 한 번 더
+         * 인코딩한다 — orderBy 의 %20 이 %2520 이 되어 GCP 가 400 으로 거절한다.
+         */
+        return restTemplate.exchange(java.net.URI.create(url), HttpMethod.GET, new HttpEntity<>(headers), String.class);
     }
 
     private JsonNode parseBody(String body) {

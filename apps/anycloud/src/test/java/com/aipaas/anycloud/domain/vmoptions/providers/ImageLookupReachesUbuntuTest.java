@@ -43,6 +43,25 @@ class ImageLookupReachesUbuntuTest extends AbstractUnitTest {
     }
 
     @Test
+    void gcpAsksForTheNewestImagesFirst() throws Exception {
+        // 기본 정렬은 이름순이라 폐기 이미지가 많은 ubuntu-os-cloud 는 첫 페이지가 통째로 폐기본이다.
+        assertThat(sourceOf(GcpVmOptionsProvider.class)).contains("orderBy=creationTimestamp");
+    }
+
+    @Test
+    void providersThatEncodeQueryValuesSendAUri() throws Exception {
+        /*
+         * String 오버로드는 URI 템플릿으로 취급해 %20 을 %2520 으로 만든다. GCP 는 400 으로
+         * 거절했고 OCI 는 필터가 아무것도 걸러내지 않았다. 세 provider 에서 같은 실수가 났다.
+         */
+        for (Class<?> type :
+                new Class<?>[] {GcpVmOptionsProvider.class, OciVmOptionsProvider.class, AlibabaVmOptionsProvider.class
+                }) {
+            assertThat(sourceOf(type)).as("%s", type.getSimpleName()).contains("URI.create(url)");
+        }
+    }
+
+    @Test
     void everyProviderTakesTheKeywordItIsGiven() {
         // 서명이 바뀌면 이미지 선택지 채우기가 조용히 빈 목록으로 떨어진다.
         for (Class<?> type :

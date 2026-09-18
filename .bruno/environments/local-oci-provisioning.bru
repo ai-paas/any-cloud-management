@@ -1,18 +1,18 @@
 vars {
   baseUrl: http://localhost:8888
   cluster_name: oci-kubernetes-001
-  provision_cluster_name: demo-oci-01
+  provision_cluster_name: e2e-oci-01
   provision_provider: OCI
   provision_environment: dev
-  provision_region: ap-seoul-1
-  credential_id:
-  vm_credential_id:
+  provision_region: ap-tokyo-1
+  credential_id: cb9a4135-870f-40d5-b8e1-75538a396e7a
+  vm_credential_id: cb9a4135-870f-40d5-b8e1-75538a396e7a
   vm_credential_name: oci-manual-01
   vm_options_provider: OCI
-  vm_options_region: ap-seoul-1
+  vm_options_region: ap-tokyo-1
   vm_options_keyword: ubuntu
-  master_vm_spec: VM.Standard.E5.Flex:2:16
-  worker_vm_spec: VM.Standard.E5.Flex:2:16
+  master_vm_spec: VM.Standard.E4.Flex
+  worker_vm_spec: VM.Standard.E4.Flex
   worker_count: 2
   kubernetes_version: 1.31
   vpc_cidr: 10.86.0.0/16
@@ -25,7 +25,7 @@ vars {
   openstack_flavor_name:
   openstack_external_network_id:
   openstack_floating_ip_pool:
-  oci_compartment_id: ocid1.compartment.oc1..exampleuniqueID
+  oci_compartment_id: ocid1.tenancy.oc1..aaaaaaaa2nl4oem7srzttiju4ff3tt2zkmuz2cbidzx2wakhqdlpge5w6bha
   oci_image_ocid:
   proxmox_node_name: pve
   proxmox_datastore_id: local-lvm

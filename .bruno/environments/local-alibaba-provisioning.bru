@@ -1,18 +1,18 @@
 vars {
   baseUrl: http://localhost:8888
   cluster_name: alibaba-kubernetes-001
-  provision_cluster_name: demo-alibaba-01
+  provision_cluster_name: e2e-alibaba-01
   provision_provider: Alibaba
   provision_environment: dev
   provision_region: ap-northeast-2
-  credential_id:
-  vm_credential_id:
+  credential_id: d0c37573-325b-491b-92d1-daeaabdb9ed8
+  vm_credential_id: d0c37573-325b-491b-92d1-daeaabdb9ed8
   vm_credential_name: alibaba-manual-01
   vm_options_provider: Alibaba
-  vm_options_region: ap-southeast-1
+  vm_options_region: ap-northeast-2
   vm_options_keyword: ubuntu
-  master_vm_spec: ecs.g6.large
-  worker_vm_spec: ecs.g6.large
+  master_vm_spec: ecs.g9i.large
+  worker_vm_spec: ecs.g9i.large
   worker_count: 2
   kubernetes_version: 1.31
   vpc_cidr: 10.72.0.0/16
@@ -35,4 +35,5 @@ vars {
   ibm_resource_group:
   resource_group:
   alibaba_zone: ap-northeast-2a
+  os_image: ubuntu_24_04_x64_20G_alibase_20260828.vhd
 }
