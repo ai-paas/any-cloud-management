@@ -5,8 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.aipaas.anycloud.domain.provisioning.bootstrap.providers.AlibabaVmClusterBootstrapStrategy;
 import com.aipaas.anycloud.domain.provisioning.bootstrap.providers.AwsVmClusterBootstrapStrategy;
-import com.aipaas.anycloud.domain.provisioning.bootstrap.providers.AzureVmClusterBootstrapStrategy;
-import com.aipaas.anycloud.domain.provisioning.bootstrap.providers.DigitalOceanVmClusterBootstrapStrategy;
 import com.aipaas.anycloud.domain.provisioning.bootstrap.providers.GcpVmClusterBootstrapStrategy;
 import com.aipaas.anycloud.domain.provisioning.bootstrap.providers.GenericLinuxVmClusterBootstrapStrategy;
 import com.aipaas.anycloud.domain.provisioning.bootstrap.providers.IbmVmClusterBootstrapStrategy;
@@ -33,10 +31,8 @@ class EveryProviderHasABootstrapStrategyTest extends AbstractUnitTest {
             new AwsVmClusterBootstrapStrategy(),
             new OpenStackVmClusterBootstrapStrategy(),
             new GcpVmClusterBootstrapStrategy(),
-            new AzureVmClusterBootstrapStrategy(),
             new AlibabaVmClusterBootstrapStrategy(),
             new OciVmClusterBootstrapStrategy(),
-            new DigitalOceanVmClusterBootstrapStrategy(),
             new IbmVmClusterBootstrapStrategy(),
             new ProxmoxVmClusterBootstrapStrategy(),
             new GenericLinuxVmClusterBootstrapStrategy()));

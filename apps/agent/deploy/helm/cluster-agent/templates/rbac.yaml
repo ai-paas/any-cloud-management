@@ -347,4 +347,44 @@ subjects:
 - kind: ServiceAccount
   name: {{ .Values.rbac.adminKubeconfig.serviceAccountName | default "aipaas-admin" }}
   namespace: {{ .Values.agent.namespace }}
+---
+# RBAC 에서 serviceaccounts/token 은 serviceaccounts 와 별개 리소스다. SA 를 만들 권한이
+# 있어도 토큰은 발급하지 못해 GENERATE_KUBECONFIG 가 forbidden 으로 끝난다.
+# resourceNames 로 이 SA 하나만 — 열어 두면 클러스터의 모든 SA 를 사칭할 수 있다.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Values.rbac.adminKubeconfig.serviceAccountName | default "aipaas-admin" }}-token
+  namespace: {{ .Values.agent.namespace }}
+  labels:
+    {{- include "cluster-agent.labels" . | nindent 4 }}
+rules:
+- apiGroups: [""]
+  resources: ["serviceaccounts/token"]
+  resourceNames: [{{ .Values.rbac.adminKubeconfig.serviceAccountName | default "aipaas-admin" | quote }}]
+  verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Values.rbac.adminKubeconfig.serviceAccountName | default "aipaas-admin" }}-token
+  namespace: {{ .Values.agent.namespace }}
+  labels:
+    {{- include "cluster-agent.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Values.rbac.adminKubeconfig.serviceAccountName | default "aipaas-admin" }}-token
+subjects:
+# 단일 pod 모드는 installer SA 로 돈다. 분리 배치면 core SA 가 명령을 받는다 — 둘 다 넣는다.
+{{- if .Values.rbac.installer.enabled }}
+- kind: ServiceAccount
+  name: {{ .Values.rbac.installer.serviceAccountName }}
+  namespace: {{ .Values.agent.namespace }}
+{{- end }}
+{{- if .Values.rbac.core.enabled }}
+- kind: ServiceAccount
+  name: {{ .Values.rbac.core.serviceAccountName }}
+  namespace: {{ .Values.agent.namespace }}
+{{- end }}
 {{- end }}

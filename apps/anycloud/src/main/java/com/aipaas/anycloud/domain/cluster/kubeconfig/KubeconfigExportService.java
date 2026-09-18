@@ -22,8 +22,9 @@ public interface KubeconfigExportService {
             String serviceAccount,
             Long ttlSeconds,
             String clusterDisplayName, // null 이면 backend cluster name 사용
-            String contextNamespace) { // null 이면 namespace 사용
-    }
+            String contextNamespace, // null 이면 namespace 사용
+            // 클러스터 안에서 본 주소는 서비스 IP 라 내려받아도 밖에서 닿지 않는다. null 이면 agent 가 본 값.
+            String apiServerUrl) {}
 
     record IssuedKubeconfig(
             String clusterName, String namespace, String serviceAccount, String expiresAt, String kubeconfigYaml) {}

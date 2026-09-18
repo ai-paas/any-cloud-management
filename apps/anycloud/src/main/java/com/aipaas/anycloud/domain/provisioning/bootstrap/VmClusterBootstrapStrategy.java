@@ -20,7 +20,10 @@ public interface VmClusterBootstrapStrategy {
         return waitForPreparationCommand();
     }
 
-    String initializeMasterCommand(VmClusterInternalRequestSnapshot snapshot);
+    /**
+     * @param apiServerPublicIp 인증서 SAN 에 넣을 외부 주소. 없으면 비운다 — 사설망 전용 클러스터가 있다
+     */
+    String initializeMasterCommand(VmClusterInternalRequestSnapshot snapshot, String apiServerPublicIp);
 
     String resolveCaHashCommand();
 

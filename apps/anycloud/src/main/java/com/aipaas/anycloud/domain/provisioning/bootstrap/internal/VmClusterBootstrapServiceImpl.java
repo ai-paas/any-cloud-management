@@ -129,6 +129,12 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
         }
     }
 
+    /** 사설망 전용 클러스터는 공인 IP 가 없다 — 그때는 SAN 을 더하지 않는다. */
+    private String masterPublicIp(Map<String, Object> outputs) {
+        Object value = outputs == null ? null : outputs.get("masterPublicIp");
+        return value instanceof String text && !text.isBlank() ? text : null;
+    }
+
     private void initializeMaster(
             VmClusterEntity vmCluster,
             Map<String, Object> outputs,
@@ -138,7 +144,7 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
         runOnMasterWithRetry(
                 vmCluster,
                 outputs,
-                strategy.initializeMasterCommand(snapshot),
+                strategy.initializeMasterCommand(snapshot, masterPublicIp(outputs)),
                 MASTER_BOOTSTRAP_TIMEOUT,
                 BootstrapRetryPolicy.MASTER_INIT_ATTEMPTS,
                 "master initialization");

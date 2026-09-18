@@ -177,7 +177,7 @@ class GenericLinuxVmClusterBootstrapStrategyTest {
                 .providerConfig(java.util.Map.of("anycloud-k8s:joinToken", "abcdef.0123456789abcdef"))
                 .build();
 
-        assertThat(strategy.initializeMasterCommand(snapshot)).contains("--pod-network-cidr='10.244.0.0/16'");
+        assertThat(strategy.initializeMasterCommand(snapshot, null)).contains("--pod-network-cidr='10.244.0.0/16'");
         assertThat(strategy.buildAddonInstallCommand(snapshot)).contains("value: \"10.244.0.0/16\"");
     }
 }

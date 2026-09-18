@@ -30,9 +30,29 @@ class GenericLinuxVmClusterBootstrapStrategyHaTest extends AbstractUnitTest {
     }
 
     @Test
+    void initializeMaster_publicIp_landsInTheCertificateSans() {
+        /*
+         * SAN 은 kubeadm init 때만 정해진다. 빠뜨리면 내려받은 kubeconfig 가 공인 IP 를 가리키는데
+         * TLS 이름 검증에서 막히고, 클러스터를 다시 만들기 전에는 고칠 수 없다.
+         */
+        String cmd = strategy.initializeMasterCommand(snapshot(Map.of()), "203.0.113.10");
+
+        assertThat(cmd).contains("--apiserver-cert-extra-sans='203.0.113.10'");
+    }
+
+    @Test
+    void initializeMaster_privateOnlyCluster_omitsTheExtraSan() {
+        // 공인 IP 가 없는 클러스터가 있다. 빈 값을 넘기면 kubeadm 이 인자 파싱에서 죽는다.
+        assertThat(strategy.initializeMasterCommand(snapshot(Map.of()), null))
+                .doesNotContain("--apiserver-cert-extra-sans");
+        assertThat(strategy.initializeMasterCommand(snapshot(Map.of()), "  "))
+                .doesNotContain("--apiserver-cert-extra-sans");
+    }
+
+    @Test
     void initializeMaster_singleMaster_default_omitsControlPlaneEndpoint() {
         // masterCount unset → 기본 1 (single master). Legacy 동작 유지.
-        String cmd = strategy.initializeMasterCommand(snapshot(Map.of()));
+        String cmd = strategy.initializeMasterCommand(snapshot(Map.of()), null);
 
         assertThat(cmd).doesNotContain("--control-plane-endpoint");
         assertThat(cmd).doesNotContain("--upload-certs");
@@ -43,7 +63,7 @@ class GenericLinuxVmClusterBootstrapStrategyHaTest extends AbstractUnitTest {
 
     @Test
     void initializeMaster_explicitSingleMaster_omitsHaFlags() {
-        String cmd = strategy.initializeMasterCommand(snapshot(Map.of("anycloud-k8s:masterCount", "1")));
+        String cmd = strategy.initializeMasterCommand(snapshot(Map.of("anycloud-k8s:masterCount", "1")), null);
 
         assertThat(cmd).doesNotContain("--control-plane-endpoint");
         assertThat(cmd).doesNotContain("--upload-certs");
@@ -51,7 +71,7 @@ class GenericLinuxVmClusterBootstrapStrategyHaTest extends AbstractUnitTest {
 
     @Test
     void initializeMaster_multiMaster_addsControlPlaneEndpointAndUploadCerts() {
-        String cmd = strategy.initializeMasterCommand(snapshot(Map.of("anycloud-k8s:masterCount", "3")));
+        String cmd = strategy.initializeMasterCommand(snapshot(Map.of("anycloud-k8s:masterCount", "3")), null);
 
         assertThat(cmd).contains("--control-plane-endpoint=\"${LOCAL_IP}:6443\"");
         assertThat(cmd).contains("--upload-certs");
@@ -64,7 +84,8 @@ class GenericLinuxVmClusterBootstrapStrategyHaTest extends AbstractUnitTest {
     void initializeMaster_invalidMasterCount_defaultsToSingleMaster() {
         // Strategy 자체는 validation 책임이 없고 (ProvisioningConfigRules 가 reject), 잘못된 값이
         // 흘러들어와도 fail-safe 로 single master 모드로 작동.
-        String cmd = strategy.initializeMasterCommand(snapshot(Map.of("anycloud-k8s:masterCount", "not-a-number")));
+        String cmd =
+                strategy.initializeMasterCommand(snapshot(Map.of("anycloud-k8s:masterCount", "not-a-number")), null);
 
         assertThat(cmd).doesNotContain("--control-plane-endpoint");
         assertThat(cmd).doesNotContain("--upload-certs");
@@ -105,7 +126,7 @@ class GenericLinuxVmClusterBootstrapStrategyHaTest extends AbstractUnitTest {
                 .providerConfig(new LinkedHashMap<>())
                 .build();
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> strategy.initializeMasterCommand(noToken))
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> strategy.initializeMasterCommand(noToken, null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("joinToken missing");
     }

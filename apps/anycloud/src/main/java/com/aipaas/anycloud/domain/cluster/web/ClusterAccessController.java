@@ -100,7 +100,8 @@ public class ClusterAccessController {
                         identity.serviceAccount(),
                         ttlSeconds,
                         clusterName,
-                        identity.namespace()));
+                        identity.namespace(),
+                        null));
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType("application/yaml"));
         headers.setContentDispositionFormData(

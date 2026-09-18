@@ -49,7 +49,7 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
     }
 
     @Override
-    public String initializeMasterCommand(VmClusterInternalRequestSnapshot snapshot) {
+    public String initializeMasterCommand(VmClusterInternalRequestSnapshot snapshot, String apiServerPublicIp) {
         String podCidr = firstNonBlank(snapshot.getPodCidr(), DEFAULT_POD_CIDR);
         String serviceCidr = firstNonBlank(snapshot.getServiceCidr(), "10.96.0.0/12");
         String joinToken = requiredJoinToken(snapshot);
@@ -65,6 +65,15 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
             // LB/VIP 미사용 — lead master IP 가 그대로 endpoint. 진짜 HA 는 LB 필요.
             cmd.append("--control-plane-endpoint=\"${LOCAL_IP}:6443\" ");
             cmd.append("--upload-certs ");
+        }
+        if (apiServerPublicIp != null && !apiServerPublicIp.isBlank()) {
+            /*
+             * 인증서 SAN 에는 advertise 주소만 들어간다. 내려받은 kubeconfig 가 공인 IP 를 가리키면
+             * 노드가 다 올라와 있어도 TLS 이름 검증에서 막힌다 — 발급 후에는 고칠 수 없어 여기서 넣는다.
+             */
+            cmd.append("--apiserver-cert-extra-sans=")
+                    .append(shellWord(apiServerPublicIp))
+                    .append(' ');
         }
         cmd.append("--pod-network-cidr=").append(shellWord(podCidr)).append(' ');
         cmd.append("--service-cidr=").append(shellWord(serviceCidr)).append(' ');

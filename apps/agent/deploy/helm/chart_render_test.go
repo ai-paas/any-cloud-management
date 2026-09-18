@@ -99,3 +99,29 @@ func TestInstallerCanManageDebugPods(t *testing.T) {
 		}
 	}
 }
+
+// RBAC 에서 serviceaccounts/token 은 serviceaccounts 와 별개 리소스다. SA 를 만들 권한이
+// 있어도 토큰은 발급하지 못해 kubeconfig 내려받기가 forbidden 으로 끝났다.
+func TestAdminKubeconfigGrantsTokenIssuance(t *testing.T) {
+	manifest := render(t, "--set", "rbac.adminKubeconfig.enabled=true")
+
+	if !strings.Contains(manifest, `resources: ["serviceaccounts/token"]`) {
+		t.Fatal("토큰 발급 권한이 없어 kubeconfig 내려받기가 forbidden 으로 끝난다")
+	}
+	if !strings.Contains(manifest, `resourceNames: ["aipaas-admin"]`) {
+		t.Fatal("resourceNames 가 없으면 클러스터의 모든 SA 를 사칭할 수 있다")
+	}
+	for _, sa := range []string{"aipaas-agent-installer", "aipaas-agent-core"} {
+		if !strings.Contains(manifest, sa) {
+			t.Fatalf("%s 가 토큰 Role 에 묶이지 않았다", sa)
+		}
+	}
+}
+
+// 기본값에서는 admin SA 자체를 만들지 않는다. 토큰 권한만 남으면 등록형 클러스터에
+// 쓰이지 않는 권한이 생긴다.
+func TestTokenIssuanceIsAbsentWithoutAdminKubeconfig(t *testing.T) {
+	if strings.Contains(render(t), "serviceaccounts/token") {
+		t.Fatal("adminKubeconfig 가 꺼져 있는데 토큰 발급 권한이 렌더됐다")
+	}
+}

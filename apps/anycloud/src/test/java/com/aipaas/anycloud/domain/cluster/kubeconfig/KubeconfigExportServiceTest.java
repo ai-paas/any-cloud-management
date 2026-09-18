@@ -44,7 +44,7 @@ class KubeconfigExportServiceTest extends AbstractUnitTest {
                         "expires_at", "2026-12-31T23:59:59Z",
                         "kubeconfig_yaml", "apiVersion: v1\nkind: Config\n...")));
 
-        IssuedKubeconfig result = svc.issue("c1", new IssueRequest("default", "aipaas-user", 3600L, null, null));
+        IssuedKubeconfig result = svc.issue("c1", new IssueRequest("default", "aipaas-user", 3600L, null, null, null));
 
         assertThat(result.clusterName()).isEqualTo("c1");
         assertThat(result.namespace()).isEqualTo("default");
@@ -63,7 +63,7 @@ class KubeconfigExportServiceTest extends AbstractUnitTest {
                         .setErrorMessage("sa default/ghost not found")
                         .build());
 
-        assertThatThrownBy(() -> svc.issue("c1", new IssueRequest("default", "ghost", null, null, null)))
+        assertThatThrownBy(() -> svc.issue("c1", new IssueRequest("default", "ghost", null, null, null, null)))
                 .isInstanceOf(KubeconfigExportException.class)
                 .satisfies(ex -> assertThat(((KubeconfigExportException) ex).errorCode())
                         .isEqualTo("SERVICE_ACCOUNT_NOT_FOUND"));
@@ -76,7 +76,7 @@ class KubeconfigExportServiceTest extends AbstractUnitTest {
         when(registry.sendCommand(eq("c1"), any(ControlMessage.Builder.class), anyInt()))
                 .thenReturn(failed);
 
-        assertThatThrownBy(() -> svc.issue("c1", new IssueRequest("default", "aipaas-user", null, null, null)))
+        assertThatThrownBy(() -> svc.issue("c1", new IssueRequest("default", "aipaas-user", null, null, null, null)))
                 .satisfies(ex ->
                         assertThat(((KubeconfigExportException) ex).errorCode()).isEqualTo("NO_ACTIVE_AGENT"));
     }

@@ -57,7 +57,7 @@ class KubeconfigExportServiceImplTest {
                         "kubeconfig_yaml", "apiVersion: v1\nkind: Config\n..."))));
 
         IssuedKubeconfig result =
-                service.issue("orb-001", new IssueRequest("default", "viewer", 1800L, "Orb 001", "default"));
+                service.issue("orb-001", new IssueRequest("default", "viewer", 1800L, "Orb 001", "default", null));
 
         assertThat(result.clusterName()).isEqualTo("orb-001");
         assertThat(result.namespace()).isEqualTo("default");
@@ -76,7 +76,7 @@ class KubeconfigExportServiceImplTest {
         when(sessionRegistry.sendCommand(eq("orb-001"), builderCaptor.capture(), anyInt()))
                 .thenReturn(CompletableFuture.completedFuture(okResponse(Map.of())));
 
-        service.issue("orb-001", new IssueRequest("ns", "sa", null, null, null));
+        service.issue("orb-001", new IssueRequest("ns", "sa", null, null, null, null));
 
         Struct params = builderCaptor.getValue().getCommand().getParams();
         assertThat(params.getFieldsOrThrow("ttl_seconds").getStringValue()).isEqualTo("3600");
@@ -88,7 +88,7 @@ class KubeconfigExportServiceImplTest {
         when(sessionRegistry.sendCommand(eq("orb-001"), builderCaptor.capture(), anyInt()))
                 .thenReturn(CompletableFuture.completedFuture(okResponse(Map.of())));
 
-        service.issue("orb-001", new IssueRequest("ns", "sa", 3600L, null, "ns"));
+        service.issue("orb-001", new IssueRequest("ns", "sa", 3600L, null, "ns", null));
 
         Struct params = builderCaptor.getValue().getCommand().getParams();
         assertThat(params.getFieldsOrThrow("cluster_name").getStringValue()).isEqualTo("orb-001");
@@ -100,7 +100,7 @@ class KubeconfigExportServiceImplTest {
         when(sessionRegistry.sendCommand(eq("orb-001"), builderCaptor.capture(), anyInt()))
                 .thenReturn(CompletableFuture.completedFuture(okResponse(Map.of())));
 
-        service.issue("orb-001", new IssueRequest("kube-system", "admin", 3600L, "Orb", null));
+        service.issue("orb-001", new IssueRequest("kube-system", "admin", 3600L, "Orb", null, null));
 
         Struct params = builderCaptor.getValue().getCommand().getParams();
         assertThat(params.getFieldsOrThrow("context_namespace").getStringValue())
@@ -114,7 +114,7 @@ class KubeconfigExportServiceImplTest {
         when(sessionRegistry.sendCommand(eq("orb-001"), builderCaptor.capture(), anyInt()))
                 .thenReturn(CompletableFuture.completedFuture(okResponse(Map.of())));
 
-        service.issue("orb-001", new IssueRequest("ns", "sa", 3600L, "n", "ns"));
+        service.issue("orb-001", new IssueRequest("ns", "sa", 3600L, "n", "ns", null));
 
         CommandRequest cmd = builderCaptor.getValue().getCommand();
         assertThat(cmd.getType().name()).isEqualTo("GENERATE_KUBECONFIG");
@@ -134,7 +134,8 @@ class KubeconfigExportServiceImplTest {
                 .build();
         when(sessionRegistry.sendCommand(any(), any(), anyInt())).thenReturn(CompletableFuture.completedFuture(failed));
 
-        assertThatThrownBy(() -> service.issue("orb-001", new IssueRequest("denied-ns", "sa", 3600L, "n", "denied-ns")))
+        assertThatThrownBy(() ->
+                        service.issue("orb-001", new IssueRequest("denied-ns", "sa", 3600L, "n", "denied-ns", null)))
                 .isInstanceOf(KubeconfigExportException.class)
                 .satisfies(e ->
                         assertThat(((KubeconfigExportException) e).errorCode()).isEqualTo("PERMISSION_DENIED"))
@@ -149,7 +150,7 @@ class KubeconfigExportServiceImplTest {
                 .build();
         when(sessionRegistry.sendCommand(any(), any(), anyInt())).thenReturn(CompletableFuture.completedFuture(failed));
 
-        assertThatThrownBy(() -> service.issue("orb-001", new IssueRequest("ns", "sa", 3600L, "n", "ns")))
+        assertThatThrownBy(() -> service.issue("orb-001", new IssueRequest("ns", "sa", 3600L, "n", "ns", null)))
                 .isInstanceOf(KubeconfigExportException.class)
                 .satisfies(e ->
                         assertThat(((KubeconfigExportException) e).errorCode()).isEqualTo("AGENT_ERROR"));
@@ -160,7 +161,7 @@ class KubeconfigExportServiceImplTest {
         // sendCommand 호출 자체가 직접 NoActiveSessionException 을 throw 하는 경로.
         when(sessionRegistry.sendCommand(any(), any(), anyInt())).thenThrow(new NoActiveSessionException("no session"));
 
-        assertThatThrownBy(() -> service.issue("orb-001", new IssueRequest("ns", "sa", 3600L, "n", "ns")))
+        assertThatThrownBy(() -> service.issue("orb-001", new IssueRequest("ns", "sa", 3600L, "n", "ns", null)))
                 .isInstanceOf(KubeconfigExportException.class)
                 .satisfies(e ->
                         assertThat(((KubeconfigExportException) e).errorCode()).isEqualTo("NO_ACTIVE_AGENT"))
@@ -174,7 +175,7 @@ class KubeconfigExportServiceImplTest {
         failed.completeExceptionally(new NoActiveSessionException("session dead"));
         when(sessionRegistry.sendCommand(any(), any(), anyInt())).thenReturn(failed);
 
-        assertThatThrownBy(() -> service.issue("orb-001", new IssueRequest("ns", "sa", 3600L, "n", "ns")))
+        assertThatThrownBy(() -> service.issue("orb-001", new IssueRequest("ns", "sa", 3600L, "n", "ns", null)))
                 .isInstanceOf(KubeconfigExportException.class)
                 .satisfies(e ->
                         assertThat(((KubeconfigExportException) e).errorCode()).isEqualTo("NO_ACTIVE_AGENT"));
@@ -186,7 +187,7 @@ class KubeconfigExportServiceImplTest {
         failed.completeExceptionally(new SessionClosedException("closed mid-flight"));
         when(sessionRegistry.sendCommand(any(), any(), anyInt())).thenReturn(failed);
 
-        assertThatThrownBy(() -> service.issue("orb-001", new IssueRequest("ns", "sa", 3600L, "n", "ns")))
+        assertThatThrownBy(() -> service.issue("orb-001", new IssueRequest("ns", "sa", 3600L, "n", "ns", null)))
                 .isInstanceOf(KubeconfigExportException.class)
                 .satisfies(e ->
                         assertThat(((KubeconfigExportException) e).errorCode()).isEqualTo("NO_ACTIVE_AGENT"));
@@ -198,7 +199,7 @@ class KubeconfigExportServiceImplTest {
         failed.completeExceptionally(new RuntimeException("RPC stream broken"));
         when(sessionRegistry.sendCommand(any(), any(), anyInt())).thenReturn(failed);
 
-        assertThatThrownBy(() -> service.issue("orb-001", new IssueRequest("ns", "sa", 3600L, "n", "ns")))
+        assertThatThrownBy(() -> service.issue("orb-001", new IssueRequest("ns", "sa", 3600L, "n", "ns", null)))
                 .isInstanceOf(KubeconfigExportException.class)
                 .satisfies(e ->
                         assertThat(((KubeconfigExportException) e).errorCode()).isEqualTo("AGENT_CALL_FAILED"));
@@ -216,7 +217,7 @@ class KubeconfigExportServiceImplTest {
         timedOut.completeExceptionally(new java.util.concurrent.TimeoutException("agent timeout"));
         when(sessionRegistry.sendCommand(any(), any(), anyInt())).thenReturn(timedOut);
 
-        assertThatThrownBy(() -> service.issue("orb-001", new IssueRequest("ns", "sa", 3600L, "n", "ns")))
+        assertThatThrownBy(() -> service.issue("orb-001", new IssueRequest("ns", "sa", 3600L, "n", "ns", null)))
                 .isInstanceOf(KubeconfigExportException.class);
         // timeout 은 ExecutionException(TimeoutException) 으로 wrap 되므로 AGENT_CALL_FAILED 로 분류됨.
         // service 의 catch (TimeoutException) 는 future.get() 자체가 timeout 일 때만 진입.
@@ -236,7 +237,7 @@ class KubeconfigExportServiceImplTest {
         when(sessionRegistry.sendCommand(any(), any(), anyInt())).thenReturn(never);
 
         try {
-            assertThatThrownBy(() -> service.issue("orb-001", new IssueRequest("ns", "sa", 3600L, "n", "ns")))
+            assertThatThrownBy(() -> service.issue("orb-001", new IssueRequest("ns", "sa", 3600L, "n", "ns", null)))
                     .isInstanceOf(KubeconfigExportException.class)
                     .satisfies(e -> assertThat(((KubeconfigExportException) e).errorCode())
                             .isEqualTo("INTERRUPTED"));
