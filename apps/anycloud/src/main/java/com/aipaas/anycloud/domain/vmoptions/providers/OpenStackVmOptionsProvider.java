@@ -112,11 +112,20 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
         return List.of();
     }
 
+    /**
+     * Neutron 카탈로그 주소는 배포마다 {@code /v2.0} 을 포함하기도 하고 아니기도 하다. 그대로 이어
+     * 붙이면 {@code /v2.0/v2.0/networks} 가 되어 404 로 끝난다.
+     */
+    static String neutronUrl(String endpoint, String path) {
+        String base = endpoint.endsWith("/") ? endpoint.substring(0, endpoint.length() - 1) : endpoint;
+        return base.endsWith("/v2.0") ? base + path : base + "/v2.0" + path;
+    }
+
     private List<OpenStackRecords.Network> externalNetworks(String region) {
         OpenStackSession session = authenticate();
         String resolvedRegion = resolveRegion(region, session);
         ResponseEntity<String> response = exchange(
-                session.networkEndpoint(resolvedRegion) + "/v2.0/networks?router:external=true",
+                neutronUrl(session.networkEndpoint(resolvedRegion), "/networks?router:external=true"),
                 session.token(),
                 HttpMethod.GET,
                 null);

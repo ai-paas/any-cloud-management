@@ -17,9 +17,11 @@ import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+@Slf4j
 @Service
 public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmoptions.VmOptionsQueryService {
 
@@ -93,7 +95,17 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
             return key;
         }
         String shortKey = key.key().startsWith(CONFIG_PREFIX) ? key.key().substring(CONFIG_PREFIX.length()) : key.key();
-        List<String> options = vmOptionsProvider.listConfigOptions(creds, shortKey, region);
+        List<String> options;
+        try {
+            options = vmOptionsProvider.listConfigOptions(creds, shortKey, region);
+        } catch (RuntimeException e) {
+            /*
+             * 조회 하나가 실패해도 스키마는 내려보낸다. 예외를 올리면 폼이 전부 비어
+             * "이 CSP 는 설정할 것이 없다"로 보인다 — OpenStack 이 그렇게 15개 필드를 통째로 잃었다.
+             */
+            log.warn("설정 선택지를 채우지 못했다 key={} region={}: {}", key.key(), region, e.toString());
+            return key;
+        }
         if (options.isEmpty()) {
             return key;
         }
