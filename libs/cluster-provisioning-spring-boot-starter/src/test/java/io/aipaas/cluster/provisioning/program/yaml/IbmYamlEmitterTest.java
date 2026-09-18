@@ -84,6 +84,36 @@ class IbmYamlEmitterTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void theRequestedVpcCidrBecomesAnAddressPrefix() {
+        /*
+         * 기본값(auto)으로 두면 IBM 이 자기 대역으로 접두사를 만든다. 요청한 vpcCidr 은 그 안에
+         * 들어가지 않아 서브넷이 "CIDR does not fit in any of the address prefixes" 로 거절된다.
+         */
+        Map<String, String> cfg = cfg();
+        cfg.put("vpcCidr", "10.98.0.0/16");
+        Map<String, Object> resources = (Map<String, Object>) doc(cfg).get("resources");
+
+        Map<String, Object> vpc = (Map<String, Object>) ((Map<String, Object>) resources.get("vpc")).get("properties");
+        assertThat(vpc).containsEntry("addressPrefixManagement", "manual");
+
+        Map<String, Object> prefix =
+                (Map<String, Object>) ((Map<String, Object>) resources.get("addressPrefix")).get("properties");
+        assertThat(prefix).containsEntry("cidr", "10.98.0.0/16").containsEntry("zone", "jp-tok-1");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void theSubnetWaitsForTheAddressPrefix() {
+        // 접두사보다 먼저 만들어지면 같은 이유로 거절된다.
+        Map<String, Object> resources = (Map<String, Object>) doc(cfg()).get("resources");
+        Map<String, Object> options =
+                (Map<String, Object>) ((Map<String, Object>) resources.get("subnet")).get("options");
+
+        assertThat((List<String>) options.get("dependsOn")).contains("${addressPrefix}");
+    }
+
+    @Test
     void subnetNeedsZoneNotRegion() {
         // region 만으로는 서브넷을 만들 수 없다. zone 은 계정마다 활성 목록이 달라 추측하지 않는다.
         assertThat(props("subnet")).containsEntry("zone", "jp-tok-1");
