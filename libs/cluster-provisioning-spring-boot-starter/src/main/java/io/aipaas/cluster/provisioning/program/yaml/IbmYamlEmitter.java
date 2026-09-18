@@ -20,6 +20,7 @@ final class IbmYamlEmitter implements ProviderYamlEmitter {
 
     private static final String T_VPC = "ibm:index/isVpc:IsVpc";
     private static final String T_SUBNET = "ibm:index/isSubnet:IsSubnet";
+    private static final String T_ADDRESS_PREFIX = "ibm:index/isVpcAddressPrefix:IsVpcAddressPrefix";
     private static final String T_SECURITY_GROUP = "ibm:index/isSecurityGroup:IsSecurityGroup";
     private static final String T_SECURITY_GROUP_RULE = "ibm:index/isSecurityGroupRule:IsSecurityGroupRule";
     private static final String T_SSH_KEY = "ibm:index/isSshKey:IsSshKey";
@@ -71,7 +72,24 @@ final class IbmYamlEmitter implements ProviderYamlEmitter {
     }
 
     private void emitNetwork(PulumiProgram.Builder b, ClusterSpec spec, ProviderSpec.Ibm ibm) {
-        b.resource("vpc", T_VPC, withResourceGroup(ibm, Map.of("name", resourceName(spec, "vpc"))));
+        /*
+         * 기본값(auto)으로 두면 IBM 이 자기 대역(10.240.0.0/18 등)으로 주소 접두사를 만든다.
+         * 요청한 vpcCidr 은 그 안에 들어가지 않아 서브넷 생성이 "CIDR does not fit in any of the
+         * address prefixes" 로 거절된다. 접두사를 직접 만들어 요청한 대역을 쓴다.
+         */
+        b.resource(
+                "vpc",
+                T_VPC,
+                withResourceGroup(ibm, Map.of("name", resourceName(spec, "vpc"), "addressPrefixManagement", "manual")));
+
+        b.resource(
+                "addressPrefix",
+                T_ADDRESS_PREFIX,
+                Map.of(
+                        "name", resourceName(spec, "prefix"),
+                        "vpc", YamlRef.of("vpc", "id"),
+                        "zone", ibm.zone(),
+                        "cidr", spec.vpcCidr()));
 
         // 인터넷 egress 가 없으면 cloud-init 이 패키지 저장소에 닿지 못한다.
         b.resource(
@@ -94,7 +112,8 @@ final class IbmYamlEmitter implements ProviderYamlEmitter {
                                 "vpc", YamlRef.of("vpc", "id"),
                                 "zone", ibm.zone(),
                                 "ipv4CidrBlock", firstSubnet(spec),
-                                "publicGateway", YamlRef.of("gateway", "id"))));
+                                "publicGateway", YamlRef.of("gateway", "id"))),
+                Map.of("dependsOn", List.of(YamlRef.resource("addressPrefix"))));
     }
 
     private void emitSecurityGroup(PulumiProgram.Builder b, ClusterSpec spec, ProviderSpec.Ibm ibm) {
