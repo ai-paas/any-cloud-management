@@ -8,6 +8,7 @@ import com.aipaas.anycloud.domain.provisioning.model.SupportedProvisioningProvid
 import com.aipaas.anycloud.domain.vmoptions.ProviderConfigSchemaService;
 import com.aipaas.anycloud.domain.vmoptions.VmOptionsProperties;
 import com.aipaas.anycloud.domain.vmoptions.VmOptionsProvider;
+import com.aipaas.anycloud.domain.vmoptions.api.ConfigOption;
 import com.aipaas.anycloud.domain.vmoptions.api.ProviderConfigKey;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionImage;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionProvider;
@@ -102,10 +103,11 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
      *
      * <p>{@code id} 를 쓴다 — emitter 가 그대로 CSP 에 넘기는 값이다.
      */
-    private List<String> osImageOptions(VmOptionsProvider provider, Map<String, String> creds, String region) {
+    private List<ConfigOption> osImageOptions(VmOptionsProvider provider, Map<String, String> creds, String region) {
         return provider.listImages(creds, region, UBUNTU_KEYWORD, null, null, OS_IMAGE_LIMIT).stream()
-                .map(VmOptionImage::getId)
-                .filter(StringUtils::hasText)
+                .filter(image -> StringUtils.hasText(image.getId()))
+                .map(image -> new ConfigOption(
+                        image.getId(), StringUtils.hasText(image.getName()) ? image.getName() : image.getId()))
                 .distinct()
                 .toList();
     }
@@ -117,11 +119,11 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
             return key;
         }
         String shortKey = key.key().startsWith(CONFIG_PREFIX) ? key.key().substring(CONFIG_PREFIX.length()) : key.key();
-        List<String> options;
+        List<ConfigOption> options;
         try {
             options = OS_IMAGE_KEY.equals(shortKey)
                     ? osImageOptions(vmOptionsProvider, creds, region)
-                    : vmOptionsProvider.listConfigOptions(creds, shortKey, region);
+                    : vmOptionsProvider.listConfigOptionsWithLabels(creds, shortKey, region);
         } catch (RuntimeException e) {
             /*
              * 조회 하나가 실패해도 스키마는 내려보낸다. 예외를 올리면 폼이 전부 비어
@@ -138,8 +140,10 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
                 .type(key.type())
                 .required(key.required())
                 .defaultValue(key.defaultValue())
+                .label(key.label())
                 .description(key.description())
-                .allowedValues(options)
+                .allowedValues(options.stream().map(ConfigOption::value).toList())
+                .allowedOptions(options)
                 .build();
     }
 

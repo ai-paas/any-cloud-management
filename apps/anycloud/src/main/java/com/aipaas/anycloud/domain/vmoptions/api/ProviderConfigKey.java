@@ -17,6 +17,7 @@ public record ProviderConfigKey(
         @Schema(description = "필수 여부 — true 면 누락 시 400", example = "false") boolean required,
         @Schema(description = "기본값 (applyDefaults 가 putIfAbsent). null 이면 default 없음", example = "1")
                 String defaultValue,
+        @Schema(description = "화면에 띄울 이름. 비면 키 뒷부분을 그대로 쓴다", example = "컴파트먼트") String label,
         @Schema(
                         description = "사용자에게 보여줄 설명",
                         example = "Control-plane 노드 수. 1=single, 3/5/7=HA. odd-only (etcd quorum).")
@@ -24,4 +25,5 @@ public record ProviderConfigKey(
         @Schema(
                         description = "허용값 (enum/boolean) 이거나 정수 범위 (\"1..7\"). null 이면 제약 없음.",
                         example = "[\"1\", \"3\", \"5\", \"7\"]")
-                List<String> allowedValues) {}
+                List<String> allowedValues,
+        @Schema(description = "허용값에 사람이 읽을 이름을 붙인 것. allowedValues 와 같은 순서") List<ConfigOption> allowedOptions) {}

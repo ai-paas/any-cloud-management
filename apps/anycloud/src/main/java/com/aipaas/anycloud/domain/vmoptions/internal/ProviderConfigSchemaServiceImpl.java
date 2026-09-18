@@ -122,7 +122,8 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                             .key("anycloud-k8s:providerSpec.project")
                             .type("string")
                             .required(true)
-                            .description("GCP project ID.")
+                            .label("프로젝트")
+                            .description("자원을 만들 GCP 프로젝트. 자격증명이 속한 프로젝트가 목록에 뜬다.")
                             .build(),
                     osImage("anycloud-k8s:gcpImage", "GCP image family (예: ubuntu-2404-lts)."));
             case PROXMOX -> List.of(
@@ -130,61 +131,70 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                             .key("anycloud-k8s:providerSpec.nodeName")
                             .type("string")
                             .required(true)
-                            .description("VM 을 올릴 PVE 노드 이름. 클러스터라도 노드를 지정해야 한다.")
+                            .label("PVE 노드")
+                            .description("VM 을 올릴 물리 노드. PVE 가 클러스터로 묶여 있어도 한 대를 지정해야 한다.")
                             .build(),
                     ProviderConfigKey.builder()
                             .key("anycloud-k8s:providerSpec.datastoreId")
                             .type("string")
                             .required(false)
                             .defaultValue("local-lvm")
-                            .description("디스크와 cloud-init 디스크를 만들 datastore.")
+                            .label("디스크 저장소")
+                            .description("VM 디스크를 만들 저장소. 블록 저장소를 고른다 (보통 local-lvm).")
                             .build(),
                     ProviderConfigKey.builder()
                             .key("anycloud-k8s:providerSpec.imageDatastoreId")
                             .type("string")
                             .required(false)
                             .defaultValue("local")
-                            .description("내려받은 cloud 이미지를 둘 datastore. import content type 이 켜져 있어야 한다.")
+                            .label("이미지 저장소")
+                            .description("내려받은 OS 이미지를 둘 저장소. import 콘텐츠를 받는 디렉터리 저장소만 쓸 수 있다.")
                             .build(),
                     ProviderConfigKey.builder()
                             .key("anycloud-k8s:providerSpec.networkBridge")
                             .type("string")
                             .required(false)
                             .defaultValue("vmbr0")
-                            .description("붙일 네트워크 브리지.")
+                            .label("네트워크 브리지")
+                            .description("VM 을 붙일 브리지. 외부와 통신하는 브리지를 고른다 (보통 vmbr0).")
                             .build());
             case IBM -> List.of(
                     ProviderConfigKey.builder()
                             .key("anycloud-k8s:providerSpec.zone")
                             .type("string")
                             .required(true)
-                            .description("region 이 아니라 zone (예: jp-tok-1). 계정마다 활성 zone 이 다르다.")
+                            .label("존")
+                            .description("리전 안에서 실제로 VM 이 올라갈 구역. 계정마다 쓸 수 있는 존이 다르다.")
                             .build(),
                     ProviderConfigKey.builder()
                             .key("anycloud-k8s:providerSpec.resourceGroup")
                             .type("string")
                             .required(false)
-                            .description("리소스 그룹 ID. 생략하면 계정 기본 그룹.")
+                            .label("리소스 그룹")
+                            .description("자원을 묶을 그룹. 비우면 계정 기본 그룹을 쓴다.")
                             .build(),
                     ProviderConfigKey.builder()
                             .key("anycloud-k8s:osImage")
                             .type("string")
                             .required(true)
-                            .description("VPC 이미지 이름. 빌드 번호가 붙어 주기적으로 갈리므로 목록에서 고른 값을 보낸다.")
+                            .label("OS 이미지")
+                            .description("이름에 빌드 번호가 붙어 주기적으로 갈린다. 목록에서 고른다.")
                             .build());
             case OCI -> List.of(
                     ProviderConfigKey.builder()
                             .key("anycloud-k8s:providerSpec.compartmentId")
                             .type("string")
                             .required(true)
-                            .description("OCI compartment OCID.")
+                            .label("컴파트먼트")
+                            .description("자원을 담을 칸. 테넌시 전체를 쓰려면 맨 위 항목을 고른다.")
                             .build(),
                     // 이미지 OCID 는 리전마다 따로 발급돼 추측할 수 없다. emitter 도 preflight 도 요구한다.
                     ProviderConfigKey.builder()
                             .key("anycloud-k8s:osImage")
                             .type("string")
                             .required(true)
-                            .description("OCI image OCID. 리전마다 다르므로 이미지 목록에서 고른 값을 그대로 보낸다.")
+                            .label("OS 이미지")
+                            .description("이미지 식별자가 리전마다 따로 발급돼 추측할 수 없다. 목록에서 고른다.")
                             .build());
             case OPENSTACK -> List.of(
                     ProviderConfigKey.builder()
@@ -192,26 +202,30 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                             .type("string")
                             .required(true)
                             .defaultValue("ubuntu-24.04")
-                            .description("OpenStack glance image 이름.")
+                            .label("OS 이미지")
+                            .description("노드에 올릴 이미지. 부트스트랩이 Ubuntu 를 전제하므로 Ubuntu 를 고른다.")
                             .build(),
                     ProviderConfigKey.builder()
                             .key("anycloud-k8s:providerSpec.flavorName")
                             .type("string")
                             .required(true)
                             .defaultValue("m1.large")
-                            .description("OpenStack flavor 이름.")
+                            .label("인스턴스 사양")
+                            .description("VM 의 CPU, 메모리, 디스크 조합. 설치본마다 이름 규칙이 다르다.")
                             .build(),
                     ProviderConfigKey.builder()
                             .key("anycloud-k8s:providerSpec.externalNetworkId")
                             .type("string")
                             .required(true)
-                            .description("라우터를 붙일 external network ID.")
+                            .label("외부 네트워크")
+                            .description("라우터를 붙일 외부망. 노드가 인터넷으로 나가는 길이다.")
                             .build(),
                     ProviderConfigKey.builder()
                             .key("anycloud-k8s:providerSpec.floatingIpPool")
                             .type("string")
                             .required(true)
-                            .description("Floating IP 를 발급할 pool 이름.")
+                            .label("Floating IP 풀")
+                            .description("노드에 붙일 공인 주소를 받아올 풀. 보통 외부망과 같은 이름이다.")
                             .build());
             case AWS -> List.of(
                     osImage("anycloud-k8s:awsImageName", "AWS AMI 이름 또는 ID (예: ubuntu-jammy-22.04-amd64)."));
@@ -220,13 +234,15 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                             .key("anycloud-k8s:providerSpec.zone")
                             .type("string")
                             .required(true)
-                            .description("VSwitch 를 만들 zone (예: ap-northeast-2a). 리전만으로는 정해지지 않는다.")
+                            .label("존")
+                            .description("리전 안에서 실제로 VM 이 올라갈 구역. 리전만으로는 정해지지 않는다.")
                             .build(),
                     ProviderConfigKey.builder()
                             .key("anycloud-k8s:osImage")
                             .type("string")
                             .required(true)
-                            .description("ECS 이미지 ID. 빌드 날짜가 붙어 주기적으로 갈리므로 목록에서 고른 값을 보낸다.")
+                            .label("OS 이미지")
+                            .description("이름에 빌드 날짜가 붙어 주기적으로 갈린다. 목록에서 고른다.")
                             .build());
         };
     }

@@ -219,18 +219,34 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsFallback")
     public List<String> listConfigOptions(String configKey, String region) {
+        return listCompartments(configKey).stream()
+                .map(com.aipaas.anycloud.domain.vmoptions.api.ConfigOption::value)
+                .toList();
+    }
+
+    /** OCID 만 내려보내면 화면에 식별자가 그대로 뜬다. 이름을 함께 준다. */
+    @Override
+    @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsWithLabelsFallback")
+    public List<com.aipaas.anycloud.domain.vmoptions.api.ConfigOption> listConfigOptionsWithLabels(
+            java.util.Map<String, String> credentials, String configKey, String region) {
+        return withCredentials(credentials, () -> listCompartments(configKey));
+    }
+
+    private List<com.aipaas.anycloud.domain.vmoptions.api.ConfigOption> listCompartments(String configKey) {
         if (!"providerSpec.compartmentId".equals(configKey)) {
             return List.of();
         }
         String tenancy = tenancyOcid();
         String url = identityBaseUrl(defaultRegion()) + "/20160918/compartments?compartmentId=" + tenancy
                 + "&compartmentIdInSubtree=true&accessLevel=ACCESSIBLE&limit=" + OPTION_LIMIT;
-        List<String> out = new java.util.ArrayList<>();
-        out.add(tenancy);
+        List<com.aipaas.anycloud.domain.vmoptions.api.ConfigOption> out = new java.util.ArrayList<>();
+        out.add(new com.aipaas.anycloud.domain.vmoptions.api.ConfigOption(tenancy, "테넌시 루트"));
         for (OciRecords.Compartment compartment : listItems(exchange(url), OciRecords.Compartment.class)) {
             // 삭제 중인 compartment 에 자원을 만들면 거절된다. 고를 수 있게 두면 안 된다.
             if (StringUtils.hasText(compartment.id()) && "ACTIVE".equalsIgnoreCase(compartment.lifecycleState())) {
-                out.add(compartment.id());
+                out.add(new com.aipaas.anycloud.domain.vmoptions.api.ConfigOption(
+                        compartment.id(),
+                        StringUtils.hasText(compartment.name()) ? compartment.name() : compartment.id()));
             }
         }
         return out;
@@ -238,6 +254,12 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
 
     private List<String> listConfigOptionsFallback(String configKey, String region, Throwable throwable) {
         // 조회가 막혀도 자유 입력으로 남는다. 목록을 못 준다고 생성을 막을 이유는 없다.
+        LOG.warn("OCI config options fallback: key={} cause={}", configKey, String.valueOf(throwable));
+        return List.of();
+    }
+
+    private List<com.aipaas.anycloud.domain.vmoptions.api.ConfigOption> listConfigOptionsWithLabelsFallback(
+            java.util.Map<String, String> credentials, String configKey, String region, Throwable throwable) {
         LOG.warn("OCI config options fallback: key={} cause={}", configKey, String.valueOf(throwable));
         return List.of();
     }

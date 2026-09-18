@@ -41,6 +41,8 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(IbmVmOptionsProvider.class);
 
     private static final String IAM_HOST = "iam.cloud.ibm.com";
+
+    private static final String RESOURCE_CONTROLLER_HOST = "resource-controller.cloud.ibm.com";
     private static final String IAM_TOKEN_URL = "https://iam.cloud.ibm.com/identity/token";
     private static final String IAM_GRANT_TYPE = "urn:ibm:params:oauth:grant-type:apikey";
 
@@ -181,10 +183,49 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsFallback")
     public List<String> listConfigOptions(String configKey, String region) {
-        if (!"providerSpec.zone".equals(configKey) || !StringUtils.hasText(region)) {
+        return switch (configKey) {
+            case "providerSpec.zone" -> StringUtils.hasText(region) ? listZones(region) : List.of();
+                // 그룹 ID 는 콘솔을 열어 베껴 와야 하는 값이다. 계정에서 읽어 이름과 함께 준다.
+            case "providerSpec.resourceGroup" -> listResourceGroups().stream()
+                    .map(com.aipaas.anycloud.domain.vmoptions.api.ConfigOption::value)
+                    .toList();
+            default -> List.of();
+        };
+    }
+
+    @Override
+    @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsWithLabelsFallback")
+    public List<com.aipaas.anycloud.domain.vmoptions.api.ConfigOption> listConfigOptionsWithLabels(
+            java.util.Map<String, String> credentials, String configKey, String region) {
+        if (!"providerSpec.resourceGroup".equals(configKey)) {
+            return super.listConfigOptionsWithLabels(credentials, configKey, region);
+        }
+        return withCredentials(credentials, this::listResourceGroups);
+    }
+
+    private List<com.aipaas.anycloud.domain.vmoptions.api.ConfigOption> listConfigOptionsWithLabelsFallback(
+            java.util.Map<String, String> credentials, String configKey, String region, Throwable throwable) {
+        LOG.warn("IBM config options fallback: key={} cause={}", configKey, String.valueOf(throwable));
+        return List.of();
+    }
+
+    /** 리소스 그룹은 리전과 무관한 계정 단위 자원이라 VPC 가 아니라 resource controller 에 묻는다. */
+    private List<com.aipaas.anycloud.domain.vmoptions.api.ConfigOption> listResourceGroups() {
+        String url = requireExpectedHost(
+                "https://" + RESOURCE_CONTROLLER_HOST + "/v2/resource_groups", RESOURCE_CONTROLLER_HOST);
+        IbmRecords.ResourceGroupList body =
+                parseBody(exchange(url, accessToken()), "ibm-resource-groups", IbmRecords.ResourceGroupList.class);
+        if (body.resources() == null) {
             return List.of();
         }
-        return listZones(region);
+        return body.resources().stream()
+                .filter(g -> StringUtils.hasText(g.id()) && !"REMOVED".equalsIgnoreCase(String.valueOf(g.state())))
+                .map(g -> new com.aipaas.anycloud.domain.vmoptions.api.ConfigOption(
+                        g.id(),
+                        StringUtils.hasText(g.name())
+                                ? (Boolean.TRUE.equals(g.isDefault()) ? g.name() + " (기본)" : g.name())
+                                : g.id()))
+                .toList();
     }
 
     private List<String> listConfigOptionsFallback(String configKey, String region, Throwable throwable) {

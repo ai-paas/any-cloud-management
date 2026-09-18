@@ -55,9 +55,38 @@ class IbmConfigOptionsTest extends AbstractUnitTest {
     }
 
     @Test
+    void theResourceGroupKeyOffersTheGroupsWithTheirNames() {
+        /*
+         * 그룹 ID 는 콘솔을 열어 베껴 와야 하는 값이다. 계정에서 읽어 이름과 함께 준다 —
+         * ID 만 내려보내면 화면에 식별자가 그대로 떠 무엇을 고르는지 알 수 없다.
+         */
+        server.expect(MockRestRequestMatchers.requestTo("https://iam.cloud.ibm.com/identity/token"))
+                .andExpect(MockRestRequestMatchers.method(HttpMethod.POST))
+                .andRespond(MockRestResponseCreators.withSuccess(TOKEN_JSON, MediaType.APPLICATION_JSON));
+        server.expect(MockRestRequestMatchers.requestTo(
+                        org.hamcrest.Matchers.containsString("resource-controller.cloud.ibm.com/v2/resource_groups")))
+                .andRespond(MockRestResponseCreators.withSuccess(
+                        """
+                        {"resources":[{"id":"g-1","name":"Default","state":"ACTIVE","default":true},
+                                      {"id":"g-2","name":"team-a","state":"ACTIVE"},
+                                      {"id":"g-3","name":"old","state":"REMOVED"}]}
+                        """,
+                        MediaType.APPLICATION_JSON));
+
+        assertThat(provider.listConfigOptionsWithLabels(CREDENTIALS, "providerSpec.resourceGroup", "jp-tok"))
+                .extracting(
+                        com.aipaas.anycloud.domain.vmoptions.api.ConfigOption::value,
+                        com.aipaas.anycloud.domain.vmoptions.api.ConfigOption::label)
+                .containsExactly(
+                        org.assertj.core.api.Assertions.tuple("g-1", "Default (기본)"),
+                        org.assertj.core.api.Assertions.tuple("g-2", "team-a"));
+        server.verify();
+    }
+
+    @Test
     void otherKeysAreLeftAsFreeTextWithoutCallingTheApi() {
         // 열거할 수 없는 키까지 조회하면 폼을 열 때마다 쓸데없는 왕복이 생긴다.
-        assertThat(provider.listConfigOptions(CREDENTIALS, "providerSpec.resourceGroup", "jp-tok"))
+        assertThat(provider.listConfigOptions(CREDENTIALS, "providerSpec.somethingElse", "jp-tok"))
                 .isEmpty();
         server.verify();
     }

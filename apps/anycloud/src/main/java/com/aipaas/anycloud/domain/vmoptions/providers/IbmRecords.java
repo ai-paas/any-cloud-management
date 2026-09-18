@@ -22,6 +22,12 @@ final class IbmRecords {
     record RegionList(List<Region> regions) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
+    record ResourceGroupList(List<ResourceGroup> resources) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record ResourceGroup(String id, String name, String state, @JsonProperty("default") Boolean isDefault) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
     record Region(String name, String status, String endpoint) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)

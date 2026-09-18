@@ -64,7 +64,13 @@ public final class ProvisioningConfigFlattener {
         if (value == null) {
             return;
         }
-        String text = String.valueOf(value);
+        /*
+         * 목록은 쉼표로 잇는다. String.valueOf 를 그대로 쓰면 "[2200, 2201]" 이 되어 파서가
+         * 대괄호를 숫자로 읽다 "숫자가 아닌 값: [2200" 으로 죽는다 — Proxmox 의 sshPorts 가 그랬다.
+         */
+        String text = value instanceof java.util.Collection<?> items
+                ? items.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","))
+                : String.valueOf(value);
         if (text.isBlank()) {
             return;
         }

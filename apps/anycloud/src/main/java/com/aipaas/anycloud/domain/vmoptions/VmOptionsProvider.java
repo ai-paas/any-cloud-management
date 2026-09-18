@@ -1,6 +1,7 @@
 package com.aipaas.anycloud.domain.vmoptions;
 
 import com.aipaas.anycloud.domain.provisioning.model.SupportedProvisioningProvider;
+import com.aipaas.anycloud.domain.vmoptions.api.ConfigOption;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionImage;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionProvider;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionRegion;
@@ -57,5 +58,18 @@ public interface VmOptionsProvider {
 
     default List<String> listConfigOptions(Map<String, String> credentials, String configKey, String region) {
         return listConfigOptions(configKey, region);
+    }
+
+    /**
+     * 값에 사람이 읽을 이름을 붙여 돌려준다.
+     *
+     * <p>기본 구현은 값을 그대로 이름으로 쓴다 — IBM zone 이나 Proxmox 노드처럼 식별자가 곧
+     * 이름인 경우가 대부분이다. OCI compartment 처럼 OCID 와 이름이 따로인 provider 만 재정의한다.
+     */
+    default List<ConfigOption> listConfigOptionsWithLabels(
+            Map<String, String> credentials, String configKey, String region) {
+        return listConfigOptions(credentials, configKey, region).stream()
+                .map(ConfigOption::of)
+                .toList();
     }
 }

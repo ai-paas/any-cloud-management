@@ -106,6 +106,27 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
         };
     }
 
+    /** 외부망은 UUID 로 지정한다. 이름을 함께 주지 않으면 화면에서 어느 망인지 알 수 없다. */
+    @Override
+    @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsWithLabelsFallback")
+    public List<com.aipaas.anycloud.domain.vmoptions.api.ConfigOption> listConfigOptionsWithLabels(
+            Map<String, String> credentials, String configKey, String region) {
+        if (!"providerSpec.externalNetworkId".equals(configKey)) {
+            return super.listConfigOptionsWithLabels(credentials, configKey, region);
+        }
+        return withCredentials(credentials, () -> externalNetworks(region).stream()
+                .filter(n -> StringUtils.hasText(n.id()))
+                .map(n -> new com.aipaas.anycloud.domain.vmoptions.api.ConfigOption(
+                        n.id(), StringUtils.hasText(n.name()) ? n.name() : n.id()))
+                .toList());
+    }
+
+    private List<com.aipaas.anycloud.domain.vmoptions.api.ConfigOption> listConfigOptionsWithLabelsFallback(
+            Map<String, String> credentials, String configKey, String region, Throwable throwable) {
+        LOG.warn("OpenStack config options fallback: key={} cause={}", configKey, String.valueOf(throwable));
+        return List.of();
+    }
+
     private List<String> listConfigOptionsFallback(String configKey, String region, Throwable throwable) {
         // 조회가 막혀도 자유 입력으로 남는다. 목록을 못 준다고 생성을 막을 이유는 없다.
         LOG.warn("OpenStack config options fallback: key={} cause={}", configKey, String.valueOf(throwable));
