@@ -1,5 +1,5 @@
 meta {
-  name: 2h. IBM Cluster Create (IBM 클러스터 생성)
+  name: 2m. IBM Cluster Create (IBM 클러스터 생성)
   type: http
   seq: 17
 }
@@ -22,7 +22,7 @@ body:json {
     "description": "IBM Cloud VPC 기반 Kubernetes 클러스터",
     "environment": "{{provision_environment}}",
     "region": "{{provision_region}}",
-    "credentialId": "{{credential_id}}",
+    "credentialId": "{{vm_credential_id}}",
     "spec": {
       "masterInstanceType": "{{master_vm_spec}}",
       "workerInstanceType": "{{worker_vm_spec}}",
@@ -56,28 +56,31 @@ tests {
 }
 
 docs {
-  ## Oracle Cloud Infrastructure 기반 cluster 생성
+  ## IBM Cloud VPC 기반 cluster 생성
 
-  ### Required env vars (local-oci-provisioning.bru)
-  - `provision_provider: OCI`
-  - `provision_region`: e.g. `us-ashburn-1`, `ap-seoul-1`
-  - `credential_id`: OCI credential UUID
-  - **`oci_compartment_id`** (필수): VCN/compute 가 만들어질 compartment OCID
-    (`ocid1.compartment.oc1..xxxx`)
-  - `master_vm_spec` / `worker_vm_spec`: e.g. `VM.Standard.E4.Flex_2`, `VM.Standard.A1.Flex_4`
-    (ARM Ampere 가 가성비)
+  ### 필수 env (local-ibm-provisioning.bru)
+  - `provision_provider: IBM`
+  - `provision_region` — 예: `us-south`, `jp-tok`
+  - `vm_credential_id` — IBM credential UUID
+  - **`ibm_zone`** (필수) — 리전이 아니라 **zone** (예: `us-south-1`).
+    계정마다 활성 zone 이 달라 `{region}-1` 로 넘겨짚으면 만들다 실패한다.
+    고를 수 있는 값은 `config-schema?credentialId=..&region=..` 의
+    `providerSpec.zone.allowedValues` 로 확인한다.
+  - `master_vm_spec` / `worker_vm_spec` — 예: `bx2-2x8`, `bx2-4x16`
 
-  ### OCI 만의 config
-  - `anycloud-k8s:providerSpec.zone` (필수) — region 이 아니라 zone (예: us-south-1)
-  - 옵션: `anycloud-k8s:osImage` — `ocid1.image....` 형식 (지정 안 하면 Canonical Ubuntu 24.04)
+  ### 선택
+  - `ibm_resource_group` — 리소스 그룹 ID. 비우면 계정 기본 그룹.
 
-  ### OCI 의 특수 사항
-  - Spot/preemptible 미지원 — 일반 shape 만
-  - Dynamic Group + Policy 자동 생성 (cloud-controller-manager 권한)
+  ### IBM 만의 사정
+  - 사전 컴파일된 Pulumi 플러그인이 없다. `terraform-provider` 베이스가 OpenTofu
+    레지스트리의 provider 를 런타임에 붙이므로 프로그램에 `packages` 선언이 필요하고,
+    이미지에 스키마를 미리 구워 둬야 한다 (`Dockerfile.pulumi` 의 `IBM_PACKAGE`).
+  - 이미지는 OCID 같은 불투명 식별자가 아니라 **이름**으로 찾는다
+    (예: `ibm-ubuntu-24-04-4-minimal-amd64-7`).
 
   ### 실행
   ```bash
-  bru run "VM Cluster (VM 클러스터)/2h. IBM Cluster Create (IBM 클러스터 생성).bru" \
-      --env local-oci-provisioning
+  bru run "VM Cluster (VM 클러스터)/2m. IBM Cluster Create (IBM 클러스터 생성).bru" \
+      --env local-ibm-provisioning
   ```
 }
