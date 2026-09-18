@@ -28,18 +28,12 @@ public final class CspStderrClassifier {
             "invalid_grant",
             "UNAUTHENTICATED",
             "PERMISSION_DENIED",
-            // Azure
-            "AuthorizationFailed",
-            "InvalidAuthenticationToken",
-            "Forbidden",
             // Alibaba
             "InvalidAccessKeyId.NotFound",
             "Forbidden.RAM",
             // OCI
             "NotAuthenticated",
             "NotAuthorizedOrNotFound",
-            // DigitalOcean
-            "Unable to authenticate you",
             // OpenStack
             "401 Unauthorized",
             "403 Forbidden");

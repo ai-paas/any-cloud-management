@@ -16,7 +16,7 @@ public final class PluginVersions {
 
     /** Dockerfile 의 {@code PULUMI_PLUGINS} 기본값과 같아야 한다. */
     static final String DEFAULT =
-            "aws:7.44.0 gcp:9.36.1 azure-native:3.27.0 oci:4.22.0 openstack:5.5.1 proxmoxve:8.6.0 alicloud:3.108.0 tls:5.6.0";
+            "aws:7.44.0 gcp:9.36.1 oci:4.22.0 openstack:5.5.1 proxmoxve:8.6.0 alicloud:3.108.0 tls:5.6.0";
 
     private static final String ENV_KEY = "PULUMI_PLUGINS";
 

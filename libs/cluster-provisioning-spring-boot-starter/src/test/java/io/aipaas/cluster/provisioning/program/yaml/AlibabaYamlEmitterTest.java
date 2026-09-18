@@ -20,6 +20,7 @@ class AlibabaYamlEmitterTest {
         cfg.put("workerCount", "1");
         cfg.put("joinToken", "abcdef.0123456789abcdef");
         cfg.put("providerSpec.zone", "ap-northeast-2a");
+        cfg.put("osImage", "ubuntu_24_04_x64_20G_alibase_20260828.vhd");
         return cfg;
     }
 
@@ -154,5 +155,30 @@ class AlibabaYamlEmitterTest {
     @Test
     void pluginVersionIsPinned() {
         assertThat((Map<String, Object>) res("vpc").get("options")).containsEntry("version", "3.108.0");
+    }
+
+    @Test
+    void theImageIsRequiredBecauseItsIdCarriesABuildDate() {
+        /*
+         * 이미지 ID 에 빌드 날짜가 붙어 주기적으로 갈리고(..._alibase_20260828.vhd) 리전마다
+         * 다르다. 기본값을 박아 두면 어느 날 "이미지를 찾을 수 없음" 으로 멈춘다.
+         */
+        Map<String, String> cfg = cfg();
+        cfg.remove("osImage");
+
+        assertThatThrownBy(() -> new AlibabaYamlEmitter().emit(PulumiProgram.builder("x"), spec(cfg)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("osImage");
+    }
+
+    @Test
+    void theRequestedImageIsUsedAsIs() {
+        assertThat(props("master").get("imageId")).isEqualTo("ubuntu_24_04_x64_20G_alibase_20260828.vhd");
+    }
+
+    @Test
+    void theDefaultInstanceTypeExistsInSeoul() {
+        // g6 는 서울에 없다. 세대마다 제공 리전이 달라 오래된 계열은 재고 없음으로 막힌다.
+        assertThat(props("master").get("instanceType")).isEqualTo("ecs.g9i.large");
     }
 }

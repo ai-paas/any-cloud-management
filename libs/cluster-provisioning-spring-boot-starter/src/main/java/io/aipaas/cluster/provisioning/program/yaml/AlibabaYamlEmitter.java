@@ -22,9 +22,6 @@ final class AlibabaYamlEmitter implements ProviderYamlEmitter {
     private static final String T_EIP_ASSOCIATION = "alicloud:ecs/eipAssociation:EipAssociation";
     private static final String T_PRIVATE_KEY = "tls:index/privateKey:PrivateKey";
 
-    /** Ubuntu 24.04 공식 이미지. 리전마다 ID 가 같아 이름으로 찾지 않아도 된다. */
-    private static final String DEFAULT_IMAGE = "ubuntu_24_04_x64_20G_alibase_20250117.vhd";
-
     /** 클라우드 디스크. 최소 20GB 이며 ESSD 가 기본 선택지다. */
     private static final String SYSTEM_DISK_CATEGORY = "cloud_essd";
 
@@ -40,6 +37,13 @@ final class AlibabaYamlEmitter implements ProviderYamlEmitter {
     public StandardOutputs.NodeRefs emit(PulumiProgram.Builder b, ClusterSpec spec) {
         ProviderSpec.Alibaba ali = alibaba(spec);
         requireConfig(ali.zone(), "providerSpec.zone");
+        /*
+         * 이미지 ID 에 빌드 날짜가 붙어 주기적으로 갈리고(..._alibase_20260828.vhd) 리전마다
+         * 다르다. getImages 로 풀려 했으나 결과가 배열이라 인덱스 접근이 필요하고, pulumi-yaml
+         * 이 그 경로의 타입을 풀지 못해 타입 검사에서 panic 한다. OCI 와 같이 필수로 받는다 —
+         * 화면은 이미지 목록에서 고른 값을 그대로 보낸다.
+         */
+        requireConfig(spec.osImage(), "osImage");
 
         b.resource("sshKeyPair", T_PRIVATE_KEY, Map.of("algorithm", "RSA", "rsaBits", 4096));
         b.resource(
@@ -146,8 +150,9 @@ final class AlibabaYamlEmitter implements ProviderYamlEmitter {
         return new StandardOutputs.NodeRef(node, "id", node, "privateIp", eip, "ipAddress");
     }
 
-    private String imageId(ClusterSpec spec) {
-        return (spec.osImage() != null && !spec.osImage().isBlank()) ? spec.osImage() : DEFAULT_IMAGE;
+    /** 요청이 이미지를 지정하면 그대로 쓰고, 아니면 조회 결과를 가리킨다. */
+    private Object imageId(ClusterSpec spec) {
+        return (spec.osImage() != null && !spec.osImage().isBlank()) ? spec.osImage() : YamlRef.resource("image");
     }
 
     private int rootDiskGb(ClusterSpec spec) {

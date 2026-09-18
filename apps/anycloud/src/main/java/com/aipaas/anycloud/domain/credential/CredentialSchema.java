@@ -43,11 +43,6 @@ public final class CredentialSchema {
                     true,
                     "콘솔에서 내려받은 키 파일 내용을 그대로 붙여넣는다",
                     "{\"type\":\"service_account\",\"project_id\":\"my-project\", ...}"));
-            case AZURE -> List.of(
-                    field("ARM_CLIENT_ID", "클라이언트 ID", true, false, false, "앱 등록의 애플리케이션 ID", UUID_EXAMPLE),
-                    secret("ARM_CLIENT_SECRET", "클라이언트 시크릿", true, "앱 등록에서 발급한 비밀값", "8Q~EXAMPLE~secret~value"),
-                    field("ARM_SUBSCRIPTION_ID", "구독 ID", true, false, false, "자원이 만들어질 구독", UUID_EXAMPLE),
-                    field("ARM_TENANT_ID", "테넌트 ID", true, false, false, "디렉터리(테넌트) ID", UUID_EXAMPLE));
             case ALIBABA -> List.of(
                     field(
                             "ALICLOUD_ACCESS_KEY",
@@ -84,10 +79,6 @@ public final class CredentialSchema {
                             true,
                             "PEM 본문을 그대로 붙여넣는다",
                             "-----BEGIN PRIVATE KEY-----\nMIIEvQIB...\n-----END PRIVATE KEY-----"));
-            case DIGITALOCEAN -> List.of(
-                    groupedSecret("DIGITALOCEAN_TOKEN", "API 토큰", "token", "읽기/쓰기 권한의 개인 액세스 토큰", "dop_v1_example0000"),
-                    groupedSecret(
-                            "DIGITALOCEAN_ACCESS_TOKEN", "API 토큰 (대체 키)", "token", "기존 설정 호환용", "dop_v1_example0000"));
             case PROXMOX -> proxmox();
             case IBM -> List.of(
                     secret("IBMCLOUD_API_KEY", "API 키", true, "IAM 에서 발급한 API 키", "EXAMPLE-ibmcloud-api-key"));
@@ -156,19 +147,5 @@ public final class CredentialSchema {
     private static CredentialFieldSchema secret(
             String key, String label, boolean required, String description, String placeholder) {
         return field(key, label, required, true, false, description, placeholder);
-    }
-
-    private static CredentialFieldSchema groupedSecret(
-            String key, String label, String group, String description, String placeholder) {
-        return CredentialFieldSchema.builder()
-                .key(key)
-                .label(label)
-                .required(false)
-                .secret(true)
-                .multiline(false)
-                .description(description)
-                .placeholder(placeholder)
-                .group(group)
-                .build();
     }
 }
