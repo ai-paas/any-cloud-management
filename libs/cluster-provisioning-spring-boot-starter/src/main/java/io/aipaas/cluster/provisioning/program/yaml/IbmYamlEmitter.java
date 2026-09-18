@@ -30,8 +30,6 @@ final class IbmYamlEmitter implements ProviderYamlEmitter {
 
     private static final String F_GET_IMAGE = "ibm:index/getIsImage:getIsImage";
 
-    private static final String DEFAULT_IMAGE_NAME = "ibm-ubuntu-24-04-6-minimal-amd64-6";
-
     /** Dockerfile 의 IBM_PACKAGE, 그리고 이미지에 구워 둔 스키마와 같은 좌표여야 한다. */
     private static final String TF_BASE_VERSION = "1.4.0";
 
@@ -184,8 +182,14 @@ final class IbmYamlEmitter implements ProviderYamlEmitter {
         return out;
     }
 
+    /**
+     * IBM 이미지 이름에는 빌드 번호가 붙고(예: {@code ibm-ubuntu-24-04-4-minimal-amd64-7}) 주기적으로
+     * 새 번호로 갈린다. 기본값을 박아 두면 그 이미지가 사라진 순간 모든 생성이 36초쯤 지나
+     * "No image found" 로 죽는다. 목록에서 고른 값을 받는다.
+     */
     private String imageName(ClusterSpec spec) {
-        return (spec.osImage() != null && !spec.osImage().isBlank()) ? spec.osImage() : DEFAULT_IMAGE_NAME;
+        requireConfig(spec.osImage(), "osImage (IBM image name)");
+        return spec.osImage();
     }
 
     private String resourceName(ClusterSpec spec, String suffix) {

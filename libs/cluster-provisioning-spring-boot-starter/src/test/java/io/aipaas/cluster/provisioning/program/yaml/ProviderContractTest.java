@@ -35,7 +35,7 @@ class ProviderContractTest {
                             "providerSpec.externalNetworkId", "net-1",
                             "providerSpec.floatingIpPool", "external"),
             "proxmox", Map.of("providerSpec.nodeName", "pve1"),
-            "ibm", Map.of("providerSpec.zone", "us-south-1"));
+            "ibm", Map.of("providerSpec.zone", "jp-tok-1", "osImage", "ibm-ubuntu-24-04-4-minimal-amd64-7"));
 
     /** Proxmox 는 하이퍼바이저라 네트워크를 만들지 않는다. 방화벽은 운영자가 노드에서 관리한다. */
     private static final List<String> NO_FIREWALL = List.of("proxmox");

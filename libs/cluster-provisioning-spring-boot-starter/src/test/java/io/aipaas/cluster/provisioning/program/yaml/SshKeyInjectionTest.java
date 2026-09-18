@@ -29,7 +29,7 @@ class SshKeyInjectionTest {
                             "providerSpec.externalNetworkId", "net-1",
                             "providerSpec.floatingIpPool", "external"),
             "proxmox", Map.of("providerSpec.nodeName", "pve1"),
-            "ibm", Map.of("providerSpec.zone", "us-south-1"));
+            "ibm", Map.of("providerSpec.zone", "jp-tok-1", "osImage", "ibm-ubuntu-24-04-4-minimal-amd64-7"));
 
     private String render(String provider) {
         Map<String, String> cfg = new HashMap<>(PROVIDER_CONFIG.get(provider));

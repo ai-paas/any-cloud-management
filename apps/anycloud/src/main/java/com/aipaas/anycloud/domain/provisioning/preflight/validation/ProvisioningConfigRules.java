@@ -109,7 +109,9 @@ public final class ProvisioningConfigRules {
             case OCI -> requireConfigKeys(
                     config, missingKeys, "anycloud-k8s:providerSpec.compartmentId", "anycloud-k8s:osImage");
             case PROXMOX -> requireConfigKeys(config, missingKeys, "anycloud-k8s:providerSpec.nodeName");
-            case IBM -> requireConfigKeys(config, missingKeys, "anycloud-k8s:providerSpec.zone");
+                // 이미지 이름에 빌드 번호가 붙어 주기적으로 갈린다. 추측하면 생성 도중에 죽는다.
+            case IBM -> requireConfigKeys(
+                    config, missingKeys, "anycloud-k8s:providerSpec.zone", "anycloud-k8s:osImage");
             default -> {}
         }
 

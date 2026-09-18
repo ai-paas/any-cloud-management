@@ -142,7 +142,7 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
             case DIGITALOCEAN -> "sgp1";
                 // Proxmox 는 리전 개념이 없다. PVE 노드 이름을 쓴다.
             case PROXMOX -> "pve";
-            case IBM -> "us-south";
+            case IBM -> "jp-tok";
         };
     }
 
@@ -168,7 +168,7 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
             case AZURE -> "Canonical Ubuntu 24.04 LTS";
             case ALIBABA, OCI, DIGITALOCEAN -> "Ubuntu 24.04";
             case PROXMOX -> "ubuntu-24.04-server-cloudimg-amd64.img";
-            case IBM -> "ibm-ubuntu-24-04-6-minimal-amd64-6";
+            case IBM -> "ibm-ubuntu-24-04-4-minimal-amd64-7";
         };
     }
 

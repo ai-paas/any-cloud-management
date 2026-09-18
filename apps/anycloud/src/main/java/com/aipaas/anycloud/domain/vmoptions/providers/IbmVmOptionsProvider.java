@@ -52,7 +52,7 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
     private static final String GENERATION = "2";
 
     /** 리전 목록은 아무 리전 host 에서나 같은 답이 온다. 목록을 받기 전이라 하나를 고정해 쓴다. */
-    private static final String DEFAULT_REGION = "us-south";
+    private static final String DEFAULT_REGION = "jp-tok";
 
     /** 이미지가 1,200건을 넘어 전부 받으면 화면이 느려진다. 한 페이지 크기이자 페이징 상한. */
     private static final int IMAGE_PAGE_SIZE = 100;
