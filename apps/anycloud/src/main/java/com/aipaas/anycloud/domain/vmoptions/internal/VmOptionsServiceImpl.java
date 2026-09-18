@@ -3,6 +3,7 @@ package com.aipaas.anycloud.domain.vmoptions.internal;
 import com.aipaas.anycloud.configuration.persistence.CacheConfig;
 import com.aipaas.anycloud.domain.vmoptions.VmOptionsQueryService;
 import com.aipaas.anycloud.domain.vmoptions.VmOptionsService;
+import com.aipaas.anycloud.domain.vmoptions.api.ProviderConfigKey;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionImage;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionProvider;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionRegion;
@@ -28,6 +29,11 @@ public class VmOptionsServiceImpl implements VmOptionsService {
     @Cacheable(value = CacheConfig.VM_OPTIONS_REGIONS, key = "T(java.util.Objects).hash(#provider, #credentialId)")
     public List<VmOptionRegion> getRegions(String provider, String credentialId) {
         return vmOptionsQueryService.listRegions(provider, credentialId);
+    }
+
+    @Override
+    public List<ProviderConfigKey> getConfigSchema(String provider, String credentialId, String region) {
+        return vmOptionsQueryService.listConfigSchema(provider, credentialId, region);
     }
 
     @Override

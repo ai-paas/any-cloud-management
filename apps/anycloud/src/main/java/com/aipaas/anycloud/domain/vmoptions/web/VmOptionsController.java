@@ -119,8 +119,16 @@ public class VmOptionsController {
         @ApiResponse(responseCode = "400", description = "지원하지 않는 provider")
     })
     public ResponseEntity<ApiSuccessResponse<PagedData<ProviderConfigKey>>> getConfigSchema(
-            @Parameter(description = "클라우드 제공자", example = "AWS") @PathVariable String provider) {
-        List<ProviderConfigKey> schema = providerConfigSchemaService.getSchema(provider);
+            @Parameter(description = "클라우드 제공자", example = "AWS") @PathVariable String provider,
+            @Parameter(
+                            description = "사용자가 등록한 credential ID — 주면 계정에서 고를 수 있는 값을 allowedValues 에 채운다",
+                            example = "cred-uuid")
+                    @RequestParam(required = false)
+                    String credentialId,
+            @Parameter(description = "리전 — 리전마다 고를 수 있는 값이 다른 키에 필요", example = "jp-tok")
+                    @RequestParam(required = false)
+                    String region) {
+        List<ProviderConfigKey> schema = vmOptionsService.getConfigSchema(provider, credentialId, region);
         return new ResponseEntity<>(
                 ApiSuccessResponse.of(HttpStatus.OK.value(), "Config schema loaded", PagedData.of(schema)),
                 new HttpHeaders(),

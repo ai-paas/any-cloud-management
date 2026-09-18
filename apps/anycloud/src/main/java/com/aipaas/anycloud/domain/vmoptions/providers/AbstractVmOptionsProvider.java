@@ -71,6 +71,11 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
         return withCredentials(credentials, () -> listImages(region, keyword, architecture, owner, limit));
     }
 
+    @Override
+    public List<String> listConfigOptions(Map<String, String> credentials, String configKey, String region) {
+        return withCredentials(credentials, () -> listConfigOptions(configKey, region));
+    }
+
     /**
      * credentials 를 ThreadLocal 에 잠시 set 한 채로 body 실행 — 종료 시 이전 값 복구.
      * try/finally 로 nested call 안전.

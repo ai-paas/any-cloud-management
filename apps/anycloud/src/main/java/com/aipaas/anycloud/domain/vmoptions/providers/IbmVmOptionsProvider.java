@@ -38,6 +38,8 @@ import org.springframework.web.client.RestTemplate;
 @RequiredArgsConstructor
 public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
 
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(IbmVmOptionsProvider.class);
+
     private static final String IAM_HOST = "iam.cloud.ibm.com";
     private static final String IAM_TOKEN_URL = "https://iam.cloud.ibm.com/identity/token";
     private static final String IAM_GRANT_TYPE = "urn:ibm:params:oauth:grant-type:apikey";
@@ -173,12 +175,25 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * 계정에서 쓸 수 있는 zone 목록.
-     *
-     * <p>{@code VmOptionsProvider} 계약에는 zone 이 없지만 IBM 프로비저닝은 zone 을 요구한다.
-     * 계정마다 활성 zone 이 달라 {@code {region}-1} 로 넘겨짚으면 만들다 실패한다.
+     * providerSpec.zone 은 리전이 아니라 존이다. 계정마다 활성 zone 이 달라
+     * {@code {region}-1} 로 넘겨짚으면 만들다 실패하므로 목록을 받아 고르게 한다.
      */
-    public List<String> listZones(String region) {
+    @Override
+    @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsFallback")
+    public List<String> listConfigOptions(String configKey, String region) {
+        if (!"providerSpec.zone".equals(configKey) || !StringUtils.hasText(region)) {
+            return List.of();
+        }
+        return listZones(region);
+    }
+
+    private List<String> listConfigOptionsFallback(String configKey, String region, Throwable throwable) {
+        LOG.warn("IBM config options fallback: key={} cause={}", configKey, String.valueOf(throwable));
+        return List.of();
+    }
+
+    /** 계정에서 쓸 수 있는 zone 목록. */
+    List<String> listZones(String region) {
         String resolved = requireRegion(region);
         String token = accessToken();
         IbmRecords.ZoneList body =
