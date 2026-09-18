@@ -77,8 +77,10 @@ class ProviderConfigSchemaServiceImplTest extends AbstractUnitTest {
     }
 
     @Test
-    void azureSchema_includesAzureResourceGroupAsRequired() {
-        ProviderConfigKey entry = findKey(service.getSchema("Azure"), "anycloud-k8s:providerSpec.resourceGroup");
+    void alibabaSchema_requiresZoneBecauseASwitchLivesInOne() {
+        // VSwitch 가 zone 단위다. 리전만으로는 서브넷을 만들지 못한다.
+        ProviderConfigKey entry = findKey(service.getSchema("Alibaba"), "anycloud-k8s:providerSpec.zone");
+
         assertThat(entry.required()).isTrue();
     }
 
@@ -116,7 +118,7 @@ class ProviderConfigSchemaServiceImplTest extends AbstractUnitTest {
     void allProviders_returnAtLeastCommonKeysCount() {
         // 모든 provider 에 cross-cutting 키 11개 (master/worker spec, master/worker count,
         // k8s version, pod/service cidr, joinToken, 3 boolean flags) 있음을 보장.
-        for (String provider : List.of("AWS", "GCP", "Azure", "Alibaba", "OpenStack", "OCI", "DigitalOcean")) {
+        for (String provider : List.of("AWS", "GCP", "Alibaba", "OpenStack", "OCI", "Proxmox", "IBM")) {
             assertThat(service.getSchema(provider)).as(provider).hasSizeGreaterThanOrEqualTo(11);
         }
     }

@@ -44,7 +44,7 @@ class OpenStackVmOptionsProviderTest extends AbstractUnitTest {
 
     @Test
     void secureCredential_keepsSharedClient() {
-        // 공유 client 의 검증을 끄면 AWS / Azure 호출까지 함께 꺼진다.
+        // 공유 client 의 검증을 끄면 AWS / GCP 호출까지 함께 꺼진다.
         RestTemplate selected = withCreds(
                 Map.of("OS_INSECURE", "false"), () -> provider.restTemplateFor("https://os.example.com:5000"));
 
