@@ -33,10 +33,9 @@ config:
 |---|---|---|
 | `aws` | `g5.xlarge` | NVIDIA A10G x1 (24GB) |
 | `gcp` | `n1-standard-4` + accelerator `nvidia-tesla-t4` x1 | T4 x1 (16GB) |
-| `azure` | `Standard_NC4as_T4_v3` | T4 x1 (16GB) |
 | `oci` | `VM.GPU.A10.1` | A10 x1 (24GB) |
 | `alibaba` | `ecs.gn6i-c4g1.xlarge` | T4 x1 |
-| `digitalocean` / `openstack` / `proxmox` | (운영자 명시 필요) | — |
+| `openstack` / `proxmox` / `ibm` | (운영자 명시 필요) | — |
 
 ## 계층별 책임
 

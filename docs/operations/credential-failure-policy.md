@@ -1,6 +1,6 @@
 # CSP Credential Failure Policy
 
-CSP 자격증명 (AWS / GCP / Azure / Alibaba / OCI / DigitalOcean / OpenStack / Proxmox) 호출
+CSP 자격증명 (AWS / GCP / Alibaba / OCI / OpenStack / Proxmox / IBM) 호출
 실패의 분류와 응답 정책. 정책 위반은 (1) reconnaissance 정보 노출, (2) 무의미한 retry로 인한
 RabbitMQ DLQ 미도달 / 로그 폭주, (3) 운영자가 transient 와 permanent 를 구분 못 함 등 직접
 보안, 신뢰성 사고로 이어진다.
@@ -30,10 +30,10 @@ Pulumi up 실패 시 stderr 를 위 표에 매핑하는 가이드. 패턴 매칭
 |---|---|---|
 | AWS | `InvalidAccessKeyId`, `SignatureDoesNotMatch`, `UnauthorizedOperation`, `AccessDenied` | `RequestTimeout`, `ServiceUnavailable`, `ThrottlingException` (재시도 한도 내) |
 | GCP | `invalid_grant`, `UNAUTHENTICATED`, `PERMISSION_DENIED` | `INTERNAL`, `UNAVAILABLE`, `DEADLINE_EXCEEDED` |
-| Azure | `AuthorizationFailed`, `InvalidAuthenticationToken`, `Forbidden` | `ServiceUnavailable`, `OperationTimedOut`, `TooManyRequests` |
+
 | Alibaba | `InvalidAccessKeyId.NotFound`, `Forbidden.RAM`, `SignatureDoesNotMatch` | `ServiceUnavailable`, `Throttling`, `InternalError` |
 | OCI | `NotAuthenticated`, `NotAuthorizedOrNotFound`, `Forbidden` | `ServiceUnavailable`, `RequestTimeout`, `InternalServerError` |
-| DigitalOcean | `Unable to authenticate you`, `403 Forbidden` | `internal_server_error`, `service_unavailable` |
+
 | OpenStack | `401 Unauthorized`, `403 Forbidden` | `503 Service Unavailable`, `timeout` |
 | Proxmox | `authentication failure`, `permission denied` | `500 Internal Server Error`, connection refused |
 
@@ -45,10 +45,8 @@ Pulumi up 실패 시 stderr 를 위 표에 매핑하는 가이드. 패턴 매칭
 - AWS Account ID (12 자리 숫자), IAM ARN (`arn:aws:iam::*`), Access Key ID (`AKIA*` /
   `ASIA*`), Secret Access Key (40+ char base64).
 - GCP project ID (full path), service account email, OAuth refresh token.
-- Azure subscription ID (UUID), tenant ID, client secret.
 - Alibaba RAM user UID, AccessKey ID/Secret.
 - OCI tenancy OCID, user OCID, fingerprint, private key PEM.
-- DigitalOcean API token (32+ char hex).
 - OpenStack project ID, password, application credential secret.
 - Proxmox API token secret.
 

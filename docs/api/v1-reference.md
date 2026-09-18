@@ -372,7 +372,7 @@ POST /v1/vms
 |---|---|---|
 | aws | 없음 | |
 | gcp | `project` | |
-| azure | `resourceGroup` | `spec.osImage` 는 `publisher:offer:sku:version` |
+| alibaba | `zone` | VSwitch 가 zone 단위다. `spec.osImage` 는 ECS 이미지 ID |
 | openstack | `imageName`, `flavorName`, `externalNetworkId`, `floatingIpPool` | 네 개 모두 |
 | oci | `compartmentId` | `spec.osImage` 에 리전별 image OCID 필수 |
 | proxmox | `nodeName` | `datastoreId`, `imageDatastoreId`, `networkBridge` 는 기본값 있음 |
@@ -409,7 +409,7 @@ POST /v1/vms
 - **PoC 한계**: control-plane endpoint 가 lead master IP 자체이며, VIP/LB 는 미적용
   lead master 장애 시 신규 join 이 불가능합니다 (기존 컴포넌트는 정상 동작합니다). 실제 HA 는 별도로 구성해야 합니다.
 - Strategy 별 지원: GenericLinux (모든 deb-like) + Proxmox provisioner 입니다. 그 외 7
-  providers (AWS, GCP, Azure, OCI, Alibaba, DigitalOcean, OpenStack) 는 multi-master 를 지원하지 않습니다.
+  providers (AWS, GCP, Alibaba, OCI, Alibaba, OpenStack) 는 multi-master 를 지원하지 않습니다.
 
 ## 표준 사용 흐름 — 신규 cluster 생성
 

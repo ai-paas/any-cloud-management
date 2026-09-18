@@ -141,7 +141,7 @@ anycloud monorepo 의 component / package / 의존 관계를 정리했습니다.
 | `BackendCa` | `JpaBackendCa` (**default**), `DefaultBackendCa` | `anycloud.mtls.ca.persistence` 미지정 → JPA. 명시적 `default` 시 inline-pem mode. |
 | `AuditLogger` | `InMemoryAuditLogger`, `DbAuditLogger` | `@ConditionalOnProperty` |
 | `ClusterProvider` | `VmClusterProviderImpl`, `RegisteredClusterProviderImpl` | source type 기반 — registry pattern |
-| `VmOptionsProvider` | AWS/Azure/GCP/Proxmox/Ncloud impl | provider name 기반 — registry |
+| `VmOptionsProvider` | AWS/GCP/Alibaba/OCI/OpenStack/Proxmox/IBM impl | provider name 기반 — registry |
 | `SigningKeyResolver` (starter) | `JpaSigningKeyResolver` (anycloud override) | `@ConditionalOnMissingBean` |
 | `BootstrapKubeClient` (starter) | `AgentBootstrapKubeClient` (anycloud) | `@ConditionalOnMissingBean` |
 

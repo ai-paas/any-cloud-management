@@ -8,7 +8,7 @@ Spring Boot 백엔드에 `Pulumi Automation API` 계층을 붙여서 여러 CSP 
 - 백엔드는 Java 21 / Spring Boot
 - IaC 엔진은 Pulumi Java SDK
 - 현재 실제 구현은 AWS
-- 확장 대상은 GCP, Azure, OCI, Alibaba Cloud, DigitalOcean, OpenStack
+- 확장 대상은 GCP, OCI, Alibaba Cloud, OpenStack
 
 ## 1. 디렉터리 구조
 

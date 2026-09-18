@@ -38,7 +38,6 @@ Layer 2 의 두 starter (observability / backup) 는 서로 독립적입니다. 
 - **etcd / PKI 복원** — 복원은 starter 영역 밖입니다. 운영자가 `docs/runbooks/cluster-disaster-recovery.md` 의 절차에 따라 수동으로 수행합니다. (Velero Restore CR 적용은 자체 데이터 plane 의 일부이므로 별도입니다.)
 - **state persistence** — BackupHistory DB 입니다. `BackupHistoryWriter` SPI 만 제공합니다.
 - **scheduling** — Spring `@Scheduled` 또는 외부 cron 입니다. Velero Schedule CR 외의 cluster-side scheduling 은 호스트 책임입니다.
-- **storage destination** — S3 / GCS / NFS / Azure Blob credential 관리는 호스트의 credential 시스템 위에 있습니다.
 - **KEK 관리** — PKI 백업 암호화 키입니다. Vault / KMS 통합은 host 책임
 - **retention policy** — keep N days / N copies 정책
 - **audit log** — host 의 audit framework 를 사용합니다.
