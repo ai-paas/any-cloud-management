@@ -252,6 +252,27 @@ public final class CspCredentialPulumiConfigMapper {
         out.put(key, json);
     }
 
+    /**
+     * 프로바이더가 리전을 받는 config 키. 리전 개념이 없는 프로바이더는 {@code null}.
+     *
+     * <p>Proxmox 는 단일 하이퍼바이저라 리전이 없고, OpenStack 은 리소스마다 region 을 직접 받는다.
+     */
+    public static String regionConfigKey(String provider) {
+        if (provider == null) {
+            return null;
+        }
+        return switch (provider.toLowerCase(java.util.Locale.ROOT)) {
+            case "aws" -> "aws:region";
+            case "gcp", "google" -> "gcp:region";
+            case "azure", "azurerm" -> "azure:location";
+            case "alibaba", "alicloud" -> "alicloud:region";
+            case "oci", "oracle" -> "oci:region";
+            case "digitalocean" -> null;
+            case "ibm" -> "ibm:region";
+            default -> null;
+        };
+    }
+
     private static final com.fasterxml.jackson.databind.ObjectMapper JSON =
             new com.fasterxml.jackson.databind.ObjectMapper();
 
