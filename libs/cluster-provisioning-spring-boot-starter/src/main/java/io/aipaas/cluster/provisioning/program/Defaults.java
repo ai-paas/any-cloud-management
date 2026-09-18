@@ -30,8 +30,9 @@ public final class Defaults {
             "azure",
                     new ProviderDefaults(
                             "anycloud-azure", "10.62.0.0/16", "Standard_D4s_v5", "Standard_D4s_v5", "ubuntu"),
+            // g6 는 서울에 없다 — 세대마다 제공 리전이 다르다. Ubuntu 이미지에 ubuntu 계정이 없어 키는 root 로 들어간다.
             "alibaba",
-                    new ProviderDefaults("anycloud-alibaba", "10.72.0.0/16", "ecs.g6.large", "ecs.g6.large", "ubuntu"),
+                    new ProviderDefaults("anycloud-alibaba", "10.72.0.0/16", "ecs.g9i.large", "ecs.g9i.large", "root"),
             "openstack", new ProviderDefaults("anycloud-openstack", "10.90.0.0/24", null, null, "ubuntu"),
             "oci",
                     new ProviderDefaults(
@@ -41,6 +42,12 @@ public final class Defaults {
             // Proxmox 는 인스턴스 타입이 없다. "코어-메모리MiB" 규약으로 받아 emitter 가 나눈다.
             "proxmox", new ProviderDefaults("anycloud-proxmox", "10.94.0.0/24", "2-4096", "2-4096", "ubuntu"),
             "ibm", new ProviderDefaults("anycloud-ibm", "10.98.0.0/16", "bx2-2x8", "bx2-2x8", "ubuntu"));
+
+    /** 홈랩 대역이 대부분 /24 다. 다르면 요청에서 지정한다. */
+    private static final int DEFAULT_SUBNET_PREFIX = 24;
+
+    /** 노드는 apt 저장소와 컨테이너 레지스트리로 나가야 한다. 사내 DNS 만 보면 부트스트랩이 멈춘다. */
+    private static final String DEFAULT_DNS_SERVERS = "1.1.1.1,8.8.8.8";
 
     public static ClusterSpec applyProviderDefaults(ClusterSpec raw) {
         String canonical = ProviderName.canonical(raw.provider());
@@ -113,14 +120,20 @@ public final class Defaults {
             case "proxmox" -> {
                 ProviderSpec.Proxmox px = raw.providerSpec() instanceof ProviderSpec.Proxmox p
                         ? p
-                        : new ProviderSpec.Proxmox(null, null, null, null, null);
-                // sftp 를 기본으로 둬서 sudo 없는 SSH 계정으로 운영할 수 있게 한다.
+                        : new ProviderSpec.Proxmox(null, null, null, null, null, null, null, null, null, null);
+                // 디스크는 블록 스토리지(local-lvm), 내려받은 이미지는 import content 를 받는
+                // 디렉터리 스토리지(local)로 간다. 같은 곳에 둘 수 없어 둘로 나뉜다.
                 b.providerSpec(new ProviderSpec.Proxmox(
                         px.nodeName(),
                         blankOr(px.datastoreId(), "local-lvm"),
-                        blankOr(px.snippetDatastoreId(), "local"),
+                        blankOr(px.imageDatastoreId(), "local"),
                         blankOr(px.networkBridge(), "vmbr0"),
-                        blankOr(px.snippetUploadMode(), "sftp")));
+                        px.nodeIps(),
+                        px.gateway(),
+                        px.subnetPrefix() == null ? DEFAULT_SUBNET_PREFIX : px.subnetPrefix(),
+                        blankOr(px.dnsServers(), DEFAULT_DNS_SERVERS),
+                        px.sshHost(),
+                        px.sshPorts()));
             }
             default -> {
                 /* no extras */

@@ -63,6 +63,10 @@ public final class PulumiProgram {
             if (version != null) {
                 merged.putIfAbsent("version", version);
             }
+            String downloadUrl = PluginVersions.downloadUrlForType(type);
+            if (downloadUrl != null) {
+                merged.putIfAbsent("pluginDownloadURL", downloadUrl);
+            }
             if (!merged.isEmpty()) {
                 entry.put("options", merged);
             }

@@ -189,7 +189,7 @@ public class VmController {
 								  "providerSpec": {
 								    "nodeName": "pve1",
 								    "datastoreId": "local-lvm",
-								    "snippetDatastoreId": "local",
+								    "imageDatastoreId": "local",
 								    "networkBridge": "vmbr0"
 								  }
 								}""")
@@ -366,7 +366,12 @@ public class VmController {
         var result = kubeconfigExportService.issue(
                 vmName,
                 new KubeconfigExportService.IssueRequest(
-                        identity.namespace(), identity.serviceAccount(), ttlSeconds, vmName, identity.namespace()));
+                        identity.namespace(),
+                        identity.serviceAccount(),
+                        ttlSeconds,
+                        vmName,
+                        identity.namespace(),
+                        vmClusterQueryService.getVmClusterStatus(vmName).getApiServerUrl()));
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType("application/yaml"));
         headers.setContentDispositionFormData(

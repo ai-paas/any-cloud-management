@@ -5,11 +5,75 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/v1/providers/openstack/config-schema
+  url: {{baseUrl}}/v1/providers/{{vm_options_provider}}/config-schema?credentialId={{vm_credential_id}}&region={{vm_options_region}}
   body: none
   auth: none
 }
 
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("providerSpec 키는 전부 anycloud-k8s: 접두를 쓴다", function() {
+    const items = res.getBody().data.items || res.getBody().data;
+    const spec = items.filter((k) => k.key.includes("providerSpec."));
+    spec.forEach((k) => expect(k.key).to.match(/^anycloud-k8s:/));
+  });
+
+  test("preflight 가 요구하는 키는 required 로 내려온다", function() {
+    // 화면은 이 플래그만 보고 필수 표시를 한다. optional 로 내려오면 비운 채 제출된다.
+    const items = res.getBody().data.items || res.getBody().data;
+    const byKey = Object.fromEntries(items.map((k) => [k.key, k]));
+    const requiredByProvider = {
+      IBM: ["anycloud-k8s:providerSpec.zone"],
+      OpenStack: [
+        "anycloud-k8s:providerSpec.imageName",
+        "anycloud-k8s:providerSpec.flavorName",
+        "anycloud-k8s:providerSpec.externalNetworkId",
+        "anycloud-k8s:providerSpec.floatingIpPool"
+      ],
+      OCI: ["anycloud-k8s:providerSpec.compartmentId", "anycloud-k8s:osImage"],
+      Proxmox: ["anycloud-k8s:providerSpec.nodeName"],
+      GCP: ["anycloud-k8s:providerSpec.project"],
+    };
+    const expected = requiredByProvider[bru.getEnvVar("vm_options_provider")] || [];
+    expected.forEach((key) => {
+      expect(byKey[key], `${key} 가 schema 에 없다`).to.not.equal(undefined);
+      expect(byKey[key].required, `${key} 가 required 가 아니다`).to.equal(true);
+    });
+  });
+
+  test("자격증명과 리전을 주면 고를 수 있는 값이 채워진다", function() {
+    // IBM zone 은 us-south 가 아니라 us-south-1 이라 리전 드롭다운으로 채울 수 없다.
+    if (bru.getEnvVar("vm_options_provider") !== "IBM") return;
+    const items = res.getBody().data.items || res.getBody().data;
+    const zone = items.find((k) => k.key === "anycloud-k8s:providerSpec.zone");
+    expect(zone.allowedValues, "zone 에 고를 값이 없다").to.be.an("array").that.is.not.empty;
+    zone.allowedValues.forEach((z) =>
+      expect(z).to.have.string(bru.getEnvVar("vm_options_region"))
+    );
+  });
+}
+
 docs {
   `GET /v1/providers/{provider}/config-schema`
+
+  `spec.config` 에 넣을 수 있는 모든 `anycloud-k8s:*` 키. 포탈은 이 응답만 보고 CSP 고유
+  입력 칸을 만든다.
+
+  ## 쿼리
+
+  | 파라미터 | 용도 |
+  | --- | --- |
+  | `credentialId` | 계정에서 실제로 고를 수 있는 값을 `allowedValues` 에 채운다 |
+  | `region` | 리전마다 값이 다른 키(IBM zone 등)에 필요 |
+
+  둘 다 생략하면 정적 schema 만 돌아온다. `allowedValues` 는 `null` 이고 화면은 자유 입력이 된다.
+
+  ## 주의
+
+  `required` 는 preflight 가 요구하는 키와 일치해야 한다. 어긋나면 사용자가 생성 버튼을 누른
+  뒤에야 거절을 본다. 백엔드에서는 `ProviderConfigSchemaMatchesPreflightTest` 가 7종 전체를
+  대조한다.
 }

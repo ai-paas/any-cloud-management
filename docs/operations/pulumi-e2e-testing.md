@@ -11,13 +11,12 @@ mock:
 | CSP | Mock 도구 | 성숙도 | 비용 |
 |---|---|---|---|
 | **AWS** | LocalStack (free) | ✓ 매우 좋음 | $0 (free), $35/mo (pro) |
-| Azure | Azurite (Storage 만) | △ Storage 외 mock 부족 | $0 |
+
 | GCP | gcloud emulator (일부) | △ Compute API 미지원 | $0 |
 | OCI | (없음) | ✗ | sandbox account 필요 |
 | Alibaba | (없음) | ✗ | sandbox account 필요 |
 | OpenStack | DevStack 컨테이너 | △ 복잡 | infra cost |
 | Proxmox | mock 없음 — VM 안 | ✗ | sandbox VM |
-| DigitalOcean | mock 없음 | ✗ | sandbox account |
 
 → **현실적 접근: AWS 만 LocalStack 자동, 다른 CSP 는 sandbox account credential 명시 시점에 manual e2e**.
 
@@ -130,7 +129,7 @@ LocalStack 가 mock 이라 한계:
 
 | CSP | 시점 | 방식 |
 |---|---|---|
-| Azure | Azurite 가 storage 만 — 보류 | sandbox account |
+
 | GCP | gcloud emulator 가 일부 — 보류 | sandbox account |
 | OCI / Alibaba / OpenStack | sandbox account / DevStack | manual |
 

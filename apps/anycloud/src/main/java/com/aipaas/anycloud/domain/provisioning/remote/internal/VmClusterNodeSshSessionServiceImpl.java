@@ -44,6 +44,7 @@ public class VmClusterNodeSshSessionServiceImpl implements VmClusterNodeSshSessi
     private final VmClusterRepository vmClusterRepository;
     private final PulumiProperties pulumiProperties;
     private final ClusterSshJumpResolver sshJumpResolver;
+    private final ClusterSshUserResolver sshUserResolver;
     private final ObjectMapper objectMapper;
     private final com.aipaas.anycloud.domain.credential.CspCredentialService cspCredentialService;
     private final io.aipaas.cluster.provisioning.api.ProvisioningService provisioningService;
@@ -61,14 +62,14 @@ public class VmClusterNodeSshSessionServiceImpl implements VmClusterNodeSshSessi
         // 요청받은 host 가 이 클러스터의 노드인지 확인한다. 확인하지 않으면 임의의 주소로
         // 백엔드가 ssh 를 걸어주는 통로가 된다.
         List<VmClusterNodeRows.Row> nodes = VmClusterNodeRows.of(objectMapper, cluster);
-        String matched = nodes.stream()
-                .flatMap(n -> Stream.of(n.publicIp(), n.privateIp(), n.publicDns()))
-                .filter(Objects::nonNull)
-                .filter(host::equals)
+        VmClusterNodeRows.Row matchedRow = nodes.stream()
+                .filter(n -> Stream.of(n.publicIp(), n.privateIp(), n.publicDns())
+                        .filter(Objects::nonNull)
+                        .anyMatch(host::equals))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("이 클러스터의 노드가 아닙니다: " + host));
         // 노드 목록에 있다고 ssh 인자로 안전하지는 않다. 옵션처럼 생긴 값은 여기서 막는다.
-        String target = NodeSshCommand.requireSafeHost(matched);
+        String target = NodeSshCommand.requireSafeHost(host);
 
         String privateKeyPem = privateKeyOf(cluster);
         Path keyPath = writeKey(privateKeyPem);
@@ -76,8 +77,8 @@ public class VmClusterNodeSshSessionServiceImpl implements VmClusterNodeSshSessi
         try {
             // 노드가 사설망이면 점프 없이는 닿지 않는다. 프로비저닝과 같은 길을 쓴다.
             SshJump jump = sshJumpResolver.resolve(cluster);
-            ProcessBuilder builder = new ProcessBuilder(
-                    NodeSshCommand.build(keyPath.toString(), pulumiProperties.getSshUser(), target, jump));
+            ProcessBuilder builder = new ProcessBuilder(NodeSshCommand.build(
+                    keyPath.toString(), sshUserResolver.resolve(cluster), target, jump, matchedRow.sshPort()));
             builder.redirectErrorStream(true);
             // 비밀번호 bastion 은 프롬프트를 띄우는데 여기엔 터미널이 없다. askpass 로 넘긴다.
             // ssh 는 비밀번호가 필요해질 때 스크립트를 읽는다. 시작 직후 지우면 인증할 것이 없어

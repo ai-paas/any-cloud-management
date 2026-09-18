@@ -44,6 +44,8 @@ import org.springframework.web.client.RestTemplate;
 @RequiredArgsConstructor
 public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
 
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(OciVmOptionsProvider.class);
+
     private static final String OCI_DATE_FORMAT = "EEE, dd MMM yyyy HH:mm:ss 'GMT'";
 
     @Qualifier("cspRestTemplate")
@@ -198,6 +200,40 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
         }
         return out;
     }
+
+    /**
+     * compartment OCID 는 콘솔을 열어 베껴 와야 하는 값이다. 계정에서 읽어 이름과 함께 보여 준다.
+     *
+     * <p>테넌시 자체도 compartment 다 — 루트에 바로 만드는 구성이 흔해 목록 맨 앞에 둔다.
+     */
+    @Override
+    @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsFallback")
+    public List<String> listConfigOptions(String configKey, String region) {
+        if (!"providerSpec.compartmentId".equals(configKey)) {
+            return List.of();
+        }
+        String tenancy = tenancyOcid();
+        String url = identityBaseUrl(defaultRegion()) + "/20160918/compartments?compartmentId=" + tenancy
+                + "&compartmentIdInSubtree=true&accessLevel=ACCESSIBLE&limit=" + OPTION_LIMIT;
+        List<String> out = new java.util.ArrayList<>();
+        out.add(tenancy);
+        for (OciRecords.Compartment compartment : listItems(exchange(url), OciRecords.Compartment.class)) {
+            // 삭제 중인 compartment 에 자원을 만들면 거절된다. 고를 수 있게 두면 안 된다.
+            if (StringUtils.hasText(compartment.id()) && "ACTIVE".equalsIgnoreCase(compartment.lifecycleState())) {
+                out.add(compartment.id());
+            }
+        }
+        return out;
+    }
+
+    private List<String> listConfigOptionsFallback(String configKey, String region, Throwable throwable) {
+        // 조회가 막혀도 자유 입력으로 남는다. 목록을 못 준다고 생성을 막을 이유는 없다.
+        LOG.warn("OCI config options fallback: key={} cause={}", configKey, String.valueOf(throwable));
+        return List.of();
+    }
+
+    /** 선택 상자에 담을 최대 개수. compartment 가 수백 개인 테넌시가 있다. */
+    private static final int OPTION_LIMIT = 200;
 
     private String firstAvailabilityDomain(String region) {
         String url = identityBaseUrl(region) + "/20160918/availabilityDomains?compartmentId=" + tenancyOcid();

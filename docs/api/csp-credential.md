@@ -60,12 +60,10 @@ Provider별 필수 credential key와 provisioning config는
 
 - `AWS`
 - `GCP`
-- `Azure`
 - `Alibaba`
 - `OpenStack`
 - `Proxmox`
 - `OCI`
-- `DigitalOcean`
 
 ## 저장 테이블
 

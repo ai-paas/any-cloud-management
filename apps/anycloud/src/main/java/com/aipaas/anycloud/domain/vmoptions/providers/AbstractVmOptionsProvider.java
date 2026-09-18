@@ -71,6 +71,11 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
         return withCredentials(credentials, () -> listImages(region, keyword, architecture, owner, limit));
     }
 
+    @Override
+    public List<String> listConfigOptions(Map<String, String> credentials, String configKey, String region) {
+        return withCredentials(credentials, () -> listConfigOptions(configKey, region));
+    }
+
     /**
      * credentials 를 ThreadLocal 에 잠시 set 한 채로 body 실행 — 종료 시 이전 값 복구.
      * try/finally 로 nested call 안전.
@@ -108,6 +113,20 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
         return System.getenv(key);
     }
 
+    /**
+     * 지금 요청에 실린 자격증명 전체.
+     *
+     * <p>키를 하나씩 {@link #resolveCredential(String)} 로 꺼내 Map 을 다시 만들 필요가 없다.
+     * 자격증명 Map 을 통째로 받는 클라이언트({@code ProxmoxApiClient} 등) 에 그대로 넘긴다.
+     *
+     * <p>등록된 자격증명이 없으면 빈 Map — {@code System.getenv()} fallback 은 여기 없다.
+     * 키 단위 fallback 은 어떤 키가 필요한지 아는 쪽이 정한다.
+     */
+    protected static Map<String, String> currentCredentials() {
+        Map<String, String> creds = CREDENTIAL_CONTEXT.get();
+        return creds == null ? Map.of() : Map.copyOf(creds);
+    }
+
     protected VmOptionProvider describe(
             SupportedProvisioningProvider provider, boolean liveDiscoveryImplemented, String notes) {
         return VmOptionProvider.builder()
@@ -130,14 +149,12 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
         return switch (provider) {
             case AWS -> "ap-northeast-2";
             case GCP -> "asia-northeast3";
-            case AZURE -> "koreacentral";
             case OPENSTACK -> "RegionOne";
             case ALIBABA -> "ap-northeast-2";
             case OCI -> "ap-seoul-1";
-            case DIGITALOCEAN -> "sgp1";
                 // Proxmox 는 리전 개념이 없다. PVE 노드 이름을 쓴다.
             case PROXMOX -> "pve";
-            case IBM -> "us-south";
+            case IBM -> "jp-tok";
         };
     }
 
@@ -145,11 +162,9 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
         return switch (provider) {
             case AWS -> "t3.large";
             case GCP -> "e2-standard-2";
-            case AZURE -> "Standard_D4s_v5";
             case OPENSTACK -> "m1.large";
-            case ALIBABA -> "ecs.g6.large";
+            case ALIBABA -> "ecs.g9i.large";
             case OCI -> "VM.Standard.E4.Flex";
-            case DIGITALOCEAN -> "s-2vcpu-4gb";
                 // Proxmox 는 인스턴스 타입이 없다. "코어-메모리MiB" 규약.
             case PROXMOX -> "2-4096";
             case IBM -> "bx2-2x8";
@@ -160,10 +175,9 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
         return switch (provider) {
             case AWS, OPENSTACK -> "ubuntu-24.04";
             case GCP -> "ubuntu-2404-lts";
-            case AZURE -> "Canonical Ubuntu 24.04 LTS";
-            case ALIBABA, OCI, DIGITALOCEAN -> "Ubuntu 24.04";
+            case ALIBABA, OCI -> "Ubuntu 24.04";
             case PROXMOX -> "ubuntu-24.04-server-cloudimg-amd64.img";
-            case IBM -> "ibm-ubuntu-24-04-6-minimal-amd64-6";
+            case IBM -> "ibm-ubuntu-24-04-4-minimal-amd64-7";
         };
     }
 

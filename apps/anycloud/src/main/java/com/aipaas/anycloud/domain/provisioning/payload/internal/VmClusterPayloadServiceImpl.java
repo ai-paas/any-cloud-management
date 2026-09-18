@@ -76,7 +76,16 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
     @Override
     public String serializeRequestSnapshot(
             ProvisionClusterRequest cluster, ProvisioningRequest request, ResolvedCspCredential credential) {
-        Map<String, String> config = cluster.getConfig() == null ? Map.of() : new LinkedHashMap<>(cluster.getConfig());
+        /*
+         * 기본값이 채워진 쪽을 본다. cluster.getConfig() 는 사용자가 보낸 원본이라
+         * applyDefaults 가 넣은 값이 없다 — enableMonitoring 을 생략한 요청이 null 로 굳어
+         * 모니터링 애드온이 등록되지 않았다. 사용자는 체크박스를 켠 채로 만들었는데 화면이
+         * 비어 있고, 원인이 스냅샷이라는 사실은 드러나지 않는다.
+         */
+        Map<String, String> config =
+                request.getConfig() == null || request.getConfig().isEmpty()
+                        ? (cluster.getConfig() == null ? Map.of() : new LinkedHashMap<>(cluster.getConfig()))
+                        : new LinkedHashMap<>(request.getConfig());
 
         VmClusterInternalRequestSnapshot snapshot = VmClusterInternalRequestSnapshot.builder()
                 .clusterProvider(request.getProvider())

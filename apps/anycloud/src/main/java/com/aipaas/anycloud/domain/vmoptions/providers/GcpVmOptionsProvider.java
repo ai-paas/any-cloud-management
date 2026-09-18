@@ -39,6 +39,8 @@ import org.springframework.web.client.RestTemplate;
 @RequiredArgsConstructor
 public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
 
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(GcpVmOptionsProvider.class);
+
     private static final String COMPUTE_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
     private static final List<String> DEFAULT_IMAGE_PROJECTS =
             List.of("ubuntu-os-cloud", "debian-cloud", "cos-cloud", "rocky-linux-cloud", "centos-cloud");
@@ -227,6 +229,25 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
                     "gcp",
                     "Failed to parse GCP VM options response: " + e.getMessage());
         }
+    }
+
+    /**
+     * 서비스 계정 JSON 안에 project 가 이미 들어 있다. 사용자가 손으로 적으면 다른 값을 넣을 수
+     * 있고, 그러면 자격증명이 닿지 않는 프로젝트에 만들려다 실패한다.
+     */
+    @Override
+    @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsFallback")
+    public List<String> listConfigOptions(String configKey, String region) {
+        if (!"providerSpec.project".equals(configKey)) {
+            return List.of();
+        }
+        String project = projectId();
+        return StringUtils.hasText(project) ? List.of(project) : List.of();
+    }
+
+    private List<String> listConfigOptionsFallback(String configKey, String region, Throwable throwable) {
+        LOG.warn("GCP config options fallback: key={} cause={}", configKey, String.valueOf(throwable));
+        return List.of();
     }
 
     private String projectId() {

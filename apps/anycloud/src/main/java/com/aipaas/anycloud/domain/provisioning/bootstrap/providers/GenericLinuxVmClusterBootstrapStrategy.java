@@ -49,7 +49,7 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
     }
 
     @Override
-    public String initializeMasterCommand(VmClusterInternalRequestSnapshot snapshot) {
+    public String initializeMasterCommand(VmClusterInternalRequestSnapshot snapshot, String apiServerPublicIp) {
         String podCidr = firstNonBlank(snapshot.getPodCidr(), DEFAULT_POD_CIDR);
         String serviceCidr = firstNonBlank(snapshot.getServiceCidr(), "10.96.0.0/12");
         String joinToken = requiredJoinToken(snapshot);
@@ -65,6 +65,15 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
             // LB/VIP 미사용 — lead master IP 가 그대로 endpoint. 진짜 HA 는 LB 필요.
             cmd.append("--control-plane-endpoint=\"${LOCAL_IP}:6443\" ");
             cmd.append("--upload-certs ");
+        }
+        if (apiServerPublicIp != null && !apiServerPublicIp.isBlank()) {
+            /*
+             * 인증서 SAN 에는 advertise 주소만 들어간다. 내려받은 kubeconfig 가 공인 IP 를 가리키면
+             * 노드가 다 올라와 있어도 TLS 이름 검증에서 막힌다 — 발급 후에는 고칠 수 없어 여기서 넣는다.
+             */
+            cmd.append("--apiserver-cert-extra-sans=")
+                    .append(shellWord(apiServerPublicIp))
+                    .append(' ');
         }
         cmd.append("--pod-network-cidr=").append(shellWord(podCidr)).append(' ');
         cmd.append("--service-cidr=").append(shellWord(serviceCidr)).append(' ');
@@ -174,7 +183,7 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
                 + "set -e; "
                 + "CALICO_MANIFEST=$(mktemp); "
                 + "curl -fsSL " + CALICO_MANIFEST_URL + " -o \"$CALICO_MANIFEST\"; "
-                + "sed -i " + calicoSedArgs(podCidr) + " \"$CALICO_MANIFEST\"; "
+                + "sed -i " + calicoSedArgs(podCidr, usesVxlanEncapsulation()) + " \"$CALICO_MANIFEST\"; "
                 + "grep -q '^ *- name: CALICO_IPV4POOL_CIDR' \"$CALICO_MANIFEST\" || "
                 + "{ echo 'calico manifest: CALICO_IPV4POOL_CIDR 주석 해제 실패' >&2; exit 1; }; "
                 + "grep -q '^ *value: \"" + podCidr + "\"' \"$CALICO_MANIFEST\" || "
@@ -185,12 +194,36 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
 
     /** upstream 문구에 의존하는 유일한 지점. 테스트가 실제 sed 로 이 인자를 검증한다. */
     static String calicoSedArgs(String podCidr) {
-        return "-e 's|^\\( *\\)# - name: CALICO_IPV4POOL_CIDR|\\1- name: CALICO_IPV4POOL_CIDR|'"
+        return calicoSedArgs(podCidr, false);
+    }
+
+    static String calicoSedArgs(String podCidr, boolean vxlan) {
+        String args = "-e 's|^\\( *\\)# - name: CALICO_IPV4POOL_CIDR|\\1- name: CALICO_IPV4POOL_CIDR|'"
                 + " -e 's|^\\( *\\)#   value: \"192.168.0.0/16\"|\\1  value: \"" + podCidr + "\"|'";
+        if (!vxlan) {
+            return args;
+        }
+        // 두 값은 매니페스트에서 붙어 있고 기본이 IPIP=Always / VXLAN=Never 다. 맞바꾼다.
+        return args
+                + " -e '/name: CALICO_IPV4POOL_IPIP/{n;s|value: \"Always\"|value: \"Never\"|;}'"
+                + " -e '/name: CALICO_IPV4POOL_VXLAN/{n;s|value: \"Never\"|value: \"Always\"|;}'";
+    }
+
+    /**
+     * 파드 트래픽을 IP-in-IP 대신 VXLAN 으로 감쌀지.
+     *
+     * <p>IBM VPC 는 프로토콜 4(IP-in-IP)를 전달하지 않는다. 보안그룹이 허용해도 패브릭이 버려서
+     * 노드 간 파드 통신만 조용히 끊긴다 — 노드 통신과 파드의 인터넷 접속은 멀쩡해 원인이 늦게 드러난다.
+     */
+    protected boolean usesVxlanEncapsulation() {
+        return false;
     }
 
     /** {@code Defaults.DEFAULT_POD_CIDR} 과 같은 값. 어긋나면 Calico 와 kubeadm 이 다른 대역을 쓴다. */
     protected static final String DEFAULT_POD_CIDR = "10.244.0.0/16";
+
+    /** {@code Defaults.DEFAULT_K8S_VERSION} 과 같은 값. 어긋나면 emitter 와 다른 버전이 깔린다. */
+    protected static final String DEFAULT_K8S_VERSION = "1.31";
 
     private static final String CALICO_MANIFEST_URL =
             "https://raw.githubusercontent.com/projectcalico/calico/v3.28.2/manifests/calico.yaml";

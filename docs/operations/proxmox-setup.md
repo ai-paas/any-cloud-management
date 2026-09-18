@@ -1,81 +1,132 @@
 # Proxmox VE 초기 설정
 
-Proxmox VE 를 프로비저닝 대상으로 붙이기 위한 설정입니다. 권한을 최소로 나눈 구성을 기준으로 하고,
-급하게 확인만 하는 경우를 위해 `root` 를 쓰는 축약 경로를 뒤에 따로 둡니다.
+Proxmox VE 를 프로비저닝 대상으로 붙이기 위한 설정입니다. 준비물은 **API 토큰 하나**입니다.
+하이퍼바이저 호스트에 SSH 계정을 만들거나 키를 등록할 일은 없습니다.
 
-## SSH 키가 두 종류입니다
+## 준비물
 
-Proxmox 설정에서 가장 헷갈리는 지점입니다. **역할이 다른 키가 두 개** 필요합니다.
+| 항목 | 용도 | 없으면 |
+|---|---|---|
+| API 토큰 (ID + 시크릿) | VM, 디스크, cloud-init 디스크 생성 | 프로비저닝이 시작되지 않습니다 |
+| `import` content type | Ubuntu cloud 이미지 다운로드 | 이미지 다운로드 단계에서 거부됩니다 |
 
-| | 대상 | 용도 | 등록 |
-|---|---|---|---|
-| VM 키 | 생성된 VM | bootstrap 이 kubeadm 을 실행하러 접속 | Pulumi 가 매번 생성. **할 일 없음** |
-| 호스트 키 | PVE 하이퍼바이저 | cloud-init 스니펫 업로드 | **직접 등록** |
+## 전제조건
 
-VM 키는 모든 CSP 에 있고 자동입니다. 아래에서 등록하는 것은 **호스트 키 하나**입니다.
+### PVE 8.2.8 이상
 
-### 호스트 키가 Proxmox 에만 필요한 이유
+`import` content type 이 `libpve-storage-perl` 8.2.8(2024-11-18)에서 들어왔습니다. 그 이전
+버전에는 `pvesm set --content import` 옵션 자체가 없습니다. `download-url` API 가 받는 값이
+`iso`, `vztmpl`, `import` 뿐이라 우회할 방법도 없습니다.
 
-user-data 를 누가 보관하느냐가 다릅니다.
-
-```
-AWS, GCP, Azure, OCI, OpenStack, IBM
-  인스턴스 생성 API ┬─ 스펙
-                   └─ user-data          클라우드 메타데이터 서비스가 보관
-
-Proxmox
-  인스턴스 생성 API ── 스펙               user-data 자리가 없음
-  SSH → /var/lib/vz/snippets/*.yaml      하이퍼바이저 파일시스템에 직접
+```bash
+pveversion            # pve-manager/8.2.x 이상
 ```
 
-Proxmox 는 클라우드가 아니라 하이퍼바이저라 메타데이터 서비스가 없습니다. cloud-init 설정이 호스트의
-파일이고, API 는 그 파일 쓰기를 거부합니다.
+### PVE 호스트의 인터넷 접속
+
+이미지를 `cloud-images.ubuntu.com` 에서 내려받습니다. 폐쇄망이면 `spec.osImage` 에 내부 미러
+URL 을 넣습니다. 노드(VM)도 apt 저장소와 컨테이너 레지스트리로 나가야 합니다 — 부트스트랩이
+노드에서 kubeadm 을 설치하기 때문입니다.
+
+### 디스크 스토리지 이름
+
+설치할 때 고른 파일시스템에 따라 이름이 갈립니다.
+
+| 설치 유형 | 디스크 스토리지 | 요청에 넣을 값 |
+|---|---|---|
+| ext4 / xfs (LVM) | `local-lvm` | 기본값이라 생략 가능 |
+| ZFS | `local-zfs` | `providerSpec.datastoreId` 에 **직접 지정** |
+
+`datastoreId` 기본값이 `local-lvm` 이라, ZFS 로 설치한 호스트에서 생략하면 스토리지를 찾지 못합니다.
+
+```bash
+pvesm status          # 실제 이름 확인
+```
+
+## kubeadm 은 노드가 직접 설치합니다
+
+다른 CSP 는 인스턴스 생성 API 에 user-data 를 실어 보내고, 메타데이터 서비스가 그것을 보관합니다.
+Proxmox 는 하이퍼바이저라 메타데이터 서비스가 없고, cloud-init 설정이 호스트의 파일입니다. API 는
+그 파일 쓰기를 거부합니다.
 
 ```
 POST /api2/json/nodes/{node}/storage/{storage}/upload
 → 400 Parameter verification failed. content: upload content type 'snippets' not allowed
 ```
 
-`content` 로 받는 값은 `iso`, `vztmpl`, `import` 뿐입니다. 우회로인 `download-url` 도 같은 제한을
+`content` 로 받는 값은 `iso`, `vztmpl`, `import` 뿐이고, 우회로인 `download-url` 도 같은 제한을
 받습니다. Proxmox 측에서 몇 년째 열려 있는 요청
-([bugzilla #2208](https://lists.proxmox.com/pipermail/pve-devel/2022-April/052548.html))이라 당분간
-바뀌지 않습니다. **API 토큰만으로는 부족합니다.**
+([pve-devel #2208](https://lists.proxmox.com/pipermail/pve-devel/2022-April/052548.html))이라
+당분간 바뀌지 않습니다.
 
-## 준비물
+그래서 **user-data 를 쓰지 않습니다.** VM 에는 API 로 공개키만 넣고, 패키지 설치는 부트스트랩이
+노드에 SSH 로 접속해 수행합니다. 다른 CSP 가 cloud-init 으로 깔던 것과 같은 스크립트입니다.
 
-| 항목 | 용도 | 없으면 |
-|---|---|---|
-| API 토큰 | VM, 디스크, 네트워크 생성 | 프로비저닝이 시작되지 않습니다 |
-| 호스트 SSH 키 | 스니펫 업로드 | VM 은 뜨고 user-data 단계에서 실패합니다 |
-| datastore content type | 이미지 다운로드, 스니펫 저장 | 각각 다른 지점에서 거부됩니다 |
+```
+다른 CSP                          Proxmox
+  생성 API ┬ 스펙                   생성 API ── 스펙 + 공개키
+          └ user-data              부트스트랩 ── 노드 SSH 로 패키지 설치
+  부트스트랩 ── 설치 완료 대기        부트스트랩 ── 이어서 kubeadm
+```
+
+결과적으로 프로비저닝이 필요로 하는 접근 권한은 API 토큰 하나로 끝납니다.
 
 ## 1. API 토큰 발급
 
 PVE 노드에서 `root` 로 실행합니다.
 
+빠르게 붙일 때는 내장 역할 네 개를 씁니다.
+
 ```bash
 pveum user add anycloud@pve --comment "AI-PaaS provisioning"
 
-pveum role add AnycloudProvision -privs \
-  "VM.Allocate,VM.Clone,VM.Config.CDROM,VM.Config.CPU,VM.Config.Cloudinit,\
-VM.Config.Disk,VM.Config.HWType,VM.Config.Memory,VM.Config.Network,\
-VM.Config.Options,VM.Monitor,VM.PowerMgmt,VM.Audit,\
-Datastore.AllocateSpace,Datastore.AllocateTemplate,Datastore.Audit,\
-Sys.Audit,SDN.Use"
+pveum acl modify /        --user anycloud@pve --role PVEVMAdmin
+pveum acl modify /        --user anycloud@pve --role PVEAuditor
+pveum acl modify /storage --user anycloud@pve --role PVEDatastoreAdmin
+pveum acl modify /sdn     --user anycloud@pve --role PVESDNUser
 
 pveum user token add anycloud@pve provisioning --privsep 0
 ```
+
+`pveum acl modify` 는 기존 항목을 덮지 않고 더합니다. 같은 경로에 역할을 여러 개 붙일 수 있습니다.
 
 `@pve` 는 Proxmox 내장 realm 이라 리눅스 시스템 계정을 만들지 않습니다.
 
 `--privsep 0` 이 빠지면 토큰 권한이 사용자 권한과 교집합이 되는데, 토큰에 ACL 을 따로 주지 않으면
 권한이 0 이 됩니다. 권한 오류가 나면 이 옵션부터 확인합니다.
 
+### 어떤 권한이 어디에 쓰이는지
+
+세 가지가 빠지기 쉽습니다. `PVEVMAdmin` 하나만 주면 이미지 다운로드와 브리지 연결에서 막힙니다.
+
+| 동작 | 요구 권한 | 담긴 역할 |
+|---|---|---|
+| VM 생성, 설정, 전원, 삭제 | `VM.Allocate`, `VM.Config.*`, `VM.PowerMgmt` | PVEVMAdmin |
+| 노드 IP 조회 (QEMU agent) | `VM.GuestAgent.Audit` | PVEVMAdmin |
+| 디스크 생성 | `Datastore.AllocateSpace` | PVEDatastoreAdmin |
+| **이미지 다운로드** | `Datastore.AllocateTemplate` | PVEDatastoreAdmin |
+| **이미지 다운로드** | `Sys.Audit` 또는 `Sys.Modify` (`/`), 혹은 `Sys.AccessNetwork` (`/nodes`) | PVEAuditor |
+| **브리지 연결** | `SDN.Use` | PVESDNUser |
+
+`PVEDatastoreUser` 로는 부족합니다. `Datastore.AllocateSpace` 와 `Datastore.Audit` 둘뿐이라
+`Datastore.AllocateTemplate` 이 없습니다.
+
+`Sys.AccessNetwork` 는 어떤 내장 역할에도 들어 있지 않습니다. PVE 가 이 권한을 `root` 등급으로
+분류하는데, 내장 역할은 `admin`, `user`, `audit` 등급만 모아 만들기 때문입니다. `PVEAuditor` 의
+`Sys.Audit` 으로 대신 충족시킵니다.
+
 ### 권한 범위 좁히기
 
-`/` 전체 대신 필요한 경로에만 부여합니다.
+`/` 전체가 부담스러우면 커스텀 역할 하나를 만들어 필요한 경로에만 붙입니다.
 
 ```bash
+pveum role add AnycloudProvision -privs \
+  "VM.Allocate,VM.Audit,VM.Clone,VM.Config.CDROM,VM.Config.CPU,VM.Config.Cloudinit,\
+VM.Config.Disk,VM.Config.HWType,VM.Config.Memory,VM.Config.Network,\
+VM.Config.Options,VM.PowerMgmt,VM.GuestAgent.Audit,\
+Datastore.AllocateSpace,Datastore.AllocateTemplate,Datastore.Audit,\
+Sys.Audit,Sys.AccessNetwork,SDN.Use"
+
 pveum acl modify /vms                  --user anycloud@pve --role AnycloudProvision
 pveum acl modify /storage/local-lvm    --user anycloud@pve --role AnycloudProvision
 pveum acl modify /storage/local        --user anycloud@pve --role AnycloudProvision
@@ -83,8 +134,13 @@ pveum acl modify /nodes/pve1           --user anycloud@pve --role AnycloudProvis
 pveum acl modify /sdn/zones            --user anycloud@pve --role AnycloudProvision
 ```
 
+이 경로 구성에서는 `/nodes/pve1` 의 `Sys.AccessNetwork` 가 다운로드 조건을 충족하므로 `/` 에
+권한을 줄 필요가 없습니다.
+
+`VM.Monitor` 는 현재 PVE 에 없는 권한입니다. 넣으면 역할 생성 명령 자체가 거부됩니다.
+
 노드나 datastore 를 여러 개 쓰면 각각 추가합니다. 범위를 좁히면 권한 오류가 잦아지므로,
-처음에는 `/` 로 붙여 동작을 확인한 뒤 좁히는 편이 진단이 빠릅니다.
+처음에는 내장 역할로 동작을 확인한 뒤 좁히는 편이 진단이 빠릅니다.
 
 ### 토큰 값 형식
 
@@ -95,97 +151,48 @@ full-tokenid  anycloud@pve!provisioning
 value         12345678-1234-1234-1234-123456789abc
 ```
 
-`PROXMOX_VE_API_TOKEN` 에는 두 값을 `=` 로 이은 한 줄을 넣습니다.
+두 값을 그대로 나눠 넣습니다. `=` 로 잇는 것은 백엔드가 합니다.
 
-```
-anycloud@pve!provisioning=12345678-1234-1234-1234-123456789abc
-```
+| 화면 | 환경 변수 | 값 |
+|---|---|---|
+| 토큰 ID | `PROXMOX_VE_API_TOKEN_ID` | `anycloud@pve!provisioning` |
+| 토큰 시크릿 | `PROXMOX_VE_API_TOKEN_SECRET` | `12345678-1234-1234-1234-123456789abc` |
+
+토큰에 만료일을 지정했다면 그날 이후 프로비저닝이 401 로 실패합니다. 저장하는 값이 아니므로
+백엔드는 만료를 미리 알려주지 못합니다.
 
 ## 2. datastore content type 활성화
 
-```bash
-pvesm set local --content iso,vztmpl,backup,snippets,import
-```
-
-| content | 쓰는 곳 |
-|---|---|
-| `snippets` | cloud-init user-data |
-| `import` | Ubuntu cloud 이미지 다운로드 |
-
-## 3. 전용 SSH 계정
-
-스니펫 파일 하나를 쓰기 위한 계정이므로 그 권한만 줍니다.
+내려받은 cloud 이미지를 두려면 `import` 가 켜져 있어야 합니다.
 
 ```bash
-# 개발 머신에서 키 생성
-ssh-keygen -t ed25519 -N "" -C "anycloud-provisioning" -f ~/.ssh/anycloud-pve
+pvesm set local --content iso,vztmpl,backup,import
 ```
 
-**passphrase 가 있으면 안 됩니다.** provider 가 PEM 을 그대로 읽어 복호화하지 못합니다.
-위 명령의 `-N ""` 가 그 이유입니다.
+datastore 가 둘로 나뉘는 이유는 종류가 다르기 때문입니다.
 
-PVE 노드에서 계정을 만들고 공개키를 등록합니다.
-
-```bash
-# 로그인 셸 없이 — 대화형 접속이 필요 없습니다
-useradd -m -s /usr/sbin/nologin anycloud-ssh
-mkdir -p /home/anycloud-ssh/.ssh
-
-# 개발 머신의 ~/.ssh/anycloud-pve.pub 내용을 붙입니다
-cat >> /home/anycloud-ssh/.ssh/authorized_keys <<'KEY'
-ssh-ed25519 AAAA... anycloud-provisioning
-KEY
-
-chmod 700 /home/anycloud-ssh/.ssh
-chmod 600 /home/anycloud-ssh/.ssh/authorized_keys
-chown -R anycloud-ssh:anycloud-ssh /home/anycloud-ssh/.ssh
-
-# 스니펫 디렉터리 쓰기 권한
-chgrp -R anycloud-ssh /var/lib/vz/snippets
-chmod -R g+w /var/lib/vz/snippets
-```
-
-`nologin` 셸로도 동작합니다. 기본 업로드 모드가 `sftp` 라 셸을 열지 않고 SFTP subsystem 만 씁니다.
-
-### sudo 가 필요 없는 이유
-
-provider 의 업로드 모드가 둘입니다.
-
-| 모드 | 동작 | 필요 권한 |
+| 기본값 | 종류 | 담는 것 |
 |---|---|---|
-| `sftp` (기본) | SFTP subsystem 으로 전송 | 디렉터리 쓰기 권한만 |
-| `stream` | SSH 셸 세션으로 파이프 | 필요 시 `sudo` |
+| `local-lvm` (ZFS 설치면 `local-zfs`) | 블록 스토리지 | VM 디스크, cloud-init 디스크 |
+| `local` | 디렉터리 | 내려받은 cloud 이미지 (`import`) |
 
-`sftp` 를 기본값으로 두어 sudo 없이 운영합니다. SFTP subsystem 이 꺼진 호스트에서만 바꿉니다.
+블록 스토리지는 `import` content 를 받지 않아 한쪽에 몰 수 없습니다. 반대로 `local` 은 디렉터리
+스토리지라 디스크를 만들지 못합니다.
 
-```json
-"providerSpec": { "snippetUploadMode": "stream" }
-```
-
-`stream` 으로 바꾸면 `anycloud-ssh` 에 sudo 권한이 필요합니다. 그 경우에도 전체를 열지 말고
-좁혀서 줍니다.
-
-```
-anycloud-ssh ALL=(root) NOPASSWD: /usr/bin/tee /var/lib/vz/snippets/*
-```
-
-## 4. 자격증명 등록
+## 3. 자격증명 등록
 
 ```bash
-KEY=$(awk '{printf "%s\\n", $0}' ~/.ssh/anycloud-pve)
-
 curl -X POST http://localhost:8888/v1/credentials \
-  -H 'Content-Type: application/json' -d @- <<JSON
+  -H 'Content-Type: application/json' -d @- <<'JSON'
 {
   "name": "proxmox-lab-01",
   "provider": "Proxmox",
   "credentialType": "MANUAL",
   "environment": {
     "PROXMOX_VE_ENDPOINT": "https://pve1.example.com:8006/",
-    "PROXMOX_VE_API_TOKEN": "anycloud@pve!provisioning=12345678-...",
-    "PROXMOX_VE_INSECURE": "true",
-    "PROXMOX_VE_SSH_USERNAME": "anycloud-ssh",
-    "PROXMOX_VE_SSH_PRIVATE_KEY": "$KEY"
+    "PROXMOX_VE_API_TOKEN_ID": "anycloud@pve!provisioning",
+    "PROXMOX_VE_API_TOKEN_SECRET": "12345678-1234-1234-1234-123456789abc",
+    "PROXMOX_VE_INSECURE": "true"
   }
 }
 JSON
@@ -195,21 +202,14 @@ JSON
 
 | 키 | 필수 | 기본값 | 비고 |
 |---|---|---|---|
-| `PROXMOX_VE_ENDPOINT` | 예 | | 끝에 `/`, `/api2/json` 은 넣지 않습니다 |
-| `PROXMOX_VE_API_TOKEN` | 예 | | `full-tokenid=value`. username/password 와 배타적입니다 |
-| `PROXMOX_VE_SSH_PRIVATE_KEY` | 예 | | passphrase 없는 PEM. `PROXMOX_VE_SSH_PASSWORD` 로 대체 가능합니다 |
-| `PROXMOX_VE_SSH_USERNAME` | 아니오 | `root` | 전용 계정을 쓰면 반드시 지정합니다 |
+| `PROXMOX_VE_ENDPOINT` | 예 | | 끝에 `/`. `/api2/json` 은 넣지 않습니다 |
+| `PROXMOX_VE_API_TOKEN_ID` | 예 | | `user@realm!tokenname` |
+| `PROXMOX_VE_API_TOKEN_SECRET` | 예 | | 발급 시점에 한 번만 표시됩니다 |
 | `PROXMOX_VE_INSECURE` | 아니오 | `false` | 자체 서명 인증서면 `true` |
-| `PROXMOX_VE_SSH_NODE_ADDRESS_SOURCE` | 아니오 | `api` | 아래 문제 해결 참고 |
-| `PROXMOX_VE_SSH_NODES` | 아니오 | | 노드별 주소 직접 지정 |
 
-`PROXMOX_VE_SSH_USERNAME` 의 기본값이 `root` 인 이유는 API 토큰 인증에서 provider 가 SSH 사용자를
-API 사용자에서 상속하지 못하기 때문입니다. **전용 계정을 만들었다면 반드시 지정합니다.**
+인증은 토큰만 씁니다. username/password 경로는 없습니다.
 
-API 토큰과 `PROXMOX_VE_USERNAME`+`PROXMOX_VE_PASSWORD` 는 배타적입니다. 둘 다 넘기면 provider 가
-거부하므로, 토큰이 있으면 username/password 는 무시합니다.
-
-## 5. 프로비저닝 요청
+## 4. 프로비저닝 요청
 
 ```json
 POST /v1/vms
@@ -231,101 +231,67 @@ POST /v1/vms
 Proxmox 는 인스턴스 타입이 없어 `masterInstanceType` 을 `"코어-메모리MiB"` 형식으로 받습니다.
 `4-8192` 는 4 코어, 8GiB 입니다.
 
-`providerSpec` 의 나머지는 기본값이 있어 생략했습니다.
+`providerSpec` 에서 `nodeName` 만 필수입니다. 클러스터를 구성했더라도 어느 노드에 올릴지
+지정해야 합니다. 이 문서의 `pve1` 은 예시일 뿐이고, 실제 값은 설치할 때 정한 호스트명입니다
+(`pvesh get /nodes --output-format json` 또는 웹 UI 좌측 트리에서 확인).
 
-| 키 | 기본값 |
-|---|---|
-| `datastoreId` | `local-lvm` |
-| `snippetDatastoreId` | `local` |
-| `networkBridge` | `vmbr0` |
-| `snippetUploadMode` | `sftp` |
+| 키 | 기본값 | 설명 |
+|---|---|---|
+| `nodeName` | 없음 (필수) | VM 을 올릴 PVE 노드 |
+| `datastoreId` | `local-lvm` | 디스크를 만들 블록 스토리지 |
+| `imageDatastoreId` | `local` | 이미지를 내려받을 디렉터리 스토리지 |
+| `networkBridge` | `vmbr0` | 붙일 브리지 |
 
 Proxmox 는 하이퍼바이저라 VPC, 서브넷, 보안그룹을 만들지 않고 기존 브리지에 붙습니다.
 `spec.network.vpcCidr` 은 쓰이지 않습니다.
 
 ## 사전 확인
 
-프로비저닝 전에 세 가지를 확인합니다.
-
 ```bash
+# 0. 버전과 스토리지 이름
+pveversion
+pvesm status
+
 # 1. 토큰이 API 를 통과하는가
 curl -k -H 'Authorization: PVEAPIToken=anycloud@pve!provisioning=<value>' \
   https://pve1:8006/api2/json/version
 
-# 2. datastore 에 snippets 가 켜졌는가
+# 2. datastore 에 import 가 켜졌는가
 curl -k -H 'Authorization: PVEAPIToken=...' \
-  https://pve1:8006/api2/json/nodes/pve1/storage | grep -o 'snippets'
+  https://pve1:8006/api2/json/nodes/pve1/storage | grep -o 'import'
 
-# 3. SFTP 로 스니펫 디렉터리에 쓸 수 있는가
-echo probe | sftp -i ~/.ssh/anycloud-pve anycloud-ssh@pve1:/var/lib/vz/snippets/.probe \
-  && ssh -i ~/.ssh/anycloud-pve anycloud-ssh@pve1 'rm -f /var/lib/vz/snippets/.probe' \
-  && echo OK
+# 3. 권한이 다 붙었는가 — 아래 세 개가 보여야 합니다
+pveum user permissions anycloud@pve --path /storage/local   # Datastore.AllocateTemplate
+pveum user permissions anycloud@pve --path /                # Sys.Audit
+pveum user permissions anycloud@pve --path /sdn             # SDN.Use
 ```
 
-3번을 따로 확인하는 이유는 앞서 설명한 API 제약입니다. 1, 2번이 통과해도 3번이 막히면 VM 은
-정상적으로 뜨고 cloud-init 만 실행되지 않아 원인을 찾기 어렵습니다.
-
-`nologin` 셸이면 3번의 `rm` 이 실패합니다. 그때는 SFTP 쓰기만 확인하고 파일은 남겨 둡니다.
+두 가지가 통과하면 프로비저닝을 시작할 수 있습니다. VM 이 뜬 뒤 부트스트랩이 노드에 SSH 로
+접속하므로, 백엔드에서 VM 의 브리지 대역으로 22 번 포트가 닿아야 합니다.
 
 ## 문제 해결
 
-### 증상별 원인
-
 | 증상 | 확인할 것 |
 |---|---|
-| 프로비저닝이 시작되지 않음 | 토큰 형식(`full-tokenid=value`), `--privsep 0` |
-| `content type 'snippets' not allowed` | datastore 에 `snippets` 활성화 |
-| 스니펫 업로드 permission denied | 디렉터리 그룹 쓰기 권한, `snippetUploadMode` |
-| VM 은 뜨는데 kubeadm 이 없음 | cloud-init 미실행 — 사전 확인 3번 |
+| 프로비저닝이 시작되지 않음 | 토큰 ID 형식(`user@realm!name`), `--privsep 0`, 토큰 만료일 |
+| `content type 'import' not allowed` | datastore 에 `import` 활성화 (2번) |
+| 이미지 다운로드 403 | `Datastore.AllocateTemplate`, `Sys.Audit` — 사전 확인 3번 |
+| VM 생성이 브리지에서 403 | `SDN.Use` — 사전 확인 3번 |
+| 노드 IP 가 비어 나옴 | `VM.GuestAgent.Audit` 또는 이미지의 `qemu-guest-agent` |
+| 이미지 다운로드 실패 | `imageDatastoreId` 가 디렉터리 스토리지인지, 호스트가 이미지 URL 로 나가는지 |
+| 디스크 생성 실패 | `datastoreId` 가 블록 스토리지인지 — ZFS 설치면 `local-zfs` |
+| `pvesm set` 에 `import` 옵션이 없음 | PVE 8.2.8 미만 — 업그레이드 외에 방법이 없습니다 |
 | VM 은 뜨는데 SSH 접속 실패 | 아래 참고 |
-| SSH timeout | 노드 주소 — 아래 참고 |
+| BOOTSTRAP 단계에서 패키지 설치 실패 | VM 에서 외부 인터넷이 닿는지 (apt, 레지스트리) |
 | TLS 오류 | `PROXMOX_VE_INSECURE=true` |
 
 ### VM 에 SSH 접속이 안 될 때
 
-호스트 SSH 와 무관합니다. **VM 키** 쪽 문제입니다.
-
-VM 공개키는 `initialization.userAccount` 로 주입되며 `spec.sshUser`(기본 `ubuntu`)를 사용자로 씁니다.
+공개키는 `initialization.userAccount` 로 주입되며 `spec.sshUser`(기본 `ubuntu`)를 사용자로 씁니다.
 cloud 이미지의 기본 사용자와 다르면 접속이 거부됩니다. Ubuntu cloud image 는 `ubuntu` 입니다.
 
-### 노드 IP 에 SSH 가 닿지 않을 때
-
-provider 는 기본적으로 PVE API 가 알려주는 노드 IP 로 SSH 합니다. 다중 서브넷 환경에서는 그 주소가
-백엔드에서 닿지 않을 수 있습니다.
-
-노드 주소를 직접 지정합니다.
-
-```json
-"PROXMOX_VE_SSH_NODES": "[{\"name\":\"pve1\",\"address\":\"10.0.0.11\"}]"
-```
-
-또는 로컬 DNS 로 풀게 합니다.
-
-```json
-"PROXMOX_VE_SSH_NODE_ADDRESS_SOURCE": "dns"
-```
-
-`PROXMOX_VE_SSH_NODES` 가 JSON 배열이 아니면 자격증명 등록 단계에서 실패합니다. 값이 깨진 채로
-넘어가면 SSH 가 엉뚱한 주소로 가기 때문입니다.
-
-## 축약 경로 — root 사용
-
-동작 확인만 빠르게 하려면 3번을 건너뛰고 기존 `root` 키를 씁니다.
-
-```bash
-ssh-copy-id -i ~/.ssh/anycloud-pve.pub root@pve1
-```
-
-자격증명에서 `PROXMOX_VE_SSH_USERNAME` 을 생략하면 기본값 `root` 가 적용됩니다.
-
-**운영에는 권장하지 않습니다.** 스니펫 파일 하나를 올리기 위해 하이퍼바이저 관리자 계정을 내주는
-구조이고, API 토큰을 좁게 발급한 이점이 여기서 상쇄됩니다.
-
-## 남은 선택지
-
-호스트 SSH 자체를 없애려면 스니펫 저장소를 외부로 옮깁니다. NFS 나 CIFS 를 snippets datastore 로
-붙이면 PVE 호스트를 거치지 않고 해당 스토리지에 직접 쓸 수 있습니다. 인프라 구성이 달라지므로
-별도로 검토합니다.
+주소는 QEMU guest agent 가 보고합니다. agent 가 응답하지 않으면 노드 IP 가 비어 나오므로,
+이미지에 `qemu-guest-agent` 가 들어 있는지 확인합니다.
 
 ## 관련 문서
 

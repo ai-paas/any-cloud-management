@@ -5,13 +5,42 @@ import (
 	"strings"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/fake"
+	k8stesting "k8s.io/client-go/testing"
 )
+
+// newFakeClientWithScheduledPods — 만든 파드를 kubelet 이 띄운 것처럼 Running 으로 채운다.
+//
+// fake clientset 은 상태를 채우지 않아 CreateNodeDebugPod 의 준비 대기가 상한까지 돈다. 실제
+// 클러스터에서는 곧 Running 이 되므로 그 쪽을 흉내내는 것이 맞다.
+func newFakeClientWithScheduledPods() *realClient {
+	c := newFakeRealClient()
+	fakeCS, ok := c.cs.(*fake.Clientset)
+	if !ok {
+		return c
+	}
+	fakeCS.PrependReactor("create", "pods", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		pod, ok := action.(k8stesting.CreateAction).GetObject().(*corev1.Pod)
+		if !ok {
+			return false, nil, nil
+		}
+		pod.Status.Phase = corev1.PodRunning
+		pod.Status.ContainerStatuses = []corev1.ContainerStatus{{
+			Name:  debugContainerName,
+			State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}},
+		}}
+		return false, nil, nil
+	})
+	return c
+}
 
 // 노드 셸은 호스트 안으로 들어가야 한다. nsenter 와 host namespace 가 빠지면 컨테이너 안에
 // 갇혀 노드를 못 본다.
 func TestNodeDebugPod_HostShellEntersTheHost(t *testing.T) {
-	c := newFakeRealClient()
+	c := newFakeClientWithScheduledPods()
 
 	res, err := c.CreateNodeDebugPod(context.Background(), NodeDebugPodOptions{NodeName: "n1"})
 	if err != nil {
@@ -30,7 +59,7 @@ func TestNodeDebugPod_HostShellEntersTheHost(t *testing.T) {
 // kubectl, k9s 터미널은 호스트가 아니라 클러스터를 본다. 노드에 그 도구들이 깔려 있을 이유가
 // 없으므로 이미지가 들고 와야 하고, nsenter 로 호스트에 들어가면 그 이미지를 쓰지 못한다.
 func TestNodeDebugPod_ToolsShellRunsTheImage(t *testing.T) {
-	c := newFakeRealClient()
+	c := newFakeClientWithScheduledPods()
 
 	res, err := c.CreateNodeDebugPod(context.Background(), NodeDebugPodOptions{
 		NodeName:   "n1",
@@ -55,7 +84,7 @@ func TestNodeDebugPod_ToolsShellRunsTheImage(t *testing.T) {
 
 // 도구 셸은 호스트를 건드릴 이유가 없다. privileged 로 띄우면 터미널 하나가 노드 전체 권한이 된다.
 func TestNodeDebugPod_ToolsShellIsNotPrivileged(t *testing.T) {
-	c := newFakeRealClient()
+	c := newFakeClientWithScheduledPods()
 
 	res, _ := c.CreateNodeDebugPod(context.Background(), NodeDebugPodOptions{NodeName: "n1", ToolsShell: true})
 	pod, _ := c.cs.CoreV1().Pods(res.Namespace).Get(context.Background(), res.PodName, metav1.GetOptions{})
@@ -68,7 +97,7 @@ func TestNodeDebugPod_ToolsShellIsNotPrivileged(t *testing.T) {
 
 // 클러스터를 보려면 자격이 있어야 한다. SA 가 없으면 kubectl 이 모든 호출에서 forbidden 을 받는다.
 func TestNodeDebugPod_ToolsShellCarriesAServiceAccount(t *testing.T) {
-	c := newFakeRealClient()
+	c := newFakeClientWithScheduledPods()
 
 	res, _ := c.CreateNodeDebugPod(context.Background(), NodeDebugPodOptions{
 		NodeName:       "n1",

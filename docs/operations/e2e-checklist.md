@@ -22,13 +22,6 @@
 - `GOOGLE_APPLICATION_CREDENTIALS` 또는 `GOOGLE_CREDENTIALS`
 - 요청의 `providerSpec.project`
 
-### Azure
-- `ARM_CLIENT_ID`
-- `ARM_CLIENT_SECRET`
-- `ARM_TENANT_ID`
-- `ARM_SUBSCRIPTION_ID`
-- 요청의 `providerSpec.resourceGroup`
-
 ### Alibaba
 - `ALICLOUD_ACCESS_KEY`
 - `ALICLOUD_SECRET_KEY`
@@ -48,10 +41,11 @@
 
 ### Proxmox
 - `PROXMOX_VE_ENDPOINT`
-- `PROXMOX_VE_USERNAME`
-- `PROXMOX_VE_PASSWORD`
-- 요청의 `anycloud-k8s:proxmoxNodeName`, `anycloud-k8s:proxmoxTemplateVmId`, `anycloud-k8s:proxmoxDatastoreId`, `anycloud-k8s:proxmoxNetworkBridge`
-- snippet 저장이 가능한 datastore와 cloud-init template VM 확인
+- `PROXMOX_VE_API_TOKEN_ID`, `PROXMOX_VE_API_TOKEN_SECRET`
+- 요청의 `providerSpec.nodeName`, `providerSpec.datastoreId`, `providerSpec.imageDatastoreId`, `providerSpec.networkBridge`
+- `import` content type이 켜진 datastore 확인 (cloud 이미지 다운로드) — PVE 8.2.8 이상
+- `pvesm status`로 디스크 스토리지 이름 확인 (ZFS 설치면 `local-zfs`)
+- PVE 호스트와 노드의 외부 인터넷 경로 확인 (이미지 URL, apt, 레지스트리)
 
 ### OCI
 - `TF_VAR_tenancy_ocid`
@@ -61,9 +55,6 @@
 - `TF_VAR_private_key` 또는 `TF_VAR_private_key_path`
 - 요청의 `providerSpec.compartmentId`
 - compartment 권한 / shape / Ubuntu image availability 확인
-
-### DigitalOcean
-- `DIGITALOCEAN_TOKEN` 또는 `DIGITALOCEAN_ACCESS_TOKEN`
 
 자세한 매트릭스는 [provider-credential-matrix.md](../api/provider-credential-matrix.md)를 참고합니다.
 

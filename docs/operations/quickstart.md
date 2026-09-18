@@ -91,7 +91,7 @@ make dev-debug         # JDWP :5005 listen — IDE remote attach
 | **Day-2** | ✗ | Pulumi + agent 필요 |
 
 **최소 검증 흐름**:
-1. Providers → "Providers 목록" → 응답에 aws/gcp/azure 등이 표시됩니다.
+1. Providers → "Providers 목록" → 응답에 aws/gcp/alibaba 등이 표시됩니다.
 2. Credentials → 생성 (provider=aws + 임의 키) → 목록에 추가됩니다.
 3. Workflow → "큐 상태" → RabbitMQ 큐 정보가 나옵니다.
 4. Observability → preset dropdown 선택 → PromQL 이 자동 채워집니다 (실제 호출은 agent 가 필요합니다).

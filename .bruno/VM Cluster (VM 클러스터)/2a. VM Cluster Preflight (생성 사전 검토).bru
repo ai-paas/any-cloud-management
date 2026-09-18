@@ -19,32 +19,30 @@ body:json {
   {
     "clusterProvider": "{{provision_provider}}",
     "clusterName": "{{provision_cluster_name}}",
-    "description": "CSP VM 기반 Kubernetes 클러스터 사전 검토 테스트",
+    "description": "CSP VM 기반 Kubernetes 클러스터 사전 검토",
     "environment": "{{provision_environment}}",
     "region": "{{provision_region}}",
-    "credentialId": "{{credential_id}}",
-    "spec": {
-      "masterInstanceType": "{{master_vm_spec}}",
-      "workerInstanceType": "{{worker_vm_spec}}",
-      "workerCount": "{{worker_count}}",
-      "kubernetesVersion": "{{kubernetes_version}}",
-      "enableIngress": "{{enable_ingress}}",
-      "enableGpuOperator": "{{enable_gpu_operator}}",
-      "dbEnabled": "false",
-      "network": {
-        "vpcCidr": "{{vpc_cidr}}",
-        "podCidr": "{{pod_cidr}}",
-        "serviceCidr": "{{service_cidr}}"
-      }
-    },
-    "providerSpec": {
-      "project": "{{gcp_project}}",
-      "resourceGroup": "{{azure_resource_group}}",
-      "imageName": "{{openstack_image_name}}",
-      "flavorName": "{{openstack_flavor_name}}",
-      "externalNetworkId": "{{openstack_external_network_id}}",
-      "floatingIpPool": "{{openstack_floating_ip_pool}}",
-      "compartmentId": "{{oci_compartment_id}}"
+    "credentialId": "{{vm_credential_id}}",
+    "config": {
+      "anycloud-k8s:masterCount": "1",
+      "anycloud-k8s:workerCount": "{{worker_count}}",
+      "anycloud-k8s:masterInstanceType": "{{master_vm_spec}}",
+      "anycloud-k8s:workerInstanceType": "{{worker_vm_spec}}",
+      "anycloud-k8s:kubernetesVersion": "{{kubernetes_version}}",
+      "anycloud-k8s:podCidr": "{{pod_cidr}}",
+      "anycloud-k8s:serviceCidr": "{{service_cidr}}",
+      "anycloud-k8s:enableIngress": "{{enable_ingress}}",
+      "anycloud-k8s:enableGpuOperator": "{{enable_gpu_operator}}",
+      "anycloud-k8s:dbEnabled": "false",
+      "anycloud-k8s:providerSpec.zone": "{{ibm_zone}}",
+      "anycloud-k8s:providerSpec.project": "{{gcp_project}}",
+      "anycloud-k8s:providerSpec.resourceGroup": "{{resource_group}}",
+      "anycloud-k8s:providerSpec.imageName": "{{openstack_image_name}}",
+      "anycloud-k8s:providerSpec.flavorName": "{{openstack_flavor_name}}",
+      "anycloud-k8s:providerSpec.externalNetworkId": "{{openstack_external_network_id}}",
+      "anycloud-k8s:providerSpec.floatingIpPool": "{{openstack_floating_ip_pool}}",
+      "anycloud-k8s:providerSpec.compartmentId": "{{oci_compartment_id}}",
+      "anycloud-k8s:providerSpec.nodeName": "{{proxmox_node_name}}"
     }
   }
 }
@@ -58,6 +56,13 @@ tests {
     const body = res.getBody();
     expect(body.links).to.have.property("createCluster");
     expect(body.links.createCluster).to.equal("/v1/clusters");
+  });
+
+  test("등록한 자격증명으로 조회가 된다", function() {
+    // credentialId 를 버리고 조회하면 환경변수 fallback 으로 떨어져 readyToProvision 이 false 가 된다.
+    const d = res.getBody().data;
+    if (!d.vmOptionsDiscoveryChecked) return;
+    expect(d.vmOptionsDiscoveryReady, JSON.stringify(d.vmOptionsDiscoveryMessages)).to.equal(true);
   });
 
   test("preflight response includes readiness hints", function() {

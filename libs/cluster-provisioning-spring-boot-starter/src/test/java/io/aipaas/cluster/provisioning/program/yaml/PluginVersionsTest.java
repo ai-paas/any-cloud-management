@@ -12,11 +12,11 @@ class PluginVersionsTest {
 
     @Test
     void resolvesPackageFromTypeToken() {
-        PluginVersions v = PluginVersions.parse("aws:7.44.0 azure-native:3.27.0 tls:5.6.0");
+        PluginVersions v = PluginVersions.parse("aws:7.44.0 terraform-provider:1.4.0 tls:5.6.0");
 
         assertThat(v.forType("aws:ec2/instance:Instance")).isEqualTo("7.44.0");
-        // 패키지 이름에 하이픈이 들어간다.
-        assertThat(v.forType("azure-native:network:Subnet")).isEqualTo("3.27.0");
+        // 패키지 이름에 하이픈이 들어간다 — IBM 이 쓰는 terraform-provider 가 그렇다.
+        assertThat(v.forType("terraform-provider:index/resource:Resource")).isEqualTo("1.4.0");
         assertThat(v.forType("tls:index/privateKey:PrivateKey")).isEqualTo("5.6.0");
     }
 
@@ -43,7 +43,7 @@ class PluginVersionsTest {
         Map<String, String> defaults =
                 PluginVersions.parse(PluginVersions.DEFAULT).asMap();
 
-        assertThat(defaults).containsKeys("aws", "gcp", "azure-native", "oci", "openstack", "tls");
+        assertThat(defaults).containsKeys("aws", "gcp", "oci", "openstack", "proxmoxve", "alicloud", "tls");
     }
 
     @Test
@@ -72,5 +72,22 @@ class PluginVersionsTest {
         Map<String, Object> options = (Map<String, Object>) res.get("options");
 
         assertThat(options).containsEntry("dependsOn", "${x}").containsKey("version");
+    }
+
+    @Test
+    void thirdPartyPluginsCarryTheirDownloadUrl() {
+        /*
+         * proxmoxve 는 get.pulumi.com 에 없다. 선언이 빠지면 런타임 자동 설치가 기본 주소로 가서
+         * 403 을 받고, 오류가 "플러그인을 설치하라"로만 나와 배포처 문제로 보이지 않는다.
+         */
+        assertThat(PluginVersions.downloadUrlForType("proxmoxve:index/vmLegacy:VmLegacy"))
+                .isEqualTo("github://api.github.com/muhlba91/pulumi-proxmoxve");
+    }
+
+    @Test
+    void pluginsOnTheDefaultRegistryDeclareNoUrl() {
+        assertThat(PluginVersions.downloadUrlForType("aws:ec2/instance:Instance"))
+                .isNull();
+        assertThat(PluginVersions.downloadUrlForType(null)).isNull();
     }
 }

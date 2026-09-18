@@ -10,7 +10,7 @@ Client
   -> API Gateway
   -> anycloud-backend (Spring Boot)
   -> Pulumi Automation API (생성된 YAML 프로그램 실행)
-  -> AWS / GCP / Azure / OpenStack ...
+  -> AWS / GCP / Alibaba / OpenStack ...
 ```
 
 핵심 포인트는 다음과 같습니다.
@@ -189,7 +189,6 @@ docker compose -f docker-compose.dev.yml exec anycloud-backend pulumi login --he
 누적됩니다.
 
 - AWS — `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`
-- Azure 는 `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID` 입니다.
 - GCP — `GOOGLE_CREDENTIALS` 또는 `GOOGLE_APPLICATION_CREDENTIALS`
 - OpenStack — `OS_AUTH_URL` 등
 
@@ -277,7 +276,6 @@ CSP 여러 개를 동시에 올릴 때 실질 동시성은 아래 셋 중 가장
 | 항목 | 크기 |
 |---|---:|
 | aws 플러그인 | 943.5 MB |
-| azure-native 플러그인 | 587.8 MB |
 | oci 플러그인 | 349.6 MB |
 | gcp 플러그인 | 243.8 MB |
 | proxmoxve 플러그인 | 82.1 MB |
@@ -294,10 +292,10 @@ CSP 여러 개를 동시에 올릴 때 실질 동시성은 아래 셋 중 가장
 
 | 조합 | 이미지 | `PULUMI_PLUGINS` |
 |---|---:|---|
-| 전체 7종 | 3.39 GB | 기본값 |
+| 전체 6종 | 약 2.8 GB | 기본값 |
 | OpenStack 전용 | 약 671 MB | `openstack:5.5.1 tls:5.6.0` |
 | OpenStack + Proxmox | 약 753 MB | `openstack:5.5.1 proxmoxve:8.6.0 tls:5.6.0` |
-| AWS 제외 | 약 1.9 GB | `gcp:9.36.1 azure-native:3.27.0 oci:4.22.0 openstack:5.5.1 proxmoxve:8.6.0 tls:5.6.0` |
+| AWS 제외 | 약 1.3 GB | `gcp:9.36.1 oci:4.22.0 openstack:5.5.1 proxmoxve:8.6.0 alicloud:3.108.0 tls:5.6.0` |
 
 ```bash
 docker build -f Dockerfile.pulumi \

@@ -18,6 +18,13 @@ final class OciRecords {
     @JsonIgnoreProperties(ignoreUnknown = true)
     record AvailabilityDomain(String name) {}
 
+    /**
+     * Compartment.
+     *
+     * @param lifecycleState {@code ACTIVE} 가 아닌 것(DELETING/DELETED)에 자원을 만들 수 없다
+     */
+    record Compartment(String id, String name, String lifecycleState) {}
+
     /** GET /shapes 의 단일 item. {@code ocpus}/{@code memoryInGBs} 는 flex shape 면 응답에서 누락 가능 — record field 가 null 이면 처리 측에서 null 체크. */
     @JsonIgnoreProperties(ignoreUnknown = true)
     record Shape(

@@ -30,7 +30,29 @@ public final class StandardOutputs {
             String privateIpResource,
             String privateIpProperty,
             String publicIpResource,
-            String publicIpProperty) {
+            String publicIpProperty,
+            String privateIpLiteral,
+            String publicIpLiteral,
+            int sshPort) {
+
+        public NodeRef(
+                String resource,
+                String instanceIdProperty,
+                String privateIpResource,
+                String privateIpProperty,
+                String publicIpResource,
+                String publicIpProperty) {
+            this(
+                    resource,
+                    instanceIdProperty,
+                    privateIpResource,
+                    privateIpProperty,
+                    publicIpResource,
+                    publicIpProperty,
+                    null,
+                    null,
+                    K8sConstants.PORT_SSH);
+        }
 
         /** private IP 가 인스턴스에 붙는 CSP 용. */
         public NodeRef(
@@ -42,12 +64,24 @@ public final class StandardOutputs {
             this(resource, instanceIdProperty, resource, privateIpProperty, publicIpResource, publicIpProperty);
         }
 
+        /**
+         * 주소를 요청에서 정한 CSP 용.
+         *
+         * <p>Proxmox 는 cloud 이미지에 {@code qemu-guest-agent} 가 없어 인스턴스에게 주소를 물을 수
+         * 없다. 고정 주소를 넣었으므로 그 값을 그대로 쓴다.
+         */
+        public static NodeRef literal(
+                String resource, String instanceIdProperty, String privateIp, String publicIp, int sshPort) {
+            return new NodeRef(
+                    resource, instanceIdProperty, resource, null, resource, null, privateIp, publicIp, sshPort);
+        }
+
         String privateIp() {
-            return YamlRef.of(privateIpResource, privateIpProperty);
+            return privateIpLiteral != null ? privateIpLiteral : YamlRef.of(privateIpResource, privateIpProperty);
         }
 
         String publicIp() {
-            return YamlRef.of(publicIpResource, publicIpProperty);
+            return publicIpLiteral != null ? publicIpLiteral : YamlRef.of(publicIpResource, publicIpProperty);
         }
 
         String instanceId() {
@@ -74,6 +108,11 @@ public final class StandardOutputs {
                 // 현재 구현이 publicIp 를 그대로 넣는다. 계약 유지가 목적이라 동작을 바꾸지 않는다.
                 .output("masterPublicDns", masterPublicIp)
                 .output("apiServerUrl", "https://" + masterPublicIp + ":" + K8sConstants.PORT_KUBE_API_SERVER)
+                /*
+                 * 기본 사용자는 CSP 마다 다르다 — Alibaba 의 Ubuntu 이미지에는 ubuntu 계정이 없고
+                 * 키가 root 에 들어간다. 백엔드가 전역 기본값으로 붙으면 그 CSP 만 조용히 막힌다.
+                 */
+                .output("sshUser", spec.sshUser())
                 .output("sshPrivateKeyPem", YamlRef.secret(YamlRef.of(refs.sshKeyResource(), "privateKeyPem")))
                 .output("kubeconfigRemotePath", "/etc/kubernetes/admin.conf")
                 .output("masterSshCommand", YamlRef.secret(sshCommand(spec, masterPublicIp)))
@@ -82,7 +121,13 @@ public final class StandardOutputs {
     }
 
     private static String sshCommand(ClusterSpec spec, String publicIp) {
-        return "ssh -i ./secrets/" + spec.name() + ".pem " + spec.sshUser() + "@" + publicIp;
+        return sshCommand(spec, publicIp, K8sConstants.PORT_SSH);
+    }
+
+    /** 포트를 붙이는 쪽은 NAT 뒤 노드다. 기본 포트면 인자를 넣지 않아 기존 출력과 같은 모양을 유지한다. */
+    private static String sshCommand(ClusterSpec spec, String publicIp, int sshPort) {
+        String port = sshPort == K8sConstants.PORT_SSH ? "" : "-p " + sshPort + " ";
+        return "ssh " + port + "-i ./secrets/" + spec.name() + ".pem " + spec.sshUser() + "@" + publicIp;
     }
 
     private static String kubeconfigFetchCommand(ClusterSpec spec, String publicIp) {
@@ -113,7 +158,9 @@ public final class StandardOutputs {
         entry.put("privateIp", ref.privateIp());
         entry.put("publicIp", publicIp);
         entry.put("publicDns", publicIp);
-        entry.put("ssh", sshCommand(spec, publicIp));
+        // 22 가 아닌 노드는 부트스트랩과 웹 콘솔이 이 값을 봐야 한다. 없으면 22 로 붙는다.
+        entry.put("sshPort", ref.sshPort());
+        entry.put("ssh", sshCommand(spec, publicIp, ref.sshPort()));
         return entry;
     }
 }

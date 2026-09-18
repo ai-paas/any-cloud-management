@@ -296,8 +296,11 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
             SupportedProvisioningProvider provider, ProvisionClusterRequest cluster) {
         List<String> messages = new ArrayList<>();
         try {
+            // credentialId 를 버리면 조회가 환경변수 fallback 으로 떨어진다. 등록한 자격증명으로
+            // 만들려는 요청인데 preflight 는 "조회 불가"로 답해 readyToProvision 이 false 가 된다.
+            String credentialId = cluster == null ? null : cluster.getCredentialId();
             List<com.aipaas.anycloud.domain.vmoptions.api.VmOptionRegion> regions =
-                    vmOptionsQueryService.listRegions(provider.getCanonicalName(), null);
+                    vmOptionsQueryService.listRegions(provider.getCanonicalName(), credentialId);
             if (cluster != null
                     && cluster.getRegion() != null
                     && !cluster.getRegion().isBlank()) {
@@ -379,12 +382,6 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
                 }
                 yield missing;
             }
-            case DIGITALOCEAN -> (ProvisioningCredentialRules.hasCredentialValue(
-                                    "DIGITALOCEAN_TOKEN", provided, pulumiProperties)
-                            || ProvisioningCredentialRules.hasCredentialValue(
-                                    "DIGITALOCEAN_ACCESS_TOKEN", provided, pulumiProperties))
-                    ? List.of()
-                    : List.of("DIGITALOCEAN_TOKEN or DIGITALOCEAN_ACCESS_TOKEN");
             default -> ProvisioningCredentialRules.requiredCredentialKeys(provider).stream()
                     .filter(key -> !ProvisioningCredentialRules.hasCredentialValue(key, provided, pulumiProperties))
                     .toList();
@@ -444,12 +441,6 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
                 checklistItems.add("Verify Compute Engine API is enabled for the selected project");
                 checklistItems.add("Confirm project and region quotas allow the requested VM count");
             }
-            case AZURE -> {
-                messages.add(
-                        "Azure preflight validates VM options, but subscription quota and resource-group permissions still need confirmation");
-                checklistItems.add("Confirm the configured Azure resource group exists or can be created");
-                checklistItems.add("Verify VM family quota in the selected Azure region");
-            }
             case ALIBABA -> {
                 messages.add(
                         "Alibaba preflight validates live VM options, but ECS zone/image availability and quota should be verified before E2E");
@@ -468,11 +459,6 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
                 checklistItems.add("Confirm compartment access and shape availability in the selected OCI region");
                 checklistItems.add(
                         "Verify Ubuntu image availability or adjust the image lookup if tenancy policy differs");
-            }
-            case DIGITALOCEAN -> {
-                messages.add(
-                        "DigitalOcean preflight validates live VM options, but Droplet/VPC quota and token scope still need runtime confirmation");
-                checklistItems.add("Confirm the API token can manage Droplets, VPCs, and SSH keys");
             }
         }
 

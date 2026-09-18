@@ -11,7 +11,12 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.yaml.snakeyaml.Yaml;
 
-/** IBM Cloud VPC YAML 프로그램 회귀 보호. */
+/**
+ * IBM Cloud VPC YAML 프로그램 회귀 보호.
+ *
+ * <p>이미지 이름에는 빌드 번호가 붙고 주기적으로 갈린다. 기본값을 두지 않고 받는 이유는
+ * {@link IbmYamlEmitter#imageName} 주석에 있다.
+ */
 class IbmYamlEmitterTest {
 
     private Map<String, String> cfg() {
@@ -20,7 +25,8 @@ class IbmYamlEmitterTest {
         cfg.put("name", "demo");
         cfg.put("workerCount", "1");
         cfg.put("joinToken", "abcdef.0123456789abcdef");
-        cfg.put("providerSpec.zone", "us-south-1");
+        cfg.put("providerSpec.zone", "jp-tok-1");
+        cfg.put("osImage", "ibm-ubuntu-24-04-4-minimal-amd64-7");
         return cfg;
     }
 
@@ -78,9 +84,39 @@ class IbmYamlEmitterTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void theRequestedVpcCidrBecomesAnAddressPrefix() {
+        /*
+         * 기본값(auto)으로 두면 IBM 이 자기 대역으로 접두사를 만든다. 요청한 vpcCidr 은 그 안에
+         * 들어가지 않아 서브넷이 "CIDR does not fit in any of the address prefixes" 로 거절된다.
+         */
+        Map<String, String> cfg = cfg();
+        cfg.put("vpcCidr", "10.98.0.0/16");
+        Map<String, Object> resources = (Map<String, Object>) doc(cfg).get("resources");
+
+        Map<String, Object> vpc = (Map<String, Object>) ((Map<String, Object>) resources.get("vpc")).get("properties");
+        assertThat(vpc).containsEntry("addressPrefixManagement", "manual");
+
+        Map<String, Object> prefix =
+                (Map<String, Object>) ((Map<String, Object>) resources.get("addressPrefix")).get("properties");
+        assertThat(prefix).containsEntry("cidr", "10.98.0.0/16").containsEntry("zone", "jp-tok-1");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void theSubnetWaitsForTheAddressPrefix() {
+        // 접두사보다 먼저 만들어지면 같은 이유로 거절된다.
+        Map<String, Object> resources = (Map<String, Object>) doc(cfg()).get("resources");
+        Map<String, Object> options =
+                (Map<String, Object>) ((Map<String, Object>) resources.get("subnet")).get("options");
+
+        assertThat((List<String>) options.get("dependsOn")).contains("${addressPrefix}");
+    }
+
+    @Test
     void subnetNeedsZoneNotRegion() {
         // region 만으로는 서브넷을 만들 수 없다. zone 은 계정마다 활성 목록이 달라 추측하지 않는다.
-        assertThat(props("subnet")).containsEntry("zone", "us-south-1");
+        assertThat(props("subnet")).containsEntry("zone", "jp-tok-1");
     }
 
     @Test

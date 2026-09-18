@@ -24,6 +24,21 @@ class OpenStackVmOptionsProviderTest extends AbstractUnitTest {
     }
 
     @Test
+    void neutronUrl_keepsOneVersionSegment() {
+        // 카탈로그가 /v2.0 까지 광고하는 배포가 있다. 그대로 이어 붙이면 404 로 끝난다.
+        assertThat(OpenStackVmOptionsProvider.neutronUrl("https://os:9696/v2.0", "/networks"))
+                .isEqualTo("https://os:9696/v2.0/networks");
+        assertThat(OpenStackVmOptionsProvider.neutronUrl("https://os:9696/v2.0/", "/networks"))
+                .isEqualTo("https://os:9696/v2.0/networks");
+    }
+
+    @Test
+    void neutronUrl_addsTheVersionWhenTheCatalogOmitsIt() {
+        assertThat(OpenStackVmOptionsProvider.neutronUrl("https://os:9696", "/networks"))
+                .isEqualTo("https://os:9696/v2.0/networks");
+    }
+
+    @Test
     void insecureCredential_usesSeparateClientForHttps() {
         RestTemplate selected =
                 withCreds(Map.of("OS_INSECURE", "true"), () -> provider.restTemplateFor("https://os.example.com:5000"));
@@ -44,7 +59,7 @@ class OpenStackVmOptionsProviderTest extends AbstractUnitTest {
 
     @Test
     void secureCredential_keepsSharedClient() {
-        // 공유 client 의 검증을 끄면 AWS / Azure 호출까지 함께 꺼진다.
+        // 공유 client 의 검증을 끄면 AWS / GCP 호출까지 함께 꺼진다.
         RestTemplate selected = withCreds(
                 Map.of("OS_INSECURE", "false"), () -> provider.restTemplateFor("https://os.example.com:5000"));
 

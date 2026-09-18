@@ -35,6 +35,9 @@ body:json {
         "podCidr": "{{pod_cidr}}",
         "serviceCidr": "{{service_cidr}}"
       }
+    },
+    "providerSpec": {
+      "zone": "{{alibaba_zone}}"
     }
   }
 }
@@ -56,7 +59,8 @@ docs {
 
   ### Required env vars (local-alibaba-provisioning.bru)
   - `provision_provider: ALIBABA`
-  - `provision_region`: e.g. `cn-hangzhou`, `ap-southeast-1`
+  - `provision_region`: e.g. `ap-northeast-2`(서울), `cn-hangzhou`
+  - `alibaba_zone`: VSwitch 가 zone 단위라 필수. e.g. `ap-northeast-2a`
   - `credential_id`: Alibaba credential UUID
   - `master_vm_spec` / `worker_vm_spec`: e.g. `ecs.g7.large`, `ecs.c7.xlarge`
 

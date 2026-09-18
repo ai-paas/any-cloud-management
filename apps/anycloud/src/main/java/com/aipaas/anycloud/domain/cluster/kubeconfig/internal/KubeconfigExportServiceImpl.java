@@ -41,6 +41,7 @@ public class KubeconfigExportServiceImpl implements KubeconfigExportService {
                 .putFields(
                         "context_namespace",
                         strVal(request.contextNamespace() == null ? request.namespace() : request.contextNamespace()))
+                .putFields("api_server_url", strVal(request.apiServerUrl() == null ? "" : request.apiServerUrl()))
                 .build();
 
         ControlMessage.Builder builder = ControlMessage.newBuilder()

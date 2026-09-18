@@ -149,7 +149,7 @@ aws 6→7, gcp 8→9, oci 3→4 를 이 절차로 올렸고 타입 38종에서 �
 
 | provider | 방식 | 설치 |
 |---|---|---|
-| aws, gcp, azure-native, oci, openstack, tls | Pulumi 플러그인 | `pulumi plugin install` |
+| aws, gcp, alibaba-native, oci, openstack, tls | Pulumi 플러그인 | `pulumi plugin install` |
 | proxmoxve | Pulumi 플러그인 (GitHub 릴리스) | `--server github://api.github.com/muhlba91/pulumi-proxmoxve` |
 | ibm | 동적 브리지 패키지 | 플러그인 아님 — `terraform-provider` 베이스가 런타임에 OpenTofu provider 를 붙인다 |
 
@@ -274,7 +274,7 @@ provisioner 7종을 그대로 옮기지 않고 **공통 골격 + CSP별 리소�
 | 1 | `YamlProgramBuilder` + 출력 조립 + OpenStack emitter | OpenStack 스택 실제 생성 | 완료 |
 | 2 | AWS emitter | `pulumi preview` 구조 검증 | 완료 |
 | 3 | GCP emitter | `pulumi preview` 구조 검증 | 완료 |
-| 4 | OCI, Azure emitter | `pulumi preview` 구조 검증 | 완료 |
+| 4 | OCI emitter | `pulumi preview` 구조 검증 | 완료 |
 | 5 | `ProviderProvisioner` 계열 제거, `build.gradle`에서 SDK 제거 | 크기 실측, 전체 회귀 | 완료 |
 | 6 | Proxmox emitter | `pulumi preview` 구조 검증 | 완료 |
 | 7 | IBM emitter | `pulumi preview` 구조 검증 | 완료 |
@@ -308,7 +308,7 @@ workDir 로 복사합니다. OpenTofu provider 바이너리도 `dynamic_tf_plugi
 실제 스택 생성까지 확인한 것은 OpenStack뿐입니다. 나머지는 자격증명이 없어 `pulumi preview`가
 타입 토큰과 참조를 해석하는 지점까지만 확인했고, 속성 이름은 provider 스키마와 대조했습니다.
 
-Alibaba와 DigitalOcean은 대상에서 제외합니다. 목표 CSP는 AWS, GCP, Azure, Oracle Cloud,
+Alibaba와 DigitalOcean은 대상에서 제외합니다. 목표 CSP는 AWS, GCP, Alibaba, Oracle Cloud,
 OpenStack, Proxmox, IBM입니다. 두 provider의 타입 SDK provisioner는 6단계에서 함께 걷어냅니다.
 
 OpenStack을 먼저 하는 이유는 두 가지입니다. 리소스 정의가 가장 단순하고(1.6MB SDK), 사설 환경이라

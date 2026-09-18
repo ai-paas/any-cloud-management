@@ -86,6 +86,38 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
                 .toList();
     }
 
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(AlibabaVmOptionsProvider.class);
+
+    /**
+     * VSwitch 가 zone 단위라 zone 을 골라야 서브넷이 만들어진다.
+     *
+     * <p>zone 이름은 콘솔을 열어야 알 수 있고, 같은 리전이라도 zone 마다 쓸 수 있는 인스턴스
+     * 타입이 다르다. 없는 조합을 고르면 재고 없음으로 생성이 막힌다.
+     */
+    @Override
+    @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsFallback")
+    public List<String> listConfigOptions(String configKey, String region) {
+        if (!"providerSpec.zone".equals(configKey) || !StringUtils.hasText(region)) {
+            return List.of();
+        }
+        AlibabaRecords.ZonesResponse body =
+                invoke("DescribeZones", requiredRegion(region), Map.of(), AlibabaRecords.ZonesResponse.class);
+        List<AlibabaRecords.Zone> zones = body.Zones() == null || body.Zones().Zone() == null
+                ? List.of()
+                : body.Zones().Zone();
+        return zones.stream()
+                .map(AlibabaRecords.Zone::ZoneId)
+                .filter(StringUtils::hasText)
+                .sorted()
+                .toList();
+    }
+
+    private List<String> listConfigOptionsFallback(String configKey, String region, Throwable throwable) {
+        // 조회가 막혀도 자유 입력으로 남는다. 목록을 못 준다고 생성을 막을 이유는 없다.
+        LOG.warn("Alibaba config options fallback: key={} cause={}", configKey, String.valueOf(throwable));
+        return List.of();
+    }
+
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listSpecsFallback")
     public List<VmOptionSpec> listSpecs(String region, String keyword, boolean gpuOnly, int limit) {
@@ -197,8 +229,13 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
         String endpoint = endpoint(regionId);
         String url = endpoint + "?" + canonicalQuery(params);
         try {
-            ResponseEntity<String> response =
-                    restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(new HttpHeaders()), String.class);
+            /*
+             * URI 로 넘긴다. String 오버로드는 URI 템플릿으로 취급해 이미 인코딩된 값을 한 번 더
+             * 인코딩한다 — Timestamp 의 %3A 가 %253A 가 되어 "time stamp is not well formatted"
+             * 로 거절된다. 서명은 인코딩된 문자열로 계산했으므로 그대로 보내야 한다.
+             */
+            ResponseEntity<String> response = restTemplate.exchange(
+                    java.net.URI.create(url), HttpMethod.GET, new HttpEntity<>(new HttpHeaders()), String.class);
             return parseBody(response.getBody(), action, type);
         } catch (HttpClientErrorException e) {
             throw new CustomException(
