@@ -193,13 +193,19 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                             .key("anycloud-k8s:providerSpec.zone")
                             .type("string")
                             .required(true)
-                            .description("region 이 아니라 zone (예: us-south-1). 계정마다 활성 zone 이 다르다.")
+                            .description("region 이 아니라 zone (예: jp-tok-1). 계정마다 활성 zone 이 다르다.")
                             .build(),
                     ProviderConfigKey.builder()
                             .key("anycloud-k8s:providerSpec.resourceGroup")
                             .type("string")
                             .required(false)
                             .description("리소스 그룹 ID. 생략하면 계정 기본 그룹.")
+                            .build(),
+                    ProviderConfigKey.builder()
+                            .key("anycloud-k8s:osImage")
+                            .type("string")
+                            .required(true)
+                            .description("VPC 이미지 이름. 빌드 번호가 붙어 주기적으로 갈리므로 목록에서 고른 값을 보낸다.")
                             .build());
             case OCI -> List.of(
                     ProviderConfigKey.builder()

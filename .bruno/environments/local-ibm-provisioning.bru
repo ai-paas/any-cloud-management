@@ -4,12 +4,12 @@ vars {
   provision_cluster_name: demo-ibm-01
   provision_provider: IBM
   provision_environment: dev
-  provision_region: us-south
+  provision_region: jp-tok
   credential_id: ea2117ea-d883-411f-835c-1375b20e8b58
   vm_credential_id: ea2117ea-d883-411f-835c-1375b20e8b58
   vm_credential_name: ibm-e2e-01
   vm_options_provider: IBM
-  vm_options_region: us-south
+  vm_options_region: jp-tok
   vm_options_keyword: ubuntu
   master_vm_spec: bx2-2x8
   worker_vm_spec: bx2-2x8
@@ -20,7 +20,7 @@ vars {
   service_cidr: 10.96.0.0/12
   enable_ingress: true
   enable_gpu_operator: false
-  ibm_zone: us-south-1
+  ibm_zone: jp-tok-1
   ibm_resource_group: 
   gcp_project: 
   azure_resource_group: 
@@ -36,4 +36,5 @@ vars {
   proxmox_snippet_datastore_id: local
   proxmox_network_bridge: vmbr0
   resource_group: 
+  last_operation_id: op-e0be689528c9
 }

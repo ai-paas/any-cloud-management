@@ -91,6 +91,12 @@ class ProviderConfigSchemaMatchesPreflightTest extends AbstractUnitTest {
     }
 
     @Test
+    void ibmNeedsAnImageNameBecauseTheBuildNumberRotates() {
+        // 기본값을 박아 두면 그 이미지가 사라진 순간 생성이 36초쯤 지나 "No image found" 로 죽는다.
+        assertThat(missingKeysFor(SupportedProvisioningProvider.IBM)).contains("anycloud-k8s:osImage");
+    }
+
+    @Test
     void ibmNeedsAZoneNotJustARegion() {
         // providerSpec.zone 은 us-south 가 아니라 us-south-1 이다. 리전 드롭다운으로는 채울 수 없다.
         assertThat(missingKeysFor(SupportedProvisioningProvider.IBM)).contains("anycloud-k8s:providerSpec.zone");

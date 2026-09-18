@@ -53,7 +53,7 @@ class IbmVmOptionsProviderTest extends AbstractUnitTest {
     void regionsCarryAvailability() {
         expectToken();
         expectGet(
-                "us-south.iaas.cloud.ibm.com/v1/regions",
+                "jp-tok.iaas.cloud.ibm.com/v1/regions",
                 """
                 {"regions":[
                   {"name":"jp-tok","status":"available","endpoint":"https://jp-tok.iaas.cloud.ibm.com"},
