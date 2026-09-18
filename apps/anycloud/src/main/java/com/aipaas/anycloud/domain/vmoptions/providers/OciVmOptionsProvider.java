@@ -128,6 +128,9 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
         return results;
     }
 
+    /** ListImages 한 번에 받을 개수. 기본 페이지는 키워드 필터를 무의미하게 만든다. */
+    private static final int IMAGE_PAGE_SIZE = 200;
+
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listImagesFallback")
     public List<VmOptionImage> listImages(String region, String keyword, String architecture, String owner, int limit) {
@@ -135,9 +138,16 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
         String compartmentId = compartmentId();
         StringBuilder url =
                 new StringBuilder(computeBaseUrl(resolvedRegion) + "/20160918/images?compartmentId=" + compartmentId);
-        if (StringUtils.hasText(owner)) {
-            url.append("&operatingSystem=").append(owner);
+        String operatingSystem = StringUtils.hasText(owner) ? owner : operatingSystemFor(keyword);
+        if (StringUtils.hasText(operatingSystem)) {
+            url.append("&operatingSystem=")
+                    .append(java.net.URLEncoder.encode(operatingSystem, java.nio.charset.StandardCharsets.UTF_8));
         }
+        /*
+         * 걸러내기는 여기서 한다. 기본 페이지만 받으면 Ubuntu 가 그 안에 없을 때 결과가 비어
+         * "이 리전엔 Ubuntu 가 없다" 로 보인다.
+         */
+        url.append("&limit=").append(IMAGE_PAGE_SIZE);
         List<OciRecords.Image> items = listItems(exchange(url.toString()), OciRecords.Image.class);
         List<VmOptionImage> results = new ArrayList<>();
         for (OciRecords.Image img : items) {
@@ -254,8 +264,12 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     private JsonNode exchange(String url) {
         try {
             HttpHeaders headers = buildHeaders(url);
-            ResponseEntity<String> response =
-                    restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+            /*
+             * URI 로 넘긴다. String 오버로드는 URI 템플릿으로 취급해 이미 인코딩된 값을 한 번 더
+             * 인코딩한다 — operatingSystem 의 %20 이 %2520 이 되어 아무것도 걸리지 않는다.
+             */
+            ResponseEntity<String> response = restTemplate.exchange(
+                    java.net.URI.create(url), HttpMethod.GET, new HttpEntity<>(headers), String.class);
             return parseBody(response.getBody(), url);
         } catch (HttpClientErrorException e) {
             throw new CustomException(
@@ -504,6 +518,17 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     @SuppressWarnings("unused")
+    /**
+     * 목록이 Windows 로 먼저 채워져 Ubuntu 가 첫 페이지에 오지 않는다. 이름으로만 거르면 결과가
+     * 비어 "이 리전엔 Ubuntu 가 없다" 로 보인다 — OCI 는 배포판을 operatingSystem 으로 준다.
+     */
+    private String operatingSystemFor(String keyword) {
+        return StringUtils.hasText(keyword)
+                        && keyword.toLowerCase(java.util.Locale.ROOT).contains("ubuntu")
+                ? "Canonical Ubuntu"
+                : null;
+    }
+
     private List<VmOptionImage> listImagesFallback(
             String region, String keyword, String architecture, String owner, int limit, Throwable e) {
         return java.util.Collections.emptyList();

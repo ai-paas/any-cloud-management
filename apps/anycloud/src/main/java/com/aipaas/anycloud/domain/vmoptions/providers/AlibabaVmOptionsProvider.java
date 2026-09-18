@@ -160,6 +160,9 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
         return results;
     }
 
+    /** DescribeImages 의 상한. 기본 10 은 키워드 필터를 무의미하게 만든다. */
+    private static final int IMAGE_PAGE_SIZE = 100;
+
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listImagesFallback")
     public List<VmOptionImage> listImages(String region, String keyword, String architecture, String owner, int limit) {
@@ -167,7 +170,11 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
         AlibabaRecords.ImagesResponse body = invoke(
                 "DescribeImages",
                 resolvedRegion,
-                Map.of("ImageOwnerAlias", ownerOrDefault(owner)),
+                /*
+                 * PageSize 를 주지 않으면 10건만 온다. 걸러내기는 여기서 하므로 첫 페이지에
+                 * Ubuntu 가 없으면 결과가 통째로 비어 "이 리전엔 Ubuntu 가 없다" 로 보인다.
+                 */
+                Map.of("ImageOwnerAlias", ownerOrDefault(owner), "PageSize", String.valueOf(IMAGE_PAGE_SIZE)),
                 AlibabaRecords.ImagesResponse.class);
         List<AlibabaRecords.Image> images =
                 body.Images() == null || body.Images().Image() == null
