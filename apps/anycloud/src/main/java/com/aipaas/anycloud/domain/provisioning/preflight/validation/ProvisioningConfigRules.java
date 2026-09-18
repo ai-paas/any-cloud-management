@@ -37,13 +37,10 @@ public final class ProvisioningConfigRules {
                 config.putIfAbsent(MASTER_VM_SPEC, "e2-standard-2");
                 config.putIfAbsent(WORKER_VM_SPEC, "e2-standard-2");
             }
-            case AZURE -> {
-                config.putIfAbsent(MASTER_VM_SPEC, "Standard_D4s_v5");
-                config.putIfAbsent(WORKER_VM_SPEC, "Standard_D4s_v5");
-            }
             case ALIBABA -> {
-                config.putIfAbsent(MASTER_VM_SPEC, "ecs.g6.large");
-                config.putIfAbsent(WORKER_VM_SPEC, "ecs.g6.large");
+                // g6 는 서울에 없다. 세대마다 제공 리전이 달라 오래된 계열은 재고 없음으로 막힌다.
+                config.putIfAbsent(MASTER_VM_SPEC, "ecs.g9i.large");
+                config.putIfAbsent(WORKER_VM_SPEC, "ecs.g9i.large");
             }
             case OPENSTACK -> {
                 config.putIfAbsent("anycloud-k8s:providerSpec.imageName", "ubuntu-24.04");
@@ -54,10 +51,6 @@ public final class ProvisioningConfigRules {
             case OCI -> {
                 config.putIfAbsent(MASTER_VM_SPEC, "VM.Standard.E4.Flex");
                 config.putIfAbsent(WORKER_VM_SPEC, "VM.Standard.E4.Flex");
-            }
-            case DIGITALOCEAN -> {
-                config.putIfAbsent(MASTER_VM_SPEC, "s-2vcpu-4gb");
-                config.putIfAbsent(WORKER_VM_SPEC, "s-2vcpu-4gb");
             }
             default -> {
                 config.putIfAbsent(MASTER_VM_SPEC, "t3.large");
@@ -91,7 +84,6 @@ public final class ProvisioningConfigRules {
 
         switch (provider) {
             case GCP -> requireConfigKeys(config, missingKeys, "anycloud-k8s:providerSpec.project");
-            case AZURE -> requireConfigKeys(config, missingKeys, "anycloud-k8s:providerSpec.resourceGroup");
             case OPENSTACK -> {
                 requireConfigKeys(
                         config,
@@ -109,8 +101,13 @@ public final class ProvisioningConfigRules {
             case OCI -> requireConfigKeys(
                     config, missingKeys, "anycloud-k8s:providerSpec.compartmentId", "anycloud-k8s:osImage");
             case PROXMOX -> requireConfigKeys(config, missingKeys, "anycloud-k8s:providerSpec.nodeName");
-                // VSwitch 가 zone 단위다. 계정과 인스턴스 타입마다 쓸 수 있는 zone 이 달라 리전에서 유도하지 않는다.
-            case ALIBABA -> requireConfigKeys(config, missingKeys, "anycloud-k8s:providerSpec.zone");
+                /*
+                 * zone — VSwitch 가 zone 단위다. 계정과 인스턴스 타입마다 쓸 수 있는 zone 이 다르다.
+                 * osImage — 이미지 ID 에 빌드 날짜가 붙어 주기적으로 갈리고 리전마다 다르다. 목록에서
+                 * 고른 값을 그대로 받는다.
+                 */
+            case ALIBABA -> requireConfigKeys(
+                    config, missingKeys, "anycloud-k8s:providerSpec.zone", "anycloud-k8s:osImage");
                 // 이미지 이름에 빌드 번호가 붙어 주기적으로 갈린다. 추측하면 생성 도중에 죽는다.
             case IBM -> requireConfigKeys(
                     config, missingKeys, "anycloud-k8s:providerSpec.zone", "anycloud-k8s:osImage");
