@@ -91,7 +91,7 @@ public class CredentialHealthServiceImpl implements CredentialHealthService {
                 kind,
                 kind == null ? null : CredentialFailureKind.valueOf(kind).hint(),
                 entity.getHealthDetail(),
-                0,
+                entity.getHealthCheckedRegions() == null ? 0 : entity.getHealthCheckedRegions(),
                 entity.getHealthCheckedAt());
     }
 
@@ -100,6 +100,7 @@ public class CredentialHealthServiceImpl implements CredentialHealthService {
         entity.setHealthKind(health.kind());
         entity.setHealthDetail(trim(health.detail()));
         entity.setHealthCheckedAt(LocalDateTime.now());
+        entity.setHealthCheckedRegions(health.checkedRegions());
         credentialRepository.save(entity);
     }
 

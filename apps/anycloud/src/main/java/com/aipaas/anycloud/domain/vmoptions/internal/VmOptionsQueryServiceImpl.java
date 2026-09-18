@@ -27,6 +27,14 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
 
     private static final String CONFIG_PREFIX = "anycloud-k8s:";
 
+    private static final String OS_IMAGE_KEY = "osImage";
+
+    /** 노드는 Ubuntu 위에 kubeadm 을 올린다. 다른 배포판을 고르면 부트스트랩이 깨진다. */
+    private static final String UBUNTU_KEYWORD = "ubuntu";
+
+    /** 목록이 길면 화면에서 고르기 어렵다. 최신 몇 개면 충분하다. */
+    private static final int OS_IMAGE_LIMIT = 30;
+
     private final Map<SupportedProvisioningProvider, VmOptionsProvider> providers;
     private final VmOptionsProperties properties;
     private final CspCredentialService cspCredentialService;
@@ -88,6 +96,20 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
                 .toList();
     }
 
+    /**
+     * 이미지는 조회 경로가 따로 있어 선택지가 비어 있었다. 필수인데 고를 값이 없어 사용자가
+     * OCID 나 빌드 날짜가 붙은 ID 를 직접 받아 적어야 했다.
+     *
+     * <p>{@code id} 를 쓴다 — emitter 가 그대로 CSP 에 넘기는 값이다.
+     */
+    private List<String> osImageOptions(VmOptionsProvider provider, Map<String, String> creds, String region) {
+        return provider.listImages(creds, region, UBUNTU_KEYWORD, null, null, OS_IMAGE_LIMIT).stream()
+                .map(VmOptionImage::getId)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .toList();
+    }
+
     /** 이미 허용값이 적힌 키는 그대로 둔다. 정적 제약을 조회 결과로 덮으면 안 된다. */
     private ProviderConfigKey withOptions(
             VmOptionsProvider vmOptionsProvider, Map<String, String> creds, ProviderConfigKey key, String region) {
@@ -97,7 +119,9 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
         String shortKey = key.key().startsWith(CONFIG_PREFIX) ? key.key().substring(CONFIG_PREFIX.length()) : key.key();
         List<String> options;
         try {
-            options = vmOptionsProvider.listConfigOptions(creds, shortKey, region);
+            options = OS_IMAGE_KEY.equals(shortKey)
+                    ? osImageOptions(vmOptionsProvider, creds, region)
+                    : vmOptionsProvider.listConfigOptions(creds, shortKey, region);
         } catch (RuntimeException e) {
             /*
              * 조회 하나가 실패해도 스키마는 내려보낸다. 예외를 올리면 폼이 전부 비어

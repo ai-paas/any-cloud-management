@@ -74,6 +74,10 @@ public class CspCredentialEntity implements Serializable {
     @Column(name = "health_checked_at")
     private LocalDateTime healthCheckedAt;
 
+    /** 리전이 없는 프로바이더는 0 이다. 한 번도 확인하지 않았으면 null. */
+    @Column(name = "health_checked_regions")
+    private Integer healthCheckedRegions;
+
     @Column(name = "description")
     private String description;
 

@@ -67,13 +67,28 @@ class ConfigSchemaOffersAccountValuesTest extends AbstractUnitTest {
         @Override
         public List<com.aipaas.anycloud.domain.vmoptions.api.VmOptionImage> listImages(
                 String region, String keyword, String architecture, String owner, int limit) {
-            return List.of();
+            if (!"jp-tok".equals(region)) {
+                return List.of();
+            }
+            return List.of(
+                    com.aipaas.anycloud.domain.vmoptions.api.VmOptionImage.builder()
+                            .id("ibm-ubuntu-24-04-4-minimal-amd64-7")
+                            .name("ibm-ubuntu-24-04-4-minimal-amd64-7")
+                            .build(),
+                    com.aipaas.anycloud.domain.vmoptions.api.VmOptionImage.builder()
+                            .id("ibm-ubuntu-22-04-5-minimal-amd64-6")
+                            .name("ibm-ubuntu-22-04-5-minimal-amd64-6")
+                            .build());
         }
 
         @Override
         public List<String> listConfigOptions(String configKey, String region) {
             if ("providerSpec.zone".equals(configKey) && "jp-tok".equals(region)) {
                 return List.of("jp-tok-1", "jp-tok-2");
+            }
+            // 조회가 CSP 오류로 끝나는 키. 실제로 OpenStack 의 외부망 조회가 그랬다.
+            if ("providerSpec.resourceGroup".equals(configKey)) {
+                throw new IllegalStateException("404 Not Found");
             }
             return List.of();
         }
@@ -121,11 +136,26 @@ class ConfigSchemaOffersAccountValuesTest extends AbstractUnitTest {
     }
 
     @Test
-    void keysTheProviderCannotEnumerateAreLeftAlone() {
+    void aFailedLookupLeavesTheRestOfTheSchemaIntact() {
+        /*
+         * 조회 예외가 그대로 올라오면 폼이 통째로 비어 "설정할 것이 없는 CSP" 로 보인다 —
+         * OpenStack 이 외부망 조회 404 하나로 필드 15개를 전부 잃었다.
+         */
         List<ProviderConfigKey> schema = service.listConfigSchema("IBM", "cred-1", "jp-tok");
 
+        assertThat(schema).isNotEmpty();
         assertThat(keyOf(schema, "anycloud-k8s:providerSpec.resourceGroup").allowedValues())
                 .isNullOrEmpty();
+        assertThat(keyOf(schema, ZONE_KEY).allowedValues()).containsExactly("jp-tok-1", "jp-tok-2");
+    }
+
+    @Test
+    void theImageKeyComesBackWithImagesTheAccountCanUse() {
+        // 이미지는 조회 경로가 따로 있어 필수인데도 고를 값이 없었다. OCID 를 받아 적게 둘 수 없다.
+        List<ProviderConfigKey> schema = service.listConfigSchema("IBM", "cred-1", "jp-tok");
+
+        assertThat(keyOf(schema, "anycloud-k8s:osImage").allowedValues())
+                .containsExactly("ibm-ubuntu-24-04-4-minimal-amd64-7", "ibm-ubuntu-22-04-5-minimal-amd64-6");
     }
 
     @Test
