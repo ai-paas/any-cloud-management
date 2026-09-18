@@ -8,10 +8,9 @@
 | --- | --- | --- |
 | AWS | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` | 없음 |
 | GCP | `GOOGLE_APPLICATION_CREDENTIALS` 또는 `GOOGLE_CREDENTIALS` | `providerSpec.project` |
-| Azure | `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID` | `providerSpec.resourceGroup` |
+
 | Alibaba | `ALICLOUD_ACCESS_KEY`, `ALICLOUD_SECRET_KEY`, `ALICLOUD_REGION` | 없음 |
 | OCI | `TF_VAR_tenancy_ocid`, `TF_VAR_user_ocid`, `TF_VAR_fingerprint`, `TF_VAR_region`, `TF_VAR_private_key` 또는 `TF_VAR_private_key_path` | `providerSpec.compartmentId`, `spec.osImage` |
-| DigitalOcean | `DIGITALOCEAN_TOKEN` 또는 `DIGITALOCEAN_ACCESS_TOKEN` | 없음 |
 
 ## Private Providers
 
@@ -40,4 +39,3 @@
 - `OpenStack`의 `imageName`은 생략하면 `spec.osImage`, 그다음 기본 이미지 순으로 떨어집니다. `flavorName`은 생략하면 `spec.workerInstanceType`을 쓰는데 OpenStack은 기본 인스턴스 타입이 없어 둘 다 비우면 플레이버가 정해지지 않습니다.
 - `OCI`는 image OCID를 리전마다 따로 발급하고 이름으로 찾는 안정된 필터가 없습니다. `osImage`를 필수로 받아 `pulumi preview` 전에 실패시킵니다.
 - `OCI`의 Flex 셰이프(`VM.Standard.E4.Flex` 등)는 크기가 셰이프 이름에 없습니다. `shapeConfig`가 빠지면 `400 InvalidParameter`로 거부하므로, 인스턴스 타입 뒤에 `:ocpus:메모리GB`를 붙여 넘깁니다(예: `VM.Standard.E5.Flex:4:32`). 생략하면 2 ocpu / 16 GB입니다. 고정 셰이프에는 붙이지 않습니다.
-- `Azure`의 `osImage`는 단일 ID가 아니라 `publisher:offer:sku:version` 4단 좌표입니다. 생략하면 `Canonical:ubuntu-24_04-lts:server:latest`를 씁니다.

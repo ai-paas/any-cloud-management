@@ -17,11 +17,9 @@ GenericLinuxVmClusterBootstrapStrategy (209 LOC) — 공통 패턴 lift-up
     └── addon install
     ↑ extends
 AwsVmClusterBootstrapStrategy             (14 LOC, supports() override 만)
-AzureVmClusterBootstrapStrategy           (14 LOC)
 GcpVmClusterBootstrapStrategy             (14 LOC)
 OciVmClusterBootstrapStrategy             (14 LOC)
 AlibabaVmClusterBootstrapStrategy         (14 LOC)
-DigitalOceanVmClusterBootstrapStrategy    (14 LOC)
 OpenStackVmClusterBootstrapStrategy       (14 LOC)
 ProxmoxVmClusterBootstrapStrategy         (14 LOC)
 
@@ -65,7 +63,6 @@ public class TencentVmClusterBootstrapStrategy extends GenericLinuxVmClusterBoot
 
 다음 시점에 override method 신설:
 - **AWS** : IMDSv2 metadata fetch (현재는 generic 사용)
-- **Azure** : Managed Identity bootstrap
 - **GCP** : Workload Identity 통합
 - **OCI** : OCI Compute Instance Principal
 

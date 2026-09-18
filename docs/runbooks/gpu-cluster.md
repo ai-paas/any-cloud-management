@@ -37,7 +37,7 @@ NVIDIA GPU cluster 의 생성 / 운영 / troubleshoot 절차.
 |---|---|---|---|
 | AWS | `g5.xlarge` (A10) | `p4d.24xlarge` (A100 8x) | `p5.48xlarge` (H100 8x) |
 | GCP | `g2-standard-4` (L4) | `a2-highgpu-1g` (A100) | `a3-highgpu-8g` (H100 8x) |
-| Azure | `Standard_NC6s_v3` (V100) | `Standard_NC24ads_A100_v4` | `Standard_ND96isr_H100_v5` |
+
 | OCI | `VM.GPU3.1` (V100) | `BM.GPU.A100-v2.8` | `BM.GPU.H100.8` |
 | Alibaba | `ecs.gn7i-c8g1.2xlarge` (A10) | `ecs.ebmgn7e.32xlarge` (A100) | (미지원) |
 
@@ -100,7 +100,6 @@ if (Boolean.TRUE.equals(cluster.getHasGpuNodes())) {
 
 ## 6. 비용 최적화
 
-- **Spot instance**: VmCluster spec 의 `useSpot: true` (AWS / Azure / GCP / Alibaba 지원). 30-70% 절감 — 단 capacity 회수 시 종료.
 - **Multi-instance GPU (MIG)**: A100/H100 의 single GPU 를 7 부분 sub-instance 로 분할. inference workload 의 cost ↓.
   - GPU operator values: `mig.strategy: "single"` 또는 `mig.strategy: "mixed"`
 - **GPU sharing (time-slicing)**: 단일 GPU 를 여러 pod 가 share. inference 의 low-utilization workload 에 적합.

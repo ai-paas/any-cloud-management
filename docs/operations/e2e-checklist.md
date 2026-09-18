@@ -22,13 +22,6 @@
 - `GOOGLE_APPLICATION_CREDENTIALS` 또는 `GOOGLE_CREDENTIALS`
 - 요청의 `providerSpec.project`
 
-### Azure
-- `ARM_CLIENT_ID`
-- `ARM_CLIENT_SECRET`
-- `ARM_TENANT_ID`
-- `ARM_SUBSCRIPTION_ID`
-- 요청의 `providerSpec.resourceGroup`
-
 ### Alibaba
 - `ALICLOUD_ACCESS_KEY`
 - `ALICLOUD_SECRET_KEY`
@@ -62,9 +55,6 @@
 - `TF_VAR_private_key` 또는 `TF_VAR_private_key_path`
 - 요청의 `providerSpec.compartmentId`
 - compartment 권한 / shape / Ubuntu image availability 확인
-
-### DigitalOcean
-- `DIGITALOCEAN_TOKEN` 또는 `DIGITALOCEAN_ACCESS_TOKEN`
 
 자세한 매트릭스는 [provider-credential-matrix.md](../api/provider-credential-matrix.md)를 참고합니다.
 
