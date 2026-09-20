@@ -8,6 +8,7 @@ import com.aipaas.anycloud.domain.provisioning.model.SupportedProvisioningProvid
 import com.aipaas.anycloud.domain.vmoptions.ProviderConfigSchemaService;
 import com.aipaas.anycloud.domain.vmoptions.VmOptionsService;
 import com.aipaas.anycloud.domain.vmoptions.api.ProviderConfigKey;
+import com.aipaas.anycloud.domain.vmoptions.api.ProvisioningDefaults;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionImage;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionProvider;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionRegion;
@@ -36,6 +37,7 @@ public class VmOptionsController {
 
     private final VmOptionsService vmOptionsService;
     private final ProviderConfigSchemaService providerConfigSchemaService;
+    private final com.aipaas.anycloud.domain.vmoptions.ProvisioningDefaultsService provisioningDefaultsService;
 
     @GetMapping
     @Operation(summary = "지원 CSP 목록 조회", description = "VM 기반 클러스터 생성에 사용할 CSP 목록과 구현 상태를 조회합니다.")
@@ -105,6 +107,22 @@ public class VmOptionsController {
         List<CredentialFieldSchema> schema = CredentialSchema.of(SupportedProvisioningProvider.from(provider));
         return new ResponseEntity<>(
                 ApiSuccessResponse.of(HttpStatus.OK.value(), "Credential schema loaded", PagedData.of(schema)),
+                new HttpHeaders(),
+                HttpStatus.OK);
+    }
+
+    @GetMapping("/provisioning-defaults")
+    @Operation(
+            summary = "CSP 별 생성 기본값",
+            description =
+                    "계정에서 실제로 고를 수 있는 값을 조회해 CSP 마다 지금 통과하는 요청 한 벌을 조립한다. " + "만들 수 없는 CSP 는 ready=false 와 이유를 함께 준다.")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "기본값 조회 성공")})
+    public ResponseEntity<ApiSuccessResponse<PagedData<ProvisioningDefaults>>> getProvisioningDefaults() {
+        return new ResponseEntity<>(
+                ApiSuccessResponse.of(
+                        HttpStatus.OK.value(),
+                        "Provisioning defaults loaded",
+                        PagedData.of(provisioningDefaultsService.listDefaults())),
                 new HttpHeaders(),
                 HttpStatus.OK);
     }

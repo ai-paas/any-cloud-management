@@ -25,6 +25,7 @@ import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.bouncycastle.openssl.PEMKeyPair;
@@ -34,6 +35,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -299,6 +301,114 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
                     "oci",
                     url,
                     "OCI VM options request failed: " + e.getStatusCode().value() + " " + e.getResponseBodyAsString());
+        }
+    }
+
+    /**
+     * 그 shape 를 지금 이 AD 에 띄울 수 있는지 묻는다.
+     *
+     * <p>용량은 AD 단위로 수시로 바뀐다. 확인하지 않으면 VCN, 서브넷, 라우터를 다 만든 뒤
+     * 인스턴스 단계에서 {@code Out of host capacity} 로 끝나고 롤백한다.
+     *
+     * @return 가용한 AD 이름. 어디에도 자리가 없으면 비어 있다
+     */
+    public java.util.Optional<String> findAvailabilityDomainWithCapacity(
+            Map<String, String> credentials, String region, String shape, int ocpus, int memoryGb) {
+        return withCredentials(credentials, () -> {
+            String resolved = resolveRegion(region);
+            String compartment = compartmentId();
+            for (OciRecords.AvailabilityDomain ad : availabilityDomains(resolved, compartment)) {
+                if (hasCapacity(resolved, compartment, ad.name(), shape, ocpus, memoryGb)) {
+                    return java.util.Optional.of(ad.name());
+                }
+            }
+            return java.util.Optional.<String>empty();
+        });
+    }
+
+    private List<OciRecords.AvailabilityDomain> availabilityDomains(String region, String compartment) {
+        String url = identityBaseUrl(region) + "/20160918/availabilityDomains?compartmentId=" + compartment;
+        return listItems(exchange(url), OciRecords.AvailabilityDomain.class);
+    }
+
+    private boolean hasCapacity(String region, String compartment, String ad, String shape, int ocpus, int memoryGb) {
+        Map<String, Object> availability = new java.util.LinkedHashMap<>();
+        availability.put("instanceShape", shape);
+        // 고정 shape 에 shapeConfig 를 주면 거절된다. Flex 계열만 코어와 메모리를 받는다.
+        if (shape.endsWith(".Flex")) {
+            availability.put("instanceShapeConfig", Map.of("ocpus", ocpus, "memoryInGBs", memoryGb));
+        }
+        Map<String, Object> body = Map.of(
+                "compartmentId", compartment,
+                "availabilityDomain", ad,
+                "shapeAvailabilities", List.of(availability));
+        JsonNode report = exchangePost(computeBaseUrl(region) + "/20160918/computeCapacityReports", body);
+        for (JsonNode entry : report.path("shapeAvailabilities")) {
+            if ("AVAILABLE".equalsIgnoreCase(entry.path("availabilityStatus").asText(""))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private JsonNode exchangePost(String url, Map<String, Object> body) {
+        String payload = writeJson(body);
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                    java.net.URI.create(url),
+                    HttpMethod.POST,
+                    new HttpEntity<>(payload, buildPostHeaders(url, payload)),
+                    String.class);
+            return parseBody(response.getBody(), url);
+        } catch (HttpClientErrorException e) {
+            throw new CustomException(
+                    ErrorCode.RUNTIME_EXCEPTION,
+                    "oci",
+                    url,
+                    "OCI VM options request failed: " + e.getStatusCode().value() + " " + e.getResponseBodyAsString());
+        }
+    }
+
+    private String writeJson(Map<String, Object> body) {
+        try {
+            return objectMapper.writeValueAsString(body);
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.RUNTIME_EXCEPTION, "oci", null, "본문을 만들지 못했습니다");
+        }
+    }
+
+    /** POST 는 본문 해시까지 서명해야 한다. GET 서명에 본문 헤더만 더하면 401 로 거절된다. */
+    private HttpHeaders buildPostHeaders(String url, String payload) {
+        URI uri = URI.create(url);
+        String date = ZonedDateTime.now(java.time.ZoneOffset.UTC)
+                .format(DateTimeFormatter.ofPattern(OCI_DATE_FORMAT, Locale.US));
+        byte[] raw = payload.getBytes(StandardCharsets.UTF_8);
+        String digest = Base64.getEncoder().encodeToString(sha256(raw));
+        String signingString = "(request-target): post " + uri.getRawPath() + "\n"
+                + "date: " + date + "\n"
+                + "host: " + uri.getHost() + "\n"
+                + "content-length: " + raw.length + "\n"
+                + "content-type: application/json\n"
+                + "x-content-sha256: " + digest;
+        String authorization = "Signature version=\"1\",keyId=\"" + tenancyOcid() + "/" + userOcid() + "/"
+                + fingerprint() + "\",algorithm=\"rsa-sha256\",headers=\"(request-target) date host "
+                + "content-length content-type x-content-sha256\",signature=\"" + sign(signingString) + "\"";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("date", date);
+        headers.add("host", uri.getHost());
+        headers.add("x-content-sha256", digest);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setContentLength(raw.length);
+        headers.add("authorization", authorization);
+        return headers;
+    }
+
+    private byte[] sha256(byte[] payload) {
+        try {
+            return java.security.MessageDigest.getInstance("SHA-256").digest(payload);
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.RUNTIME_EXCEPTION, "oci", null, "본문 해시를 만들지 못했습니다");
         }
     }
 
