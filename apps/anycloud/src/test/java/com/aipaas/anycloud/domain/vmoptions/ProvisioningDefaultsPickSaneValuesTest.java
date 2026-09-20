@@ -36,7 +36,7 @@ import org.mockito.quality.Strictness;
 class ProvisioningDefaultsPickSaneValuesTest extends AbstractUnitTest {
 
     @Mock
-    VmOptionsQueryService vmOptionsQueryService;
+    VmOptionsService vmOptionsService;
 
     @Mock
     CspCredentialRepository credentialRepository;
@@ -57,7 +57,7 @@ class ProvisioningDefaultsPickSaneValuesTest extends AbstractUnitTest {
 
     @BeforeEach
     void setUp() {
-        service = new ProvisioningDefaultsServiceImpl(vmOptionsQueryService, credentialRepository, capacityProbe);
+        service = new ProvisioningDefaultsServiceImpl(vmOptionsService, credentialRepository, capacityProbe);
         when(credentialRepository.findAllByOrderByCreatedAtDesc())
                 .thenReturn(List.of(CspCredentialEntity.builder()
                         .id("cred-1")
@@ -65,7 +65,7 @@ class ProvisioningDefaultsPickSaneValuesTest extends AbstractUnitTest {
                         .provider("OpenStack")
                         .healthStatus("HEALTHY")
                         .build()));
-        when(vmOptionsQueryService.listProviders())
+        when(vmOptionsService.getProviders())
                 .thenReturn(List.of(VmOptionProvider.builder()
                         .provider("OpenStack")
                         .displayName("OpenStack")
@@ -73,7 +73,7 @@ class ProvisioningDefaultsPickSaneValuesTest extends AbstractUnitTest {
                         // 이 설치본에 없는 flavor. 권장값이 늘 존재한다고 볼 수 없다.
                         .recommendedVmSpec("m1.large")
                         .build()));
-        when(vmOptionsQueryService.listRegions(anyString(), anyString()))
+        when(vmOptionsService.getRegions(anyString(), anyString()))
                 .thenReturn(List.of(VmOptionRegion.builder()
                         .provider("OpenStack")
                         .id("RegionOne")
@@ -84,7 +84,7 @@ class ProvisioningDefaultsPickSaneValuesTest extends AbstractUnitTest {
     }
 
     private ProvisioningDefaults openstack() {
-        return service.listDefaults().stream()
+        return service.listDefaults(null).stream()
                 .filter(d -> "OpenStack".equals(d.provider()))
                 .findFirst()
                 .orElseThrow();
@@ -92,9 +92,9 @@ class ProvisioningDefaultsPickSaneValuesTest extends AbstractUnitTest {
 
     @Test
     void theFlavorIsTheNameBecauseTheEmitterCannotUseTheUuid() {
-        when(vmOptionsQueryService.listSpecs(anyString(), anyString(), anyString(), any(), anyBoolean(), anyInt()))
+        when(vmOptionsService.getSpecs(anyString(), anyString(), anyString(), any(), anyBoolean(), anyInt()))
                 .thenReturn(List.of(spec("0127bc0e-2f07-4a84", "4-8-50", 4, 8.0)));
-        when(vmOptionsQueryService.listConfigSchema(anyString(), anyString(), anyString()))
+        when(vmOptionsService.getConfigSchema(anyString(), anyString(), anyString()))
                 .thenReturn(List.of(ProviderConfigKey.builder()
                         .key("anycloud-k8s:providerSpec.flavorName")
                         .required(true)
@@ -113,9 +113,9 @@ class ProvisioningDefaultsPickSaneValuesTest extends AbstractUnitTest {
     @Test
     void aDefaultThatTheAccountCannotUseIsReplaced() {
         // 설치본에 없는 m1.large 를 그대로 보내면 생성 도중 거절된다.
-        when(vmOptionsQueryService.listSpecs(anyString(), anyString(), anyString(), any(), anyBoolean(), anyInt()))
+        when(vmOptionsService.getSpecs(anyString(), anyString(), anyString(), any(), anyBoolean(), anyInt()))
                 .thenReturn(List.of(spec("id-1", "4-8-50", 4, 8.0)));
-        when(vmOptionsQueryService.listConfigSchema(anyString(), anyString(), anyString()))
+        when(vmOptionsService.getConfigSchema(anyString(), anyString(), anyString()))
                 .thenReturn(List.of(ProviderConfigKey.builder()
                         .key("anycloud-k8s:providerSpec.imageName")
                         .required(true)
@@ -132,9 +132,9 @@ class ProvisioningDefaultsPickSaneValuesTest extends AbstractUnitTest {
          * kubeadm preflight 를 건너뛰게 해둬서 1vCPU 2GB 로도 생성은 된다. 그러고 나서
          * control-plane 이 뜨지 않아 BOOTSTRAP 에서 끝난다.
          */
-        when(vmOptionsQueryService.listSpecs(anyString(), anyString(), anyString(), any(), anyBoolean(), anyInt()))
+        when(vmOptionsService.getSpecs(anyString(), anyString(), anyString(), any(), anyBoolean(), anyInt()))
                 .thenReturn(List.of(spec("tiny", "1-2", 1, 2.0), spec("ok", "2-4", 2, 4.0)));
-        when(vmOptionsQueryService.listConfigSchema(anyString(), anyString(), anyString()))
+        when(vmOptionsService.getConfigSchema(anyString(), anyString(), anyString()))
                 .thenReturn(List.of());
 
         assertThat(openstack().masterInstanceType()).isEqualTo("2-4");
@@ -142,9 +142,9 @@ class ProvisioningDefaultsPickSaneValuesTest extends AbstractUnitTest {
 
     @Test
     void aProviderWithNoUsableInstanceIsBlockedWithAReason() {
-        when(vmOptionsQueryService.listSpecs(anyString(), anyString(), anyString(), any(), anyBoolean(), anyInt()))
+        when(vmOptionsService.getSpecs(anyString(), anyString(), anyString(), any(), anyBoolean(), anyInt()))
                 .thenReturn(List.of(spec("tiny", "1-2", 1, 2.0)));
-        when(vmOptionsQueryService.listConfigSchema(anyString(), anyString(), anyString()))
+        when(vmOptionsService.getConfigSchema(anyString(), anyString(), anyString()))
                 .thenReturn(List.of());
 
         ProvisioningDefaults defaults = openstack();
@@ -156,10 +156,10 @@ class ProvisioningDefaultsPickSaneValuesTest extends AbstractUnitTest {
     @Test
     void everySupportedProviderAppearsEvenWithoutACredential() {
         // 목록에서 빠지면 "이 CSP 는 지원하지 않는다" 로 읽힌다. 이유를 달아 남긴다.
-        when(vmOptionsQueryService.listConfigSchema(anyString(), anyString(), anyString()))
+        when(vmOptionsService.getConfigSchema(anyString(), anyString(), anyString()))
                 .thenReturn(List.of());
 
-        assertThat(service.listDefaults())
+        assertThat(service.listDefaults(null))
                 .hasSize(SupportedProvisioningProvider.values().length)
                 .filteredOn(d -> !"OpenStack".equals(d.provider()))
                 .allSatisfy(d -> {

@@ -4,7 +4,7 @@ import com.aipaas.anycloud.domain.credential.CspCredentialEntity;
 import com.aipaas.anycloud.domain.credential.CspCredentialRepository;
 import com.aipaas.anycloud.domain.provisioning.model.SupportedProvisioningProvider;
 import com.aipaas.anycloud.domain.vmoptions.ProvisioningDefaultsService;
-import com.aipaas.anycloud.domain.vmoptions.VmOptionsQueryService;
+import com.aipaas.anycloud.domain.vmoptions.VmOptionsService;
 import com.aipaas.anycloud.domain.vmoptions.api.ConfigOption;
 import com.aipaas.anycloud.domain.vmoptions.api.ProviderConfigKey;
 import com.aipaas.anycloud.domain.vmoptions.api.ProvisioningDefaults;
@@ -41,18 +41,28 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
 
     private static final double MIN_MEMORY_GB = 4.0;
 
-    private final VmOptionsQueryService vmOptionsQueryService;
+    /*
+     * 캐시가 걸린 쪽을 쓴다. QueryService 를 직접 부르면 모달을 열 때마다 CSP API 를 전부 다시
+     * 두드려 7종에 20초 넘게 걸렸다.
+     */
+    private final VmOptionsService vmOptionsService;
     private final CspCredentialRepository credentialRepository;
     private final CapacityProbe capacityProbe;
 
+    /**
+     * @param provider 비우면 전부. 하나만 주면 그 CSP 만 조회한다 — 화면이 CSP 별로 따로
+     *     물어 한 줄씩 채우려면 나머지를 같이 풀면 안 된다
+     */
     @Override
-    public List<ProvisioningDefaults> listDefaults() {
+    public List<ProvisioningDefaults> listDefaults(String provider) {
         Map<String, VmOptionProvider> catalog = new LinkedHashMap<>();
-        for (VmOptionProvider described : vmOptionsQueryService.listProviders()) {
+        for (VmOptionProvider described : vmOptionsService.getProviders()) {
             catalog.put(described.getProvider().toLowerCase(java.util.Locale.ROOT), described);
         }
         return java.util.Arrays.stream(SupportedProvisioningProvider.values())
-                .map(provider -> resolve(provider, catalog))
+                .filter(candidate -> !StringUtils.hasText(provider)
+                        || candidate.getCanonicalName().equalsIgnoreCase(provider))
+                .map(candidate -> resolve(candidate, catalog))
                 .toList();
     }
 
@@ -98,7 +108,7 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
         }
         builder.region(region);
 
-        List<ProviderConfigKey> schema = vmOptionsQueryService.listConfigSchema(name, credentialId, region);
+        List<ProviderConfigKey> schema = vmOptionsService.getConfigSchema(name, credentialId, region);
         Map<String, String> providerSpec = new LinkedHashMap<>();
         for (ProviderConfigKey key : schema) {
             if (!key.key().startsWith(PROVIDER_SPEC_PREFIX)) {
@@ -142,7 +152,8 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
         if (providerSpec.containsKey("flavorName")) {
             providerSpec.put("flavorName", spec.specId());
         }
-        return builder.ready(true)
+        return withSpecDetail(builder, provider, credentialId, region, spec.specId())
+                .ready(true)
                 .masterInstanceType(spec.specId())
                 .workerInstanceType(spec.specId())
                 .build();
@@ -155,7 +166,7 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
      * 번째로 내려간다 — OCI 권장은 서울인데 이 테넌시는 도쿄만 구독돼 있다.
      */
     private String pickRegion(String provider, String credentialId, VmOptionProvider described) {
-        List<VmOptionRegion> regions = vmOptionsQueryService.listRegions(provider, credentialId);
+        List<VmOptionRegion> regions = vmOptionsService.getRegions(provider, credentialId);
         if (regions.isEmpty()) {
             return null;
         }
@@ -167,6 +178,48 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
                 .orElseGet(() -> regions.get(0).getId());
     }
 
+    /**
+     * 고른 타입의 vCPU, 메모리, GPU 를 함께 싣는다.
+     *
+     * <p>타입 이름만 보고 크기를 아는 사람은 없다. {@code bx2-2x8} 이 몇 코어인지 확인하려고
+     * 콘솔을 여는 순간, 값을 대신 골라 준 의미가 없어진다.
+     */
+    private ProvisioningDefaults.ProvisioningDefaultsBuilder withSpecDetail(
+            ProvisioningDefaults.ProvisioningDefaultsBuilder builder,
+            SupportedProvisioningProvider provider,
+            String credentialId,
+            String region,
+            String specId) {
+        String name = provider.getCanonicalName();
+        VmOptionSpec detail =
+                vmOptionsService.getSpecs(name, credentialId, region, specId, false, SPEC_SCAN_LIMIT).stream()
+                        .filter(candidate -> specId.equalsIgnoreCase(specValue(candidate)))
+                        .findFirst()
+                        .orElse(null);
+        if (detail != null) {
+            return builder.vcpu(detail.getVcpu())
+                    .memoryGb(detail.getMemoryGb())
+                    .gpuCount(detail.getGpuCount() == null ? 0 : detail.getGpuCount());
+        }
+        // Proxmox 는 목록이 없다. 값 자체가 "코어-메모리MiB" 규약이라 거기서 읽는다.
+        return proxmoxSpecDetail(builder, specId);
+    }
+
+    private ProvisioningDefaults.ProvisioningDefaultsBuilder proxmoxSpecDetail(
+            ProvisioningDefaults.ProvisioningDefaultsBuilder builder, String specId) {
+        String[] parts = specId == null ? new String[0] : specId.split("-");
+        if (parts.length != 2) {
+            return builder;
+        }
+        try {
+            return builder.vcpu(Integer.parseInt(parts[0].trim()))
+                    .memoryGb(Integer.parseInt(parts[1].trim()) / 1024.0)
+                    .gpuCount(0);
+        } catch (NumberFormatException e) {
+            return builder;
+        }
+    }
+
     /** 권장 스펙을 먼저 쓰고, 그 리전에 없으면 최소 사양을 넘는 것 중 가장 작은 것을 고른다. */
     private CapacityProbe.SpecChoice pickSpec(
             SupportedProvisioningProvider provider, String credentialId, String region, VmOptionProvider described) {
@@ -175,15 +228,14 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
 
         // 권장값은 keyword 로 직접 찾는다. 목록 앞쪽만 훑으면 권장값이 그 안에 없어 매번 밀린다.
         List<VmOptionSpec> matched = StringUtils.hasText(recommended)
-                ? vmOptionsQueryService.listSpecs(name, credentialId, region, recommended, false, SPEC_SCAN_LIMIT)
+                ? vmOptionsService.getSpecs(name, credentialId, region, recommended, false, SPEC_SCAN_LIMIT)
                 : List.of();
         String exact = matched.stream()
                 .map(this::specValue)
                 .filter(value -> value != null && value.equalsIgnoreCase(recommended))
                 .findFirst()
                 .orElse(null);
-        List<VmOptionSpec> all =
-                vmOptionsQueryService.listSpecs(name, credentialId, region, null, false, SPEC_SCAN_LIMIT);
+        List<VmOptionSpec> all = vmOptionsService.getSpecs(name, credentialId, region, null, false, SPEC_SCAN_LIMIT);
         if (all.isEmpty()) {
             // Proxmox 는 인스턴스 타입 목록이 없다 — "코어-메모리MiB" 규약이라 권장값이 곧 값이다.
             return StringUtils.hasText(recommended)

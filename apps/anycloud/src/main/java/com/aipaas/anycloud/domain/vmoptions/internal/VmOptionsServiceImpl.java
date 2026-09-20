@@ -42,6 +42,10 @@ public class VmOptionsServiceImpl implements VmOptionsService {
     }
 
     @Override
+    @Cacheable(
+            value = CacheConfig.VM_OPTIONS_CONFIG_SCHEMA,
+            key = "T(java.util.Objects).hash(#provider, #credentialId, #region)",
+            unless = "#result == null || #result.isEmpty()")
     public List<ProviderConfigKey> getConfigSchema(String provider, String credentialId, String region) {
         return vmOptionsQueryService.listConfigSchema(provider, credentialId, region);
     }

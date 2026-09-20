@@ -23,4 +23,7 @@ public record ProvisioningDefaults(
         @Schema(description = "master 인스턴스 타입", example = "t3.large") String masterInstanceType,
         @Schema(description = "worker 인스턴스 타입", example = "t3.large") String workerInstanceType,
         @Schema(description = "OS 이미지. 필수가 아닌 CSP 는 null") String osImage,
+        @Schema(description = "인스턴스 vCPU. 목록이 없는 CSP 는 규약에서 읽는다", example = "2") Integer vcpu,
+        @Schema(description = "인스턴스 메모리 GB", example = "8.0") Double memoryGb,
+        @Schema(description = "GPU 개수. 없으면 0", example = "0") Integer gpuCount,
         @Schema(description = "CSP 고유 설정") Map<String, String> providerSpec) {}

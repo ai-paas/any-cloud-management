@@ -117,12 +117,14 @@ public class VmOptionsController {
             description =
                     "계정에서 실제로 고를 수 있는 값을 조회해 CSP 마다 지금 통과하는 요청 한 벌을 조립한다. " + "만들 수 없는 CSP 는 ready=false 와 이유를 함께 준다.")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "기본값 조회 성공")})
-    public ResponseEntity<ApiSuccessResponse<PagedData<ProvisioningDefaults>>> getProvisioningDefaults() {
+    public ResponseEntity<ApiSuccessResponse<PagedData<ProvisioningDefaults>>> getProvisioningDefaults(
+            @Parameter(description = "한 CSP 만 조회. 비우면 전부", example = "AWS") @RequestParam(required = false)
+                    String provider) {
         return new ResponseEntity<>(
                 ApiSuccessResponse.of(
                         HttpStatus.OK.value(),
                         "Provisioning defaults loaded",
-                        PagedData.of(provisioningDefaultsService.listDefaults())),
+                        PagedData.of(provisioningDefaultsService.listDefaults(provider))),
                 new HttpHeaders(),
                 HttpStatus.OK);
     }
