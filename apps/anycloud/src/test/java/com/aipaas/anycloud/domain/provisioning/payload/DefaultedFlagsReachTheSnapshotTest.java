@@ -58,7 +58,7 @@ class DefaultedFlagsReachTheSnapshotTest extends AbstractUnitTest {
         ProvisioningConfigRules.applyDefaults(SupportedProvisioningProvider.GCP, defaulted);
 
         VmClusterPayloadServiceImpl service =
-                new VmClusterPayloadServiceImpl(mapper, componentRepository, addonInspector);
+                new VmClusterPayloadServiceImpl(mapper, componentRepository, addonInspector, null);
         String json = service.serializeRequestSnapshot(
                 cluster,
                 ProvisioningRequest.builder().provider("GCP").config(defaulted).build(),

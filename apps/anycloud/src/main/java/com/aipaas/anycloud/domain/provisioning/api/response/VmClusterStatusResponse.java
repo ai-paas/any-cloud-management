@@ -81,6 +81,9 @@ public class VmClusterStatusResponse {
     @Schema(description = "Bootstrap 및 kubelet 진단 로그")
     private String bootstrapLog;
 
+    @Schema(description = "내려받은 kubeconfig 로 바로 닿는지 — DIRECT / PRIVATE_NETWORK / VIA_BASTION", example = "DIRECT")
+    private String apiServerReach;
+
     @Schema(description = "API 서버 URL", example = "https://3.39.10.20:6443")
     private String apiServerUrl;
 

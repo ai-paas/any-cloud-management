@@ -17,6 +17,8 @@ import com.aipaas.anycloud.domain.provisioning.model.VmClusterInternalRequestSna
 import com.aipaas.anycloud.domain.provisioning.payload.NodeCountFallback;
 import com.aipaas.anycloud.domain.provisioning.payload.VmClusterPayloadService;
 import com.aipaas.anycloud.domain.provisioning.query.VmClusterNodeRows;
+import com.aipaas.anycloud.domain.provisioning.remote.internal.ClusterSshJumpResolver;
+import com.aipaas.anycloud.domain.provisioning.support.ApiServerReach;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,6 +53,7 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
     private final ObjectMapper objectMapper;
     private final VmClusterComponentRepository componentRepository;
     private final RequestedAddonInspector addonInspector;
+    private final ClusterSshJumpResolver sshJumpResolver;
 
     @Override
     public ProvisioningRequest restoreProvisioningRequest(VmClusterEntity vmCluster, ResolvedCspCredential credential) {
@@ -186,6 +189,13 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
                 .lastErrorHint(hintOf(vmCluster.getLastError()))
                 .bootstrapLog(vmCluster.getBootstrapLog())
                 .apiServerUrl(stringValue(outputMap.get("apiServerUrl")))
+                /*
+                 * 사설망 클러스터는 kubeconfig 를 받아도 그 자리에서 못 쓴다. 받아서 써 본 뒤에야
+                 * 아는 것이 지금 동작이라 미리 알려줄 근거를 함께 내려보낸다.
+                 */
+                .apiServerReach(ApiServerReach.of(
+                                stringValue(outputMap.get("apiServerUrl")), sshJumpResolver.resolve(vmCluster) != null)
+                        .name())
                 .masterPublicIp(stringValue(outputMap.get("masterPublicIp")))
                 .masterPublicDns(stringValue(outputMap.get("masterPublicDns")))
                 .masterVmSpec(
