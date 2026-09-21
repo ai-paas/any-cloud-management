@@ -295,9 +295,10 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
                 "No OCI availability domain found for region");
     }
 
-    private JsonNode exchange(String url) {
+    private JsonNode exchange(String rawUrl) {
+        String url = requireOciHost(rawUrl);
         try {
-            HttpHeaders headers = buildHeaders(requireOciHost(url));
+            HttpHeaders headers = buildHeaders(url);
             /*
              * URI 로 넘긴다. String 오버로드는 URI 템플릿으로 취급해 이미 인코딩된 값을 한 번 더
              * 인코딩한다 — operatingSystem 의 %20 이 %2520 이 되어 아무것도 걸리지 않는다.
@@ -530,16 +531,23 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
      * 바뀌면 자격증명이 따라간다.
      */
     private String requireOciHost(String url) {
-        String host;
+        URI parsed;
         try {
-            host = java.net.URI.create(url).getHost();
-        } catch (IllegalArgumentException e) {
+            parsed = new URI(url);
+        } catch (java.net.URISyntaxException | IllegalArgumentException e) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "endpoint", url, "endpoint URL 을 해석할 수 없습니다");
         }
+        String host = parsed.getHost();
         if (host == null || !OCI_HOST.matcher(host).matches()) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "endpoint", host, "허용되지 않은 endpoint host 입니다");
         }
-        return url;
+        /*
+         * host 를 상수로 다시 박아 돌려준다. 통과한 url 을 그대로 넘기면 검증한 문자열과
+         * 요청에 쓰는 문자열이 별개라, 사이에 한 줄만 끼어도 목적지가 갈린다.
+         */
+        String rebuilt = "https://" + host + parsed.getRawPath()
+                + (parsed.getRawQuery() == null ? "" : "?" + parsed.getRawQuery());
+        return rebuilt;
     }
 
     private static final java.util.regex.Pattern OCI_HOST =

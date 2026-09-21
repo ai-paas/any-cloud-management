@@ -329,14 +329,18 @@ func parseInt64(s string, fallback int64) int64 {
 // int64 를 그냥 int 로 줄이면 32비트 빌드에서 값이 뒤집혀 음수 revision 이 helm 에
 // 그대로 넘어간다.
 func parseBoundedInt(s string, fallback, limit int) int {
-	v := parseInt64(s, int64(fallback))
-	if v < 0 {
+	if s == "" {
 		return fallback
 	}
-	if v > int64(limit) {
+	// Atoi 는 int 를 바로 돌려준다. int64 를 받아 줄이면 32비트 빌드에서 값이 뒤집힌다.
+	v, err := strconv.Atoi(s)
+	if err != nil || v < 0 {
+		return fallback
+	}
+	if v > limit {
 		return limit
 	}
-	return int(v)
+	return v
 }
 
 func parseBool(s string) bool {
