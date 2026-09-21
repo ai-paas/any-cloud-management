@@ -2,6 +2,7 @@ package com.aipaas.anycloud.domain.provisioning.web;
 
 import com.aipaas.anycloud.common.validation.ApiValidationConstants;
 import com.aipaas.anycloud.common.web.ApiSuccessResponse;
+import com.aipaas.anycloud.common.web.OffsetPage;
 import com.aipaas.anycloud.common.web.PagedData;
 import com.aipaas.anycloud.domain.cluster.ClusterFacade;
 import com.aipaas.anycloud.domain.cluster.api.request.CreateClusterOperationRequest;
@@ -94,9 +95,14 @@ public class VmController {
             @RequestParam(required = false) @Pattern(regexp = ApiValidationConstants.STATUS_PATTERN) String status,
             @Parameter(description = "삭제된 항목도 함께 반환. status 를 명시하면 그 필터가 우선한다.")
                     @RequestParam(required = false, defaultValue = "false")
-                    boolean includeDeleted) {
-        var items = vmClusterQueryService.listVmClusters(provider, environment, status, includeDeleted);
-        return ResponseEntity.ok(ApiSuccessResponse.of(HttpStatus.OK.value(), "VMs loaded", PagedData.of(items)));
+                    boolean includeDeleted,
+            @Parameter(description = "0-based 페이지. 비우면 전부") @RequestParam(required = false) Integer page,
+            @Parameter(description = "페이지 크기. 비우면 전부") @RequestParam(required = false) Integer size) {
+        var all = vmClusterQueryService.listVmClusters(provider, environment, status, includeDeleted);
+        var paged = OffsetPage.of(all, page, size);
+        var items = paged.items();
+        return ResponseEntity.ok(ApiSuccessResponse.of(HttpStatus.OK.value(), "VMs loaded", PagedData.of(items))
+                .withPagedMeta(items.size(), null, paged.total()));
     }
 
     // =============== Item ===============
