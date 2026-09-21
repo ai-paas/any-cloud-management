@@ -149,7 +149,7 @@ dependencies {
     // Resilience4j: K8s API CircuitBreaker+Retry, Pulumi CLI Bulkhead.
     // 외부 시스템(K8s API, Pulumi CLI) 의 부분 장애가 백엔드 전체 가용성을 깎지 않도록 격리.
     implementation "io.github.resilience4j:resilience4j-spring-boot3:${rootProject.ext.resilience4jVersion}"
-    implementation 'io.github.resilience4j:resilience4j-micrometer:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-micrometer:2.4.0'
 
     // Sprint 3 — JSON structured logging (ELK 호환). 기본 profile 는 string pattern 그대로,
     // SPRING_PROFILES_ACTIVE 에 'json' 포함 시 logback-spring.xml 의 <springProfile name="json">
