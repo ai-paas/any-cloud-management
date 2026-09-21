@@ -12,6 +12,18 @@ public final class GpuInstanceClassifier {
     private static final Pattern OCI = Pattern.compile(".*\\.GPU.*", Pattern.CASE_INSENSITIVE);
     private static final Pattern ALIBABA = Pattern.compile("^ecs\\.(gn|ebmgn).*");
 
+    /** IBM VPC 의 GPU 프로파일 — gx3-16x80x1l4, gx3d-160x1792x8h100. */
+    private static final Pattern IBM = Pattern.compile("^gx\\d.*", Pattern.CASE_INSENSITIVE);
+
+    /**
+     * OpenStack 은 flavor 이름을 운영자가 정한다.
+     *
+     * <p>설치본마다 규칙이 달라 이름만으로는 확신할 수 없다 — 32-256-gpu, 16-64-gpu-2EA,
+     * hybrid-mig-8-16-50-vgpu2 가 모두 같은 클라우드에 있다. 카탈로그의 gpuCount 가 1차이고
+     * 이건 그게 없을 때의 보조다.
+     */
+    private static final Pattern OPENSTACK = Pattern.compile(".*(gpu|vgpu|mig).*", Pattern.CASE_INSENSITIVE);
+
     public static boolean isGpu(String provider, String instanceType) {
         if (provider == null || instanceType == null || instanceType.isBlank()) return false;
         String type = instanceType.trim();
@@ -20,6 +32,8 @@ public final class GpuInstanceClassifier {
             case "gcp" -> GCP.matcher(type).matches();
             case "oci" -> OCI.matcher(type).matches();
             case "alibaba" -> ALIBABA.matcher(type).matches();
+            case "ibm" -> IBM.matcher(type).matches();
+            case "openstack" -> OPENSTACK.matcher(type).matches();
             default -> false;
         };
     }
