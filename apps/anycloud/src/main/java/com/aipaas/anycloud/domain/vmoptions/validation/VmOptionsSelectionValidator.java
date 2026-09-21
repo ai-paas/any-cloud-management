@@ -53,6 +53,27 @@ public class VmOptionsSelectionValidator {
          */
         validateImage(provider, credentialId, region, config.get("anycloud-k8s:osImage"), "osImage");
 
+        /*
+         * 리전에 있다고 모든 존에 있는 것이 아니다. a2-highgpu-1g 는 asia-northeast3 에 있지만
+         * -a 존에는 없고, ecs.ga1.xlarge 는 ap-northeast-2a 에 없다. 리전 목록만 보고 통과시키면
+         * VPC 와 서브넷을 다 만든 뒤 인스턴스에서 403 으로 끝난다.
+         */
+        String zone = config.get("anycloud-k8s:providerSpec.zone");
+        validateZone(
+                provider,
+                credentialId,
+                region,
+                zone,
+                config.get("anycloud-k8s:masterInstanceType"),
+                "masterInstanceType");
+        validateZone(
+                provider,
+                credentialId,
+                region,
+                zone,
+                config.get("anycloud-k8s:workerInstanceType"),
+                "workerInstanceType");
+
         if ("OpenStack".equalsIgnoreCase(provider)) {
             validateImage(
                     provider,
@@ -67,6 +88,22 @@ public class VmOptionsSelectionValidator {
                     config.get("anycloud-k8s:providerSpec.flavorName"),
                     "providerSpec.flavorName");
         }
+    }
+
+    private void validateZone(
+            String provider, String credentialId, String region, String zone, String value, String fieldName) {
+        if (!StringUtils.hasText(value) || !StringUtils.hasText(region)) {
+            return;
+        }
+        if (vmOptionsService.isInstanceTypeAvailableInZone(provider, credentialId, region, zone, value)) {
+            return;
+        }
+        throw new CustomException(
+                ErrorCode.INVALID_INPUT_VALUE,
+                fieldName,
+                value,
+                "Selected instance type is not available in "
+                        + (StringUtils.hasText(zone) ? zone : region + " 의 기본 존"));
     }
 
     private void validateSpec(String provider, String credentialId, String region, String value, String fieldName) {

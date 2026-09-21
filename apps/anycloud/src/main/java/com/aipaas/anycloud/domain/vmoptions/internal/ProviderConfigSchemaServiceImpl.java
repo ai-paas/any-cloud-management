@@ -125,6 +125,13 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                             .label("프로젝트")
                             .description("자원을 만들 GCP 프로젝트. 자격증명이 속한 프로젝트가 목록에 뜬다.")
                             .build(),
+                    ProviderConfigKey.builder()
+                            .key("anycloud-k8s:providerSpec.zone")
+                            .type("string")
+                            .required(false)
+                            .label("존")
+                            .description("비우면 리전의 첫 존. GPU 계열은 존마다 제공 여부가 달라 직접 골라야 한다.")
+                            .build(),
                     osImage("anycloud-k8s:gcpImage", "GCP image family (예: ubuntu-2404-lts)."));
             case PROXMOX -> List.of(
                     ProviderConfigKey.builder()

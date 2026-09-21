@@ -37,6 +37,9 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
     /** 스펙 목록이 길어 전부 훑을 이유가 없다. 작은 것부터 몇 개만 본다. */
     private static final int SPEC_SCAN_LIMIT = 100;
 
+    /** 존을 몇 개까지 두드릴지. 리전당 보통 서너 개다. */
+    private static final int ZONE_SCAN_LIMIT = 6;
+
     /*
      * 캐시가 걸린 쪽을 쓴다. QueryService 를 직접 부르면 모달을 열 때마다 CSP API 를 전부 다시
      * 두드려 7종에 20초 넘게 걸렸다.
@@ -163,6 +166,19 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
         if (providerSpec.containsKey("flavorName")) {
             providerSpec.put("flavorName", spec.specId());
         }
+        /*
+         * 리전에 있다고 모든 존에 있는 것이 아니다. 존을 고르는 CSP 는 실제로 뜨는 존으로
+         * 바꿔 준다 — 그러지 않으면 기본값이 늘 실패하는 조합을 준다.
+         */
+        if (providerSpec.containsKey("zone")) {
+            String usable = usableZone(provider, credentialId, region, schema, spec.specId());
+            if (usable == null) {
+                return builder.ready(false)
+                        .blockedReason(spec.specId() + " 를 띄울 수 있는 존이 없습니다.")
+                        .build();
+            }
+            providerSpec.put("zone", usable);
+        }
         return withSpecDetail(builder, provider, credentialId, region, spec.specId())
                 .ready(true)
                 .masterInstanceType(spec.specId())
@@ -229,6 +245,39 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
         } catch (NumberFormatException e) {
             return builder;
         }
+    }
+
+    /**
+     * 그 타입을 실제로 띄울 수 있는 존.
+     *
+     * <p>존 목록의 첫 값을 그냥 쓰면 a2-highgpu-1g 가 asia-northeast3-a 에, ecs.ga1.xlarge 가
+     * ap-northeast-2a 에 잡혀 둘 다 생성 단계에서 거절된다.
+     */
+    private String usableZone(
+            SupportedProvisioningProvider provider,
+            String credentialId,
+            String region,
+            List<ProviderConfigKey> schema,
+            String instanceType) {
+        List<String> zones = schema.stream()
+                .filter(key -> (PROVIDER_SPEC_PREFIX + "zone").equals(key.key()))
+                .findFirst()
+                .map(this::valuesOf)
+                .orElse(List.of());
+        for (String zone : zones.stream().limit(ZONE_SCAN_LIMIT).toList()) {
+            if (vmOptionsService.isInstanceTypeAvailableInZone(
+                    provider.getCanonicalName(), credentialId, region, zone, instanceType)) {
+                return zone;
+            }
+        }
+        return null;
+    }
+
+    private List<String> valuesOf(ProviderConfigKey key) {
+        if (key.allowedOptions() != null && !key.allowedOptions().isEmpty()) {
+            return key.allowedOptions().stream().map(ConfigOption::value).toList();
+        }
+        return key.allowedValues() == null ? List.of() : key.allowedValues();
     }
 
     /** 권장 스펙을 먼저 쓰고, 그 리전에 없으면 최소 사양을 넘는 것 중 가장 작은 것을 고른다. */

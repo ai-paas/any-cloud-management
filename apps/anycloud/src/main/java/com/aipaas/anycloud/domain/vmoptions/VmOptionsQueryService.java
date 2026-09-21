@@ -22,6 +22,9 @@ public interface VmOptionsQueryService {
      */
     List<ProviderConfigKey> listConfigSchema(String provider, String credentialId, String region);
 
+    boolean isInstanceTypeAvailableInZone(
+            String provider, String credentialId, String region, String zone, String instanceType);
+
     List<VmOptionSpec> listSpecs(
             String provider, String credentialId, String region, String keyword, Boolean gpuOnly, Integer limit);
 

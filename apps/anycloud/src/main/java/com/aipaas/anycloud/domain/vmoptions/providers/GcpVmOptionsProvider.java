@@ -250,11 +250,15 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsFallback")
     public List<String> listConfigOptions(String configKey, String region) {
-        if (!"providerSpec.project".equals(configKey)) {
-            return List.of();
-        }
-        String project = projectId();
-        return StringUtils.hasText(project) ? List.of(project) : List.of();
+        return switch (configKey) {
+            case "providerSpec.project" -> {
+                String project = projectId();
+                yield StringUtils.hasText(project) ? List.of(project) : List.of();
+            }
+                // 존은 리전이 정해져야 나온다. GPU 계열은 존마다 제공 여부가 달라 고를 수 있어야 한다.
+            case "providerSpec.zone" -> StringUtils.hasText(region) ? listZones(region) : List.of();
+            default -> List.of();
+        };
     }
 
     private List<String> listConfigOptionsFallback(String configKey, String region, Throwable throwable) {
@@ -341,6 +345,103 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
                 "gcp",
                 null,
                 "GOOGLE_CREDENTIALS or GOOGLE_APPLICATION_CREDENTIALS is required");
+    }
+
+    /**
+     * emitter 는 {@code region-a} 에 띄운다. 리전 어느 존에든 있으면 통과시키면 안 된다 —
+     * a2-highgpu-1g 는 asia-northeast3 에 있어도 -a 존에는 없다.
+     */
+    @Override
+    @CircuitBreaker(name = "csp-api", fallbackMethod = "isInstanceTypeAvailableInZoneFallback")
+    public boolean isInstanceTypeAvailableInZone(
+            Map<String, String> credentials, String region, String zone, String instanceType) {
+        if (!StringUtils.hasText(instanceType) || !StringUtils.hasText(region)) {
+            return true;
+        }
+        return withCredentials(credentials, () -> {
+            String target = StringUtils.hasText(zone) ? zone : region + "-a";
+            String safeZone = requireValidPathSegment("zone", target);
+            String base = "https://compute.googleapis.com/compute/v1/projects/" + projectId() + "/zones/" + safeZone;
+            try {
+                exchange(base + "/machineTypes/" + requireValidPathSegment("instanceType", instanceType));
+            } catch (org.springframework.web.client.HttpClientErrorException.NotFound e) {
+                return false;
+            }
+            /*
+             * 타입이 있어도 가속기가 그 존에 없으면 만들지 못한다 — a2-highgpu-1g 는
+             * asia-northeast3-a 에 있지만 nvidia-tesla-a100 이 없어 생성이 거절된다.
+             */
+            String accelerator = requiredAccelerator(instanceType);
+            if (accelerator == null) {
+                return true;
+            }
+            boolean offered = listItems(base + "/acceleratorTypes", GcpRecords.MachineType.class).stream()
+                    .anyMatch(type -> type.name() != null && type.name().contains(accelerator));
+            return offered && hasGpuQuota(region, accelerator);
+        });
+    }
+
+    /**
+     * 그 리전에서 이 GPU 를 쓸 수 있는 한도가 있는지.
+     *
+     * <p>가속기가 목록에 있어도 프로젝트 한도가 0 이면 만들지 못한다 — GCP 가 "not supported
+     * in the zone with your configuration" 이라고 답하는 경우가 이것이다.
+     */
+    private boolean hasGpuQuota(String region, String accelerator) {
+        String metric = quotaMetric(accelerator);
+        if (metric == null) {
+            return true;
+        }
+        JsonNode body = parseBody(exchange("https://compute.googleapis.com/compute/v1/projects/" + projectId()
+                        + "/regions/" + requireValidPathSegment("region", region))
+                .getBody());
+        for (JsonNode quota : body.path("quotas")) {
+            if (metric.equalsIgnoreCase(quota.path("metric").asText(""))) {
+                return quota.path("limit").asDouble(0) > 0;
+            }
+        }
+        // 해당 지표가 없으면 판단하지 않는다.
+        return true;
+    }
+
+    private String quotaMetric(String accelerator) {
+        return switch (accelerator) {
+            case "a100" -> "NVIDIA_A100_GPUS";
+            case "a100-80gb" -> "NVIDIA_A100_80GB_GPUS";
+            case "h100" -> "NVIDIA_H100_GPUS";
+            case "l4" -> "NVIDIA_L4_GPUS";
+            default -> null;
+        };
+    }
+
+    /**
+     * GPU 계열이 요구하는 가속기 이름 조각.
+     *
+     * <p>a2, a3, g2 는 GPU 가 붙어야만 뜨는 계열이다. 모르는 계열은 {@code null} 이고 확인하지
+     * 않는다 — 새 계열이 나올 때마다 정상 요청을 막을 이유는 없다.
+     */
+    private String requiredAccelerator(String instanceType) {
+        String type = instanceType.toLowerCase(Locale.ROOT);
+        if (type.startsWith("a2-ultragpu")) {
+            return "a100-80gb";
+        }
+        if (type.startsWith("a2-")) {
+            return "a100";
+        }
+        if (type.startsWith("a3-")) {
+            return "h100";
+        }
+        if (type.startsWith("g2-")) {
+            return "l4";
+        }
+        return null;
+    }
+
+    private boolean isInstanceTypeAvailableInZoneFallback(
+            Map<String, String> credentials, String region, String zone, String instanceType, Throwable throwable) {
+        // 조회가 막히면 막지 않는다. 판단할 수 없다고 정상 요청을 거절할 이유는 없다.
+        LOG.warn("GCP zone 가용성 확인 실패 type={} zone={}: {}", instanceType, zone, String.valueOf(throwable));
+        return true;
     }
 
     private List<String> resolveImageProjects(String owner) {

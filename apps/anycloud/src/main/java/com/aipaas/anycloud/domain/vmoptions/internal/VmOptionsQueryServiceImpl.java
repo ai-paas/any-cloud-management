@@ -148,6 +148,13 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
     }
 
     @Override
+    public boolean isInstanceTypeAvailableInZone(
+            String provider, String credentialId, String region, String zone, String instanceType) {
+        Map<String, String> creds = resolveCredentials(provider, credentialId);
+        return resolve(provider).isInstanceTypeAvailableInZone(creds, region, zone, instanceType);
+    }
+
+    @Override
     public List<VmOptionRegion> listRegions(String provider, String credentialId) {
         Map<String, String> creds = resolveCredentials(provider, credentialId);
         return resolve(provider).listRegions(creds);

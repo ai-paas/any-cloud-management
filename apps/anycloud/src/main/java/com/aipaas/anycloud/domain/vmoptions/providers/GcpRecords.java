@@ -3,6 +3,7 @@ package com.aipaas.anycloud.domain.vmoptions.providers;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.util.List;
 
 /**
  * GCP Compute Engine REST API 응답의 typed projection.
@@ -14,6 +15,14 @@ final class GcpRecords {
     /** {@code GET /regions} 또는 {@code /zones} 의 item. */
     @JsonIgnoreProperties(ignoreUnknown = true)
     record RegionOrZone(String name, String status) {}
+
+    /** {@code GET /regions/{region}} 의 quotas 항목. limit 이 0 이면 그 자원을 아예 못 만든다. */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record RegionDetail(String name, List<Quota> quotas) {
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public record Quota(String metric, Double limit, Double usage) {}
+    }
 
     /** {@code GET /machineTypes} 의 item. */
     @JsonIgnoreProperties(ignoreUnknown = true)

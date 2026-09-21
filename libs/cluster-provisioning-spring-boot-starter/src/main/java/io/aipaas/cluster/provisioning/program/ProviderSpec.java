@@ -17,7 +17,11 @@ public sealed interface ProviderSpec {
     /** 설정 키 접두. {@code providerSpec.imageName} 처럼 중첩을 평면 map 에 담는다. */
     String PREFIX = "providerSpec.";
 
-    record Gcp(String project) implements ProviderSpec {}
+    /**
+     * @param zone 비우면 {@code region-a}. 계열마다 제공 존이 달라 GPU 는 존을 골라야 한다 —
+     *     a2-highgpu 는 리전에 있어도 -a 존에서는 만들지 못하는 경우가 있다
+     */
+    record Gcp(String project, String zone) implements ProviderSpec {}
 
     record Azure(String resourceGroup) implements ProviderSpec {}
 
@@ -101,7 +105,7 @@ public sealed interface ProviderSpec {
             return null;
         }
         return switch (ProviderName.canonical(provider)) {
-            case "gcp" -> new Gcp(read(lookup, "project"));
+            case "gcp" -> new Gcp(read(lookup, "project"), read(lookup, "zone"));
             case "azure" -> new Azure(read(lookup, "resourceGroup"));
             case "oci" -> new Oci(read(lookup, "compartmentId"));
             case "alibaba" -> new Alibaba(read(lookup, "zone"));

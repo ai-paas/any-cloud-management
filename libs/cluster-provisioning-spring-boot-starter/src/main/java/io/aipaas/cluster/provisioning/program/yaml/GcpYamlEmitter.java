@@ -117,7 +117,7 @@ final class GcpYamlEmitter implements ProviderYamlEmitter {
         Map<String, Object> instance = new LinkedHashMap<>();
         instance.put("name", spec.name() + "-" + node);
         instance.put("project", project);
-        instance.put("zone", spec.region() + "-a");
+        instance.put("zone", zone(spec));
         instance.put("machineType", node.startsWith("master") ? spec.masterInstanceType() : spec.workerInstanceType());
         instance.put("tags", List.of(spec.name() + "-node"));
         instance.put("bootDisk", Map.of("initializeParams", Map.of("image", image(spec), "size", rootDiskGb(spec))));
@@ -167,5 +167,11 @@ final class GcpYamlEmitter implements ProviderYamlEmitter {
     private static ProviderSpec.Gcp gcp(ClusterSpec spec) {
         if (spec.providerSpec() instanceof ProviderSpec.Gcp g) return g;
         throw new IllegalStateException("Gcp 설정이 없다: provider=" + spec.provider());
+    }
+    /** 존을 고르지 않으면 리전의 첫 존을 쓴다. GPU 계열은 존마다 제공 여부가 달라 직접 골라야 한다. */
+    private String zone(ClusterSpec spec) {
+        ProviderSpec.Gcp gcp = spec.providerSpec() instanceof ProviderSpec.Gcp value ? value : null;
+        String zone = gcp == null ? null : gcp.zone();
+        return zone != null && !zone.isBlank() ? zone : spec.region() + "-a";
     }
 }

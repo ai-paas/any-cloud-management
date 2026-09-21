@@ -51,6 +51,12 @@ public class VmOptionsServiceImpl implements VmOptionsService {
     }
 
     @Override
+    public boolean isInstanceTypeAvailableInZone(
+            String provider, String credentialId, String region, String zone, String instanceType) {
+        return vmOptionsQueryService.isInstanceTypeAvailableInZone(provider, credentialId, region, zone, instanceType);
+    }
+
+    @Override
     @Cacheable(
             value = CacheConfig.VM_OPTIONS_SPECS,
             key = "T(java.util.Objects).hash(#provider, #credentialId, #region, #keyword, #gpuOnly, #limit)",

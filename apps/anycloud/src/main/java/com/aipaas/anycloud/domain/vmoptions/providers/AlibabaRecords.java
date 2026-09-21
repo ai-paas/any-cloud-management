@@ -46,6 +46,28 @@ final class AlibabaRecords {
         public record AvailableInstanceTypes(List<String> InstanceTypes) {}
     }
 
+    /** DescribeAvailableResource 응답. 중첩이 깊어 필요한 것만 받는다. */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record AvailableResourceResponse(AvailableZones AvailableZones) {
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public record AvailableZones(List<AvailableZone> AvailableZone) {}
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public record AvailableZone(String ZoneId, String Status, AvailableResources AvailableResources) {}
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public record AvailableResources(List<AvailableResource> AvailableResource) {}
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public record AvailableResource(SupportedResources SupportedResources) {}
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public record SupportedResources(List<SupportedResource> SupportedResource) {}
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public record SupportedResource(String Value, String Status) {}
+    }
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     record ZonesResponse(Zones Zones) {
 

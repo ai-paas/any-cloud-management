@@ -341,6 +341,72 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
         return value;
     }
 
+    /**
+     * 존마다 파는 인스턴스가 다르다.
+     *
+     * <p>DescribeInstanceTypes 는 리전 전체 목록이라 {@code ecs.ga1.xlarge} 가 있다고 나오지만
+     * ap-northeast-2a 에는 없다. 그대로 만들면 403 InvalidResourceType.NotSupported 로 끝난다.
+     */
+    @Override
+    @CircuitBreaker(name = "csp-api", fallbackMethod = "isInstanceTypeAvailableInZoneFallback")
+    public boolean isInstanceTypeAvailableInZone(
+            Map<String, String> credentials, String region, String zone, String instanceType) {
+        if (!StringUtils.hasText(instanceType) || !StringUtils.hasText(zone)) {
+            return true;
+        }
+        return withCredentials(credentials, () -> {
+            AlibabaRecords.AvailableResourceResponse body = invoke(
+                    "DescribeAvailableResource",
+                    requiredRegion(region),
+                    Map.of(
+                            "DestinationResource",
+                            "InstanceType",
+                            "ZoneId",
+                            zone,
+                            "InstanceType",
+                            instanceType,
+                            "InstanceChargeType",
+                            "PostPaid"),
+                    AlibabaRecords.AvailableResourceResponse.class);
+            return supportsInstanceType(body, zone, instanceType);
+        });
+    }
+
+    private boolean supportsInstanceType(
+            AlibabaRecords.AvailableResourceResponse body, String zone, String instanceType) {
+        if (body.AvailableZones() == null || body.AvailableZones().AvailableZone() == null) {
+            return false;
+        }
+        for (AlibabaRecords.AvailableResourceResponse.AvailableZone available :
+                body.AvailableZones().AvailableZone()) {
+            if (!zone.equalsIgnoreCase(available.ZoneId()) || available.AvailableResources() == null) {
+                continue;
+            }
+            for (AlibabaRecords.AvailableResourceResponse.AvailableResource resource :
+                    available.AvailableResources().AvailableResource()) {
+                if (resource.SupportedResources() == null) {
+                    continue;
+                }
+                for (AlibabaRecords.AvailableResourceResponse.SupportedResource supported :
+                        resource.SupportedResources().SupportedResource()) {
+                    // Available 이 아닌 값은 재고가 없거나 판매하지 않는 것이다.
+                    if (instanceType.equalsIgnoreCase(supported.Value())
+                            && "Available".equalsIgnoreCase(supported.Status())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isInstanceTypeAvailableInZoneFallback(
+            Map<String, String> credentials, String region, String zone, String instanceType, Throwable throwable) {
+        // 조회가 막히면 막지 않는다. 판단할 수 없다고 정상 요청을 거절할 이유는 없다.
+        LOG.warn("Alibaba zone 가용성 확인 실패 type={} zone={}: {}", instanceType, zone, String.valueOf(throwable));
+        return true;
+    }
+
     private String ownerOrDefault(String owner) {
         return StringUtils.hasText(owner) ? owner : "system";
     }
