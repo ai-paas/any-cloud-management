@@ -57,7 +57,9 @@ addon-catalog:
       description: "GPU 노드 의 NVIDIA driver / nvidia-container-toolkit / device plugin / MIG 자동 관리. cluster.hasGpuNodes=true 시 driver install 의 K8s native 경로 — bootstrap-worker SSH driver install 대체."
       chartRepo: nvidia
       chartName: gpu-operator
-      chartVersion: "v24.6.0"
+      # v24.6 의 드라이버 이미지는 ubuntu22.04 까지다. 노드 기본 이미지가 Ubuntu 24.04 라
+      # nvcr.io/nvidia/driver:550.90.07-ubuntu24.04 을 찾다가 ImagePullBackOff 로 멈춘다.
+      chartVersion: "v26.3.3"
       namespace: gpu-operator
       releaseName: gpu-operator
       repoUrl: https://helm.ngc.nvidia.com/nvidia
