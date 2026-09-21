@@ -80,6 +80,13 @@ public interface ChartService {
     ChartStatusResponse getChartStatus(String releaseName, String clusterName, String namespace);
 
     /**
+     * 설치할 때 넘긴 values 를 돌려준다 ({@code helm get values} 와 같다).
+     *
+     * <p>agent 에 values 를 묻는 명령이 없어 helm 이 남긴 release secret 을 읽어 푼다.
+     */
+    String getReleaseValues(String clusterName, String namespace, String releaseName);
+
+    /**
      * 클러스터의 모든 Helm 릴리즈 목록을 조회합니다.
      *
      * @param clusterName 클러스터 이름

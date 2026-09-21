@@ -460,6 +460,29 @@ public class ClusterHelmReleaseController {
                 ApiSuccessResponse.of(HttpStatus.OK.value(), "Upgrade completed", OperationResponse.from(op)));
     }
 
+    @GetMapping("/{releaseName}/values")
+    @Operation(summary = "release 에 적용된 values (helm get values)")
+    public ResponseEntity<ApiSuccessResponse<String>> values(
+            @PathVariable
+                    @NotBlank
+                    @Pattern(regexp = ApiValidationConstants.K8S_NAME_PATTERN)
+                    @Size(max = ApiValidationConstants.K8S_NAME_MAX)
+                    String clusterName,
+            @PathVariable
+                    @NotBlank
+                    @Pattern(regexp = ApiValidationConstants.K8S_NAME_PATTERN)
+                    @Size(max = ApiValidationConstants.K8S_NAME_MAX)
+                    String releaseName,
+            @RequestParam(required = false)
+                    @Pattern(regexp = ApiValidationConstants.NAMESPACE_PATTERN)
+                    @Size(max = ApiValidationConstants.NAMESPACE_MAX)
+                    String namespace) {
+        return ResponseEntity.ok(ApiSuccessResponse.of(
+                HttpStatus.OK.value(),
+                "Helm release values loaded",
+                chartService.getReleaseValues(clusterName, namespace, releaseName)));
+    }
+
     @GetMapping("/{releaseName}/resources")
     @Operation(summary = "release 가 만든 K8s 리소스 목록")
     public ResponseEntity<ApiSuccessResponse<Object>> resources(
