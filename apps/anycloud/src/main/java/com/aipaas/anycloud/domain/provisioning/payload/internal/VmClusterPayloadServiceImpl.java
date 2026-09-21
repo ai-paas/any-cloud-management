@@ -1,5 +1,6 @@
 package com.aipaas.anycloud.domain.provisioning.payload.internal;
 
+import com.aipaas.anycloud.common.error.exception.provisioning.ProvisioningFailureReason;
 import com.aipaas.anycloud.domain.credential.ResolvedCspCredential;
 import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
 import com.aipaas.anycloud.domain.provisioning.api.request.ProvisionClusterRequest;
@@ -147,6 +148,7 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
                         firstNonBlank(stringValue(outputMap.get("workerVmSpec")), requestSnapshot.getWorkerVmSpec()))
                 .osImage(firstNonBlank(stringValue(outputMap.get("osImage")), requestSnapshot.getOsImage()))
                 .lastError(vmCluster.getLastError())
+                .lastErrorSummary(summaryOf(vmCluster.getLastError()))
                 .masterCount(provisioned ? nodes.masterCount() : 1)
                 .workerCount(NodeCountFallback.workerCount(
                         provisioned, nodes.workerCount(), requestSnapshot.getWorkerCount()))
@@ -180,6 +182,8 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
                 .clusterRegistered(vmCluster.getClusterRegistered())
                 .clusterId(vmCluster.getClusterId())
                 .lastError(vmCluster.getLastError())
+                .lastErrorSummary(summaryOf(vmCluster.getLastError()))
+                .lastErrorHint(hintOf(vmCluster.getLastError()))
                 .bootstrapLog(vmCluster.getBootstrapLog())
                 .apiServerUrl(stringValue(outputMap.get("apiServerUrl")))
                 .masterPublicIp(stringValue(outputMap.get("masterPublicIp")))
@@ -335,6 +339,21 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
     }
 
     /** Boolean flag 파싱 — strict 검증은 {@code ProvisioningConfigRules.validateBooleanFlags} 에서 끝나므로 여기서는 trim+lowercase 만 적용 (defense-in-depth). 검증을 우회한 경로로 들어오면 "true" / "false" 외엔 모두 null 반환. */
+    /**
+     * 원문은 그대로 두고 요약을 덧붙인다.
+     *
+     * <p>저장하지 않고 읽을 때 만든다 — 분류 규칙을 고치면 예전 실패도 같이 읽히게 된다.
+     */
+    private String summaryOf(String raw) {
+        ProvisioningFailureReason reason = ProvisioningFailureReason.from(raw);
+        return reason == null ? null : reason.summary();
+    }
+
+    private String hintOf(String raw) {
+        ProvisioningFailureReason reason = ProvisioningFailureReason.from(raw);
+        return reason == null ? null : reason.hint();
+    }
+
     private Boolean parseBoolean(String raw) {
         if (raw == null || raw.isBlank()) {
             return null;
