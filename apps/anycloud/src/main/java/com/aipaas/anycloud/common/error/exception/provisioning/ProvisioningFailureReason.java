@@ -16,7 +16,20 @@ public enum ProvisioningFailureReason {
     OUT_OF_CAPACITY(
             "선택한 리전에 지금 만들 수 있는 자리가 없습니다.",
             "다른 인스턴스 타입이나 리전을 고르거나, 잠시 뒤 다시 시도하세요.",
-            List.of("out of host capacity", "outofcapacity", "insufficient capacity", "capacity is not available")),
+            List.of(
+                    "out of host capacity",
+                    "outofcapacity",
+                    "insufficient capacity",
+                    "capacity is not available",
+                    // GCP 는 존 재고가 없으면 자원 종류만 알려 준다. GPU 존에서 흔하다.
+                    "does not have enough resources available",
+                    "zone_resource_pool_exhausted")),
+
+    /** Alibaba 는 계정 확인이 끝나지 않으면 GPU 같은 특정 계열만 골라 막는다. */
+    ACCOUNT_VERIFICATION_REQUIRED(
+            "CSP 계정 확인이 끝나지 않아 거절됐습니다.",
+            "CSP 콘솔에서 실명 확인과 결제 수단을 마친 뒤 다시 시도하세요.",
+            List.of("forbidden.riskcontrol", "riskcontrol", "real-name authentication")),
 
     QUOTA_EXCEEDED(
             "계정의 사용 한도를 넘었습니다.",
@@ -85,6 +98,12 @@ public enum ProvisioningFailureReason {
             "필요한 설정이 빠졌습니다.",
             "생성 화면에서 필수 항목을 채운 뒤 다시 시도하세요.",
             List.of("missing required provisioning config", "required config")),
+
+    /** nova 는 스케줄에 실패해도 상태만 ERROR 로 준다. 사유는 CSP 콘솔에만 남는다. */
+    NODE_CREATE_FAILED(
+            "인스턴스가 오류 상태로 만들어졌습니다.",
+            "CSP 콘솔에서 인스턴스 오류 사유를 확인하세요. flavor 를 받을 수 있는 호스트가 없을 때 흔합니다.",
+            List.of("unexpected state 'error'", "no valid host was found")),
 
     ADDRESS_EXHAUSTED(
             "공인 주소를 더 받을 수 없습니다.",

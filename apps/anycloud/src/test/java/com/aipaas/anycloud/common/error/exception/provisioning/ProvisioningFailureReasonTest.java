@@ -87,4 +87,29 @@ class ProvisioningFailureReasonTest extends AbstractUnitTest {
         assertThat(reason.summary()).isNotBlank();
         assertThat(reason.hint()).isNotBlank();
     }
+
+    @Test
+    void gcpZoneStockoutReadsAsCapacity() {
+        String raw = "error: Error waiting for instance to create: The zone "
+                + "'projects/p/zones/asia-northeast3-a' does not have enough resources available to "
+                + "fulfill the request. '(resource type:compute)'.";
+
+        assertThat(ProvisioningFailureReason.from(raw)).isEqualTo(ProvisioningFailureReason.OUT_OF_CAPACITY);
+    }
+
+    @Test
+    void alibabaRiskControlPointsAtTheAccount() {
+        String raw = "SDKError: StatusCode: 403 Code: Forbidden.RiskControl Message: ...";
+
+        assertThat(ProvisioningFailureReason.from(raw))
+                .isEqualTo(ProvisioningFailureReason.ACCOUNT_VERIFICATION_REQUIRED);
+    }
+
+    @Test
+    void novaErrorStateIsNotSilent() {
+        String raw = "Error waiting for instance (e05e68c6) to become ready: unexpected state 'ERROR', "
+                + "wanted target 'ACTIVE'.";
+
+        assertThat(ProvisioningFailureReason.from(raw)).isEqualTo(ProvisioningFailureReason.NODE_CREATE_FAILED);
+    }
 }
