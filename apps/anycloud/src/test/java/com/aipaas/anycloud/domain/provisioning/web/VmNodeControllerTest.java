@@ -37,7 +37,18 @@ class VmNodeControllerTest extends AbstractUnitTest {
 
     private VmNodeListItemResponse node(String name, String role) {
         return new VmNodeListItemResponse(
-                name, role, "i-1", "10.0.0.1", "1.2.3.4", "1.2.3.4", "demo", "OCI", "ap-tokyo-1", "dev", "READY");
+                name,
+                role,
+                "i-1",
+                "10.0.0.1",
+                "1.2.3.4",
+                "1.2.3.4",
+                "demo",
+                "OCI",
+                "ap-tokyo-1",
+                "dev",
+                "READY",
+                false);
     }
 
     @Test

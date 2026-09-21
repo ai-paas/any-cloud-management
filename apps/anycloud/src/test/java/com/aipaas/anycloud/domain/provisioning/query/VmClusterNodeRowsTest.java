@@ -78,16 +78,28 @@ class VmClusterNodeRowsTest extends AbstractUnitTest {
     }
 
     @Test
-    void yieldsNothingBeforeProvisioningProducesOutputs() {
-        assertThat(VmClusterNodeRows.of(MAPPER, cluster(null))).isEmpty();
-        assertThat(VmClusterNodeRows.of(MAPPER, cluster(""))).isEmpty();
-        assertThat(VmClusterNodeRows.of(MAPPER, cluster("{}"))).isEmpty();
+    void aClusterWithoutNodesStillGetsOneRow() {
+        /*
+         * 빈 목록을 돌려주면 만들어지는 중이거나 실패한 클러스터가 목록에서 통째로 사라진다.
+         * 화면이 대신 끼워 넣으면 자르는 곳과 세는 곳이 갈려 다음 페이지가 비어 버린다.
+         */
+        for (String outputs : new String[] {null, "", "{}"}) {
+            assertThat(VmClusterNodeRows.of(MAPPER, cluster(outputs)))
+                    .singleElement()
+                    .satisfies(row -> {
+                        assertThat(row.pending()).isTrue();
+                        assertThat(row.clusterName()).isEqualTo("demo");
+                        assertThat(row.role()).isNull();
+                    });
+        }
     }
 
     @Test
     void survivesGarbageInsteadOfHidingTheWholeList() {
         // 한 클러스터의 outputs 가 깨졌다고 다른 클러스터의 노드까지 사라지면 안 된다.
-        assertThat(VmClusterNodeRows.of(MAPPER, cluster("not json"))).isEmpty();
+        assertThat(VmClusterNodeRows.of(MAPPER, cluster("not json")))
+                .singleElement()
+                .satisfies(row -> assertThat(row.pending()).isTrue());
     }
 
     @Test

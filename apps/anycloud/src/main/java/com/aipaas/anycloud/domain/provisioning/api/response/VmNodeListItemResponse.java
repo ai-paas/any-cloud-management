@@ -21,7 +21,8 @@ public record VmNodeListItemResponse(
         @Schema(description = "클라우드 제공자", example = "OCI") String clusterProvider,
         @Schema(description = "리전", example = "ap-tokyo-1") String region,
         @Schema(description = "환경", example = "dev") String environment,
-        @Schema(description = "소속 클러스터의 프로비저닝 상태", example = "READY") String infraStatus) {
+        @Schema(description = "소속 클러스터의 프로비저닝 상태", example = "READY") String infraStatus,
+        @Schema(description = "노드가 아직 없어 클러스터를 대신 세운 줄", example = "false") boolean pending) {
 
     public static VmNodeListItemResponse from(VmClusterNodeRows.Row row) {
         return new VmNodeListItemResponse(
@@ -35,6 +36,7 @@ public record VmNodeListItemResponse(
                 row.clusterProvider(),
                 row.region(),
                 row.environment(),
-                row.infraStatus());
+                row.infraStatus(),
+                row.pending());
     }
 }

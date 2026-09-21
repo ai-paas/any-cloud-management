@@ -15,6 +15,7 @@ import com.aipaas.anycloud.domain.provisioning.query.VmClusterListFilter;
 import com.aipaas.anycloud.domain.provisioning.query.VmClusterNodeRows;
 import com.aipaas.anycloud.domain.provisioning.query.VmClusterQueryService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -50,9 +51,14 @@ public class VmClusterQueryServiceImpl implements VmClusterQueryService {
                 .and(equalsIgnoreCase("clusterName", clusterName))
                 .and(notEqualsEnum("provisioningStatus", VmClusterStatus.DELETED));
 
+        /*
+         * 노드가 없는 클러스터의 줄을 앞에 세운다. 만들어지는 중이거나 실패한 것들이라 뒤
+         * 페이지로 밀리면 정작 봐야 할 줄을 못 본다.
+         */
         return vmClusterRepository.findAll(specification, Sort.by(Sort.Direction.DESC, "createdAt")).stream()
                 .flatMap(cluster -> VmClusterNodeRows.of(objectMapper, cluster).stream())
                 .map(VmNodeListItemResponse::from)
+                .sorted(Comparator.comparing(VmNodeListItemResponse::pending).reversed())
                 .toList();
     }
 
