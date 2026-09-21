@@ -95,7 +95,8 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
         String availabilityDomain = firstAvailabilityDomain(resolvedRegion);
         String compartmentId = compartmentId();
         String url = computeBaseUrl(resolvedRegion) + "/20160918/shapes?compartmentId=" + compartmentId
-                + "&availabilityDomain=" + availabilityDomain;
+                + "&availabilityDomain="
+                + java.net.URLEncoder.encode(availabilityDomain, java.nio.charset.StandardCharsets.UTF_8);
         List<OciRecords.Shape> items = listItems(exchange(url), OciRecords.Shape.class);
         List<VmOptionSpec> results = new ArrayList<>();
         for (OciRecords.Shape s : items) {
@@ -296,7 +297,7 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
 
     private JsonNode exchange(String url) {
         try {
-            HttpHeaders headers = buildHeaders(url);
+            HttpHeaders headers = buildHeaders(requireOciHost(url));
             /*
              * URI 로 넘긴다. String 오버로드는 URI 템플릿으로 취급해 이미 인코딩된 값을 한 번 더
              * 인코딩한다 — operatingSystem 의 %20 이 %2520 이 되어 아무것도 걸리지 않는다.
@@ -360,7 +361,8 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
         return false;
     }
 
-    private JsonNode exchangePost(String url, Map<String, Object> body) {
+    private JsonNode exchangePost(String rawUrl, Map<String, Object> body) {
+        String url = requireOciHost(rawUrl);
         String payload = writeJson(body);
         try {
             ResponseEntity<String> response = restTemplate.exchange(
@@ -522,6 +524,27 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
         return ociBaseUrl("iaas", region);
     }
 
+    /*
+     * 조립이 끝난 URL 을 다시 확인한다. base 만 검사하면 뒤에 이어 붙인 식별자가 host 를
+     * 바꾸지 못한다는 보장이 URL 조립 코드에만 남는다 — 요청에는 서명이 붙으므로 목적지가
+     * 바뀌면 자격증명이 따라간다.
+     */
+    private String requireOciHost(String url) {
+        String host;
+        try {
+            host = java.net.URI.create(url).getHost();
+        } catch (IllegalArgumentException e) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "endpoint", url, "endpoint URL 을 해석할 수 없습니다");
+        }
+        if (host == null || !OCI_HOST.matcher(host).matches()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "endpoint", host, "허용되지 않은 endpoint host 입니다");
+        }
+        return url;
+    }
+
+    private static final java.util.regex.Pattern OCI_HOST =
+            java.util.regex.Pattern.compile("^(identity|iaas)\\.[a-z0-9-]{1,32}\\.oraclecloud\\.com$");
+
     private String ociBaseUrl(String service, String region) {
         String host = service + "." + requireValidRegionId(region) + ".oraclecloud.com";
         return requireExpectedHost("https://" + host, host);
@@ -554,7 +577,7 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     private String tenancyOcid() {
-        return requiredEnv("TF_VAR_tenancy_ocid");
+        return requireValidOcid("TF_VAR_tenancy_ocid", requiredEnv("TF_VAR_tenancy_ocid"));
     }
 
     private String userOcid() {
@@ -568,11 +591,11 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     private String compartmentId() {
         String env = resolveCredential("OCI_COMPARTMENT_ID");
         if (StringUtils.hasText(env)) {
-            return env;
+            return requireValidOcid("OCI_COMPARTMENT_ID", env);
         }
         String tf = resolveCredential("TF_VAR_compartment_ocid");
         if (StringUtils.hasText(tf)) {
-            return tf;
+            return requireValidOcid("TF_VAR_compartment_ocid", tf);
         }
         return tenancyOcid();
     }
@@ -677,7 +700,8 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     private VmOptionImage getImage(String region, String imageId) {
         try {
             JsonNode body = exchange(computeBaseUrl(region) + "/20160918/images/"
-                    + java.net.URLEncoder.encode(imageId, java.nio.charset.StandardCharsets.UTF_8));
+                    + java.net.URLEncoder.encode(
+                            requireValidOcid("imageId", imageId), java.nio.charset.StandardCharsets.UTF_8));
             OciRecords.Image img = body == null ? null : objectMapper.convertValue(body, OciRecords.Image.class);
             if (img == null || !"AVAILABLE".equalsIgnoreCase(img.lifecycleState())) {
                 return null;

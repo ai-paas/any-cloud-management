@@ -325,6 +325,20 @@ func parseInt64(s string, fallback int64) int64 {
 	return v
 }
 
+// parseBoundedInt 는 helm revision 처럼 작은 양수만 의미가 있는 파라미터를 읽는다.
+// int64 를 그냥 int 로 줄이면 32비트 빌드에서 값이 뒤집혀 음수 revision 이 helm 에
+// 그대로 넘어간다.
+func parseBoundedInt(s string, fallback, limit int) int {
+	v := parseInt64(s, int64(fallback))
+	if v < 0 {
+		return fallback
+	}
+	if v > int64(limit) {
+		return limit
+	}
+	return int(v)
+}
+
 func parseBool(s string) bool {
 	if s == "" {
 		return false

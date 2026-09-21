@@ -34,6 +34,12 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+const (
+	// helm 이 보관하는 리비전 수를 넘어설 일이 없다. 넘겨받은 값을 여기서 자른다.
+	maxHelmHistory  = 1000
+	maxHelmRevision = 1_000_000
+)
+
 // Helm install/upgrade concurrency lock.
 //
 // 동일 release name 에 대한 동시 install/upgrade race 차단. Helm SDK 자체는 serialize 안 함 —
@@ -479,7 +485,7 @@ func (d *Dispatcher) getHelmReleaseHistory(ctx context.Context, cmd *agentv1.Com
 		return errorResponse(agentv1.Status_PERMISSION_DENIED, "NAMESPACE_NOT_ALLOWED",
 			fmt.Sprintf("namespace %s not in allowlist", namespace))
 	}
-	max := int(parseInt64(getStringParam(cmd, "max"), 0))
+	max := parseBoundedInt(getStringParam(cmd, "max"), 0, maxHelmHistory)
 	revs, err := d.helm.History(ctx, namespace, release, max)
 	if err != nil {
 		code := "HELM_HISTORY_FAILED"
@@ -526,7 +532,7 @@ func (d *Dispatcher) rollbackHelmRelease(ctx context.Context, cmd *agentv1.Comma
 		return errorResponse(agentv1.Status_PERMISSION_DENIED, "NAMESPACE_NOT_ALLOWED",
 			fmt.Sprintf("namespace %s not in allowlist", namespace))
 	}
-	revision := int(parseInt64(getStringParam(cmd, "revision"), 0))
+	revision := parseBoundedInt(getStringParam(cmd, "revision"), 0, maxHelmRevision)
 	wait := parseBool(getStringParam(cmd, "wait"))
 	rel, err := d.helm.Rollback(ctx, helm.RollbackOptions{
 		ReleaseName: release,

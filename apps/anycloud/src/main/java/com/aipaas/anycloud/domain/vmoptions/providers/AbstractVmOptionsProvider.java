@@ -228,6 +228,27 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
         return value;
     }
 
+    private static final java.util.regex.Pattern OCID =
+            java.util.regex.Pattern.compile("^ocid1\\.[a-z0-9]+\\.[a-z0-9]+\\.[a-z0-9-]*\\.[a-z0-9.-]{1,255}$");
+
+    /**
+     * OCID 를 URL 에 넣기 전에 검증한다.
+     *
+     * <p>OCID 는 자격증명과 providerSpec 에서 온다. 검증 없이 이어 붙이면 {@code ?} 나 {@code #}
+     * 로 query 를 끊어 다른 경로를 부르게 만들 수 있고, 그 요청에는 서명이 그대로 붙는다.
+     *
+     * @throws CustomException 형식에 맞지 않는 경우
+     */
+    protected String requireValidOcid(String name, String value) {
+        if (!StringUtils.hasText(value)) {
+            return value;
+        }
+        if (!OCID.matcher(value.toLowerCase(Locale.ROOT)).matches()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, name, value, name + " 이 OCID 형식이 아닙니다");
+        }
+        return value;
+    }
+
     /**
      * 조립한 URL 의 host 가 기대한 값과 정확히 일치하는지 확인한다.
      *

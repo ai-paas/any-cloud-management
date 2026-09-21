@@ -11,6 +11,11 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# 네 job 모두 checkout 과 빌드만 한다. 기본값은 저장소 설정에 따라 write 까지 열리므로
+# 워크플로우 쪽에서 읽기로 못박는다.
+permissions:
+  contents: read
+
 jobs:
   java:
     name: Java build + tests
