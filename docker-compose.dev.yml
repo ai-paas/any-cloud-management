@@ -46,28 +46,6 @@ services:
       retries: 10
       start_period: 20s
 
-  chartmuseum:
-    image: ghcr.io/helm/chartmuseum:v0.14.0
-    container_name: anycloud-chartmuseum-dev
-    user: "0"
-    ports:
-      - "8080:8080"
-    environment:
-      DEBUG: "1"
-      STORAGE: local
-      STORAGE_LOCAL_ROOTDIR: /charts
-      ALLOW_OVERWRITE: "true"
-      BASIC_AUTH_USER: ${CHARTMUSEUM_USER:-anycloud}
-      BASIC_AUTH_PASS: ${CHARTMUSEUM_PASS:-dev-only-pass-do-not-use-in-prod}
-    volumes:
-      - chartmuseum-data:/charts
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/health || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 10s
-
   rustfs:
     image: rustfs/rustfs:1.0.0-alpha.99
     container_name: anycloud-rustfs-dev
@@ -145,8 +123,6 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      chartmuseum:
-        condition: service_healthy
       pulumi-backend-bootstrap:
         condition: service_completed_successfully
     stop_grace_period: 45s
@@ -193,11 +169,11 @@ services:
       VM_CLUSTER_WORKFLOW_MAX_ATTEMPTS: "3"
       # gRPC public endpoint (cluster-agent dial-in)
       ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT: ${ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT:-127.0.0.1:9090}
+      # dev 스택은 공개 저장소를 바로 쓴다. 운영(docker profile) 기본은 꺼짐 — air-gapped 대비.
+      ANYCLOUD_HELM_REPO_AUTO_SEED: ${ANYCLOUD_HELM_REPO_AUTO_SEED:-true}
       ANYCLOUD_AGENT_IMAGE: ${ANYCLOUD_AGENT_IMAGE:-aipaas/cluster-agent:dev}
       # dev 태그는 같은 이름으로 다시 밀린다. IfNotPresent 면 노드가 옛 이미지를 계속 쓴다.
       ANYCLOUD_AGENT_IMAGE_PULL_POLICY: ${ANYCLOUD_AGENT_IMAGE_PULL_POLICY:-IfNotPresent}
-      # backend ↔ chartmuseum 은 docker network alias 로 연결 (host:8080 X)
-      ANYCLOUD_AGENT_HELM_REPO_URL: ${ANYCLOUD_AGENT_HELM_REPO_URL:-http://chartmuseum:8080}
       # Cluster 등록 응답의 kubectl apply 명령 base URL. 미설정 시 HTTP 요청 host 자동 사용.
       # dev 단일 host 환경에서는 비워두면 사용자가 브라우저로 접근한 host (예: localhost:8888) 자동 반영.
       ANYCLOUD_PUBLIC_URL: ${ANYCLOUD_PUBLIC_URL:-}
@@ -264,6 +240,8 @@ services:
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-dev-only-pass-do-not-use-in-prod}
       VM_CLUSTER_WORKFLOW_MAX_ATTEMPTS: "3"
       ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT: ${ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT:-127.0.0.1:9090}
+      # dev 스택은 공개 저장소를 바로 쓴다. 운영(docker profile) 기본은 꺼짐 — air-gapped 대비.
+      ANYCLOUD_HELM_REPO_AUTO_SEED: ${ANYCLOUD_HELM_REPO_AUTO_SEED:-true}
       ANYCLOUD_AGENT_IMAGE: ${ANYCLOUD_AGENT_IMAGE:-aipaas/cluster-agent:dev}
       # dev 태그는 같은 이름으로 다시 밀린다. IfNotPresent 면 노드가 옛 이미지를 계속 쓴다.
       ANYCLOUD_AGENT_IMAGE_PULL_POLICY: ${ANYCLOUD_AGENT_IMAGE_PULL_POLICY:-IfNotPresent}
@@ -278,7 +256,6 @@ services:
 volumes:
   mariadb-data:
   rabbitmq-data:
-  chartmuseum-data:
   rustfs-data:
   pulumi-home:
   pulumi-runtime:
