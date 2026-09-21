@@ -145,6 +145,16 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
         }
         builder.providerSpec(providerSpec);
 
+        /*
+         * Proxmox 는 cloud 이미지에 qemu-guest-agent 가 없어 주소를 물어볼 수 없다. 고정 주소가
+         * 없으면 Pulumi 가 빈 주소 목록을 색인하다 죽는데, 그때는 VM 이 이미 만들어진 뒤다.
+         */
+        if (provider == SupportedProvisioningProvider.PROXMOX && !providerSpec.containsKey("nodeIps")) {
+            return builder.ready(false)
+                    .blockedReason("노드에 고정할 IP 를 지정해야 합니다 (providerSpec.nodeIps).")
+                    .build();
+        }
+
         ProviderConfigKey image = schema.stream()
                 .filter(k -> OS_IMAGE_KEY.equals(k.key()))
                 .findFirst()
