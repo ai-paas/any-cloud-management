@@ -8,8 +8,8 @@ anycloud backend 의 OpenAPI 3.x spec 을 frontend 의 type-safe client 자동 �
 `.github/workflows/publish-openapi.yml` 가 매 main push / version tag push 마다:
 
 1. backend 부팅
-2. `GET /v3/api-docs` → `openapi.json`
-3. `GET /v3/api-docs.yaml` → `openapi.yaml`
+2. `GET /docs/json` → `openapi.json`
+3. `GET /docs/json.yaml` → `openapi.yaml`
 4. artifact upload (90일 보존) + gh-pages 의 `openapi/` 경로로 publish
 
 publish 결과:
