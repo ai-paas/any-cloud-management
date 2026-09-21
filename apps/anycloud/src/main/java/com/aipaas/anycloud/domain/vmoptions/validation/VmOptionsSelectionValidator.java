@@ -138,11 +138,14 @@ public class VmOptionsSelectionValidator {
         if (!StringUtils.hasText(value) || !StringUtils.hasText(region)) {
             return;
         }
-        List<VmOptionImage> candidates =
-                vmOptionsService.getImages(provider, credentialId, region, value, null, null, 200);
-        boolean exists = candidates.stream()
-                .anyMatch(item -> value.equalsIgnoreCase(item.getName()) || value.equalsIgnoreCase(item.getId()));
-        if (exists) {
+        if (containsImage(vmOptionsService.getImages(provider, credentialId, region, value, null, null, 200), value)) {
+            return;
+        }
+        /*
+         * 키워드 검색은 이름으로만 걸린다. 화면이 고른 값은 식별자라, OCI 의 OCID 처럼 이름과
+         * 전혀 다른 값이면 자기 자신을 키워드로 찾다가 없는 이미지로 판정된다.
+         */
+        if (containsImage(vmOptionsService.getImages(provider, credentialId, region, null, null, null, 200), value)) {
             return;
         }
         /*
@@ -165,5 +168,10 @@ public class VmOptionsSelectionValidator {
                 fieldName,
                 value,
                 "Selected OS image was not found for region " + region);
+    }
+
+    private boolean containsImage(List<VmOptionImage> candidates, String value) {
+        return candidates.stream()
+                .anyMatch(item -> value.equalsIgnoreCase(item.getName()) || value.equalsIgnoreCase(item.getId()));
     }
 }

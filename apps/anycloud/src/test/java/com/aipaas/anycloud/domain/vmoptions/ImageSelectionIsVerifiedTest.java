@@ -88,4 +88,22 @@ class ImageSelectionIsVerifiedTest extends AbstractUnitTest {
 
         assertThat(source).doesNotContain("VmOptionsQueryService");
     }
+
+    @Test
+    void anIdentifierThatIsNotAName_isFoundInTheFullList() {
+        /*
+         * OCI 는 OCID 를 고른다. 그 값을 키워드로 넘기면 이름 검색이라 아무것도 안 걸려,
+         * 멀쩡한 이미지가 없는 이미지로 판정됐다.
+         */
+        String ocid = "ocid1.image.oc1.ap-tokyo-1.aaaaaaaaynlmwelpk5holjxguc3jmwitb";
+        when(vmOptionsService.getImages(anyString(), anyString(), anyString(), eq(ocid), any(), any(), anyInt()))
+                .thenReturn(List.of());
+        when(vmOptionsService.getImages(anyString(), anyString(), anyString(), eq(null), any(), any(), anyInt()))
+                .thenReturn(List.of(VmOptionImage.builder()
+                        .id(ocid)
+                        .name("Canonical-Ubuntu-24.04-2025.01.17-0")
+                        .build()));
+
+        assertThatCode(() -> validate(ocid)).doesNotThrowAnyException();
+    }
 }
