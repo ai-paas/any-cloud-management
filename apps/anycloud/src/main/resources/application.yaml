@@ -76,7 +76,7 @@ com:
       monitoringUrl: ${THANOS_URL:https://localhost:9000}
 
 # 외부 public helm chart repo 자동 등록.
-# - enabled=false 로 두면 air-gapped 환경에서 internal ChartMuseum 만 운영.
+# - enabled=false 로 두면 air-gapped 환경에서 아무 저장소도 자동 등록하지 않는다.
 # - 사용자가 같은 이름 수동 등록한 경우 skip (사용자 입력 우선).
 # - 변경 시 backend 재기동 후 ApplicationReady 단계에서 반영.
 helm-repo:
@@ -89,6 +89,28 @@ helm-repo:
       - name: grafana
         url: https://grafana.github.io/helm-charts
         tags: monitoring,seeded
-      - name: bitnami
-        url: https://charts.bitnami.com/bitnami
-        tags: general,seeded
+      # bitnami 는 2025-09-29 부터 공개 카탈로그가 유료 구독(Bitnami Secure)으로 넘어가
+      # 기본 목록에서 뺀다. 필요하면 운영자가 직접 등록한다.
+      # GPU 클러스터는 gpu-operator 없이는 드라이버가 없다. 애드온이 쓰는 저장소라
+      # 비어 있으면 GPU 노드가 놀게 된다.
+      - name: nvidia
+        url: https://helm.ngc.nvidia.com/nvidia
+        tags: gpu,seeded
+      - name: ingress-nginx
+        url: https://kubernetes.github.io/ingress-nginx
+        tags: networking,seeded
+      - name: jetstack
+        url: https://charts.jetstack.io
+        tags: security,seeded
+      - name: argo
+        url: https://argoproj.github.io/argo-helm
+        tags: cicd,seeded
+      - name: metrics-server
+        url: https://kubernetes-sigs.github.io/metrics-server
+        tags: monitoring,seeded
+      - name: longhorn
+        url: https://charts.longhorn.io
+        tags: storage,seeded
+      - name: vm-operator
+        url: https://victoriametrics.github.io/helm-charts
+        tags: monitoring,seeded

@@ -52,7 +52,7 @@ public class HelmRepoAutoSeedRunner {
                     .password(seed.password())
                     .insecureSkipTlsVerify(Boolean.TRUE.equals(seed.insecureSkipTlsVerify()))
                     .source(HelmRepoSource.EXTERNAL)
-                    .tags(seed.tags() == null ? "seeded" : seed.tags() + ",seeded")
+                    .tags(withSeededTag(seed.tags()))
                     .build();
             try {
                 helmRepoRepository.save(entity);
@@ -67,5 +67,15 @@ public class HelmRepoAutoSeedRunner {
                 created,
                 skipped,
                 seedProperties.repos().size());
+    }
+
+    /** 설정에 이미 seeded 가 있으면 다시 붙이지 않는다 — 화면에 "seeded,seeded" 로 나온다. */
+    private static String withSeededTag(String tags) {
+        if (tags == null || tags.isBlank()) {
+            return "seeded";
+        }
+        boolean already =
+                java.util.Arrays.stream(tags.split(",")).map(String::trim).anyMatch("seeded"::equalsIgnoreCase);
+        return already ? tags : tags + ",seeded";
     }
 }
