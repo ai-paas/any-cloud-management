@@ -34,6 +34,13 @@ addon-catalog:
       repoUrl: https://prometheus-community.github.io/helm-charts
       requiredCapabilities: []
       tags: [monitoring, default, observability]
+      defaultValuesYaml: |
+        # 기본 30s 로는 화면이 멈춰 보인다 — 가속기 지표는 DCGM 이 15s 로 내보내는데
+        # 그보다 성기게 긁으면 그래프에 새 점이 30s 에 한 번만 생긴다.
+        prometheus:
+          prometheusSpec:
+            scrapeInterval: 15s
+            evaluationInterval: 15s
       # OidcGroupBinding operator 활성 시 install 후 자동 binding.
       # operator 미배포 환경에선 rbac.groupBindings 무시 (CR apply 안 됨).
       rbac:
