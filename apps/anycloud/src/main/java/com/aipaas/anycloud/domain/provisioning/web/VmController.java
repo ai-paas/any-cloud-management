@@ -12,10 +12,12 @@ import com.aipaas.anycloud.domain.cluster.kubeconfig.KubeconfigIdentityResolver;
 import com.aipaas.anycloud.domain.operation.OperationResponse;
 import com.aipaas.anycloud.domain.operation.OperationService;
 import com.aipaas.anycloud.domain.provisioning.VmClusterStateHistoryQueryService;
+import com.aipaas.anycloud.domain.provisioning.api.request.ProvisionClusterRequest;
 import com.aipaas.anycloud.domain.provisioning.api.request.VmCreateRequest;
 import com.aipaas.anycloud.domain.provisioning.api.request.VmPatchRequest;
 import com.aipaas.anycloud.domain.provisioning.api.response.ForceDeleteResponse;
 import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterListItemResponse;
+import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterPreflightResponse;
 import com.aipaas.anycloud.domain.provisioning.api.response.VmClusterStatusResponse;
 import com.aipaas.anycloud.domain.provisioning.command.VmClusterCommandService;
 import com.aipaas.anycloud.domain.provisioning.query.VmClusterQueryService;
@@ -67,6 +69,7 @@ public class VmController {
 
     private final ClusterFacade clusterFacade;
     private final VmClusterQueryService vmClusterQueryService;
+    private final com.aipaas.anycloud.domain.provisioning.VmClusterService vmClusterService;
     private final OperationService operationService;
     private final VmClusterStateHistoryQueryService stateHistoryQueryService;
     private final VmClusterSshAccessService vmClusterSshAccessService;
@@ -206,6 +209,20 @@ public class VmController {
                                 "self", "/v1/operations/" + op.id(),
                                 "resource", "/v1/vms/" + request.getVmGroupName(),
                                 "events", "/v1/operations/" + op.id() + "/events")));
+    }
+
+    @PostMapping("/preflight")
+    @Operation(
+            summary = "VM 생성 사전 검증",
+            description = "생성과 같은 본문으로 검증한다. 화면이 평탄화를 따로 구현하면 규칙이 갈려 " + "한쪽만 고쳐진다. 자원은 만들지 않는다.")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "검증 완료 (생성 불가도 200)")})
+    public ResponseEntity<ApiSuccessResponse<VmClusterPreflightResponse>> preflight(
+            @Valid @RequestBody VmCreateRequest request) {
+        // 검증 자체는 성공한 호출이다. 결과가 불가라고 HTTP 오류로 내보내면 화면이 오류 처리를 한다.
+        return ResponseEntity.ok(ApiSuccessResponse.of(
+                HttpStatus.OK.value(),
+                "VM preflight completed",
+                vmClusterService.preflightVmCluster(toPreflightRequest(request))));
     }
 
     @PatchMapping("/{vmName}")
@@ -385,6 +402,20 @@ public class VmController {
      * VmCreateRequest → facade 가 받는 CreateClusterRequest (source=vm) 로 변환.
      * facade 가 source-별 분기를 제거하면 본 변환도 함께 제거.
      */
+    /** 생성과 같은 평탄화를 쓴다. 검증만 다른 규칙으로 돌면 통과한 요청이 생성에서 막힌다. */
+    private ProvisionClusterRequest toPreflightRequest(VmCreateRequest request) {
+        ProvisionClusterRequest preflight = new ProvisionClusterRequest();
+        preflight.setClusterProvider(request.getProvider());
+        preflight.setClusterName(request.getVmGroupName());
+        preflight.setDescription(request.getDescription());
+        preflight.setEnvironment(request.getEnvironment());
+        preflight.setRegion(request.getRegion());
+        preflight.setCredentialId(request.getCredentialId());
+        preflight.setHasGpuNodes(request.getHasGpuNodes());
+        preflight.setConfig(ProvisioningConfigFlattener.flatten(request));
+        return preflight;
+    }
+
     private CreateClusterRequest toLegacyCreateRequest(VmCreateRequest request) {
         Map<String, Object> spec = new HashMap<>();
         spec.put("provider", request.getProvider());

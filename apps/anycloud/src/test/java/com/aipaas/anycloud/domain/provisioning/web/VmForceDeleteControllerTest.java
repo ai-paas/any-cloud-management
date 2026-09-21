@@ -58,6 +58,9 @@ class VmForceDeleteControllerTest extends AbstractUnitTest {
     @Mock
     ClusterComponentRepairFacade componentRepairFacade;
 
+    @Mock
+    com.aipaas.anycloud.domain.provisioning.VmClusterService vmClusterService;
+
     private MockMvc mvc;
 
     @BeforeEach
@@ -65,6 +68,7 @@ class VmForceDeleteControllerTest extends AbstractUnitTest {
         mvc = MockMvcBuilders.standaloneSetup(new VmController(
                         clusterFacade,
                         vmClusterQueryService,
+                        vmClusterService,
                         operationService,
                         stateHistoryQueryService,
                         vmClusterSshAccessService,
