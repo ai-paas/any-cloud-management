@@ -547,6 +547,9 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
          */
         String rebuilt = "https://" + host + parsed.getRawPath()
                 + (parsed.getRawQuery() == null ? "" : "?" + parsed.getRawQuery());
+        if (!rebuilt.startsWith("https://iaas.") && !rebuilt.startsWith("https://identity.")) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "endpoint", host, "허용되지 않은 endpoint host 입니다");
+        }
         return rebuilt;
     }
 
