@@ -18,6 +18,7 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
+	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/repo"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -137,10 +138,10 @@ type Release struct {
 	Name       string
 	Namespace  string
 	Chart      string
-	Version    string     // chart version
+	Version    string // chart version
 	AppVersion string
 	Revision   int
-	Status     string     // deployed / failed / pending-install 등
+	Status     string // deployed / failed / pending-install 등
 	Updated    time.Time
 }
 
@@ -161,7 +162,7 @@ type helmClient struct {
 // NewClient — k8s.Client 가 사용하는 rest.Config 를 그대로 받아 helm 의 RESTClientGetter 로 변환.
 // in-cluster restConfig 가 있으면 그것, 없으면 KubeConfigFlags 가 KUBECONFIG fallback.
 func NewClient(restConfigGetter genericclioptions.RESTClientGetter) Client {
-	settings := cli.New()     // helm 의 env 설정 (HELM_REPOSITORY_CONFIG 등).
+	settings := cli.New() // helm 의 env 설정 (HELM_REPOSITORY_CONFIG 등).
 	return &helmClient{
 		restGetter: restConfigGetter,
 		settings:   settings,
@@ -198,19 +199,26 @@ func (c *helmClient) actionConfig(namespace string) (*action.Configuration, erro
 // actionConfigReal — production default. K8s RESTClientGetter 로 cfg.Init.
 func (c *helmClient) actionConfigReal(namespace string) (*action.Configuration, error) {
 	cfg := new(action.Configuration)
-	driver := c.settings.Debug     // helm secrets 드라이버 (default) — 별도 storage backend 설정 안 함.
+	driver := c.settings.Debug // helm secrets 드라이버 (default) — 별도 storage backend 설정 안 함.
 	logger := func(format string, v ...interface{}) {
 		slog.Debug("helm", slog.String("msg", fmt.Sprintf(format, v...)))
 	}
 	if err := cfg.Init(c.restGetter, namespace, driverEnv(driver), logger); err != nil {
 		return nil, fmt.Errorf("helm action config init: %w", err)
 	}
+	// KubeClient 의 namespace 는 RESTClientGetter 에서 온다 — in-cluster 면 agent 가 사는
+	// namespace 다. manifest 에 namespace 가 없는 자원이 release namespace 가 아니라 거기로
+	// 간다. gpu-operator 의 컨트롤러 Deployment 가 실제로 aipaas-system 에 떨어져, 설치는
+	// 성공했는데 ClusterPolicy 를 조정할 주체가 없었다.
+	if kubeClient, ok := cfg.KubeClient.(*kube.Client); ok {
+		kubeClient.Namespace = namespace
+	}
 	return cfg, nil
 }
 
 func driverEnv(debugFlag bool) string {
 	// helm 의 secrets driver 가 default. memory/sql 등 envvar 가능.
-	_ = debugFlag     // suppress unused warning — debug 로깅에 사용.
+	_ = debugFlag // suppress unused warning — debug 로깅에 사용.
 	return "secrets"
 }
 
@@ -239,7 +247,7 @@ func (c *helmClient) Install(ctx context.Context, opts InstallOptions) (*Release
 	var chartLocator string
 	if opts.LocalChartPath != "" {
 		chartLocator = opts.LocalChartPath
-		install.RepoURL = ""     // no remote — 파일 경로만 사용.
+		install.RepoURL = "" // no remote — 파일 경로만 사용.
 	} else {
 		chartLocator = opts.Chart
 		if opts.RepoURL != "" {
@@ -248,7 +256,7 @@ func (c *helmClient) Install(ctx context.Context, opts InstallOptions) (*Release
 			install.RepoURL = repoURL(c.settings, opts.Repo)
 		}
 	}
-	install.Wait = false      // 비동기 — agent 가 long-blocking install 으로 stream 막지 않도록.
+	install.Wait = false // 비동기 — agent 가 long-blocking install 으로 stream 막지 않도록.
 	if opts.Timeout > 0 {
 		install.Timeout = opts.Timeout
 	} else {
@@ -465,7 +473,7 @@ func repoURL(settings *cli.EnvSettings, raw string) string {
 	// Repo file 에서 alias resolve.
 	rf, err := repo.LoadFile(settings.RepositoryConfig)
 	if err != nil {
-		return raw     // best-effort — Install 이 chart locate 단계에서 실패.
+		return raw // best-effort — Install 이 chart locate 단계에서 실패.
 	}
 	for _, e := range rf.Repositories {
 		if e.Name == raw {
@@ -509,4 +517,4 @@ func toSummary(r *release.Release) *Release {
 var ErrNotFound = errors.New("release not found")
 
 // helm 의 default getter providers — chart repo download 에 사용 (init 안 하면 nil).
-var _ = getter.Providers{}     // import 유지.
+var _ = getter.Providers{} // import 유지.

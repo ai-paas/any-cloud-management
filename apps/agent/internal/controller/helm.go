@@ -375,7 +375,7 @@ func (d *Dispatcher) uninstallAddon(ctx context.Context, cmd *agentv1.CommandReq
 		Namespace:   namespace,
 		KeepHistory: keepHistory,
 		Wait:        wait,
-	}); err != nil {
+	}); err != nil && !isReleaseAbsent(err) {
 		return errorResponse(agentv1.Status_FAILED, "HELM_UNINSTALL_FAILED", err.Error())
 	}
 	// uninstall 성공 직후 release lock entry 즉시 제거. 다음 install 은
@@ -596,4 +596,14 @@ func (d *Dispatcher) listHelmReleaseResources(ctx context.Context, cmd *agentv1.
 		"agent_instance_id": d.agentInstanceID,
 	})
 	return okResponse(result)
+}
+
+// isReleaseAbsent — 이미 없는 release 의 uninstall 은 성공으로 본다. 실패로 돌려주면 backend 의
+// addon row 가 DELETING 에서 빠져나오지 못해, 같은 이름으로 다시 설치할 수도 지울 수도 없다.
+func isReleaseAbsent(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "release: not found") || strings.Contains(msg, "release not loaded")
 }

@@ -271,6 +271,14 @@ rules:
 - apiGroups: ["cert-manager.io"]
   resources: ["*"]
   verbs: ["*"]
+# nvidia-gpu-operator 가 만드는 ClusterPolicy 와, 그 차트가 함께 올리는 node-feature-discovery
+# 의 NodeFeature/NodeFeatureRule. 없으면 CRD 는 생겼는데 CR 생성에서 forbidden 으로 멈춘다.
+- apiGroups: ["nvidia.com"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["nfd.k8s-sigs.io"]
+  resources: ["*"]
+  verbs: ["*"]
 # kube-prometheus-stack 차트가 만드는 cluster-scoped 자원 cover.
 # autoscaling: kube-prometheus-stack 의 HorizontalPodAutoscaler.
 # scheduling: PriorityClass (일부 chart 가 생성).

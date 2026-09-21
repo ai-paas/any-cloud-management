@@ -16,6 +16,7 @@ metadata:
     app.kubernetes.io/version: "0.1.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: agent
+
 ---
 # Source: cluster-agent/templates/rbac.yaml
 apiVersion: v1
@@ -30,6 +31,7 @@ metadata:
     app.kubernetes.io/version: "0.1.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: agent
+
 ---
 # Source: cluster-agent/templates/configmap.yaml
 apiVersion: v1
@@ -88,7 +90,6 @@ data:
     - "LIST_RESOURCE_KINDS"
     - "RESOLVE_RESOURCE"
   # PodExec 대상 namespace allowlist. 미지정 시 빈 list → 모든 exec deny. wildcard "*" = 전부 허용.
-  # compliance 환경에서는 narrowing 권장 (예: ["default", "monitoring", "aipaas-system"]).
   allowed_exec_namespaces: |
     - "*"
 
@@ -125,8 +126,7 @@ rules:
   verbs: ["get"]
 # pods/exec — kubectl exec 등가. WebSocket terminal 진입 시 K8s API server 가 SubjectAccessReview
 # 로 SA 의 create on pods/exec 권한 확인. 미부여 시 forbidden 으로 EXEC_FAILED 반환.
-# single-pod 모드에서는 installer SA 가 본 ClusterRole 도 자동 바인딩되므로 (aipaas-agent-installer-core-read)
-# 양쪽 모두 cover. allowed_exec_namespaces (agent 측 allowlist) 와 별개 — K8s RBAC + agent allowlist 둘 다 필수.
+# allowed_exec_namespaces (agent 측 allowlist) 와 별개 — K8s RBAC 통과 + agent allowlist 통과 둘 다 필수.
 - apiGroups: [""]
   resources: ["pods/exec"]
   verbs: ["create"]
@@ -151,6 +151,7 @@ rules:
 - apiGroups: ["authentication.k8s.io"]
   resources: ["userextras/*"]
   verbs: ["impersonate"]
+
 ---
 # Source: cluster-agent/templates/rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -171,6 +172,11 @@ rules:
 - apiGroups: [""]
   resources: ["namespaces"]
   verbs: ["get", "list", "watch", "create"]
+# 노드 셸용 임시 파드. nsenter 로 호스트 네임스페이스에 들어가므로 노드에 직접 들어간 것과 같다.
+# 없으면 터미널 기능 전체가 forbidden 으로 죽는다. TTL sweeper 가 걷어가므로 delete 도 필요하다.
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "create", "delete"]
 - apiGroups: ["apps"]
   resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
   verbs: ["*"]
@@ -208,6 +214,14 @@ rules:
 - apiGroups: ["cert-manager.io"]
   resources: ["*"]
   verbs: ["*"]
+# nvidia-gpu-operator 가 만드는 ClusterPolicy 와, 그 차트가 함께 올리는 node-feature-discovery
+# 의 NodeFeature/NodeFeatureRule. 없으면 CRD 는 생겼는데 CR 생성에서 forbidden 으로 멈춘다.
+- apiGroups: ["nvidia.com"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["nfd.k8s-sigs.io"]
+  resources: ["*"]
+  verbs: ["*"]
 # kube-prometheus-stack 차트가 만드는 cluster-scoped 자원 cover.
 # autoscaling: kube-prometheus-stack 의 HorizontalPodAutoscaler.
 # scheduling: PriorityClass (일부 chart 가 생성).
@@ -217,6 +231,7 @@ rules:
 - apiGroups: ["scheduling.k8s.io"]
   resources: ["priorityclasses"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
 ---
 # Source: cluster-agent/templates/rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -238,6 +253,7 @@ subjects:
 - kind: ServiceAccount
   name: aipaas-agent-core
   namespace: aipaas-system
+
 ---
 # Source: cluster-agent/templates/rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -259,6 +275,7 @@ subjects:
 - kind: ServiceAccount
   name: aipaas-agent-installer
   namespace: aipaas-system
+
 ---
 # Source: cluster-agent/templates/rbac.yaml
 # 단일 pod 모드 — installer SA 로 helm install + read 모두 수행.
@@ -308,6 +325,7 @@ rules:
 - apiGroups: [""]
   resources: ["events"]
   verbs: ["create", "patch"]
+
 ---
 # Source: cluster-agent/templates/rbac.yaml
 # Identity token Secret writer — agent 가 60일 opaque identity_token 을 K8s Secret 에 영구
@@ -327,16 +345,19 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: agent
 rules:
+# delete: agent self-heal — backend 가 Unauthenticated 를 N회 연속 반환하면 Secret 무효화 후 pod
+# 재시작으로 fresh re-bootstrap. cluster 재생성 후 stale token 자동 복구.
 - apiGroups: [""]
   resources: ["secrets"]
   resourceNames: ["cluster-agent-identity"]
-  verbs: ["get", "update", "patch"]
+  verbs: ["get", "update", "patch", "delete"]
 # create 는 resourceNames 와 함께 쓸 수 없음 (K8s RBAC 제약 — create 시점엔 name 검증 못 함).
 # 별도 rule 로 list 전체 namespace 안에서 secrets create 허용. 실제 어떤 이름으로든 create 가
 # 가능하지만, 운영자 의도 (cluster-agent-identity) 외 사용은 코드에서 막힘.
 - apiGroups: [""]
   resources: ["secrets"]
   verbs: ["create"]
+
 ---
 # Source: cluster-agent/templates/rbac.yaml
 # AllowList writer — APPLY_AGENT_CONFIG (proto enum 26) handler 가 자기 ConfigMap 을 patch
@@ -367,6 +388,7 @@ rules:
   resources: ["configmaps"]
   resourceNames: ["aipaas-agent-allowlist"]
   verbs: ["get", "watch", "update", "patch"]
+
 ---
 # Source: cluster-agent/templates/rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -389,6 +411,7 @@ subjects:
 - kind: ServiceAccount
   name: aipaas-agent-core
   namespace: aipaas-system
+
 ---
 # Source: cluster-agent/templates/rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -411,6 +434,7 @@ subjects:
 - kind: ServiceAccount
   name: aipaas-agent-core
   namespace: aipaas-system
+
 ---
 # Source: cluster-agent/templates/rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -433,6 +457,7 @@ subjects:
 - kind: ServiceAccount
   name: aipaas-agent-core
   namespace: aipaas-system
+
 ---
 # Source: cluster-agent/templates/deployment.yaml
 apiVersion: apps/v1
@@ -463,6 +488,7 @@ spec:
         app.kubernetes.io/component: agent
       annotations:
         "anycloud.aipaas/backend-grpc-addr": "host.docker.internal:9090"
+        "anycloud.aipaas/registration-token-checksum": "7bb57821586c8c11"
     spec:
       serviceAccountName: aipaas-agent-installer
       automountServiceAccountToken: true
@@ -476,7 +502,7 @@ spec:
         imagePullPolicy: IfNotPresent
         env:
         - name: AGENT_MODE
-          value: "core"
+          value: "single"
         - name: BACKEND_GRPC_ADDR
           value: "host.docker.internal:9090"
         - name: REGISTRATION_TOKEN
@@ -519,6 +545,25 @@ spec:
         emptyDir:
           sizeLimit: 128Mi
 ---
+# Source: cluster-agent/templates/identity-cleanup-hook.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cluster-agent-identity-cleaner
+  namespace: aipaas-system
+  labels:
+    helm.sh/chart: cluster-agent-0.1.0
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/instance: cluster-agent
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: agent
+  annotations:
+    "helm.sh/hook": "pre-install,pre-upgrade"
+    "helm.sh/hook-weight": "-15"
+    "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
+
+---
 # Source: cluster-agent/templates/secret.yaml
 apiVersion: v1
 kind: Secret
@@ -540,4 +585,116 @@ metadata:
 type: Opaque
 stringData:
   registration-token: "REPLACE_WITH_REAL_JWT"
+
+---
+# Source: cluster-agent/templates/identity-cleanup-hook.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cluster-agent-identity-cleaner
+  namespace: aipaas-system
+  labels:
+    helm.sh/chart: cluster-agent-0.1.0
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/instance: cluster-agent
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: agent
+  annotations:
+    "helm.sh/hook": "pre-install,pre-upgrade"
+    "helm.sh/hook-weight": "-15"
+    "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["cluster-agent-identity"]
+  verbs: ["get", "delete"]
+
+---
+# Source: cluster-agent/templates/identity-cleanup-hook.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cluster-agent-identity-cleaner
+  namespace: aipaas-system
+  labels:
+    helm.sh/chart: cluster-agent-0.1.0
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/instance: cluster-agent
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: agent
+  annotations:
+    "helm.sh/hook": "pre-install,pre-upgrade"
+    "helm.sh/hook-weight": "-15"
+    "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cluster-agent-identity-cleaner
+subjects:
+- kind: ServiceAccount
+  name: cluster-agent-identity-cleaner
+  namespace: aipaas-system
+
+---
+# Source: cluster-agent/templates/identity-cleanup-hook.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cluster-agent-identity-cleanup
+  namespace: aipaas-system
+  labels:
+    helm.sh/chart: cluster-agent-0.1.0
+    app.kubernetes.io/name: cluster-agent
+    app.kubernetes.io/instance: cluster-agent
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: agent
+  annotations:
+    "helm.sh/hook": "pre-install,pre-upgrade"
+    "helm.sh/hook-weight": "-10"
+    "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 60
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: cluster-agent-0.1.0
+        app.kubernetes.io/name: cluster-agent
+        app.kubernetes.io/instance: cluster-agent
+        app.kubernetes.io/version: "0.1.0"
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: agent
+        app.kubernetes.io/component: identity-cleaner
+    spec:
+      serviceAccountName: cluster-agent-identity-cleaner
+      restartPolicy: Never
+      containers:
+      - name: cleaner
+        image: rancher/kubectl:v1.31.0
+        imagePullPolicy: IfNotPresent
+        command: ["kubectl"]
+        args:
+        - "delete"
+        - "secret"
+        - "cluster-agent-identity"
+        - "-n"
+        - "aipaas-system"
+        - "--ignore-not-found=true"
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "32Mi"
+          limits:
+            cpu: "100m"
+            memory: "64Mi"
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop: ["ALL"]
 
