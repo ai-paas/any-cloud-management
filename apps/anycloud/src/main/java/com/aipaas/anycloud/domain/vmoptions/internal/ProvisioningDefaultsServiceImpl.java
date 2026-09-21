@@ -410,7 +410,25 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
                 .filter(option -> matchesPreferredUbuntu(option.label()))
                 .map(ConfigOption::value)
                 .findFirst()
-                .orElseGet(() -> options.get(0).value());
+                .orElseGet(() -> options.stream()
+                        .filter(option -> !isArmImage(option.label()))
+                        .map(ConfigOption::value)
+                        .findFirst()
+                        .orElseGet(() -> options.get(0).value()));
+    }
+
+    /**
+     * 기본 인스턴스 타입은 x86 이다. ARM 이미지를 얹으면 부팅하지 못한다.
+     *
+     * <p>OCI 는 이름에 {@code aarch64} 를 쓴다 — arm 만 걸러서는 잡히지 않아, x86 shape 에
+     * aarch64 이미지가 기본값으로 붙었다.
+     */
+    private boolean isArmImage(String label) {
+        if (!StringUtils.hasText(label)) {
+            return false;
+        }
+        String normalized = label.toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains("arm") || normalized.contains("aarch64");
     }
 
     /** {@code ubuntu-24.04}, {@code ubuntu_24_04}, {@code Ubuntu-24.04} 를 모두 같은 것으로 본다. */
@@ -420,7 +438,7 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
         }
         String normalized =
                 label.toLowerCase(java.util.Locale.ROOT).replace('_', '-').replace('.', '-');
-        return normalized.contains("ubuntu") && normalized.contains("24-04") && !normalized.contains("arm");
+        return normalized.contains("ubuntu") && normalized.contains("24-04") && !isArmImage(label);
     }
 
     /**

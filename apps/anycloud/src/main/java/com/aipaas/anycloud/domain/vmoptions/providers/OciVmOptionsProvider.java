@@ -137,6 +137,15 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listImagesFallback")
     public List<VmOptionImage> listImages(String region, String keyword, String architecture, String owner, int limit) {
         String resolvedRegion = resolveRegion(region);
+        /*
+         * OCID 를 키워드로 받으면 목록을 뒤지지 않고 그 이미지를 바로 읽는다. 리전 카탈로그는
+         * 수백 건이라 한 페이지에 안 들어오고, 이름 검색으로는 OCID 가 걸리지 않는다 — 멀쩡한
+         * 이미지가 "없는 이미지" 로 판정돼 생성이 막혔다.
+         */
+        if (isImageOcid(keyword)) {
+            VmOptionImage found = getImage(resolvedRegion, keyword);
+            return found == null ? List.of() : List.of(found);
+        }
         String compartmentId = compartmentId();
         StringBuilder url =
                 new StringBuilder(computeBaseUrl(resolvedRegion) + "/20160918/images?compartmentId=" + compartmentId);
@@ -659,6 +668,30 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
                         && keyword.toLowerCase(java.util.Locale.ROOT).contains("ubuntu")
                 ? "Canonical Ubuntu"
                 : null;
+    }
+
+    private boolean isImageOcid(String value) {
+        return value != null && value.startsWith("ocid1.image.");
+    }
+
+    private VmOptionImage getImage(String region, String imageId) {
+        try {
+            JsonNode body = exchange(computeBaseUrl(region) + "/20160918/images/"
+                    + java.net.URLEncoder.encode(imageId, java.nio.charset.StandardCharsets.UTF_8));
+            OciRecords.Image img = body == null ? null : objectMapper.convertValue(body, OciRecords.Image.class);
+            if (img == null || !"AVAILABLE".equalsIgnoreCase(img.lifecycleState())) {
+                return null;
+            }
+            return VmOptionImage.builder()
+                    .provider(getProvider().getCanonicalName())
+                    .region(region)
+                    .id(img.id())
+                    .name(img.displayName())
+                    .build();
+        } catch (RuntimeException e) {
+            LOG.warn("OCI 이미지 단건 조회 실패 id={}: {}", imageId, String.valueOf(e));
+            return null;
+        }
     }
 
     private List<VmOptionImage> listImagesFallback(
