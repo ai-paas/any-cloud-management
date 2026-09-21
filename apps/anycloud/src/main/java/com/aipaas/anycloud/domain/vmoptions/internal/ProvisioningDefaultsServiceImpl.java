@@ -17,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,9 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
 
     /** 존을 몇 개까지 두드릴지. 리전당 보통 서너 개다. */
     private static final int ZONE_SCAN_LIMIT = 6;
+
+    /** 존이 없는 타입을 몇 개까지 넘길지. 더 두드리면 폼을 여는 데 오래 걸린다. */
+    private static final int SPEC_ZONE_ATTEMPTS = 8;
 
     /*
      * 캐시가 걸린 쪽을 쓴다. QueryService 를 직접 부르면 모달을 열 때마다 CSP API 를 전부 다시
@@ -155,7 +159,7 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
             builder.osImage(value);
         }
 
-        CapacityProbe.SpecChoice spec = pickSpec(provider, credentialId, region, described, filter);
+        CapacityProbe.SpecChoice spec = pickSpec(provider, credentialId, region, described, filter, Set.of());
         if (spec.blockedReason() != null) {
             return builder.ready(false).blockedReason(spec.blockedReason()).build();
         }
@@ -171,17 +175,44 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
          * 바꿔 준다 — 그러지 않으면 기본값이 늘 실패하는 조합을 준다.
          */
         if (providerSpec.containsKey("zone")) {
-            String usable = usableZone(provider, credentialId, region, schema, spec.specId());
+            /*
+             * 그 타입이 어느 존에도 없으면 다음 후보로 넘어간다. 한 번에 포기하면 리전에 쓸 수
+             * 있는 타입이 있는데도 "만들 수 없다" 가 된다 — Alibaba 서울은 ga1 이 없고 gn7i 가
+             * 있는데, 후보가 작은 것부터라 ga1 이 먼저 잡힌다.
+             */
+            Set<String> tried = new java.util.LinkedHashSet<>();
+            String usable = null;
+            while (spec.specId() != null && tried.size() < SPEC_ZONE_ATTEMPTS) {
+                usable = usableZone(provider, credentialId, region, schema, spec.specId());
+                if (usable != null) {
+                    break;
+                }
+                tried.add(spec.specId());
+                spec = pickSpec(provider, credentialId, region, described, filter, tried);
+            }
             if (usable == null) {
                 return builder.ready(false)
-                        .blockedReason(spec.specId() + " 를 띄울 수 있는 존이 없습니다.")
+                        .blockedReason("조건에 맞는 타입을 띄울 수 있는 존이 없습니다 (후보 " + tried.size() + "개 확인).")
                         .build();
             }
             providerSpec.put("zone", usable);
         }
+
+        /*
+         * control-plane 에는 GPU 가 필요 없다. worker 와 같은 타입으로 두면 값만 두 배가 된다 —
+         * GPU 인스턴스는 일반 타입의 10배가 넘는다.
+         */
+        String masterSpec = spec.specId();
+        if (filter.gpu()) {
+            CapacityProbe.SpecChoice plain =
+                    pickSpec(provider, credentialId, region, described, SpecFilter.DEFAULT, Set.of());
+            if (plain.specId() != null) {
+                masterSpec = plain.specId();
+            }
+        }
         return withSpecDetail(builder, provider, credentialId, region, spec.specId())
                 .ready(true)
-                .masterInstanceType(spec.specId())
+                .masterInstanceType(masterSpec)
                 .workerInstanceType(spec.specId())
                 .build();
     }
@@ -286,7 +317,8 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
             String credentialId,
             String region,
             VmOptionProvider described,
-            SpecFilter filter) {
+            SpecFilter filter,
+            Set<String> exclude) {
         String name = provider.getCanonicalName();
         String recommended = described == null ? null : described.getRecommendedVmSpec();
 
@@ -298,7 +330,8 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
         String exact = matched.stream()
                 .filter(spec -> !orderedCandidates(List.of(spec), filter).isEmpty())
                 .map(this::specValue)
-                .filter(value -> value != null && value.equalsIgnoreCase(recommended))
+                .filter(value -> value != null && !exclude.contains(value))
+                .filter(value -> value.equalsIgnoreCase(recommended))
                 .findFirst()
                 .orElse(null);
         List<VmOptionSpec> all = vmOptionsService.getSpecs(name, credentialId, region, null, false, SPEC_SCAN_LIMIT);
@@ -321,6 +354,7 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
             candidates.add(exact);
         }
         orderedCandidates(all, filter).stream()
+                .filter(value -> !exclude.contains(value))
                 .filter(value -> !value.equalsIgnoreCase(exact))
                 .forEach(candidates::add);
         if (candidates.isEmpty()) {

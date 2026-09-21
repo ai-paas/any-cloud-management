@@ -17,10 +17,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import javax.crypto.Mac;
@@ -128,9 +130,13 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
                 body.InstanceTypes() == null || body.InstanceTypes().InstanceType() == null
                         ? List.of()
                         : body.InstanceTypes().InstanceType();
+        Set<String> sellable = sellableTypes(resolvedRegion);
         List<VmOptionSpec> results = new ArrayList<>();
         for (AlibabaRecords.InstanceType it : instanceTypes) {
             if (!matchesKeyword(it.InstanceTypeId(), keyword) && !matchesKeyword(it.InstanceTypeFamily(), keyword)) {
+                continue;
+            }
+            if (sellable != null && !sellable.contains(it.InstanceTypeId())) {
                 continue;
             }
             Integer gpuCount = parseInteger(it.GPUAmount());
@@ -159,6 +165,57 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
         }
         return results;
     }
+
+    /**
+     * 리전에서 실제로 파는 타입 집합. 판단할 수 없으면 {@code null} 이고 그때는 거르지 않는다.
+     *
+     * <p>DescribeInstanceTypes 는 리전을 가리지 않고 전 세계 카탈로그를 준다. 서울에 없는 구형
+     * ga1, gn4 가 vCPU 순으로 앞에 서서, 목록 앞쪽만 보면 리전에 있는 gn7i 까지 닿지 못한다.
+     */
+    private Set<String> sellableTypes(String region) {
+        try {
+            AlibabaRecords.AvailableResourceResponse body = invoke(
+                    "DescribeAvailableResource",
+                    region,
+                    Map.of("DestinationResource", "InstanceType", "InstanceChargeType", "PostPaid"),
+                    AlibabaRecords.AvailableResourceResponse.class);
+            Set<String> types = collectAvailableTypes(body);
+            return types.isEmpty() ? null : types;
+        } catch (RuntimeException e) {
+            LOG.warn("Alibaba 리전 판매 타입 조회 실패 region={}: {}", region, String.valueOf(e));
+            return null;
+        }
+    }
+
+    private Set<String> collectAvailableTypes(AlibabaRecords.AvailableResourceResponse body) {
+        Set<String> types = new LinkedHashSet<>();
+        if (body.AvailableZones() == null || body.AvailableZones().AvailableZone() == null) {
+            return types;
+        }
+        for (AlibabaRecords.AvailableResourceResponse.AvailableZone zone :
+                body.AvailableZones().AvailableZone()) {
+            if (zone.AvailableResources() == null) {
+                continue;
+            }
+            for (AlibabaRecords.AvailableResourceResponse.AvailableResource resource :
+                    zone.AvailableResources().AvailableResource()) {
+                if (resource.SupportedResources() == null) {
+                    continue;
+                }
+                for (AlibabaRecords.AvailableResourceResponse.SupportedResource supported :
+                        resource.SupportedResources().SupportedResource()) {
+                    if (AVAILABLE_STATUS.equalsIgnoreCase(supported.Status())
+                            && StringUtils.hasText(supported.Value())) {
+                        types.add(supported.Value());
+                    }
+                }
+            }
+        }
+        return types;
+    }
+
+    /** DescribeAvailableResource 가 "팔고 있다" 고 답하는 값. */
+    private static final String AVAILABLE_STATUS = "Available";
 
     /** DescribeImages 의 상한. 기본 10 은 키워드 필터를 무의미하게 만든다. */
     private static final int IMAGE_PAGE_SIZE = 100;
@@ -391,7 +448,7 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
                         resource.SupportedResources().SupportedResource()) {
                     // Available 이 아닌 값은 재고가 없거나 판매하지 않는 것이다.
                     if (instanceType.equalsIgnoreCase(supported.Value())
-                            && "Available".equalsIgnoreCase(supported.Status())) {
+                            && AVAILABLE_STATUS.equalsIgnoreCase(supported.Status())) {
                         return true;
                     }
                 }
