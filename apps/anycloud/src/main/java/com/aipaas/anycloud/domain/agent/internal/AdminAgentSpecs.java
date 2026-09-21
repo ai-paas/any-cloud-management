@@ -2,6 +2,7 @@ package com.aipaas.anycloud.domain.agent.internal;
 
 import com.aipaas.anycloud.domain.agent.ClusterAgentEntity;
 import com.aipaas.anycloud.domain.agent.model.ClusterAgentStatus;
+import com.aipaas.anycloud.domain.cluster.ClusterEntity;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.jpa.domain.Specification;
@@ -27,7 +28,16 @@ public final class AdminAgentSpecs {
             String versionPrefix,
             Long lastSeenOlderThanSec,
             LocalDateTime now) {
-        Specification<ClusterAgentEntity> spec = Specification.where(null);
+        /*
+         * 클러스터가 사라진 agent 행은 숨긴다. 삭제해도 행이 남아, 목록 57 건 중 56 건이 이미
+         * 없는 클러스터의 DEGRADED 로 채워졌다 — 살아 있는 agent 한 건이 그 안에 묻힌다.
+         */
+        Specification<ClusterAgentEntity> spec = (root, query, cb) -> {
+            var sub = query.subquery(Long.class);
+            var cluster = sub.from(ClusterEntity.class);
+            sub.select(cb.literal(1L)).where(cb.equal(cluster.get("id"), root.get("clusterName")));
+            return cb.exists(sub);
+        };
         if (statuses != null && !statuses.isEmpty()) {
             spec = spec.and((root, q, cb) -> root.get("status").in(statuses));
         }
