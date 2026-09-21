@@ -8,6 +8,7 @@ import com.aipaas.anycloud.domain.vmoptions.VmOptionsService;
 import com.aipaas.anycloud.domain.vmoptions.api.ConfigOption;
 import com.aipaas.anycloud.domain.vmoptions.api.ProviderConfigKey;
 import com.aipaas.anycloud.domain.vmoptions.api.ProvisioningDefaults;
+import com.aipaas.anycloud.domain.vmoptions.api.SpecFilter;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionProvider;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionRegion;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionSpec;
@@ -36,11 +37,6 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
     /** 스펙 목록이 길어 전부 훑을 이유가 없다. 작은 것부터 몇 개만 본다. */
     private static final int SPEC_SCAN_LIMIT = 100;
 
-    /** control-plane 이 뜨는 최소선. 더 작으면 생성은 되고 클러스터가 안 선다. */
-    private static final int MIN_VCPU = 2;
-
-    private static final double MIN_MEMORY_GB = 4.0;
-
     /*
      * 캐시가 걸린 쪽을 쓴다. QueryService 를 직접 부르면 모달을 열 때마다 CSP API 를 전부 다시
      * 두드려 7종에 20초 넘게 걸렸다.
@@ -49,12 +45,26 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
     private final CspCredentialRepository credentialRepository;
     private final CapacityProbe capacityProbe;
 
+    /*
+     * 요청마다 달라지는 조건이라 필드로 두면 동시 요청이 서로를 덮는다. 아래 메서드 체인에만
+     * 쓰이므로 ThreadLocal 대신 인자로 넘긴다 — 여기서는 호출 깊이가 얕다.
+     */
+
     /**
      * @param provider 비우면 전부. 하나만 주면 그 CSP 만 조회한다 — 화면이 CSP 별로 따로
      *     물어 한 줄씩 채우려면 나머지를 같이 풀면 안 된다
      */
     @Override
     public List<ProvisioningDefaults> listDefaults(String provider) {
+        return listDefaults(provider, SpecFilter.DEFAULT);
+    }
+
+    @Override
+    public List<ProvisioningDefaults> listDefaults(String provider, SpecFilter filter) {
+        return resolveAll(provider, filter == null ? SpecFilter.DEFAULT : filter);
+    }
+
+    private List<ProvisioningDefaults> resolveAll(String provider, SpecFilter resolved) {
         Map<String, VmOptionProvider> catalog = new LinkedHashMap<>();
         for (VmOptionProvider described : vmOptionsService.getProviders()) {
             catalog.put(described.getProvider().toLowerCase(java.util.Locale.ROOT), described);
@@ -62,12 +72,12 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
         return java.util.Arrays.stream(SupportedProvisioningProvider.values())
                 .filter(candidate -> !StringUtils.hasText(provider)
                         || candidate.getCanonicalName().equalsIgnoreCase(provider))
-                .map(candidate -> resolve(candidate, catalog))
+                .map(candidate -> resolve(candidate, catalog, resolved))
                 .toList();
     }
 
     private ProvisioningDefaults resolve(
-            SupportedProvisioningProvider provider, Map<String, VmOptionProvider> catalog) {
+            SupportedProvisioningProvider provider, Map<String, VmOptionProvider> catalog, SpecFilter filter) {
         String name = provider.getCanonicalName();
         VmOptionProvider described = catalog.get(name.toLowerCase(java.util.Locale.ROOT));
         ProvisioningDefaults.ProvisioningDefaultsBuilder builder = ProvisioningDefaults.builder()
@@ -84,7 +94,7 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
                 .credentialName(credential.get().getName());
 
         try {
-            return fill(builder, provider, described, credential.get());
+            return fill(builder, provider, described, credential.get(), filter);
         } catch (RuntimeException e) {
             // 한 CSP 조회가 실패해도 나머지는 내려보낸다. 목록 전체가 비면 원인을 알 수 없다.
             log.warn("{} 기본값을 만들지 못했다: {}", name, e.toString());
@@ -98,7 +108,8 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
             ProvisioningDefaults.ProvisioningDefaultsBuilder builder,
             SupportedProvisioningProvider provider,
             VmOptionProvider described,
-            CspCredentialEntity credential) {
+            CspCredentialEntity credential,
+            SpecFilter filter) {
         String name = provider.getCanonicalName();
         String credentialId = credential.getId();
 
@@ -141,7 +152,7 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
             builder.osImage(value);
         }
 
-        CapacityProbe.SpecChoice spec = pickSpec(provider, credentialId, region, described);
+        CapacityProbe.SpecChoice spec = pickSpec(provider, credentialId, region, described, filter);
         if (spec.blockedReason() != null) {
             return builder.ready(false).blockedReason(spec.blockedReason()).build();
         }
@@ -222,7 +233,11 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
 
     /** 권장 스펙을 먼저 쓰고, 그 리전에 없으면 최소 사양을 넘는 것 중 가장 작은 것을 고른다. */
     private CapacityProbe.SpecChoice pickSpec(
-            SupportedProvisioningProvider provider, String credentialId, String region, VmOptionProvider described) {
+            SupportedProvisioningProvider provider,
+            String credentialId,
+            String region,
+            VmOptionProvider described,
+            SpecFilter filter) {
         String name = provider.getCanonicalName();
         String recommended = described == null ? null : described.getRecommendedVmSpec();
 
@@ -230,14 +245,23 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
         List<VmOptionSpec> matched = StringUtils.hasText(recommended)
                 ? vmOptionsService.getSpecs(name, credentialId, region, recommended, false, SPEC_SCAN_LIMIT)
                 : List.of();
+        // 권장값도 조건을 만족해야 쓴다. GPU 를 요청했는데 권장값이 일반 타입이면 맞지 않는다.
         String exact = matched.stream()
+                .filter(spec -> !orderedCandidates(List.of(spec), filter).isEmpty())
                 .map(this::specValue)
                 .filter(value -> value != null && value.equalsIgnoreCase(recommended))
                 .findFirst()
                 .orElse(null);
         List<VmOptionSpec> all = vmOptionsService.getSpecs(name, credentialId, region, null, false, SPEC_SCAN_LIMIT);
         if (all.isEmpty()) {
-            // Proxmox 는 인스턴스 타입 목록이 없다 — "코어-메모리MiB" 규약이라 권장값이 곧 값이다.
+            /*
+             * Proxmox 는 인스턴스 타입 목록이 없다 — "코어-메모리MiB" 규약이라 권장값이 곧 값이다.
+             * 그래서 조건을 맞출 수도 없다. GPU 를 요청했는데 그냥 권장값을 주면 GPU 없는 노드를
+             * 준비됨으로 보여주게 된다.
+             */
+            if (filter.gpu()) {
+                return new CapacityProbe.SpecChoice(null, "GPU 노드를 만들 수 없습니다 (인스턴스 타입 목록 없음).");
+            }
             return StringUtils.hasText(recommended)
                     ? new CapacityProbe.SpecChoice(recommended, null)
                     : new CapacityProbe.SpecChoice(null, "고를 수 있는 인스턴스 타입이 없습니다.");
@@ -247,12 +271,14 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
         if (exact != null) {
             candidates.add(exact);
         }
-        orderedCandidates(all).stream()
+        orderedCandidates(all, filter).stream()
                 .filter(value -> !value.equalsIgnoreCase(exact))
                 .forEach(candidates::add);
         if (candidates.isEmpty()) {
             return new CapacityProbe.SpecChoice(
-                    null, "control-plane 을 올릴 만한 인스턴스 타입이 없습니다 (최소 " + MIN_VCPU + "vCPU, " + MIN_MEMORY_GB + "GB).");
+                    null,
+                    (filter.gpu() ? "GPU 인스턴스가 없습니다" : "조건에 맞는 인스턴스 타입이 없습니다") + " (최소 " + filter.minVcpu() + "vCPU, "
+                            + filter.minMemoryGb() + "GB).");
         }
         return capacityProbe.firstWithCapacity(provider, credentialId, region, candidates);
     }
@@ -263,12 +289,13 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
      * <p>가장 작은 것을 그냥 고르면 1vCPU 2GB 가 잡힌다 — kubeadm preflight 를 건너뛰게 해둬서
      * 생성은 되지만 control-plane 이 제대로 뜨지 않는다.
      */
-    private List<String> orderedCandidates(List<VmOptionSpec> specs) {
+    private List<String> orderedCandidates(List<VmOptionSpec> specs, SpecFilter filter) {
         return specs.stream()
                 .filter(spec -> specValue(spec) != null)
-                .filter(spec -> spec.getVcpu() != null && spec.getVcpu() >= MIN_VCPU)
-                .filter(spec -> spec.getMemoryGb() != null && spec.getMemoryGb() >= MIN_MEMORY_GB)
-                .filter(spec -> spec.getGpuCount() == null || spec.getGpuCount() == 0)
+                .filter(spec -> spec.getVcpu() != null && spec.getVcpu() >= filter.minVcpu())
+                .filter(spec -> spec.getMemoryGb() != null && spec.getMemoryGb() >= filter.minMemoryGb())
+                // GPU 를 원하지 않으면 제외하고, 원하면 GPU 가 붙은 것만 남긴다.
+                .filter(spec -> filter.gpu() == ((spec.getGpuCount() == null ? 0 : spec.getGpuCount()) > 0))
                 .sorted(Comparator.comparing(VmOptionSpec::getVcpu).thenComparing(VmOptionSpec::getMemoryGb))
                 .map(this::specValue)
                 .distinct()

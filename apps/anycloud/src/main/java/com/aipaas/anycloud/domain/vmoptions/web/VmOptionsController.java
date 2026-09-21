@@ -9,6 +9,7 @@ import com.aipaas.anycloud.domain.vmoptions.ProviderConfigSchemaService;
 import com.aipaas.anycloud.domain.vmoptions.VmOptionsService;
 import com.aipaas.anycloud.domain.vmoptions.api.ProviderConfigKey;
 import com.aipaas.anycloud.domain.vmoptions.api.ProvisioningDefaults;
+import com.aipaas.anycloud.domain.vmoptions.api.SpecFilter;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionImage;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionProvider;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionRegion;
@@ -119,12 +120,16 @@ public class VmOptionsController {
     @ApiResponses({@ApiResponse(responseCode = "200", description = "기본값 조회 성공")})
     public ResponseEntity<ApiSuccessResponse<PagedData<ProvisioningDefaults>>> getProvisioningDefaults(
             @Parameter(description = "한 CSP 만 조회. 비우면 전부", example = "AWS") @RequestParam(required = false)
-                    String provider) {
+                    String provider,
+            @Parameter(description = "최소 vCPU. 비우면 2") @RequestParam(required = false) Integer minVcpu,
+            @Parameter(description = "최소 메모리 GB. 비우면 4") @RequestParam(required = false) Double minMemoryGb,
+            @Parameter(description = "GPU 인스턴스로 고를지. 비우면 제외") @RequestParam(required = false) Boolean gpu) {
         return new ResponseEntity<>(
                 ApiSuccessResponse.of(
                         HttpStatus.OK.value(),
                         "Provisioning defaults loaded",
-                        PagedData.of(provisioningDefaultsService.listDefaults(provider))),
+                        PagedData.of(provisioningDefaultsService.listDefaults(
+                                provider, SpecFilter.of(minVcpu, minMemoryGb, gpu)))),
                 new HttpHeaders(),
                 HttpStatus.OK);
     }

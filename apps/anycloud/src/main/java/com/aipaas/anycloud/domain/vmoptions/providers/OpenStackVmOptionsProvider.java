@@ -443,11 +443,21 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
         return StringUtils.hasText(value) ? value : defaultValue;
     }
 
+    /**
+     * flavor 이름으로 GPU 를 짚는다. 운영자가 이름을 정하므로 이것이 유일한 단서다.
+     *
+     * <p>{@code novgpu} 처럼 "없다" 는 뜻을 담은 이름이 있다. 단순 포함으로 보면 GPU 없는
+     * flavor 가 GPU 로 잡혀, GPU 를 요청한 사람이 GPU 없는 노드를 받는다.
+     */
     private int detectGpuCount(String flavorName) {
         if (!StringUtils.hasText(flavorName)) {
             return 0;
         }
-        return flavorName.toLowerCase(Locale.ROOT).contains("gpu") ? 1 : 0;
+        String normalized = flavorName.toLowerCase(Locale.ROOT);
+        if (normalized.contains("nogpu") || normalized.contains("novgpu") || normalized.contains("non-gpu")) {
+            return 0;
+        }
+        return normalized.contains("gpu") ? 1 : 0;
     }
 
     private String inferFamily(String flavorName) {

@@ -150,7 +150,8 @@ class ProvisioningDefaultsPickSaneValuesTest extends AbstractUnitTest {
         ProvisioningDefaults defaults = openstack();
 
         assertThat(defaults.ready()).isFalse();
-        assertThat(defaults.blockedReason()).contains("control-plane");
+        // 조건에 맞는 것이 없으면 그 조건을 함께 알려줘야 무엇을 바꿔야 할지 안다.
+        assertThat(defaults.blockedReason()).contains("최소 2vCPU");
     }
 
     @Test
