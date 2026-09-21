@@ -2,7 +2,7 @@ package com.aipaas.anycloud.domain.vmoptions.validation;
 
 import com.aipaas.anycloud.common.error.enums.ErrorCode;
 import com.aipaas.anycloud.common.error.exception.CustomException;
-import com.aipaas.anycloud.domain.vmoptions.VmOptionsQueryService;
+import com.aipaas.anycloud.domain.vmoptions.VmOptionsService;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionImage;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionSpec;
 import java.util.List;
@@ -15,10 +15,14 @@ import org.springframework.util.StringUtils;
 @Service
 public class VmOptionsSelectionValidator {
 
-    private final VmOptionsQueryService vmOptionsQueryService;
+    /*
+     * 캐시가 걸린 쪽을 쓴다. QueryService 를 직접 부르면 preflight 마다 CSP API 를 200건씩
+     * 새로 훑는다 — 생성 한 번에 수백 건이 나간다.
+     */
+    private final VmOptionsService vmOptionsService;
 
-    public VmOptionsSelectionValidator(VmOptionsQueryService vmOptionsQueryService) {
-        this.vmOptionsQueryService = vmOptionsQueryService;
+    public VmOptionsSelectionValidator(VmOptionsService vmOptionsService) {
+        this.vmOptionsService = vmOptionsService;
     }
 
     /**
@@ -43,6 +47,12 @@ public class VmOptionsSelectionValidator {
         validateSpec(
                 provider, credentialId, region, config.get("anycloud-k8s:workerInstanceType"), "workerInstanceType");
 
+        /*
+         * 이미지 식별자는 리전마다 다르고 주기적으로 갈린다. 없는 값을 그대로 보내면 CSP 마다
+         * 다른 방식으로 죽는다 — IBM 은 pulumi-yaml 이 패닉해 Go 스택이 그대로 올라온다.
+         */
+        validateImage(provider, credentialId, region, config.get("anycloud-k8s:osImage"), "osImage");
+
         if ("OpenStack".equalsIgnoreCase(provider)) {
             validateImage(
                     provider,
@@ -63,8 +73,7 @@ public class VmOptionsSelectionValidator {
         if (!StringUtils.hasText(value) || !StringUtils.hasText(region)) {
             return;
         }
-        List<VmOptionSpec> candidates =
-                vmOptionsQueryService.listSpecs(provider, credentialId, region, value, false, 200);
+        List<VmOptionSpec> candidates = vmOptionsService.getSpecs(provider, credentialId, region, value, false, 200);
         if (candidates.isEmpty()) {
             // CSP API 가 빈 list 를 반환하는 경우 — circuit breaker fallback (CSP API 장애)
             // 또는 IAM 권한 부족. 사용자 선택을 hard reject 하기보다 Pulumi 의 실 launch 단계에 위임
@@ -93,23 +102,31 @@ public class VmOptionsSelectionValidator {
             return;
         }
         List<VmOptionImage> candidates =
-                vmOptionsQueryService.listImages(provider, credentialId, region, value, null, null, 200);
-        if (candidates.isEmpty()) {
+                vmOptionsService.getImages(provider, credentialId, region, value, null, null, 200);
+        boolean exists = candidates.stream()
+                .anyMatch(item -> value.equalsIgnoreCase(item.getName()) || value.equalsIgnoreCase(item.getId()));
+        if (exists) {
+            return;
+        }
+        /*
+         * 키워드 조회가 비었다고 CSP 장애로 단정하면 없는 이미지가 그대로 통과한다. 조회 자체가
+         * 되는지 한 번 더 본다 — 목록이 나오면 그 값이 없는 것이고, 목록도 비면 CSP 를 못 읽는
+         * 상황이라 여기서 막지 않는다.
+         */
+        if (vmOptionsService
+                .getImages(provider, credentialId, region, null, null, null, 1)
+                .isEmpty()) {
             log.warn(
-                    "OS image validation skipped — listImages returned empty (provider={}, region={}, value={}). "
-                            + "Likely CSP API unavailable; deferring to Pulumi launch.",
+                    "OS image validation skipped — 이미지 목록을 읽지 못했다 (provider={}, region={}, value={})",
                     provider,
                     region,
                     value);
             return;
         }
-        boolean exists = candidates.stream().anyMatch(item -> value.equalsIgnoreCase(item.getName()));
-        if (!exists) {
-            throw new CustomException(
-                    ErrorCode.INVALID_INPUT_VALUE,
-                    fieldName,
-                    value,
-                    "Selected OS image was not found for region " + region);
-        }
+        throw new CustomException(
+                ErrorCode.INVALID_INPUT_VALUE,
+                fieldName,
+                value,
+                "Selected OS image was not found for region " + region);
     }
 }

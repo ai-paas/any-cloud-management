@@ -18,7 +18,7 @@ import org.mockito.Mock;
 class ProxmoxHasNoInstanceTypeCatalogTest extends AbstractUnitTest {
 
     @Mock
-    VmOptionsQueryService vmOptionsQueryService;
+    VmOptionsService vmOptionsQueryService;
 
     private Map<String, String> config() {
         return Map.of(
