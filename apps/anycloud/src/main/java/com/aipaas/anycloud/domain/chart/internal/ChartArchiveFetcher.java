@@ -48,8 +48,28 @@ public class ChartArchiveFetcher {
     /** Chart .tgz 자체의 최대 크기 — 큰 chart 도 일반적으로 5MB. 50MB cap 으로 안전. */
     private static final int MAX_ARCHIVE_BYTES = 50 * 1024 * 1024;
 
+    /**
+     * 공개 저장소의 index.yaml 은 크다 — prometheus-community 6.4MB, bitnami 는 더 크다.
+     *
+     * <p>snakeyaml 기본 상한 3MiB 로는 거부되는데, 화면에는 README 와 values 가 없는 것처럼
+     * 보인다. 목록과 상세는 상한을 올린 다른 파서를 써서 되고 여기만 막혔다.
+     */
+    private static final int INDEX_CODE_POINT_LIMIT = 64 * 1024 * 1024;
+
     private final RestTemplate restTemplate;
-    private final YAMLMapper yamlMapper = new YAMLMapper();
+    private final YAMLMapper yamlMapper = indexYamlMapper();
+
+    private static YAMLMapper indexYamlMapper() {
+        return new YAMLMapper(com.fasterxml.jackson.dataformat.yaml.YAMLFactory.builder()
+                .loaderOptions(loaderOptionsWithLimit())
+                .build());
+    }
+
+    private static org.yaml.snakeyaml.LoaderOptions loaderOptionsWithLimit() {
+        org.yaml.snakeyaml.LoaderOptions options = new org.yaml.snakeyaml.LoaderOptions();
+        options.setCodePointLimit(INDEX_CODE_POINT_LIMIT);
+        return options;
+    }
 
     /**
      * 지정 chart 의 archive 안에서 {@code archivePath} 파일을 텍스트로 추출.
