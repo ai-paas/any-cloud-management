@@ -9,7 +9,6 @@ import com.aipaas.anycloud.domain.addon.api.response.AddonStatusResponse;
 import com.aipaas.anycloud.domain.addon.mapper.AddonMapper;
 import com.aipaas.anycloud.domain.addon.model.AddonSpec;
 import com.aipaas.anycloud.domain.addon.model.AddonState;
-import com.aipaas.anycloud.domain.addon.model.AddonType;
 import com.aipaas.anycloud.domain.cluster.ClusterEntity;
 import com.aipaas.anycloud.domain.cluster.ClusterRepository;
 import com.aipaas.anycloud.domain.cluster.model.ClusterStatus;
@@ -85,11 +84,11 @@ public class AddonServiceImpl implements AddonService {
                 clusterId,
                 saved.getAddonType());
 
-        // MONITORING + cluster.hasGpuNodes=true 면 dcgm-exporter 도 자동 동반.
-        // 사용자 명시 dcgm-exporter 추가를 덮어쓰지 않음 — 이미 row 존재 시 skip.
-        if (saved.getAddonType() == AddonType.MONITORING && Boolean.TRUE.equals(cluster.getHasGpuNodes())) {
-            ensureGpuExporterCompanion(cluster, saved);
-        }
+        /*
+         * dcgm-exporter 를 따라 붙이지 않는다. gpu-operator 가 DCGM 을 함께 올리므로 두 벌이
+         * 되고, 뒤에 뜬 쪽은 GPU 를 잡지 못해 CrashLoopBackOff 로 남는다. operator 없이 metric
+         * 만 뽑으려면 카탈로그에서 직접 고른다.
+         */
 
         // enqueue 조건: cluster 가 ACTIVE 이거나, agent gRPC 세션이 실제 active.
         // persisted ClusterStatus enum 이 stale 해도 (agent 등록 직후 status 미동기 등) 지금 agent 에
@@ -101,41 +100,6 @@ public class AddonServiceImpl implements AddonService {
             saved = addonRepository.findById(saved.getId()).orElse(saved);
         }
         return addonMapper.toResponse(saved, status);
-    }
-
-    /**
-     * GPU cluster 에 monitoring 추가 시 dcgm-exporter 자동 row 생성. 이미 있으면 skip.
-     * cluster ACTIVE 면 orchestrator 가 별도 enqueue (호출자가 monitoring enqueue 후).
-     */
-    private void ensureGpuExporterCompanion(ClusterEntity cluster, ClusterAddonEntity monitoring) {
-        AddonSpec gpuSpec = new AddonSpec(
-                AddonType.GPU_EXPORTER,
-                "dcgm-exporter",
-                null,
-                monitoring.getNamespace(), // 같은 namespace 권장 (보통 monitoring)
-                null,
-                null,
-                null,
-                null,
-                null,
-                true);
-        ClusterAddonEntity gpu = resolver.resolve(gpuSpec, cluster.getId());
-        boolean exists = addonRepository
-                .findByClusterIdAndNamespaceAndReleaseName(cluster.getId(), gpu.getNamespace(), gpu.getReleaseName())
-                .isPresent();
-        if (exists) {
-            log.info("AddonService: dcgm-exporter 이미 등록됨 cluster={} — companion add skip", cluster.getId());
-            return;
-        }
-        gpu.setState(AddonState.PENDING);
-        ClusterAddonEntity savedGpu = addonRepository.save(gpu);
-        log.info(
-                "AddonService: MONITORING + GPU cluster → dcgm-exporter companion added " + "cluster={} addon={}",
-                cluster.getId(),
-                savedGpu.getId());
-        if (cluster.getStatus() == ClusterStatus.ACTIVE || helmReleaseService.isActiveFor(cluster.getId())) {
-            orchestrator.enqueueInstall(savedGpu.getId());
-        }
     }
 
     @Override
