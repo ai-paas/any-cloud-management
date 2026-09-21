@@ -73,9 +73,16 @@ addon-catalog:
         # nvidia-container-toolkit — containerd 의 nvidia runtime 자동 config.
         toolkit:
           enabled: true
-        # DCGM 은 별도 dcgm-exporter addon 으로 install — duplicate 회피.
+        # DCGM — GPU 사용률 metric. serviceMonitor 의 release 라벨이 있어야
+        # kube-prometheus-stack 의 serviceMonitorSelector 가 집어 간다. 라벨이 없으면
+        # exporter 는 뜨는데 Prometheus 에는 GPU metric 이 하나도 안 들어온다.
         dcgmExporter:
-          enabled: false
+          enabled: true
+          serviceMonitor:
+            enabled: true
+            interval: 15s
+            additionalLabels:
+              release: kube-prometheus-stack
         # GPU Feature Discovery — node label (nvidia.com/gpu.product 등) 자동 부착.
         gfd:
           enabled: true
@@ -86,6 +93,8 @@ addon-catalog:
     - id: dcgm-exporter
       type: GPU_EXPORTER
       displayName: "NVIDIA DCGM Exporter"
+      # gpu-operator 가 DCGM 을 함께 올리므로 보통은 필요 없다. operator 없이 metric 만
+      # 뽑거나 버전을 따로 고정할 때 쓴다 — 둘 다 켜면 같은 exporter 가 두 벌 뜬다.
       description: "GPU 노드 metric (utilization, memory, temperature) Prometheus exporter. nvidia-gpu-operator 의 driver/runtime 이 prerequisite."
       chartRepo: nvidia
       chartName: dcgm-exporter
