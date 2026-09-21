@@ -24,6 +24,10 @@ public final class GpuInstanceClassifier {
      */
     private static final Pattern OPENSTACK = Pattern.compile(".*(gpu|vgpu|mig).*", Pattern.CASE_INSENSITIVE);
 
+    /** 부정형 이름 — test-novgpu-2-4-20 은 GPU 가 없다는 뜻이다. */
+    private static final Pattern OPENSTACK_NEGATED =
+            Pattern.compile(".*(nogpu|novgpu|non-gpu).*", Pattern.CASE_INSENSITIVE);
+
     public static boolean isGpu(String provider, String instanceType) {
         if (provider == null || instanceType == null || instanceType.isBlank()) return false;
         String type = instanceType.trim();
@@ -33,7 +37,8 @@ public final class GpuInstanceClassifier {
             case "oci" -> OCI.matcher(type).matches();
             case "alibaba" -> ALIBABA.matcher(type).matches();
             case "ibm" -> IBM.matcher(type).matches();
-            case "openstack" -> OPENSTACK.matcher(type).matches();
+            case "openstack" -> !OPENSTACK_NEGATED.matcher(type).matches()
+                    && OPENSTACK.matcher(type).matches();
             default -> false;
         };
     }

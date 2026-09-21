@@ -166,20 +166,35 @@ public final class GpuFlavorMapper {
         }
     }
 
+    /** 운영자가 명시적으로 끄지 않는 한 GPU cluster 는 driver/runtime 이 반드시 필요하다. */
+    private static boolean enableGpuOperatorByDefault(Map<String, String> config) {
+        String existing = read(config, CONFIG_KEY_ENABLE_GPU_OPERATOR);
+        if (existing != null && !existing.isBlank()) {
+            return false;
+        }
+        write(config, CONFIG_KEY_ENABLE_GPU_OPERATOR, "true");
+        return true;
+    }
+
     public static boolean applyGpuDefaults(String provider, Map<String, String> config) {
         if (config == null || provider == null || provider.isBlank()) {
             return false;
         }
         String key = provider.toLowerCase().trim();
+        /*
+         * operator 기본값은 flavor 표보다 먼저 정한다. 표에 없는 CSP(IBM, OpenStack)가 이 아래에서
+         * 되돌아가면서 플래그까지 빠져, GPU 노드가 드라이버 없이 READY 가 됐다.
+         */
+        boolean mutated = enableGpuOperatorByDefault(config);
+
         String defaultInstance = DEFAULT_GPU_INSTANCE.get(key);
         if (defaultInstance == null) {
             log.warn(
                     "GpuFlavorMapper: no default GPU instance for provider={} — operator must specify "
                             + "workerInstanceType in config",
                     provider);
-            return false;
+            return mutated;
         }
-        boolean mutated = false;
 
         String existing = read(config, CONFIG_KEY_WORKER_INSTANCE_TYPE);
         String aliasResolved = null;
@@ -225,14 +240,6 @@ public final class GpuFlavorMapper {
                     "GpuFlavorMapper: provider={} workerInstanceType={} (operator-specified, kept)",
                     provider,
                     existing);
-        }
-
-        // 운영자가 명시적으로 끄지 않는 한 GPU cluster 는 driver/runtime 이 반드시 필요하므로 default true.
-        String gpuOpExisting = read(config, CONFIG_KEY_ENABLE_GPU_OPERATOR);
-        if (gpuOpExisting == null || gpuOpExisting.isBlank()) {
-            write(config, CONFIG_KEY_ENABLE_GPU_OPERATOR, "true");
-            log.info("GpuFlavorMapper: provider={} → enableGpuOperator=true (auto)", provider);
-            mutated = true;
         }
 
         Map<String, String> extras = EXTRA_GPU_CONFIG.get(key);

@@ -83,11 +83,15 @@ class GpuFlavorMapperTest extends AbstractUnitTest {
     }
 
     @Test
-    void applyGpuDefaults_unsupportedProvider_returnsFalseNoMutation() {
+    void applyGpuDefaults_unsupportedProvider_stillTurnsTheOperatorOn() {
+        // flavor 표에 없는 CSP 도 드라이버는 필요하다. 타입은 운영자가 고른 값을 그대로 둔다.
         Map<String, String> cfg = new HashMap<>();
+
         boolean mutated = GpuFlavorMapper.applyGpuDefaults("proxmox", cfg);
-        assertThat(mutated).isFalse();
-        assertThat(cfg).isEmpty();
+
+        assertThat(mutated).isTrue();
+        assertThat(cfg).containsEntry(GpuFlavorMapper.nsKey(GpuFlavorMapper.CONFIG_KEY_ENABLE_GPU_OPERATOR), "true");
+        assertThat(cfg).doesNotContainKey(GpuFlavorMapper.nsKey("workerInstanceType"));
     }
 
     @Test

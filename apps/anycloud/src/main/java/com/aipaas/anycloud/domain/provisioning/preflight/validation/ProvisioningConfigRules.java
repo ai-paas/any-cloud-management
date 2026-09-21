@@ -2,6 +2,7 @@ package com.aipaas.anycloud.domain.provisioning.preflight.validation;
 
 import com.aipaas.anycloud.common.error.enums.ErrorCode;
 import com.aipaas.anycloud.common.error.exception.CustomException;
+import com.aipaas.anycloud.domain.cluster.model.GpuInstanceClassifier;
 import com.aipaas.anycloud.domain.provisioning.model.SupportedProvisioningProvider;
 import java.util.ArrayList;
 import java.util.List;
@@ -68,9 +69,20 @@ public final class ProvisioningConfigRules {
         // 하드코딩 공유 token 대신 random 생성.
         config.putIfAbsent(JOIN_TOKEN, com.aipaas.anycloud.domain.provisioning.bootstrap.KubeadmJoinTokens.generate());
         config.putIfAbsent(ENABLE_INGRESS, "false");
-        config.putIfAbsent(ENABLE_GPU_OPERATOR, "false");
+        /*
+         * GPU 타입을 골랐으면 드라이버 스택도 켠다. 무조건 false 로 두면 GPU 노드가 드라이버 없이
+         * READY 가 되고, 화면은 정상으로 보이는데 GPU 워크로드만 스케줄되지 않는다.
+         */
+        config.putIfAbsent(ENABLE_GPU_OPERATOR, String.valueOf(gpuNodesRequested(provider, config)));
         // 클러스터를 만든 직후 모니터링 화면을 여는 것이 보통이다. 없으면 빈 그래프만 나온다.
         config.putIfAbsent(ENABLE_MONITORING, "true");
+    }
+
+    /** 고른 인스턴스 타입으로 판정한다. 화면 플래그에만 기대면 API 직접 호출에서 갈린다. */
+    private static boolean gpuNodesRequested(SupportedProvisioningProvider provider, Map<String, String> config) {
+        String name = provider.getCanonicalName();
+        return GpuInstanceClassifier.isGpu(name, config.get(MASTER_VM_SPEC))
+                || GpuInstanceClassifier.isGpu(name, config.get(WORKER_VM_SPEC));
     }
 
     public static void validateRequiredConfig(SupportedProvisioningProvider provider, Map<String, String> config) {
