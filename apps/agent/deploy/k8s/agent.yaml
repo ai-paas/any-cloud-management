@@ -79,6 +79,8 @@ data:
     - "GENERATE_KUBECONFIG"
     - "CREATE_NODE_DEBUG_POD"
     - "APPLY_AGENT_CONFIG"
+    - "GET_HELM_RELEASE_HISTORY"
+    - "ROLLBACK_HELM_RELEASE"
     - "ENSURE_AGENT_CONFIG_ANNOTATIONS"
     - "GET_HELM_RELEASE_STATUS"
     - "LIST_HELM_RELEASE_RESOURCES"
@@ -86,7 +88,6 @@ data:
     - "GENERATE_CSR_TOKEN"
     - "GET_AGENT_CONFIG"
     - "GET_AGENT_HEALTH"
-    - "LIST_HELM_RELEASE_HISTORY"
     - "LIST_RESOURCE_KINDS"
     - "RESOLVE_RESOURCE"
   # PodExec 대상 namespace allowlist. 미지정 시 빈 list → 모든 exec deny. wildcard "*" = 전부 허용.

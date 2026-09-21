@@ -190,6 +190,9 @@ allowlist:
     - GENERATE_KUBECONFIG
     - CREATE_NODE_DEBUG_POD
     - APPLY_AGENT_CONFIG
+    # 이력과 되돌리기가 빠져 있었다. 업그레이드가 잘못돼도 되돌릴 길이 없었다.
+    - GET_HELM_RELEASE_HISTORY
+    - ROLLBACK_HELM_RELEASE
     - ENSURE_AGENT_CONFIG_ANNOTATIONS
     - GET_HELM_RELEASE_STATUS
     - LIST_HELM_RELEASE_RESOURCES
@@ -197,7 +200,6 @@ allowlist:
     - GENERATE_CSR_TOKEN
     - GET_AGENT_CONFIG
     - GET_AGENT_HEALTH
-    - LIST_HELM_RELEASE_HISTORY
     # KubeResourceService LIST_RESOURCE_KINDS / RESOLVE_RESOURCE.
     # UI 의 K8s resource explorer ("kind picker") + shortname → 정규화 입력 처리에 필수.
     - LIST_RESOURCE_KINDS
