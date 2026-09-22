@@ -8,7 +8,22 @@ public interface VmClusterBootstrapStrategy {
 
     String waitForPreparationCommand();
 
-    String initializeMasterCommand(VmClusterInternalRequestSnapshot snapshot);
+    /**
+     * kubeadm 명령을 돌리기 전에 노드를 준비시키는 명령.
+     *
+     * <p>대부분의 CSP 는 cloud-init 이 부팅 중에 패키지를 깔아 두므로 끝나기를 기다리기만 하면 된다.
+     * cloud-init 으로 스크립트를 전달할 수 없는 CSP 는 이 자리에서 직접 설치한다.
+     *
+     * @param role {@code master} 또는 {@code worker} — 설치 목록이 갈린다
+     */
+    default String prepareNodeCommand(VmClusterInternalRequestSnapshot snapshot, String role) {
+        return waitForPreparationCommand();
+    }
+
+    /**
+     * @param apiServerPublicIp 인증서 SAN 에 넣을 외부 주소. 없으면 비운다 — 사설망 전용 클러스터가 있다
+     */
+    String initializeMasterCommand(VmClusterInternalRequestSnapshot snapshot, String apiServerPublicIp);
 
     String resolveCaHashCommand();
 

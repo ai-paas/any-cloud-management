@@ -88,33 +88,22 @@ public final class CspCredentialPulumiConfigMapper {
             "proxmox",
                     (env, out) -> {
                         put(out, "proxmoxve:endpoint", env.get("PROXMOX_VE_ENDPOINT"));
-                        // apiToken 과 username/password 는 배타적이다. 둘 다 넘기면 provider 가 거부한다.
-                        String token = env.get("PROXMOX_VE_API_TOKEN");
-                        if (token != null && !token.isBlank()) {
-                            put(out, "proxmoxve:apiToken", token);
-                        } else {
-                            put(out, "proxmoxve:username", env.get("PROXMOX_VE_USERNAME"));
-                            put(out, "proxmoxve:password", env.get("PROXMOX_VE_PASSWORD"));
-                        }
+                        put(out, "proxmoxve:apiToken", proxmoxApiToken(env));
                         putBool(out, "proxmoxve:insecure", env.get("PROXMOX_VE_INSECURE"));
-                        // cloud-init 스니펫은 SSH 로만 올라간다. Proxmox API 의 upload 는 content 를
-                        // iso, vztmpl, import 로만 받아 snippets 를 거부한다 (bugzilla #2208).
-                        // API 토큰 인증에서는 provider 가 ssh.username 을 상속하지 못한다 — 비워 두면
-                        // VM 은 만들어지고 user-data 업로드에서 죽는다.
-                        put(
-                                out,
-                                "proxmoxve:ssh.username",
-                                firstOf(env, "PROXMOX_VE_SSH_USERNAME") == null
-                                        ? "root"
-                                        : env.get("PROXMOX_VE_SSH_USERNAME"));
-                        put(out, "proxmoxve:ssh.password", env.get("PROXMOX_VE_SSH_PASSWORD"));
-                        put(out, "proxmoxve:ssh.privateKey", env.get("PROXMOX_VE_SSH_PRIVATE_KEY"));
-                        putBool(out, "proxmoxve:ssh.agent", env.get("PROXMOX_VE_SSH_AGENT"));
-                        // 기본값 api 는 PVE API 가 알려주는 노드 IP 를 쓴다. 다중 서브넷이면 그 주소가
-                        // 백엔드에서 안 닿을 수 있다 — dns 로 바꾸거나 nodes 로 직접 지정한다.
-                        put(out, "proxmoxve:ssh.nodeAddressSource", env.get("PROXMOX_VE_SSH_NODE_ADDRESS_SOURCE"));
-                        putJsonArray(out, "proxmoxve:ssh.nodes", env.get("PROXMOX_VE_SSH_NODES"));
                     });
+
+    /**
+     * PVE 가 토큰 생성 화면에서 따로 보여주는 두 값을 provider 가 받는 한 줄로 잇는다.
+     *
+     * <p>{@code user@realm!name=uuid} 형식이라 사용자가 직접 조립하면 오타가 검증을 통과해 버린다.
+     * 실패는 프로비저닝 첫 API 호출에서 401 로만 드러난다.
+     */
+    private static String proxmoxApiToken(Map<String, String> env) {
+        String id = env.get("PROXMOX_VE_API_TOKEN_ID");
+        String secret = env.get("PROXMOX_VE_API_TOKEN_SECRET");
+        if (id == null || id.isBlank() || secret == null || secret.isBlank()) return null;
+        return id.trim() + "=" + secret.trim();
+    }
 
     /**
      * Provider 별 env var → Pulumi config key 변환. 알려진 mapping 만 추출 — unknown key 는 silent
@@ -146,16 +135,9 @@ public final class CspCredentialPulumiConfigMapper {
             "IBMCLOUD_API_KEY",
             "IBMCLOUD_REGION",
             "PROXMOX_VE_ENDPOINT",
-            "PROXMOX_VE_USERNAME",
-            "PROXMOX_VE_PASSWORD",
-            "PROXMOX_VE_API_TOKEN",
+            "PROXMOX_VE_API_TOKEN_ID",
+            "PROXMOX_VE_API_TOKEN_SECRET",
             "PROXMOX_VE_INSECURE",
-            "PROXMOX_VE_SSH_USERNAME",
-            "PROXMOX_VE_SSH_PASSWORD",
-            "PROXMOX_VE_SSH_PRIVATE_KEY",
-            "PROXMOX_VE_SSH_AGENT",
-            "PROXMOX_VE_SSH_NODE_ADDRESS_SOURCE",
-            "PROXMOX_VE_SSH_NODES",
             "ALICLOUD_ACCESS_KEY",
             "ALICLOUD_SECRET_KEY",
             "OS_AUTH_URL",
@@ -250,6 +232,27 @@ public final class CspCredentialPulumiConfigMapper {
             throw new IllegalArgumentException(key + " 가 올바른 JSON 이 아니다: " + json, e);
         }
         out.put(key, json);
+    }
+
+    /**
+     * 프로바이더가 리전을 받는 config 키. 리전 개념이 없는 프로바이더는 {@code null}.
+     *
+     * <p>Proxmox 는 단일 하이퍼바이저라 리전이 없고, OpenStack 은 리소스마다 region 을 직접 받는다.
+     */
+    public static String regionConfigKey(String provider) {
+        if (provider == null) {
+            return null;
+        }
+        return switch (provider.toLowerCase(java.util.Locale.ROOT)) {
+            case "aws" -> "aws:region";
+            case "gcp", "google" -> "gcp:region";
+            case "azure", "azurerm" -> "azure:location";
+            case "alibaba", "alicloud" -> "alicloud:region";
+            case "oci", "oracle" -> "oci:region";
+            case "digitalocean" -> null;
+            case "ibm" -> "ibm:region";
+            default -> null;
+        };
     }
 
     private static final com.fasterxml.jackson.databind.ObjectMapper JSON =

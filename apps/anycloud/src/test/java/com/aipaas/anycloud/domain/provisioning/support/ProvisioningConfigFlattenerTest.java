@@ -79,6 +79,23 @@ class ProvisioningConfigFlattenerTest {
     }
 
     @Test
+    void listsAreJoinedWithCommas() {
+        /*
+         * String.valueOf 를 그대로 쓰면 "[2200, 2201]" 이 되어 파서가 대괄호를 숫자로 읽다
+         * "숫자가 아닌 값: [2200" 으로 죽는다. Proxmox 홈랩이 포트포워드를 못 받아 막혔다.
+         */
+        Map<String, Object> providerSpec = Map.of(
+                "sshPorts", java.util.List.of(2200, 2201),
+                "nodeIps", java.util.List.of("192.168.0.200", "192.168.0.201"));
+
+        Map<String, String> out = ProvisioningConfigFlattener.flatten(request(null, providerSpec));
+
+        assertThat(out)
+                .containsEntry("anycloud-k8s:providerSpec.sshPorts", "2200,2201")
+                .containsEntry("anycloud-k8s:providerSpec.nodeIps", "192.168.0.200,192.168.0.201");
+    }
+
+    @Test
     void emptyRequestProducesEmptyConfig() {
         assertThat(ProvisioningConfigFlattener.flatten(request(null, null))).isEmpty();
     }

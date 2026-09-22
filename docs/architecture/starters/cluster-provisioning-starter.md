@@ -14,7 +14,6 @@ Multi-cloud VM Kubernetes 클러스터 프로비저닝을 host backend 가 재�
   `up`/`preview`/`destroy`/`refresh` 호출 (`AutomationProvisioningService`).
 - **EngineEvent stream 처리** — `EngineEventAdapter` 가 Pulumi `EngineEvent` 를 `ProvisionEvent` 로
   정규화 후 Reactor `ProvisionEventBus` (multicast Sinks) 로 publish.
-- **CSP 추상화** — `ProviderYamlEmitter` 구현 `Aws/Gcp/Azure/Oci/Openstack`. 각 emitter 는 네트워크,
   보안그룹, 인스턴스를 `resources` 에 선언하고 `NodeRefs` 만 반환한다. 표준 outputs 조립은
   `StandardOutputs`.
 - **CSP credential isolation** — `CspCredentialPulumiConfigMapper` 가 env (AWS_ACCESS_KEY_ID) →
@@ -69,13 +68,13 @@ internal/               ← starter 내부 구현 (host 가 직접 import X)
 
 program/                ← Pulumi YAML 프로그램 생성
 ├── ClusterSpec                       record + Builder + normalize()
-├── ProviderSpec                      sealed — CSP 전용 설정 (Gcp/Azure/Oci/Openstack)
+├── ProviderSpec                      sealed — CSP 전용 설정 (Gcp/Alibaba/Oci/Openstack/Ibm/Proxmox)
 ├── Defaults                          ProviderDefaults table + cross-cutting (masterCount odd / rootDisk≥50)
 ├── DatabaseSpec, JoinTokens, ResourceNames, ProviderName, K8sConstants, KubeadmUserData
 └── yaml/
     ├── ProviderYamlEmitter           CSP contract (package-private)
     ├── YamlEmitters                  canonical name → emitter 등록
-    ├── {Aws,Gcp,Azure,Oci,Openstack}YamlEmitter   5 CSP
+    ├── {Aws,Gcp,Alibaba,Oci,Openstack,Proxmox,Ibm}YamlEmitter   7 CSP
     ├── PulumiProgram                 YAML 트리 + options.version 주입
     ├── PluginVersions                PULUMI_PLUGINS 파싱 — 플러그인 버전 고정
     ├── YamlRef                       ${ref}, fn::invoke, fn::secret, fn::toJSON, fn::toBase64

@@ -98,6 +98,12 @@ func (c *realClient) APIServerURL() string {
 }
 
 // ============================================================================
+// debugContainerName — 웹이 exec 대상으로 지정하는 이름과 같아야 한다.
+const debugContainerName = "debug"
+
+// debugPodReadyTimeout — 호출자가 데드라인을 주지 않았을 때의 상한.
+const debugPodReadyTimeout = 3 * time.Minute
+
 // Node debug pod
 // ============================================================================
 
@@ -156,7 +162,7 @@ func (c *realClient) CreateNodeDebugPod(ctx context.Context, opts NodeDebugPodOp
 	host := !opts.ToolsShell
 
 	container := corev1.Container{
-		Name:  "debug",
+		Name:  debugContainerName,
 		Image: image,
 		Stdin: true,
 		TTY:   true,
@@ -203,9 +209,64 @@ func (c *realClient) CreateNodeDebugPod(ctx context.Context, opts NodeDebugPodOp
 	if err != nil {
 		return NodeDebugPodResult{}, fmt.Errorf("create debug pod: %w", err)
 	}
+	if err := c.waitDebugContainerRunning(ctx, created.Namespace, created.Name); err != nil {
+		return NodeDebugPodResult{}, err
+	}
 	return NodeDebugPodResult{
 		Namespace: created.Namespace,
 		PodName:   created.Name,
 		ExpiresAt: time.Now().Add(time.Duration(ttl) * time.Second),
 	}, nil
+}
+
+// waitDebugContainerRunning — 컨테이너가 뜰 때까지 기다린다.
+//
+// 이름만 돌려주면 호출자가 곧바로 exec 을 걸고 "container not found (debug)" 로 끝난다. 노드에
+// 이미지가 없으면 pull 에 1분 넘게 걸려 거의 매번 걸린다. 기다리는 상한은 ctx 가 정한다.
+func (c *realClient) waitDebugContainerRunning(ctx context.Context, ns, name string) error {
+	// 호출자가 데드라인을 주지 않아도 영원히 붙잡지 않는다. 이미지 pull 이 이보다 오래 걸리면
+	// 기다려서 될 일이 아니다.
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, debugPodReadyTimeout)
+		defer cancel()
+	}
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	var lastReason string
+	for {
+		pod, err := c.cs.CoreV1().Pods(ns).Get(ctx, name, metav1.GetOptions{})
+		if err == nil {
+			for _, cs := range pod.Status.ContainerStatuses {
+				if cs.Name != debugContainerName {
+					continue
+				}
+				if cs.State.Running != nil {
+					return nil
+				}
+				// ImagePullBackOff 처럼 기다려도 낫지 않는 상태는 그대로 알린다.
+				if w := cs.State.Waiting; w != nil {
+					lastReason = w.Reason
+					if w.Reason == "ImagePullBackOff" || w.Reason == "ErrImagePull" ||
+						w.Reason == "CreateContainerConfigError" {
+						return fmt.Errorf("debug container %s: %s: %s", w.Reason, name, w.Message)
+					}
+				}
+				if cs.State.Terminated != nil {
+					return fmt.Errorf("debug container exited before use: %s", cs.State.Terminated.Reason)
+				}
+			}
+			if pod.Status.Phase == corev1.PodFailed {
+				return fmt.Errorf("debug pod failed: %s", pod.Status.Reason)
+			}
+		}
+		select {
+		case <-ctx.Done():
+			if lastReason == "" {
+				lastReason = "Pending"
+			}
+			return fmt.Errorf("debug container not ready in time (%s): %s", lastReason, name)
+		case <-ticker.C:
+		}
+	}
 }

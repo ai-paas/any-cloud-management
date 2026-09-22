@@ -16,6 +16,8 @@ public final class NodeSshCommand {
 
     private static final Pattern SAFE_USER = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._\\-]*");
 
+    private static final int DEFAULT_PORT = 22;
+
     private NodeSshCommand() {}
 
     /**
@@ -33,11 +35,15 @@ public final class NodeSshCommand {
     }
 
     public static List<String> build(String privateKeyPath, String sshUser, String host) {
-        return build(privateKeyPath, sshUser, host, null);
+        return build(privateKeyPath, sshUser, host, null, DEFAULT_PORT);
+    }
+
+    public static List<String> build(String privateKeyPath, String sshUser, String host, SshJump jump) {
+        return build(privateKeyPath, sshUser, host, jump, DEFAULT_PORT);
     }
 
     /** 노드가 사설망이면 점프 호스트를 거친다. 프로비저닝과 같은 길을 쓴다. */
-    public static List<String> build(String privateKeyPath, String sshUser, String host, SshJump jump) {
+    public static List<String> build(String privateKeyPath, String sshUser, String host, SshJump jump, int port) {
         requireSafeHost(host);
         if (sshUser == null || !SAFE_USER.matcher(sshUser).matches()) {
             throw new IllegalArgumentException("사용할 수 없는 sshUser: " + sshUser);
@@ -55,6 +61,10 @@ public final class NodeSshCommand {
                 "BatchMode=yes",
                 "-i",
                 privateKeyPath));
+        if (port != DEFAULT_PORT) {
+            cmd.add("-p");
+            cmd.add(String.valueOf(port));
+        }
         // -J 는 대상 앞에 와야 한다. 대상 뒤에 붙이면 ssh 가 원격 명령으로 읽는다.
         cmd.addAll(SshJumpOptions.args(jump));
         cmd.add(sshUser + "@" + host);

@@ -33,6 +33,48 @@ final class AlibabaRecords {
             Boolean IsPublic,
             String CreationTime) {}
 
+    /**
+     * Zone.
+     *
+     * @param AvailableInstanceTypes 같은 리전이라도 zone 마다 쓸 수 있는 타입이 다르다. 세대가
+     *     새 zone 에만 있는 경우가 흔해, 고른 타입이 없는 zone 은 재고 없음으로 막힌다
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record Zone(String ZoneId, String LocalName, AvailableInstanceTypes AvailableInstanceTypes) {
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public record AvailableInstanceTypes(List<String> InstanceTypes) {}
+    }
+
+    /** DescribeAvailableResource 응답. 중첩이 깊어 필요한 것만 받는다. */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record AvailableResourceResponse(AvailableZones AvailableZones) {
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public record AvailableZones(List<AvailableZone> AvailableZone) {}
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public record AvailableZone(String ZoneId, String Status, AvailableResources AvailableResources) {}
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public record AvailableResources(List<AvailableResource> AvailableResource) {}
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public record AvailableResource(SupportedResources SupportedResources) {}
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public record SupportedResources(List<SupportedResource> SupportedResource) {}
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public record SupportedResource(String Value, String Status) {}
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record ZonesResponse(Zones Zones) {
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public record Zones(List<Zone> Zone) {}
+    }
+
     // Wrapper containers — Alibaba 의 nested {Regions:{Region:[]}} 패턴.
     @JsonIgnoreProperties(ignoreUnknown = true)
     record RegionsResponse(Regions Regions) {

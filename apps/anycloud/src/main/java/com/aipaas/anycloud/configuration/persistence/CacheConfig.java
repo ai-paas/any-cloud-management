@@ -28,13 +28,22 @@ public class CacheConfig {
     public static final String VM_OPTIONS_REGIONS = "vmOptions.regions";
     public static final String VM_OPTIONS_SPECS = "vmOptions.specs";
     public static final String VM_OPTIONS_IMAGES = "vmOptions.images";
+
+    /** config-schema 는 CSP API 를 여러 번 두드려 조립한다. 폼을 열 때마다 다시 풀 이유가 없다. */
+    public static final String VM_OPTIONS_CONFIG_SCHEMA = "vmOptions.configSchema";
+
     public static final String HELM_CHART_VALUES = "helm.chartValues";
     public static final String HELM_CHART_README = "helm.chartReadme";
 
     @Bean
     public CacheManager cacheManager() {
         CaffeineCacheManager mgr = new CaffeineCacheManager(
-                VM_OPTIONS_REGIONS, VM_OPTIONS_SPECS, VM_OPTIONS_IMAGES, HELM_CHART_VALUES, HELM_CHART_README);
+                VM_OPTIONS_REGIONS,
+                VM_OPTIONS_SPECS,
+                VM_OPTIONS_IMAGES,
+                VM_OPTIONS_CONFIG_SCHEMA,
+                HELM_CHART_VALUES,
+                HELM_CHART_README);
         mgr.setCaffeine(Caffeine.newBuilder()
                 .expireAfterWrite(Duration.ofMinutes(30))
                 .maximumSize(1_000)

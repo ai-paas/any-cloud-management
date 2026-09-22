@@ -1,5 +1,6 @@
 package com.aipaas.anycloud.domain.provisioning.payload.internal;
 
+import com.aipaas.anycloud.common.error.exception.provisioning.ProvisioningFailureReason;
 import com.aipaas.anycloud.domain.credential.ResolvedCspCredential;
 import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
 import com.aipaas.anycloud.domain.provisioning.api.request.ProvisionClusterRequest;
@@ -16,6 +17,8 @@ import com.aipaas.anycloud.domain.provisioning.model.VmClusterInternalRequestSna
 import com.aipaas.anycloud.domain.provisioning.payload.NodeCountFallback;
 import com.aipaas.anycloud.domain.provisioning.payload.VmClusterPayloadService;
 import com.aipaas.anycloud.domain.provisioning.query.VmClusterNodeRows;
+import com.aipaas.anycloud.domain.provisioning.remote.internal.ClusterSshJumpResolver;
+import com.aipaas.anycloud.domain.provisioning.support.ApiServerReach;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -50,6 +53,7 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
     private final ObjectMapper objectMapper;
     private final VmClusterComponentRepository componentRepository;
     private final RequestedAddonInspector addonInspector;
+    private final ClusterSshJumpResolver sshJumpResolver;
 
     @Override
     public ProvisioningRequest restoreProvisioningRequest(VmClusterEntity vmCluster, ResolvedCspCredential credential) {
@@ -76,7 +80,16 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
     @Override
     public String serializeRequestSnapshot(
             ProvisionClusterRequest cluster, ProvisioningRequest request, ResolvedCspCredential credential) {
-        Map<String, String> config = cluster.getConfig() == null ? Map.of() : new LinkedHashMap<>(cluster.getConfig());
+        /*
+         * 기본값이 채워진 쪽을 본다. cluster.getConfig() 는 사용자가 보낸 원본이라
+         * applyDefaults 가 넣은 값이 없다 — enableMonitoring 을 생략한 요청이 null 로 굳어
+         * 모니터링 애드온이 등록되지 않았다. 사용자는 체크박스를 켠 채로 만들었는데 화면이
+         * 비어 있고, 원인이 스냅샷이라는 사실은 드러나지 않는다.
+         */
+        Map<String, String> config =
+                request.getConfig() == null || request.getConfig().isEmpty()
+                        ? (cluster.getConfig() == null ? Map.of() : new LinkedHashMap<>(cluster.getConfig()))
+                        : new LinkedHashMap<>(request.getConfig());
 
         VmClusterInternalRequestSnapshot snapshot = VmClusterInternalRequestSnapshot.builder()
                 .clusterProvider(request.getProvider())
@@ -138,6 +151,7 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
                         firstNonBlank(stringValue(outputMap.get("workerVmSpec")), requestSnapshot.getWorkerVmSpec()))
                 .osImage(firstNonBlank(stringValue(outputMap.get("osImage")), requestSnapshot.getOsImage()))
                 .lastError(vmCluster.getLastError())
+                .lastErrorSummary(summaryOf(vmCluster.getLastError()))
                 .masterCount(provisioned ? nodes.masterCount() : 1)
                 .workerCount(NodeCountFallback.workerCount(
                         provisioned, nodes.workerCount(), requestSnapshot.getWorkerCount()))
@@ -171,8 +185,17 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
                 .clusterRegistered(vmCluster.getClusterRegistered())
                 .clusterId(vmCluster.getClusterId())
                 .lastError(vmCluster.getLastError())
+                .lastErrorSummary(summaryOf(vmCluster.getLastError()))
+                .lastErrorHint(hintOf(vmCluster.getLastError()))
                 .bootstrapLog(vmCluster.getBootstrapLog())
                 .apiServerUrl(stringValue(outputMap.get("apiServerUrl")))
+                /*
+                 * 사설망 클러스터는 kubeconfig 를 받아도 그 자리에서 못 쓴다. 받아서 써 본 뒤에야
+                 * 아는 것이 지금 동작이라 미리 알려줄 근거를 함께 내려보낸다.
+                 */
+                .apiServerReach(ApiServerReach.of(
+                                stringValue(outputMap.get("apiServerUrl")), sshJumpResolver.resolve(vmCluster) != null)
+                        .name())
                 .masterPublicIp(stringValue(outputMap.get("masterPublicIp")))
                 .masterPublicDns(stringValue(outputMap.get("masterPublicDns")))
                 .masterVmSpec(
@@ -326,6 +349,21 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
     }
 
     /** Boolean flag 파싱 — strict 검증은 {@code ProvisioningConfigRules.validateBooleanFlags} 에서 끝나므로 여기서는 trim+lowercase 만 적용 (defense-in-depth). 검증을 우회한 경로로 들어오면 "true" / "false" 외엔 모두 null 반환. */
+    /**
+     * 원문은 그대로 두고 요약을 덧붙인다.
+     *
+     * <p>저장하지 않고 읽을 때 만든다 — 분류 규칙을 고치면 예전 실패도 같이 읽히게 된다.
+     */
+    private String summaryOf(String raw) {
+        ProvisioningFailureReason reason = ProvisioningFailureReason.from(raw);
+        return reason == null ? null : reason.summary();
+    }
+
+    private String hintOf(String raw) {
+        ProvisioningFailureReason reason = ProvisioningFailureReason.from(raw);
+        return reason == null ? null : reason.hint();
+    }
+
     private Boolean parseBoolean(String raw) {
         if (raw == null || raw.isBlank()) {
             return null;

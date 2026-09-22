@@ -25,6 +25,7 @@ import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.bouncycastle.openssl.PEMKeyPair;
@@ -34,6 +35,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -43,6 +45,8 @@ import org.springframework.web.client.RestTemplate;
 @Component
 @RequiredArgsConstructor
 public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
+
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(OciVmOptionsProvider.class);
 
     private static final String OCI_DATE_FORMAT = "EEE, dd MMM yyyy HH:mm:ss 'GMT'";
 
@@ -91,7 +95,8 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
         String availabilityDomain = firstAvailabilityDomain(resolvedRegion);
         String compartmentId = compartmentId();
         String url = computeBaseUrl(resolvedRegion) + "/20160918/shapes?compartmentId=" + compartmentId
-                + "&availabilityDomain=" + availabilityDomain;
+                + "&availabilityDomain="
+                + java.net.URLEncoder.encode(availabilityDomain, java.nio.charset.StandardCharsets.UTF_8);
         List<OciRecords.Shape> items = listItems(exchange(url), OciRecords.Shape.class);
         List<VmOptionSpec> results = new ArrayList<>();
         for (OciRecords.Shape s : items) {
@@ -126,16 +131,35 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
         return results;
     }
 
+    /** ListImages 한 번에 받을 개수. 기본 페이지는 키워드 필터를 무의미하게 만든다. */
+    private static final int IMAGE_PAGE_SIZE = 200;
+
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listImagesFallback")
     public List<VmOptionImage> listImages(String region, String keyword, String architecture, String owner, int limit) {
         String resolvedRegion = resolveRegion(region);
+        /*
+         * OCID 를 키워드로 받으면 목록을 뒤지지 않고 그 이미지를 바로 읽는다. 리전 카탈로그는
+         * 수백 건이라 한 페이지에 안 들어오고, 이름 검색으로는 OCID 가 걸리지 않는다 — 멀쩡한
+         * 이미지가 "없는 이미지" 로 판정돼 생성이 막혔다.
+         */
+        if (isImageOcid(keyword)) {
+            VmOptionImage found = getImage(resolvedRegion, keyword);
+            return found == null ? List.of() : List.of(found);
+        }
         String compartmentId = compartmentId();
         StringBuilder url =
                 new StringBuilder(computeBaseUrl(resolvedRegion) + "/20160918/images?compartmentId=" + compartmentId);
-        if (StringUtils.hasText(owner)) {
-            url.append("&operatingSystem=").append(owner);
+        String operatingSystem = StringUtils.hasText(owner) ? owner : operatingSystemFor(keyword);
+        if (StringUtils.hasText(operatingSystem)) {
+            url.append("&operatingSystem=")
+                    .append(java.net.URLEncoder.encode(operatingSystem, java.nio.charset.StandardCharsets.UTF_8));
         }
+        /*
+         * 걸러내기는 여기서 한다. 기본 페이지만 받으면 Ubuntu 가 그 안에 없을 때 결과가 비어
+         * "이 리전엔 Ubuntu 가 없다" 로 보인다.
+         */
+        url.append("&limit=").append(IMAGE_PAGE_SIZE);
         List<OciRecords.Image> items = listItems(exchange(url.toString()), OciRecords.Image.class);
         List<VmOptionImage> results = new ArrayList<>();
         for (OciRecords.Image img : items) {
@@ -199,6 +223,62 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
         return out;
     }
 
+    /**
+     * compartment OCID 는 콘솔을 열어 베껴 와야 하는 값이다. 계정에서 읽어 이름과 함께 보여 준다.
+     *
+     * <p>테넌시 자체도 compartment 다 — 루트에 바로 만드는 구성이 흔해 목록 맨 앞에 둔다.
+     */
+    @Override
+    @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsFallback")
+    public List<String> listConfigOptions(String configKey, String region) {
+        return listCompartments(configKey).stream()
+                .map(com.aipaas.anycloud.domain.vmoptions.api.ConfigOption::value)
+                .toList();
+    }
+
+    /** OCID 만 내려보내면 화면에 식별자가 그대로 뜬다. 이름을 함께 준다. */
+    @Override
+    @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsWithLabelsFallback")
+    public List<com.aipaas.anycloud.domain.vmoptions.api.ConfigOption> listConfigOptionsWithLabels(
+            java.util.Map<String, String> credentials, String configKey, String region) {
+        return withCredentials(credentials, () -> listCompartments(configKey));
+    }
+
+    private List<com.aipaas.anycloud.domain.vmoptions.api.ConfigOption> listCompartments(String configKey) {
+        if (!"providerSpec.compartmentId".equals(configKey)) {
+            return List.of();
+        }
+        String tenancy = tenancyOcid();
+        String url = identityBaseUrl(defaultRegion()) + "/20160918/compartments?compartmentId=" + tenancy
+                + "&compartmentIdInSubtree=true&accessLevel=ACCESSIBLE&limit=" + OPTION_LIMIT;
+        List<com.aipaas.anycloud.domain.vmoptions.api.ConfigOption> out = new java.util.ArrayList<>();
+        out.add(new com.aipaas.anycloud.domain.vmoptions.api.ConfigOption(tenancy, "테넌시 루트"));
+        for (OciRecords.Compartment compartment : listItems(exchange(url), OciRecords.Compartment.class)) {
+            // 삭제 중인 compartment 에 자원을 만들면 거절된다. 고를 수 있게 두면 안 된다.
+            if (StringUtils.hasText(compartment.id()) && "ACTIVE".equalsIgnoreCase(compartment.lifecycleState())) {
+                out.add(new com.aipaas.anycloud.domain.vmoptions.api.ConfigOption(
+                        compartment.id(),
+                        StringUtils.hasText(compartment.name()) ? compartment.name() : compartment.id()));
+            }
+        }
+        return out;
+    }
+
+    private List<String> listConfigOptionsFallback(String configKey, String region, Throwable throwable) {
+        // 조회가 막혀도 자유 입력으로 남는다. 목록을 못 준다고 생성을 막을 이유는 없다.
+        LOG.warn("OCI config options fallback: key={} cause={}", configKey, String.valueOf(throwable));
+        return List.of();
+    }
+
+    private List<com.aipaas.anycloud.domain.vmoptions.api.ConfigOption> listConfigOptionsWithLabelsFallback(
+            java.util.Map<String, String> credentials, String configKey, String region, Throwable throwable) {
+        LOG.warn("OCI config options fallback: key={} cause={}", configKey, String.valueOf(throwable));
+        return List.of();
+    }
+
+    /** 선택 상자에 담을 최대 개수. compartment 가 수백 개인 테넌시가 있다. */
+    private static final int OPTION_LIMIT = 200;
+
     private String firstAvailabilityDomain(String region) {
         String url = identityBaseUrl(region) + "/20160918/availabilityDomains?compartmentId=" + tenancyOcid();
         List<OciRecords.AvailabilityDomain> items = listItems(exchange(url), OciRecords.AvailabilityDomain.class);
@@ -215,11 +295,16 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
                 "No OCI availability domain found for region");
     }
 
-    private JsonNode exchange(String url) {
+    private JsonNode exchange(String rawUrl) {
+        String url = requireOciHost(rawUrl);
         try {
             HttpHeaders headers = buildHeaders(url);
-            ResponseEntity<String> response =
-                    restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+            /*
+             * URI 로 넘긴다. String 오버로드는 URI 템플릿으로 취급해 이미 인코딩된 값을 한 번 더
+             * 인코딩한다 — operatingSystem 의 %20 이 %2520 이 되어 아무것도 걸리지 않는다.
+             */
+            ResponseEntity<String> response = restTemplate.exchange(
+                    java.net.URI.create(url), HttpMethod.GET, new HttpEntity<>(headers), String.class);
             return parseBody(response.getBody(), url);
         } catch (HttpClientErrorException e) {
             throw new CustomException(
@@ -227,6 +312,115 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
                     "oci",
                     url,
                     "OCI VM options request failed: " + e.getStatusCode().value() + " " + e.getResponseBodyAsString());
+        }
+    }
+
+    /**
+     * 그 shape 를 지금 이 AD 에 띄울 수 있는지 묻는다.
+     *
+     * <p>용량은 AD 단위로 수시로 바뀐다. 확인하지 않으면 VCN, 서브넷, 라우터를 다 만든 뒤
+     * 인스턴스 단계에서 {@code Out of host capacity} 로 끝나고 롤백한다.
+     *
+     * @return 가용한 AD 이름. 어디에도 자리가 없으면 비어 있다
+     */
+    public java.util.Optional<String> findAvailabilityDomainWithCapacity(
+            Map<String, String> credentials, String region, String shape, int ocpus, int memoryGb) {
+        return withCredentials(credentials, () -> {
+            String resolved = resolveRegion(region);
+            String compartment = compartmentId();
+            for (OciRecords.AvailabilityDomain ad : availabilityDomains(resolved, compartment)) {
+                if (hasCapacity(resolved, compartment, ad.name(), shape, ocpus, memoryGb)) {
+                    return java.util.Optional.of(ad.name());
+                }
+            }
+            return java.util.Optional.<String>empty();
+        });
+    }
+
+    private List<OciRecords.AvailabilityDomain> availabilityDomains(String region, String compartment) {
+        String url = identityBaseUrl(region) + "/20160918/availabilityDomains?compartmentId=" + compartment;
+        return listItems(exchange(url), OciRecords.AvailabilityDomain.class);
+    }
+
+    private boolean hasCapacity(String region, String compartment, String ad, String shape, int ocpus, int memoryGb) {
+        Map<String, Object> availability = new java.util.LinkedHashMap<>();
+        availability.put("instanceShape", shape);
+        // 고정 shape 에 shapeConfig 를 주면 거절된다. Flex 계열만 코어와 메모리를 받는다.
+        if (shape.endsWith(".Flex")) {
+            availability.put("instanceShapeConfig", Map.of("ocpus", ocpus, "memoryInGBs", memoryGb));
+        }
+        Map<String, Object> body = Map.of(
+                "compartmentId", compartment,
+                "availabilityDomain", ad,
+                "shapeAvailabilities", List.of(availability));
+        JsonNode report = exchangePost(computeBaseUrl(region) + "/20160918/computeCapacityReports", body);
+        for (JsonNode entry : report.path("shapeAvailabilities")) {
+            if ("AVAILABLE".equalsIgnoreCase(entry.path("availabilityStatus").asText(""))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private JsonNode exchangePost(String rawUrl, Map<String, Object> body) {
+        String url = requireOciHost(rawUrl);
+        String payload = writeJson(body);
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                    java.net.URI.create(url),
+                    HttpMethod.POST,
+                    new HttpEntity<>(payload, buildPostHeaders(url, payload)),
+                    String.class);
+            return parseBody(response.getBody(), url);
+        } catch (HttpClientErrorException e) {
+            throw new CustomException(
+                    ErrorCode.RUNTIME_EXCEPTION,
+                    "oci",
+                    url,
+                    "OCI VM options request failed: " + e.getStatusCode().value() + " " + e.getResponseBodyAsString());
+        }
+    }
+
+    private String writeJson(Map<String, Object> body) {
+        try {
+            return objectMapper.writeValueAsString(body);
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.RUNTIME_EXCEPTION, "oci", null, "본문을 만들지 못했습니다");
+        }
+    }
+
+    /** POST 는 본문 해시까지 서명해야 한다. GET 서명에 본문 헤더만 더하면 401 로 거절된다. */
+    private HttpHeaders buildPostHeaders(String url, String payload) {
+        URI uri = URI.create(url);
+        String date = ZonedDateTime.now(java.time.ZoneOffset.UTC)
+                .format(DateTimeFormatter.ofPattern(OCI_DATE_FORMAT, Locale.US));
+        byte[] raw = payload.getBytes(StandardCharsets.UTF_8);
+        String digest = Base64.getEncoder().encodeToString(sha256(raw));
+        String signingString = "(request-target): post " + uri.getRawPath() + "\n"
+                + "date: " + date + "\n"
+                + "host: " + uri.getHost() + "\n"
+                + "content-length: " + raw.length + "\n"
+                + "content-type: application/json\n"
+                + "x-content-sha256: " + digest;
+        String authorization = "Signature version=\"1\",keyId=\"" + tenancyOcid() + "/" + userOcid() + "/"
+                + fingerprint() + "\",algorithm=\"rsa-sha256\",headers=\"(request-target) date host "
+                + "content-length content-type x-content-sha256\",signature=\"" + sign(signingString) + "\"";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("date", date);
+        headers.add("host", uri.getHost());
+        headers.add("x-content-sha256", digest);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setContentLength(raw.length);
+        headers.add("authorization", authorization);
+        return headers;
+    }
+
+    private byte[] sha256(byte[] payload) {
+        try {
+            return java.security.MessageDigest.getInstance("SHA-256").digest(payload);
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.RUNTIME_EXCEPTION, "oci", null, "본문 해시를 만들지 못했습니다");
         }
     }
 
@@ -331,6 +525,37 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
         return ociBaseUrl("iaas", region);
     }
 
+    /*
+     * 조립이 끝난 URL 을 다시 확인한다. base 만 검사하면 뒤에 이어 붙인 식별자가 host 를
+     * 바꾸지 못한다는 보장이 URL 조립 코드에만 남는다 — 요청에는 서명이 붙으므로 목적지가
+     * 바뀌면 자격증명이 따라간다.
+     */
+    private String requireOciHost(String url) {
+        URI parsed;
+        try {
+            parsed = new URI(url);
+        } catch (java.net.URISyntaxException | IllegalArgumentException e) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "endpoint", url, "endpoint URL 을 해석할 수 없습니다");
+        }
+        String host = parsed.getHost();
+        if (host == null || !OCI_HOST.matcher(host).matches()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "endpoint", host, "허용되지 않은 endpoint host 입니다");
+        }
+        /*
+         * host 를 상수로 다시 박아 돌려준다. 통과한 url 을 그대로 넘기면 검증한 문자열과
+         * 요청에 쓰는 문자열이 별개라, 사이에 한 줄만 끼어도 목적지가 갈린다.
+         */
+        String rebuilt = "https://" + host + parsed.getRawPath()
+                + (parsed.getRawQuery() == null ? "" : "?" + parsed.getRawQuery());
+        if (!rebuilt.startsWith("https://iaas.") && !rebuilt.startsWith("https://identity.")) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "endpoint", host, "허용되지 않은 endpoint host 입니다");
+        }
+        return rebuilt;
+    }
+
+    private static final java.util.regex.Pattern OCI_HOST =
+            java.util.regex.Pattern.compile("^(identity|iaas)\\.[a-z0-9-]{1,32}\\.oraclecloud\\.com$");
+
     private String ociBaseUrl(String service, String region) {
         String host = service + "." + requireValidRegionId(region) + ".oraclecloud.com";
         return requireExpectedHost("https://" + host, host);
@@ -363,7 +588,7 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     private String tenancyOcid() {
-        return requiredEnv("TF_VAR_tenancy_ocid");
+        return requireValidOcid("TF_VAR_tenancy_ocid", requiredEnv("TF_VAR_tenancy_ocid"));
     }
 
     private String userOcid() {
@@ -377,11 +602,11 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     private String compartmentId() {
         String env = resolveCredential("OCI_COMPARTMENT_ID");
         if (StringUtils.hasText(env)) {
-            return env;
+            return requireValidOcid("OCI_COMPARTMENT_ID", env);
         }
         String tf = resolveCredential("TF_VAR_compartment_ocid");
         if (StringUtils.hasText(tf)) {
-            return tf;
+            return requireValidOcid("TF_VAR_compartment_ocid", tf);
         }
         return tenancyOcid();
     }
@@ -468,6 +693,42 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     @SuppressWarnings("unused")
+    /**
+     * 목록이 Windows 로 먼저 채워져 Ubuntu 가 첫 페이지에 오지 않는다. 이름으로만 거르면 결과가
+     * 비어 "이 리전엔 Ubuntu 가 없다" 로 보인다 — OCI 는 배포판을 operatingSystem 으로 준다.
+     */
+    private String operatingSystemFor(String keyword) {
+        return StringUtils.hasText(keyword)
+                        && keyword.toLowerCase(java.util.Locale.ROOT).contains("ubuntu")
+                ? "Canonical Ubuntu"
+                : null;
+    }
+
+    private boolean isImageOcid(String value) {
+        return value != null && value.startsWith("ocid1.image.");
+    }
+
+    private VmOptionImage getImage(String region, String imageId) {
+        try {
+            JsonNode body = exchange(computeBaseUrl(region) + "/20160918/images/"
+                    + java.net.URLEncoder.encode(
+                            requireValidOcid("imageId", imageId), java.nio.charset.StandardCharsets.UTF_8));
+            OciRecords.Image img = body == null ? null : objectMapper.convertValue(body, OciRecords.Image.class);
+            if (img == null || !"AVAILABLE".equalsIgnoreCase(img.lifecycleState())) {
+                return null;
+            }
+            return VmOptionImage.builder()
+                    .provider(getProvider().getCanonicalName())
+                    .region(region)
+                    .id(img.id())
+                    .name(img.displayName())
+                    .build();
+        } catch (RuntimeException e) {
+            LOG.warn("OCI 이미지 단건 조회 실패 id={}: {}", imageId, String.valueOf(e));
+            return null;
+        }
+    }
+
     private List<VmOptionImage> listImagesFallback(
             String region, String keyword, String architecture, String owner, int limit, Throwable e) {
         return java.util.Collections.emptyList();

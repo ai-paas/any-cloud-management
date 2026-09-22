@@ -29,13 +29,6 @@ class CspStderrClassifierTest {
     }
 
     @Test
-    void azureForbiddenMapsToPermanent() {
-        ProvisioningException e =
-                CspStderrClassifier.classifyPulumi("up", "AuthorizationFailed: The client does not have authorization");
-        assertThat(e).isInstanceOf(PermanentProvisioningFailure.class);
-    }
-
-    @Test
     void unknownStderrDefaultsToPulumiExecution() {
         ProvisioningException e =
                 CspStderrClassifier.classifyPulumi("up", "some unexpected error nobody has seen before");

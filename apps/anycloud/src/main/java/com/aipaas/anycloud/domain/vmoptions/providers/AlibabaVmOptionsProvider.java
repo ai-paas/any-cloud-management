@@ -17,10 +17,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import javax.crypto.Mac;
@@ -86,6 +88,38 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
                 .toList();
     }
 
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(AlibabaVmOptionsProvider.class);
+
+    /**
+     * VSwitch 가 zone 단위라 zone 을 골라야 서브넷이 만들어진다.
+     *
+     * <p>zone 이름은 콘솔을 열어야 알 수 있고, 같은 리전이라도 zone 마다 쓸 수 있는 인스턴스
+     * 타입이 다르다. 없는 조합을 고르면 재고 없음으로 생성이 막힌다.
+     */
+    @Override
+    @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsFallback")
+    public List<String> listConfigOptions(String configKey, String region) {
+        if (!"providerSpec.zone".equals(configKey) || !StringUtils.hasText(region)) {
+            return List.of();
+        }
+        AlibabaRecords.ZonesResponse body =
+                invoke("DescribeZones", requiredRegion(region), Map.of(), AlibabaRecords.ZonesResponse.class);
+        List<AlibabaRecords.Zone> zones = body.Zones() == null || body.Zones().Zone() == null
+                ? List.of()
+                : body.Zones().Zone();
+        return zones.stream()
+                .map(AlibabaRecords.Zone::ZoneId)
+                .filter(StringUtils::hasText)
+                .sorted()
+                .toList();
+    }
+
+    private List<String> listConfigOptionsFallback(String configKey, String region, Throwable throwable) {
+        // 조회가 막혀도 자유 입력으로 남는다. 목록을 못 준다고 생성을 막을 이유는 없다.
+        LOG.warn("Alibaba config options fallback: key={} cause={}", configKey, String.valueOf(throwable));
+        return List.of();
+    }
+
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listSpecsFallback")
     public List<VmOptionSpec> listSpecs(String region, String keyword, boolean gpuOnly, int limit) {
@@ -96,9 +130,13 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
                 body.InstanceTypes() == null || body.InstanceTypes().InstanceType() == null
                         ? List.of()
                         : body.InstanceTypes().InstanceType();
+        Set<String> sellable = sellableTypes(resolvedRegion);
         List<VmOptionSpec> results = new ArrayList<>();
         for (AlibabaRecords.InstanceType it : instanceTypes) {
             if (!matchesKeyword(it.InstanceTypeId(), keyword) && !matchesKeyword(it.InstanceTypeFamily(), keyword)) {
+                continue;
+            }
+            if (sellable != null && !sellable.contains(it.InstanceTypeId())) {
                 continue;
             }
             Integer gpuCount = parseInteger(it.GPUAmount());
@@ -128,6 +166,60 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
         return results;
     }
 
+    /**
+     * 리전에서 실제로 파는 타입 집합. 판단할 수 없으면 {@code null} 이고 그때는 거르지 않는다.
+     *
+     * <p>DescribeInstanceTypes 는 리전을 가리지 않고 전 세계 카탈로그를 준다. 서울에 없는 구형
+     * ga1, gn4 가 vCPU 순으로 앞에 서서, 목록 앞쪽만 보면 리전에 있는 gn7i 까지 닿지 못한다.
+     */
+    private Set<String> sellableTypes(String region) {
+        try {
+            AlibabaRecords.AvailableResourceResponse body = invoke(
+                    "DescribeAvailableResource",
+                    region,
+                    Map.of("DestinationResource", "InstanceType", "InstanceChargeType", "PostPaid"),
+                    AlibabaRecords.AvailableResourceResponse.class);
+            Set<String> types = collectAvailableTypes(body);
+            return types.isEmpty() ? null : types;
+        } catch (RuntimeException e) {
+            LOG.warn("Alibaba 리전 판매 타입 조회 실패 region={}: {}", region, String.valueOf(e));
+            return null;
+        }
+    }
+
+    private Set<String> collectAvailableTypes(AlibabaRecords.AvailableResourceResponse body) {
+        Set<String> types = new LinkedHashSet<>();
+        if (body.AvailableZones() == null || body.AvailableZones().AvailableZone() == null) {
+            return types;
+        }
+        for (AlibabaRecords.AvailableResourceResponse.AvailableZone zone :
+                body.AvailableZones().AvailableZone()) {
+            if (zone.AvailableResources() == null) {
+                continue;
+            }
+            for (AlibabaRecords.AvailableResourceResponse.AvailableResource resource :
+                    zone.AvailableResources().AvailableResource()) {
+                if (resource.SupportedResources() == null) {
+                    continue;
+                }
+                for (AlibabaRecords.AvailableResourceResponse.SupportedResource supported :
+                        resource.SupportedResources().SupportedResource()) {
+                    if (AVAILABLE_STATUS.equalsIgnoreCase(supported.Status())
+                            && StringUtils.hasText(supported.Value())) {
+                        types.add(supported.Value());
+                    }
+                }
+            }
+        }
+        return types;
+    }
+
+    /** DescribeAvailableResource 가 "팔고 있다" 고 답하는 값. */
+    private static final String AVAILABLE_STATUS = "Available";
+
+    /** DescribeImages 의 상한. 기본 10 은 키워드 필터를 무의미하게 만든다. */
+    private static final int IMAGE_PAGE_SIZE = 100;
+
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listImagesFallback")
     public List<VmOptionImage> listImages(String region, String keyword, String architecture, String owner, int limit) {
@@ -135,7 +227,11 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
         AlibabaRecords.ImagesResponse body = invoke(
                 "DescribeImages",
                 resolvedRegion,
-                Map.of("ImageOwnerAlias", ownerOrDefault(owner)),
+                /*
+                 * PageSize 를 주지 않으면 10건만 온다. 걸러내기는 여기서 하므로 첫 페이지에
+                 * Ubuntu 가 없으면 결과가 통째로 비어 "이 리전엔 Ubuntu 가 없다" 로 보인다.
+                 */
+                Map.of("ImageOwnerAlias", ownerOrDefault(owner), "PageSize", String.valueOf(IMAGE_PAGE_SIZE)),
                 AlibabaRecords.ImagesResponse.class);
         List<AlibabaRecords.Image> images =
                 body.Images() == null || body.Images().Image() == null
@@ -197,8 +293,13 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
         String endpoint = endpoint(regionId);
         String url = endpoint + "?" + canonicalQuery(params);
         try {
-            ResponseEntity<String> response =
-                    restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(new HttpHeaders()), String.class);
+            /*
+             * URI 로 넘긴다. String 오버로드는 URI 템플릿으로 취급해 이미 인코딩된 값을 한 번 더
+             * 인코딩한다 — Timestamp 의 %3A 가 %253A 가 되어 "time stamp is not well formatted"
+             * 로 거절된다. 서명은 인코딩된 문자열로 계산했으므로 그대로 보내야 한다.
+             */
+            ResponseEntity<String> response = restTemplate.exchange(
+                    java.net.URI.create(url), HttpMethod.GET, new HttpEntity<>(new HttpHeaders()), String.class);
             return parseBody(response.getBody(), action, type);
         } catch (HttpClientErrorException e) {
             throw new CustomException(
@@ -295,6 +396,72 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
                     "ALICLOUD_SECRET_KEY is required for Alibaba VM options");
         }
         return value;
+    }
+
+    /**
+     * 존마다 파는 인스턴스가 다르다.
+     *
+     * <p>DescribeInstanceTypes 는 리전 전체 목록이라 {@code ecs.ga1.xlarge} 가 있다고 나오지만
+     * ap-northeast-2a 에는 없다. 그대로 만들면 403 InvalidResourceType.NotSupported 로 끝난다.
+     */
+    @Override
+    @CircuitBreaker(name = "csp-api", fallbackMethod = "isInstanceTypeAvailableInZoneFallback")
+    public boolean isInstanceTypeAvailableInZone(
+            Map<String, String> credentials, String region, String zone, String instanceType) {
+        if (!StringUtils.hasText(instanceType) || !StringUtils.hasText(zone)) {
+            return true;
+        }
+        return withCredentials(credentials, () -> {
+            AlibabaRecords.AvailableResourceResponse body = invoke(
+                    "DescribeAvailableResource",
+                    requiredRegion(region),
+                    Map.of(
+                            "DestinationResource",
+                            "InstanceType",
+                            "ZoneId",
+                            zone,
+                            "InstanceType",
+                            instanceType,
+                            "InstanceChargeType",
+                            "PostPaid"),
+                    AlibabaRecords.AvailableResourceResponse.class);
+            return supportsInstanceType(body, zone, instanceType);
+        });
+    }
+
+    private boolean supportsInstanceType(
+            AlibabaRecords.AvailableResourceResponse body, String zone, String instanceType) {
+        if (body.AvailableZones() == null || body.AvailableZones().AvailableZone() == null) {
+            return false;
+        }
+        for (AlibabaRecords.AvailableResourceResponse.AvailableZone available :
+                body.AvailableZones().AvailableZone()) {
+            if (!zone.equalsIgnoreCase(available.ZoneId()) || available.AvailableResources() == null) {
+                continue;
+            }
+            for (AlibabaRecords.AvailableResourceResponse.AvailableResource resource :
+                    available.AvailableResources().AvailableResource()) {
+                if (resource.SupportedResources() == null) {
+                    continue;
+                }
+                for (AlibabaRecords.AvailableResourceResponse.SupportedResource supported :
+                        resource.SupportedResources().SupportedResource()) {
+                    // Available 이 아닌 값은 재고가 없거나 판매하지 않는 것이다.
+                    if (instanceType.equalsIgnoreCase(supported.Value())
+                            && AVAILABLE_STATUS.equalsIgnoreCase(supported.Status())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isInstanceTypeAvailableInZoneFallback(
+            Map<String, String> credentials, String region, String zone, String instanceType, Throwable throwable) {
+        // 조회가 막히면 막지 않는다. 판단할 수 없다고 정상 요청을 거절할 이유는 없다.
+        LOG.warn("Alibaba zone 가용성 확인 실패 type={} zone={}: {}", instanceType, zone, String.valueOf(throwable));
+        return true;
     }
 
     private String ownerOrDefault(String owner) {

@@ -18,11 +18,11 @@ import (
 	"anycloud/agent/internal/controller"
 	"anycloud/agent/internal/core"
 	execpkg "anycloud/agent/internal/exec"
-	logstreampkg "anycloud/agent/internal/logstream"
-	"anycloud/agent/internal/tlsconfig"
 	"anycloud/agent/internal/helm"
 	"anycloud/agent/internal/k8s"
 	"anycloud/agent/internal/leader"
+	logstreampkg "anycloud/agent/internal/logstream"
+	"anycloud/agent/internal/tlsconfig"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -133,21 +133,21 @@ func main() {
 	}
 
 	cfg := core.BootstrapConfig{
-		BackendAddr:        backendAddr,
-		RegistrationToken:  registrationToken,
-		KubernetesUID:      clusterUID,
-		KubernetesVersion:  envOr2(k8sVersion, "unknown"),
-		Distribution:       envOr2(distribution, "kubeadm"),
-		APIServerEndpoint:  apiEndpoint,
-		ServerCA:           serverCA,
-		AgentInstanceID:    agentInstanceID,
-		AgentVersion:       buildVersionStr,
-		PodName:            os.Getenv("POD_NAME"),
-		PublicIP:           os.Getenv("PUBLIC_IP"),
-		PrivateIP:          os.Getenv("PRIVATE_IP"),
-		DialTimeout:        10 * time.Second,
-		RegisterTimeout:    30 * time.Second,
-		TLS:                tlsCfg,
+		BackendAddr:       backendAddr,
+		RegistrationToken: registrationToken,
+		KubernetesUID:     clusterUID,
+		KubernetesVersion: envOr2(k8sVersion, "unknown"),
+		Distribution:      envOr2(distribution, "kubeadm"),
+		APIServerEndpoint: apiEndpoint,
+		ServerCA:          serverCA,
+		AgentInstanceID:   agentInstanceID,
+		AgentVersion:      buildVersionStr,
+		PodName:           os.Getenv("POD_NAME"),
+		PublicIP:          os.Getenv("PUBLIC_IP"),
+		PrivateIP:         os.Getenv("PRIVATE_IP"),
+		DialTimeout:       10 * time.Second,
+		RegisterTimeout:   30 * time.Second,
+		TLS:               tlsCfg,
 	}
 
 	// Identity store — Secret 에 영구 보관된 60일 opaque token. k8s client 가 없으면 nil
@@ -179,6 +179,15 @@ func main() {
 	// Bootstrap — identity_token 이 store 에 valid 면 Register skip, 아니면 backend 에 Register.
 	result, err := core.BootstrapIdentity(ctx, cfg, identityStore, 5*time.Minute)
 	if err != nil {
+		/*
+		 * 만료된 등록 토큰으로 재시도하면 서버가 거부할 때까지 원인을 모른다. 토큰은 Secret 에
+		 * 남아 있어 파드는 계속 같은 값으로 CrashLoop 을 돈다. 만료를 먼저 짚어 준다.
+		 */
+		if core.RegistrationTokenExpired(registrationToken, time.Now()) {
+			slog.Error("REGISTRATION_TOKEN 이 만료됐다 — Secret 을 새 토큰으로 바꾸고 파드를 다시 띄워야 한다",
+				slog.String("secret", "aipaas-agent-bootstrap"),
+				slog.String("get_token", "POST /v1/clusters/{clusterId}/agent-registration"))
+		}
 		slog.Error("bootstrap failed", slog.String("error", err.Error()))
 		os.Exit(4)
 	}
@@ -186,6 +195,11 @@ func main() {
 	slog.Info("bootstrap success — opening runtime stream",
 		slog.String("cluster_id", result.ClusterID),
 		slog.Int("identity_token_length", len(result.AgentIdentityToken)))
+	if !result.IdentityPersisted {
+		// 지금은 돌지만 다음 재시작 때 기동하지 못한다. 재시작 뒤에야 알면 늦다.
+		slog.Error("identity 가 Secret 에 남지 않았다 — 이 파드가 재시작하면 새 REGISTRATION_TOKEN 이 필요하다",
+			slog.String("secret", "cluster-agent-identity"))
+	}
 
 	dialTlsCfg := tlsCfg
 
@@ -217,10 +231,10 @@ func main() {
 		rotationCfg.AgentInstanceID = agentInstanceID
 		rotationCfg.TLS = dialTlsCfg
 		go core.RunRotation(leaderCtx, rotationCfg, tokenStore, identityStore, result.ClusterID,
-				func(newToken string, expiresAt time.Time) {
-			slog.Info("identity token rotated — stream will force-reconnect with new token",
+			func(newToken string, expiresAt time.Time) {
+				slog.Info("identity token rotated — stream will force-reconnect with new token",
 					slog.Time("new_expires_at", expiresAt))
-		})
+			})
 
 		// identity_token 의 rotation 만으로 인증 갱신 (RunRotation, 위에 wired).
 

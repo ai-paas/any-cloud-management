@@ -82,6 +82,9 @@ public class VmClusterListItemResponse {
     @Schema(description = "마지막 오류 메시지")
     private String lastError;
 
+    @Schema(description = "실패 원인을 한 줄로 정리한 것. 아는 실패가 아니면 null")
+    private String lastErrorSummary;
+
     @Schema(description = "master 노드 수", example = "1")
     private Integer masterCount;
 

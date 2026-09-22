@@ -20,6 +20,7 @@ final class IbmYamlEmitter implements ProviderYamlEmitter {
 
     private static final String T_VPC = "ibm:index/isVpc:IsVpc";
     private static final String T_SUBNET = "ibm:index/isSubnet:IsSubnet";
+    private static final String T_ADDRESS_PREFIX = "ibm:index/isVpcAddressPrefix:IsVpcAddressPrefix";
     private static final String T_SECURITY_GROUP = "ibm:index/isSecurityGroup:IsSecurityGroup";
     private static final String T_SECURITY_GROUP_RULE = "ibm:index/isSecurityGroupRule:IsSecurityGroupRule";
     private static final String T_SSH_KEY = "ibm:index/isSshKey:IsSshKey";
@@ -29,8 +30,6 @@ final class IbmYamlEmitter implements ProviderYamlEmitter {
     private static final String T_PRIVATE_KEY = "tls:index/privateKey:PrivateKey";
 
     private static final String F_GET_IMAGE = "ibm:index/getIsImage:getIsImage";
-
-    private static final String DEFAULT_IMAGE_NAME = "ibm-ubuntu-24-04-6-minimal-amd64-6";
 
     /** Dockerfile 의 IBM_PACKAGE, 그리고 이미지에 구워 둔 스키마와 같은 좌표여야 한다. */
     private static final String TF_BASE_VERSION = "1.4.0";
@@ -73,7 +72,24 @@ final class IbmYamlEmitter implements ProviderYamlEmitter {
     }
 
     private void emitNetwork(PulumiProgram.Builder b, ClusterSpec spec, ProviderSpec.Ibm ibm) {
-        b.resource("vpc", T_VPC, withResourceGroup(ibm, Map.of("name", resourceName(spec, "vpc"))));
+        /*
+         * 기본값(auto)으로 두면 IBM 이 자기 대역(10.240.0.0/18 등)으로 주소 접두사를 만든다.
+         * 요청한 vpcCidr 은 그 안에 들어가지 않아 서브넷 생성이 "CIDR does not fit in any of the
+         * address prefixes" 로 거절된다. 접두사를 직접 만들어 요청한 대역을 쓴다.
+         */
+        b.resource(
+                "vpc",
+                T_VPC,
+                withResourceGroup(ibm, Map.of("name", resourceName(spec, "vpc"), "addressPrefixManagement", "manual")));
+
+        b.resource(
+                "addressPrefix",
+                T_ADDRESS_PREFIX,
+                Map.of(
+                        "name", resourceName(spec, "prefix"),
+                        "vpc", YamlRef.of("vpc", "id"),
+                        "zone", ibm.zone(),
+                        "cidr", spec.vpcCidr()));
 
         // 인터넷 egress 가 없으면 cloud-init 이 패키지 저장소에 닿지 못한다.
         b.resource(
@@ -96,7 +112,8 @@ final class IbmYamlEmitter implements ProviderYamlEmitter {
                                 "vpc", YamlRef.of("vpc", "id"),
                                 "zone", ibm.zone(),
                                 "ipv4CidrBlock", firstSubnet(spec),
-                                "publicGateway", YamlRef.of("gateway", "id"))));
+                                "publicGateway", YamlRef.of("gateway", "id"))),
+                Map.of("dependsOn", List.of(YamlRef.resource("addressPrefix"))));
     }
 
     private void emitSecurityGroup(PulumiProgram.Builder b, ClusterSpec spec, ProviderSpec.Ibm ibm) {
@@ -123,8 +140,12 @@ final class IbmYamlEmitter implements ProviderYamlEmitter {
                 "sg-nodeport",
                 T_SECURITY_GROUP_RULE,
                 rule("inbound", "0.0.0.0/0", "tcp", K8sConstants.NODE_PORT_MIN, K8sConstants.NODE_PORT_MAX));
-        // Calico 기본값 ipipMode=Always 가 노드 간 파드 트래픽을 IP protocol 4 로 감싼다. IBM 은
-        // protocol 을 tcp/udp/icmp/all 로만 받아 VPC 내부를 all 로 연다.
+        /*
+         * 노드 간 파드 트래픽(Calico VXLAN, UDP 4789)과 kubelet, etcd 를 한 번에 연다.
+         *
+         * IP-in-IP 는 이 규칙으로도 통하지 않는다 — IBM VPC 패브릭이 프로토콜 4 를 아예 전달하지
+         * 않아 보안그룹과 무관하게 버려진다. 그래서 부트스트랩이 VXLAN 을 쓴다.
+         */
         b.resource("sg-intra", T_SECURITY_GROUP_RULE, rule("inbound", spec.vpcCidr(), null, 0, 0));
     }
 
@@ -184,8 +205,14 @@ final class IbmYamlEmitter implements ProviderYamlEmitter {
         return out;
     }
 
+    /**
+     * IBM 이미지 이름에는 빌드 번호가 붙고(예: {@code ibm-ubuntu-24-04-4-minimal-amd64-7}) 주기적으로
+     * 새 번호로 갈린다. 기본값을 박아 두면 그 이미지가 사라진 순간 모든 생성이 36초쯤 지나
+     * "No image found" 로 죽는다. 목록에서 고른 값을 받는다.
+     */
     private String imageName(ClusterSpec spec) {
-        return (spec.osImage() != null && !spec.osImage().isBlank()) ? spec.osImage() : DEFAULT_IMAGE_NAME;
+        requireConfig(spec.osImage(), "osImage (IBM image name)");
+        return spec.osImage();
     }
 
     private String resourceName(ClusterSpec spec, String suffix) {

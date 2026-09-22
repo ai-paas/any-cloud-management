@@ -93,7 +93,7 @@ spotless {
 
 dependencyManagement {
     imports {
-        mavenBom "io.fabric8:kubernetes-client-bom:7.8.0"
+        mavenBom "io.fabric8:kubernetes-client-bom:7.9.0"
         mavenBom "org.testcontainers:testcontainers-bom:2.0.5"
     }
 }
@@ -109,7 +109,7 @@ test {
 }
 
 dependencies {
-    implementation platform('software.amazon.awssdk:bom:2.54.12')
+    implementation platform('software.amazon.awssdk:bom:2.55.0')
     implementation 'org.springframework.boot:spring-boot-starter-web'
     // P1-1 (tech-debt review) — @Audited annotation 의 AOP. AspectJ 자동 proxy 활성화.
     implementation 'org.springframework.boot:spring-boot-starter-aop'
@@ -124,7 +124,7 @@ dependencies {
     implementation 'org.flywaydb:flyway-mysql'
     implementation 'org.springframework.boot:spring-boot-starter-cache'
     implementation "com.github.ben-manes.caffeine:caffeine"
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6'
     implementation 'org.mariadb.jdbc:mariadb-java-client'
     implementation 'io.fabric8:kubernetes-client'
     implementation 'org.modelmapper:modelmapper:3.1.1'
@@ -149,7 +149,7 @@ dependencies {
     // Resilience4j: K8s API CircuitBreaker+Retry, Pulumi CLI Bulkhead.
     // 외부 시스템(K8s API, Pulumi CLI) 의 부분 장애가 백엔드 전체 가용성을 깎지 않도록 격리.
     implementation "io.github.resilience4j:resilience4j-spring-boot3:${rootProject.ext.resilience4jVersion}"
-    implementation 'io.github.resilience4j:resilience4j-micrometer:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-micrometer:2.4.0'
 
     // Sprint 3 — JSON structured logging (ELK 호환). 기본 profile 는 string pattern 그대로,
     // SPRING_PROFILES_ACTIVE 에 'json' 포함 시 logback-spring.xml 의 <springProfile name="json">
@@ -158,8 +158,8 @@ dependencies {
 
     // ShedLock (H5/H11): @Scheduled 의 leader election. replica 여러개 띄워도
     // cert scan / state backup / DLQ drain 이 한 노드에서만 실행되도록 DB row lock.
-    implementation 'net.javacrumbs.shedlock:shedlock-spring:7.9.0'
-    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:7.9.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:7.10.1'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:7.10.1'
 
     // ---- Cluster Agent infrastructure ----
     implementation project(':cluster-agent-spring-boot-starter')

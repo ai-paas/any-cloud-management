@@ -29,6 +29,7 @@ public class VmClusterSshAccessServiceImpl implements VmClusterSshAccessService 
     private final PulumiProperties pulumiProperties;
     private final ObjectMapper objectMapper;
     private final ClusterSshJumpResolver sshJumpResolver;
+    private final ClusterSshUserResolver sshUserResolver;
 
     @Override
     @Transactional(readOnly = true)
@@ -46,7 +47,7 @@ public class VmClusterSshAccessServiceImpl implements VmClusterSshAccessService 
         String jumpTarget =
                 jump == null ? null : jump.user() + "@" + jump.host() + (jump.port() == 22 ? "" : ":" + jump.port());
         return new NodeListResult(
-                clusterName, vmCluster.getClusterProvider(), pulumiProperties.getSshUser(), jumpTarget, nodes);
+                clusterName, vmCluster.getClusterProvider(), sshUserResolver.resolve(vmCluster), jumpTarget, nodes);
     }
 
     /**
@@ -71,7 +72,7 @@ public class VmClusterSshAccessServiceImpl implements VmClusterSshAccessService 
             throw new VmClusterSshAccessException(
                     "KEY_NOT_FOUND", "sshPrivateKeyPem missing from stack outputs of " + vmCluster.getStackName());
         }
-        String sshUser = pulumiProperties.getSshUser();
+        String sshUser = sshUserResolver.resolve(outputs);
         List<SshKeyResult.NodeSshInfo> nodes = new ArrayList<>();
         for (Map<String, Object> node : nodesFromOutputs(outputs)) {
             String publicIp = stringValue(node.get("publicIp"));

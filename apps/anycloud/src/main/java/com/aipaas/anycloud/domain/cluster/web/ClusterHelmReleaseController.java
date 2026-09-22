@@ -205,8 +205,14 @@ public class ClusterHelmReleaseController {
 
         var op = operationService.start(OperationType.INSTALL_HELM_RELEASE, "helmRelease", releaseName, null, 1);
         try {
-            chartService.deployChartFromYaml(repo, chart, releaseName, clusterName, ns, version, valuesYaml);
             operationService.markRunning(op.getId());
+            var deployed =
+                    chartService.deployChartFromYaml(repo, chart, releaseName, clusterName, ns, version, valuesYaml);
+            // 끝났다고 알리지 않으면 작업이 RUNNING 에 영영 남는다 — 화면은 설치 중으로 읽는다.
+            operationService.complete(
+                    op.getId(),
+                    "{\"status\":\"" + (deployed == null || deployed.getStatus() == null ? "" : deployed.getStatus())
+                            + "\"}");
         } catch (Exception e) {
             operationService.fail(op.getId(), e.getMessage());
             throw e;
@@ -452,6 +458,29 @@ public class ClusterHelmReleaseController {
         }
         return ResponseEntity.ok(
                 ApiSuccessResponse.of(HttpStatus.OK.value(), "Upgrade completed", OperationResponse.from(op)));
+    }
+
+    @GetMapping("/{releaseName}/values")
+    @Operation(summary = "release 에 적용된 values (helm get values)")
+    public ResponseEntity<ApiSuccessResponse<String>> values(
+            @PathVariable
+                    @NotBlank
+                    @Pattern(regexp = ApiValidationConstants.K8S_NAME_PATTERN)
+                    @Size(max = ApiValidationConstants.K8S_NAME_MAX)
+                    String clusterName,
+            @PathVariable
+                    @NotBlank
+                    @Pattern(regexp = ApiValidationConstants.K8S_NAME_PATTERN)
+                    @Size(max = ApiValidationConstants.K8S_NAME_MAX)
+                    String releaseName,
+            @RequestParam(required = false)
+                    @Pattern(regexp = ApiValidationConstants.NAMESPACE_PATTERN)
+                    @Size(max = ApiValidationConstants.NAMESPACE_MAX)
+                    String namespace) {
+        return ResponseEntity.ok(ApiSuccessResponse.of(
+                HttpStatus.OK.value(),
+                "Helm release values loaded",
+                chartService.getReleaseValues(clusterName, namespace, releaseName)));
     }
 
     @GetMapping("/{releaseName}/resources")

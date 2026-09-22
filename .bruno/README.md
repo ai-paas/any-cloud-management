@@ -244,7 +244,7 @@ Idempotency-Key: {{$randomUUID}}
 ## Recommended environments
 
 - `local` — 기본 로컬 (`baseUrl=http://localhost:8080`)
-- `local-{aws,gcp,azure,oci,digitalocean,alibaba,openstack}-provisioning` — 7 CSP 별 VM 프로비저닝 quick-switch
+- `local-{aws,gcp,alibaba,oci,openstack,proxmox,ibm}-provisioning` — 7 CSP 별 VM 프로비저닝 quick-switch
 
 ### VM Cluster 트랙 — CSP 별 quick-start
 
@@ -271,11 +271,11 @@ bru run "VM Cluster (VM 클러스터)/2b. AWS Cluster Create.bru" \
 |----------|------|------------------|
 | AWS | `2b. AWS Cluster Create` | (없음) |
 | GCP | `2c. GCP Cluster Create` | `gcp_project` |
-| Azure | `2d. Azure Cluster Create` | `azure_resource_group` |
-| Alibaba | `2e. Alibaba Cluster Create` | (없음) |
+| Alibaba | `2e. Alibaba Cluster Create` | `alibaba_zone` |
 | OpenStack | `2f. OpenStack Cluster Create` | `openstack_image_name`, `openstack_flavor_name`, `openstack_external_network_id`, `openstack_floating_ip_pool` |
 | OCI | `2h. OCI Cluster Create` | `oci_compartment_id` |
-| DigitalOcean | `2i. DigitalOcean Cluster Create` | (없음) |
+| Proxmox | `2k. Proxmox Cluster Create` | `proxmox_node_name` |
+| IBM | `2m. IBM Cluster Create` | `ibm_zone` |
 
 자세한 사용법: `.bruno/VM Cluster (VM 클러스터)/folder.bru` 의 docs 블록.
 

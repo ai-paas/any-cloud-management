@@ -7,9 +7,13 @@ import com.aipaas.anycloud.domain.credential.CredentialHealthService;
 import com.aipaas.anycloud.domain.credential.CredentialVerification;
 import com.aipaas.anycloud.domain.credential.CspCredentialEntity;
 import com.aipaas.anycloud.domain.credential.CspCredentialRepository;
+import com.aipaas.anycloud.domain.credential.CspCredentialService;
+import com.aipaas.anycloud.domain.provisioning.proxmox.ProxmoxApiClient;
 import com.aipaas.anycloud.domain.vmoptions.VmOptionsService;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,14 +43,20 @@ public class CredentialHealthServiceImpl implements CredentialHealthService {
 
     private final VmOptionsService vmOptionsService;
     private final CspCredentialRepository credentialRepository;
+    private final CspCredentialService credentialService;
+    private final ProxmoxApiClient proxmoxApiClient;
     private final Duration freshFor;
 
     public CredentialHealthServiceImpl(
             VmOptionsService vmOptionsService,
             CspCredentialRepository credentialRepository,
+            CspCredentialService credentialService,
+            ProxmoxApiClient proxmoxApiClient,
             @Value("${anycloud.credential.health-fresh-for:PT10M}") Duration freshFor) {
         this.vmOptionsService = vmOptionsService;
         this.credentialRepository = credentialRepository;
+        this.credentialService = credentialService;
+        this.proxmoxApiClient = proxmoxApiClient;
         this.freshFor = freshFor;
     }
 
@@ -81,7 +91,7 @@ public class CredentialHealthServiceImpl implements CredentialHealthService {
                 kind,
                 kind == null ? null : CredentialFailureKind.valueOf(kind).hint(),
                 entity.getHealthDetail(),
-                0,
+                entity.getHealthCheckedRegions() == null ? 0 : entity.getHealthCheckedRegions(),
                 entity.getHealthCheckedAt());
     }
 
@@ -90,6 +100,7 @@ public class CredentialHealthServiceImpl implements CredentialHealthService {
         entity.setHealthKind(health.kind());
         entity.setHealthDetail(trim(health.detail()));
         entity.setHealthCheckedAt(LocalDateTime.now());
+        entity.setHealthCheckedRegions(health.checkedRegions());
         credentialRepository.save(entity);
     }
 
@@ -108,6 +119,9 @@ public class CredentialHealthServiceImpl implements CredentialHealthService {
     }
 
     private CredentialHealth probe(String provider, String credentialId) {
+        if ("Proxmox".equalsIgnoreCase(provider)) {
+            return probeProxmox(credentialId);
+        }
         try {
             int regions = vmOptionsService.getRegions(provider, credentialId).size();
             if (regions == 0) {
@@ -136,6 +150,38 @@ public class CredentialHealthServiceImpl implements CredentialHealthService {
             String raw = raw(e);
             CredentialFailureKind kind = CredentialFailureKind.from(raw);
             log.info("자격증명 확인 실패 provider={} credentialId={} kind={}", provider, credentialId, kind);
+            return new CredentialHealth(false, kind.name(), kind.hint(), raw, 0, LocalDateTime.now());
+        }
+    }
+
+    /**
+     * Proxmox 는 리전이 없어 리전 조회로 확인할 수 없다.
+     *
+     * <p>{@code getRegions} 로 내려가면 등록된 VM options provider 가 없어 예외로 끝나고, 정상인
+     * 자격증명도 "확인 불가" 로 보인다. {@code /version} 은 토큰을 실제로 검사하므로 그 호출이
+     * 곧 검증이다 — 만료된 토큰까지 걸러진다.
+     */
+    private CredentialHealth probeProxmox(String credentialId) {
+        try {
+            Map<String, String> env = credentialService
+                    .resolveForProvision("Proxmox", credentialId)
+                    .environmentOrEmpty();
+            JsonNode version = proxmoxApiClient.version(env);
+            if (version == null || version.path("version").asText("").isBlank()) {
+                return new CredentialHealth(
+                        false,
+                        CredentialFailureKind.UPSTREAM_UNAVAILABLE.name(),
+                        CredentialFailureKind.UPSTREAM_UNAVAILABLE.hint(),
+                        "PVE API 에 닿지 못했습니다.",
+                        0,
+                        LocalDateTime.now());
+            }
+            // 리전이 없는 프로바이더라 개수는 0 이다. 확인한 것은 토큰이 통한다는 사실이다.
+            return new CredentialHealth(true, null, null, null, 0, LocalDateTime.now());
+        } catch (Exception e) {
+            String raw = raw(e);
+            CredentialFailureKind kind = CredentialFailureKind.from(raw);
+            log.info("Proxmox 자격증명 확인 실패 credentialId={} kind={}", credentialId, kind);
             return new CredentialHealth(false, kind.name(), kind.hint(), raw, 0, LocalDateTime.now());
         }
     }

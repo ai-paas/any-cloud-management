@@ -22,6 +22,7 @@ public class ProvisioningProviderValidator {
     private final com.aipaas.anycloud.domain.provisioning.properties.PulumiProperties pulumiProperties;
     private final VmOptionsSelectionValidator vmOptionsSelectionValidator;
     private final MeterRegistry meterRegistry;
+    private final ProxmoxPreflightValidator proxmoxPreflightValidator;
 
     public ProvisioningRequest validateAndBuildRequest(ProvisionClusterRequest cluster) {
         return validateAndBuildRequest(
@@ -87,6 +88,10 @@ public class ProvisioningProviderValidator {
                     request.getCredentialId(),
                     request.getRegion(),
                     request.getConfig());
+            if (provider == SupportedProvisioningProvider.PROXMOX) {
+                // Proxmox 는 인스턴스 타입 목록이 없어 위 검증이 통과한다. 노드, datastore, 브리지는 여기서 본다.
+                proxmoxPreflightValidator.validate(request.credentialEnvironmentOrEmpty(), request.getConfig());
+            }
         } catch (RuntimeException e) {
             outcome = "failure";
             throw e;

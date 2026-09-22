@@ -78,6 +78,14 @@ metadata:
 {{- end }}
   annotations:
     "anycloud.aipaas/backend-grpc-addr": {{ $values.backend.grpcAddr | default "PENDING_INJECT" | quote }}
+    {{- /*
+      등록 토큰은 env 로 주입된다 — 파드가 뜰 때 값이 고정되므로 Secret 만 바꾸면 이미 떠 있는
+      파드는 옛 토큰을 계속 쓴다. 토큰이 만료된 뒤 백엔드가 새로 발급해 apply 해도 파드는
+      만료된 값으로 재시도하다 멈춘다. 체크섬을 두면 토큰이 바뀔 때만 롤아웃된다.
+    */}}
+    {{- with $values.bootstrap.registrationToken }}
+    "anycloud.aipaas/registration-token-checksum": {{ . | sha256sum | trunc 16 | quote }}
+    {{- end }}
 spec:
   serviceAccountName: {{ .serviceAccountName }}
   automountServiceAccountToken: true

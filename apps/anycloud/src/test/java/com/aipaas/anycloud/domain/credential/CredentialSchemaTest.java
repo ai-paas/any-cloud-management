@@ -88,19 +88,6 @@ class CredentialSchemaTest extends AbstractUnitTest {
     }
 
     @Test
-    void eitherOrFieldsShareAGroupSoOnlyOneIsDemanded() {
-        // DigitalOcean 은 토큰 키 이름이 둘이고 하나만 있으면 된다. 둘 다 필수로 물으면 같은 값을
-        // 두 번 넣게 된다.
-        List<CredentialFieldSchema> digitalOcean = schemaOf(SupportedProvisioningProvider.DIGITALOCEAN);
-
-        assertThat(digitalOcean)
-                .filteredOn(f -> f.key().startsWith("DIGITALOCEAN_"))
-                .allSatisfy(f -> assertThat(f.required()).isFalse())
-                .extracting(CredentialFieldSchema::group)
-                .containsOnly("token");
-    }
-
-    @Test
     void keyMaterialIsAskedForInlineNotAsAPath() {
         // 포탈에서 백엔드 파일시스템 경로를 알 방법이 없다. 본문을 붙여넣게 한다.
         assertThat(keysOf(SupportedProvisioningProvider.GCP)).containsExactly("GOOGLE_CREDENTIALS");

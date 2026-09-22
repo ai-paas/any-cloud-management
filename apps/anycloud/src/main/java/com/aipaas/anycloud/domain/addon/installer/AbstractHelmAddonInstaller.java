@@ -2,6 +2,7 @@ package com.aipaas.anycloud.domain.addon.installer;
 
 import com.aipaas.anycloud.domain.addon.ClusterAddonEntity;
 import com.aipaas.anycloud.domain.addon.internal.AddonRbacBindingHook;
+import com.aipaas.anycloud.domain.addon.internal.AddonValues;
 import com.aipaas.anycloud.domain.kube.KindResolver;
 import io.aipaas.cluster.agent.runtime.HelmReleaseService;
 import lombok.RequiredArgsConstructor;
@@ -50,7 +51,7 @@ public abstract class AbstractHelmAddonInstaller implements AddonInstaller {
                 null, // chartTarballBase64 — pre-fetch 미사용
                 addon.getChartVersion(),
                 addon.getNamespace(),
-                addon.getValuesYaml(),
+                AddonValues.toJson(addon.getValuesYaml()),
                 true); // createNamespace — addon namespace 자동 생성
 
         // addon install 직후 cache flush — 신규 CRD 가 추가되었을 가능성 cover. invalidate 는 idempotent

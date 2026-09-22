@@ -33,7 +33,7 @@ open libs/cluster-agent-features-spring-boot-starter/build/reports/jacoco/test/h
 
 | Package | Missed | 현재 % | 우선순위 | 사유 |
 |---------|-------:|------:|---------|------|
-| `domain/vmoptions/providers` | 7220 | 0.8% | **P1 quick-win** | 7개 CSP provider (AWS/Azure/GCP/OCI/Proxmox/Alibaba/OpenStack/DO) 가 모두 0%. 순수 transformation — data-driven 테스트 쉬움 |
+| `domain/vmoptions/providers` | 7220 | 0.8% | **P1 quick-win** | CSP provider (AWS/GCP/OCI/Proxmox/Alibaba/OpenStack/IBM) 가 모두 0%. 순수 transformation — data-driven 테스트 쉬움 |
 | `controller/v1` | 1839 | 50.5% | P2 | MockMvc 로 endpoint 단위 보강. 절반은 이미 cover |
 | `domain/cluster/impl` | 1826 | 0.0% | **P4 defer** | `UnifiedClusterServiceImpl` 제거 예정 — 투자 X |
 | `domain/provisioning/workflow/impl` | 1654 | 0.0% | P3 | 비동기 workflow — 테스트 harness 필요 |

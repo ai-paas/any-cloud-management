@@ -19,7 +19,7 @@ public final class ApiValidationConstants {
 
     public static final int NAMESPACE_MAX = K8S_NAME_MAX;
 
-    /** clusterProvider 토큰 (예: aws, gcp, azure, alibaba, oci, digitalocean, openstack). */
+    /** clusterProvider 토큰 (예: aws, gcp, alibaba, oci, openstack, proxmox, ibm). */
     public static final String PROVIDER_PATTERN = "^[A-Za-z][A-Za-z0-9_-]{0,31}$";
 
     /** environment (dev, stage, prod, qa-1 등). 영숫자 + hyphen/underscore. */

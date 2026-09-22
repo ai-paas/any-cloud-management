@@ -318,6 +318,12 @@ public class AdminAgentPolicyController {
         // 6) ww — diff 계산 (before vs new)
         PolicyDiff diff = diffCalculator.computeDiff(before, dryRun);
 
+        /*
+         * 적용됐는지 되읽어 확인한다. agent 가 OK 를 주면서 ConfigMap 을 바꾸지 않는 경우가
+         * 있었는데, 그때도 API 는 성공만 돌려줘 운영자가 정책이 바뀐 줄 알았다.
+         */
+        String notApplied = verifyApplied(clusterName, req.allowedCommands());
+
         // 7) audit
         auditLogger.record(AuditEntry.builder()
                 .action("agentPolicy." + httpMethod.toLowerCase())
@@ -338,6 +344,11 @@ public class AdminAgentPolicyController {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("clusterName", clusterName);
         body.put("method", httpMethod);
+        // 적용 여부를 응답에 담는다 — 실패를 성공처럼 읽고 넘어가지 않게.
+        body.put("verified", notApplied == null);
+        if (notApplied != null) {
+            body.put("notApplied", notApplied);
+        }
         body.put("appliedResourceVersion", newResourceVersion);
         body.put("diff", diff.toMap()); // ww — 응답에 diff 포함
         body.put("warnings", warnings);
@@ -390,5 +401,36 @@ public class AdminAgentPolicyController {
         err.put("code", "INVALID_INPUT_VALUE");
         err.put("message", message);
         return ResponseEntity.badRequest().body(ApiSuccessResponse.of(HttpStatus.BAD_REQUEST.value(), message, err));
+    }
+
+    /**
+     * 되읽어 요청한 명령이 실제로 들어갔는지 본다.
+     *
+     * <p>확인할 수 없으면(조회 실패) 통과시킨다 — 적용은 됐는데 조회만 막힌 상황을 실패로
+     * 만들지 않는다. 돌려주는 값은 사람이 읽을 사유이고, 이상 없으면 {@code null} 이다.
+     */
+    private String verifyApplied(String clusterName, java.util.List<String> requestedCommands) {
+        if (requestedCommands == null || requestedCommands.isEmpty()) {
+            return null;
+        }
+        AgentPolicySnapshot after;
+        try {
+            after = kubeResourceService.getAgentConfig(clusterName);
+        } catch (KubeRoutingException e) {
+            log.warn("정책 적용 확인 실패 cluster={}: {}", clusterName, e.getMessage());
+            return null;
+        }
+        if (after == null || after.allowedCommands() == null) {
+            return null;
+        }
+        java.util.Set<String> applied = new java.util.HashSet<>(after.allowedCommands());
+        java.util.List<String> missing = requestedCommands.stream()
+                .filter(command -> !applied.contains(command))
+                .toList();
+        if (missing.isEmpty()) {
+            return null;
+        }
+        log.error("Agent policy 가 적용되지 않았다 cluster={} missing={}", clusterName, missing);
+        return "agent 가 성공을 알렸지만 ConfigMap 에 반영되지 않았습니다: " + missing;
     }
 }

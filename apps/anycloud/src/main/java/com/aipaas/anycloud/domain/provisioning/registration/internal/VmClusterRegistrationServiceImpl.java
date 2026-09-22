@@ -2,6 +2,7 @@ package com.aipaas.anycloud.domain.provisioning.registration.internal;
 
 import com.aipaas.anycloud.domain.cluster.ClusterEntity;
 import com.aipaas.anycloud.domain.cluster.ClusterRepository;
+import com.aipaas.anycloud.domain.cluster.model.GpuInstanceClassifier;
 import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
 import com.aipaas.anycloud.domain.provisioning.convergence.internal.RequestedAddonEnroller;
 import com.aipaas.anycloud.domain.provisioning.registration.VmClusterRegistrationService;
@@ -55,17 +56,26 @@ public class VmClusterRegistrationServiceImpl implements VmClusterRegistrationSe
     }
 
     /**
-     * VmClusterEntity.requestConfig (ProvisionClusterRequest JSON) 에서 hasGpuNodes 추출. parse 실패
-     * 또는 미존재 시 false (default — agent 가 자동 backfill 가능하므로 안전).
+     * requestConfig 의 플래그를 먼저 보고, 없으면 고른 인스턴스 타입으로 판정한다.
+     *
+     * <p>플래그는 화면이 보내야 채워지는데 API 를 직접 부르면 비어 있다. agent 의 backfill 은
+     * 드라이버가 올라온 뒤라, 그때까지 GPU 클러스터가 일반 클러스터로 보인다.
      */
-    private boolean extractHasGpuNodes(String requestConfigJson) {
+    boolean extractHasGpuNodes(String requestConfigJson) {
         if (requestConfigJson == null || requestConfigJson.isBlank()) {
             return false;
         }
         try {
             JsonNode node = objectMapper.readTree(requestConfigJson);
             JsonNode flag = node.path("hasGpuNodes");
-            return flag.isBoolean() && flag.asBoolean();
+            if (flag.isBoolean() && flag.asBoolean()) {
+                return true;
+            }
+            String provider = node.path("clusterProvider").asText(null);
+            return GpuInstanceClassifier.isGpu(
+                            provider, node.path("masterVmSpec").asText(null))
+                    || GpuInstanceClassifier.isGpu(
+                            provider, node.path("workerVmSpec").asText(null));
         } catch (Exception e) {
             log.debug("extractHasGpuNodes: parse failed, defaulting to false: {}", e.toString());
             return false;

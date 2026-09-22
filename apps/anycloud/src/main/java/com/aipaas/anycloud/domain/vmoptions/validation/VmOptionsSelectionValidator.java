@@ -2,7 +2,7 @@ package com.aipaas.anycloud.domain.vmoptions.validation;
 
 import com.aipaas.anycloud.common.error.enums.ErrorCode;
 import com.aipaas.anycloud.common.error.exception.CustomException;
-import com.aipaas.anycloud.domain.vmoptions.VmOptionsQueryService;
+import com.aipaas.anycloud.domain.vmoptions.VmOptionsService;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionImage;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionSpec;
 import java.util.List;
@@ -15,10 +15,14 @@ import org.springframework.util.StringUtils;
 @Service
 public class VmOptionsSelectionValidator {
 
-    private final VmOptionsQueryService vmOptionsQueryService;
+    /*
+     * 캐시가 걸린 쪽을 쓴다. QueryService 를 직접 부르면 preflight 마다 CSP API 를 200건씩
+     * 새로 훑는다 — 생성 한 번에 수백 건이 나간다.
+     */
+    private final VmOptionsService vmOptionsService;
 
-    public VmOptionsSelectionValidator(VmOptionsQueryService vmOptionsQueryService) {
-        this.vmOptionsQueryService = vmOptionsQueryService;
+    public VmOptionsSelectionValidator(VmOptionsService vmOptionsService) {
+        this.vmOptionsService = vmOptionsService;
     }
 
     /**
@@ -30,10 +34,45 @@ public class VmOptionsSelectionValidator {
      * 선택이 "not found" 로 잘못 표시됨.
      */
     public void validateSelections(String provider, String credentialId, String region, Map<String, String> config) {
+        if ("Proxmox".equalsIgnoreCase(provider)) {
+            /*
+             * Proxmox 는 인스턴스 타입이 없다. "코어-메모리MiB" 를 사용자가 직접 정하므로 대조할
+             * 목록이 없다. 내려가 봐야 빈 목록을 받고 "조회 불가" 경고만 남으므로 여기서 끊는다.
+             * 노드, datastore, 브리지 존재 여부는 ProxmoxPreflightValidator 가 확인한다.
+             */
+            return;
+        }
         validateSpec(
                 provider, credentialId, region, config.get("anycloud-k8s:masterInstanceType"), "masterInstanceType");
         validateSpec(
                 provider, credentialId, region, config.get("anycloud-k8s:workerInstanceType"), "workerInstanceType");
+
+        /*
+         * 이미지 식별자는 리전마다 다르고 주기적으로 갈린다. 없는 값을 그대로 보내면 CSP 마다
+         * 다른 방식으로 죽는다 — IBM 은 pulumi-yaml 이 패닉해 Go 스택이 그대로 올라온다.
+         */
+        validateImage(provider, credentialId, region, config.get("anycloud-k8s:osImage"), "osImage");
+
+        /*
+         * 리전에 있다고 모든 존에 있는 것이 아니다. a2-highgpu-1g 는 asia-northeast3 에 있지만
+         * -a 존에는 없고, ecs.ga1.xlarge 는 ap-northeast-2a 에 없다. 리전 목록만 보고 통과시키면
+         * VPC 와 서브넷을 다 만든 뒤 인스턴스에서 403 으로 끝난다.
+         */
+        String zone = config.get("anycloud-k8s:providerSpec.zone");
+        validateZone(
+                provider,
+                credentialId,
+                region,
+                zone,
+                config.get("anycloud-k8s:masterInstanceType"),
+                "masterInstanceType");
+        validateZone(
+                provider,
+                credentialId,
+                region,
+                zone,
+                config.get("anycloud-k8s:workerInstanceType"),
+                "workerInstanceType");
 
         if ("OpenStack".equalsIgnoreCase(provider)) {
             validateImage(
@@ -51,12 +90,27 @@ public class VmOptionsSelectionValidator {
         }
     }
 
+    private void validateZone(
+            String provider, String credentialId, String region, String zone, String value, String fieldName) {
+        if (!StringUtils.hasText(value) || !StringUtils.hasText(region)) {
+            return;
+        }
+        if (vmOptionsService.isInstanceTypeAvailableInZone(provider, credentialId, region, zone, value)) {
+            return;
+        }
+        throw new CustomException(
+                ErrorCode.INVALID_INPUT_VALUE,
+                fieldName,
+                value,
+                "Selected instance type is not available in "
+                        + (StringUtils.hasText(zone) ? zone : region + " 의 기본 존"));
+    }
+
     private void validateSpec(String provider, String credentialId, String region, String value, String fieldName) {
         if (!StringUtils.hasText(value) || !StringUtils.hasText(region)) {
             return;
         }
-        List<VmOptionSpec> candidates =
-                vmOptionsQueryService.listSpecs(provider, credentialId, region, value, false, 200);
+        List<VmOptionSpec> candidates = vmOptionsService.getSpecs(provider, credentialId, region, value, false, 200);
         if (candidates.isEmpty()) {
             // CSP API 가 빈 list 를 반환하는 경우 — circuit breaker fallback (CSP API 장애)
             // 또는 IAM 권한 부족. 사용자 선택을 hard reject 하기보다 Pulumi 의 실 launch 단계에 위임
@@ -84,24 +138,40 @@ public class VmOptionsSelectionValidator {
         if (!StringUtils.hasText(value) || !StringUtils.hasText(region)) {
             return;
         }
-        List<VmOptionImage> candidates =
-                vmOptionsQueryService.listImages(provider, credentialId, region, value, null, null, 200);
-        if (candidates.isEmpty()) {
+        if (containsImage(vmOptionsService.getImages(provider, credentialId, region, value, null, null, 200), value)) {
+            return;
+        }
+        /*
+         * 키워드 검색은 이름으로만 걸린다. 화면이 고른 값은 식별자라, OCI 의 OCID 처럼 이름과
+         * 전혀 다른 값이면 자기 자신을 키워드로 찾다가 없는 이미지로 판정된다.
+         */
+        if (containsImage(vmOptionsService.getImages(provider, credentialId, region, null, null, null, 200), value)) {
+            return;
+        }
+        /*
+         * 키워드 조회가 비었다고 CSP 장애로 단정하면 없는 이미지가 그대로 통과한다. 조회 자체가
+         * 되는지 한 번 더 본다 — 목록이 나오면 그 값이 없는 것이고, 목록도 비면 CSP 를 못 읽는
+         * 상황이라 여기서 막지 않는다.
+         */
+        if (vmOptionsService
+                .getImages(provider, credentialId, region, null, null, null, 1)
+                .isEmpty()) {
             log.warn(
-                    "OS image validation skipped — listImages returned empty (provider={}, region={}, value={}). "
-                            + "Likely CSP API unavailable; deferring to Pulumi launch.",
+                    "OS image validation skipped — 이미지 목록을 읽지 못했다 (provider={}, region={}, value={})",
                     provider,
                     region,
                     value);
             return;
         }
-        boolean exists = candidates.stream().anyMatch(item -> value.equalsIgnoreCase(item.getName()));
-        if (!exists) {
-            throw new CustomException(
-                    ErrorCode.INVALID_INPUT_VALUE,
-                    fieldName,
-                    value,
-                    "Selected OS image was not found for region " + region);
-        }
+        throw new CustomException(
+                ErrorCode.INVALID_INPUT_VALUE,
+                fieldName,
+                value,
+                "Selected OS image was not found for region " + region);
+    }
+
+    private boolean containsImage(List<VmOptionImage> candidates, String value) {
+        return candidates.stream()
+                .anyMatch(item -> value.equalsIgnoreCase(item.getName()) || value.equalsIgnoreCase(item.getId()));
     }
 }

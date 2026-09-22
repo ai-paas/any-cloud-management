@@ -206,28 +206,12 @@ public class AgentBootstrapServiceImpl implements AgentBootstrapService {
         // install. AddonService.create 가 catalog default 채우며, namespace+releaseName 중복 시
         // silent skip (idempotent — 매 agent reconnect 마다 호출되어도 안전).
         if (justActivated && Boolean.TRUE.equals(cluster.getHasGpuNodes())) {
-            try {
-                com.aipaas.anycloud.domain.addon.AddonService addonService = addonServiceProvider.getIfAvailable();
-                if (addonService != null) {
-                    com.aipaas.anycloud.domain.addon.model.AddonSpec spec =
-                            new com.aipaas.anycloud.domain.addon.model.AddonSpec(
-                                    com.aipaas.anycloud.domain.addon.model.AddonType.GENERIC,
-                                    "nvidia-gpu-operator",
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    true);
-                    addonService.create(cluster.getId(), spec);
-                    log.info("GPU operator auto-enrolled for cluster_id={}", cluster.getId());
-                }
-            } catch (Exception e) {
-                log.warn(
-                        "GPU operator auto-enroll failed (non-blocking) cluster={}: {}", cluster.getId(), e.toString());
-            }
+            /*
+             * 커밋한 뒤에 부른다. 같은 트랜잭션 안에서 부르면 addon 이 이미 있다는 예외가
+             * 트랜잭션을 rollback-only 로 표시해, 잡아서 무시해도 커밋이 실패한다. 등록이
+             * 통째로 되돌아가 agent 가 영영 붙지 못했다.
+             */
+            afterCommit(() -> enrollGpuOperator(cluster.getId()));
         }
 
         // justActivated 또는 reconnect 시점 모두에서 PENDING/FAILED 인 addon 들 enqueue.
@@ -300,5 +284,46 @@ public class AgentBootstrapServiceImpl implements AgentBootstrapService {
 
     private static String emptyAsNull(String v) {
         return (v == null || v.isBlank()) ? null : v;
+    }
+
+    /** 등록을 막지 않는 뒤처리. 커밋 전에 부르면 실패가 등록 트랜잭션을 되돌린다. */
+    private void afterCommit(Runnable task) {
+        if (!org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            task.run();
+            return;
+        }
+        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                new org.springframework.transaction.support.TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        task.run();
+                    }
+                });
+    }
+
+    private void enrollGpuOperator(String clusterId) {
+        try {
+            com.aipaas.anycloud.domain.addon.AddonService addonService = addonServiceProvider.getIfAvailable();
+            if (addonService == null) {
+                return;
+            }
+            com.aipaas.anycloud.domain.addon.model.AddonSpec spec =
+                    new com.aipaas.anycloud.domain.addon.model.AddonSpec(
+                            com.aipaas.anycloud.domain.addon.model.AddonType.GENERIC,
+                            "nvidia-gpu-operator",
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            true);
+            addonService.create(clusterId, spec);
+            log.info("GPU operator auto-enrolled for cluster_id={}", clusterId);
+        } catch (Exception e) {
+            // 이미 등록돼 있으면 그것으로 충분하다 — 프로비저닝 요청이 먼저 넣어 두는 경로가 있다.
+            log.debug("GPU operator auto-enroll skipped cluster={}: {}", clusterId, e.toString());
+        }
     }
 }

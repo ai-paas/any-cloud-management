@@ -43,7 +43,6 @@ FULL_BACKUP_AGENT_IMAGE  := $(BACKUP_AGENT_DOCKER_USER)/$(BACKUP_AGENT_IMAGE):$(
 BUILDX_BUILDER  ?= anycloud-multiarch
 
 # ============= Chart publishing =============
-# chartmuseum 위치 — docker-compose.dev.yml 의 chartmuseum service 와 일치.
 CHART_DIR             := apps/agent/deploy/helm/cluster-agent
 # Chart version — dev iteration 동안 0.1.0 에 고정. ChartMuseum 의 ALLOW_OVERWRITE=true 가
 # 동일 version 의 재 push 를 허용 → Bruno body 의 "version": "0.1.0" 는 영구 동일하게 두고,
@@ -57,9 +56,6 @@ CHART_VERSION         ?= 0.1.0
 CHART_APP_VERSION     := $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)$(shell git diff --quiet 2>/dev/null || echo -dirty)
 CHART_NAME            := cluster-agent
 CHART_TGZ             := /tmp/$(CHART_NAME)-$(CHART_VERSION).tgz
-CHARTMUSEUM_URL       ?= http://localhost:8080
-CHARTMUSEUM_USER      ?= anycloud
-CHARTMUSEUM_PASS      ?= dev-only-pass-do-not-use-in-prod
 
 # ============= Manifest snapshot =============
 # Helm chart 의 rendered output 을 raw manifest 로 저장 — apps/agent/deploy/k8s/agent.yaml.
@@ -82,7 +78,7 @@ SNAPSHOT_OUT                  := apps/agent/deploy/k8s/agent.yaml
 .PHONY: proto-lint proto-gen
 .PHONY: buildx-setup
 .PHONY: agent-build agent-test agent-image backup-agent-image
-.PHONY: agent-chart-package agent-chart-push agent-publish agent-manifest-snapshot
+.PHONY: agent-chart-package agent-publish agent-manifest-snapshot
 .PHONY: backend-build backend-test backend-image backend-publish
 .PHONY: test-unit test-integration test-coverage
 .PHONY:
@@ -125,7 +121,6 @@ help:
 	@echo "  agent-image      Docker buildx → Hub push ($(FULL_IMAGE))"
 	@echo "  backup-agent-image  Docker buildx → Hub push ($(FULL_BACKUP_AGENT_IMAGE))"
 	@echo "  agent-chart-package  helm package (apps/agent/deploy/helm/cluster-agent)"
-	@echo "  agent-chart-push     curl 로 chartmuseum 에 push ($(CHARTMUSEUM_URL))"
 	@echo "  agent-publish    image + chart 를 한 번에 (image push → chart package → chart push)"
 	@echo "  agent-manifest-snapshot  helm template 으로 raw manifest 갱신 (apps/agent/deploy/k8s/agent.yaml)"
 	@echo "  backend-build    Gradle compile (anycloud)                                     [* ~2m / +20s incr]"
@@ -148,7 +143,6 @@ dev-up: secrets-warn
 	@echo "  MariaDB:        localhost:3306  (user=anycloud, db=anycloud)"
 	@echo "  RabbitMQ AMQP:  localhost:5672"
 	@echo "  RabbitMQ UI:    http://localhost:15672"
-	@echo "  ChartMuseum:    http://localhost:8080  (backend 입장: http://chartmuseum:8080)"
 	@echo "  RustFS (S3):    http://localhost:9000  (console: http://localhost:9001)"
 	@echo "  OpenBao:        http://localhost:8200"
 
@@ -309,27 +303,15 @@ agent-chart-package:
 		-d /tmp
 	@/bin/ls -la $(CHART_TGZ)
 
-# chartmuseum 에 push. ALLOW_OVERWRITE=true 라 같은 version 재 push 도 200.
-# anycloud backend 는 컨테이너 네트워크 안에서 chartmuseum:8080 으로 reach — 본 push 는 host:8080.
-agent-chart-push: agent-chart-package
-	@echo "==> Pushing chart to $(CHARTMUSEUM_URL)"
-	@curl --fail --show-error -s \
-		-u "$(CHARTMUSEUM_USER):$(CHARTMUSEUM_PASS)" \
-		--data-binary @$(CHART_TGZ) \
-		$(CHARTMUSEUM_URL)/api/charts
-	@echo ""
-	@echo "==> Done. Verify:"
-	@echo "    curl -u $(CHARTMUSEUM_USER):*** $(CHARTMUSEUM_URL)/api/charts/$(CHART_NAME) | jq"
-
 # 한 방. image → chart package → chart push.
 # 호출 예:
 #   make agent-publish DOCKER_USER=consine2c IMAGE_TAG=dev
 #   make agent-publish CHART_VERSION=0.2.0 IMAGE_TAG=v0.2.0
-agent-publish: agent-image agent-chart-push
+agent-publish: agent-image agent-chart-package
 	@echo ""
 	@echo "==> All published:"
 	@echo "    Image: $(FULL_IMAGE)"
-	@echo "    Chart: $(CHART_NAME)-$(CHART_VERSION).tgz → $(CHARTMUSEUM_URL)"
+	@echo "    Chart: $(CHART_TGZ)"
 
 agent-manifest-snapshot:
 	@echo "==> Rendering chart to raw manifest snapshot → $(SNAPSHOT_OUT)"

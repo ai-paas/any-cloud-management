@@ -43,11 +43,6 @@ public final class CredentialSchema {
                     true,
                     "콘솔에서 내려받은 키 파일 내용을 그대로 붙여넣는다",
                     "{\"type\":\"service_account\",\"project_id\":\"my-project\", ...}"));
-            case AZURE -> List.of(
-                    field("ARM_CLIENT_ID", "클라이언트 ID", true, false, false, "앱 등록의 애플리케이션 ID", UUID_EXAMPLE),
-                    secret("ARM_CLIENT_SECRET", "클라이언트 시크릿", true, "앱 등록에서 발급한 비밀값", "8Q~EXAMPLE~secret~value"),
-                    field("ARM_SUBSCRIPTION_ID", "구독 ID", true, false, false, "자원이 만들어질 구독", UUID_EXAMPLE),
-                    field("ARM_TENANT_ID", "테넌트 ID", true, false, false, "디렉터리(테넌트) ID", UUID_EXAMPLE));
             case ALIBABA -> List.of(
                     field(
                             "ALICLOUD_ACCESS_KEY",
@@ -84,10 +79,6 @@ public final class CredentialSchema {
                             true,
                             "PEM 본문을 그대로 붙여넣는다",
                             "-----BEGIN PRIVATE KEY-----\nMIIEvQIB...\n-----END PRIVATE KEY-----"));
-            case DIGITALOCEAN -> List.of(
-                    groupedSecret("DIGITALOCEAN_TOKEN", "API 토큰", "token", "읽기/쓰기 권한의 개인 액세스 토큰", "dop_v1_example0000"),
-                    groupedSecret(
-                            "DIGITALOCEAN_ACCESS_TOKEN", "API 토큰 (대체 키)", "token", "기존 설정 호환용", "dop_v1_example0000"));
             case PROXMOX -> proxmox();
             case IBM -> List.of(
                     secret("IBMCLOUD_API_KEY", "API 키", true, "IAM 에서 발급한 API 키", "EXAMPLE-ibmcloud-api-key"));
@@ -110,22 +101,22 @@ public final class CredentialSchema {
     private static List<CredentialFieldSchema> proxmox() {
         return List.of(
                 field("PROXMOX_VE_ENDPOINT", "엔드포인트", true, false, false, null, "https://pve.example.com:8006"),
-                groupedSecret(
-                        "PROXMOX_VE_API_TOKEN",
-                        "API 토큰",
-                        "auth",
-                        "토큰을 쓰면 사용자/비밀번호는 비워 둔다",
-                        "root@pam!token=00000000-0000-0000-0000-000000000000"),
-                grouped("PROXMOX_VE_USERNAME", "사용자 이름", "auth", null, "root@pam"),
-                groupedSecret("PROXMOX_VE_PASSWORD", "비밀번호", "auth", null, "비밀번호"),
-                // cloud-init 스니펫은 SSH 로만 올라간다. 없으면 VM 은 뜨고 user-data 에서 죽는다.
-                groupedSecret("PROXMOX_VE_SSH_PASSWORD", "SSH 비밀번호", "ssh", "cloud-init 파일 업로드에 쓴다", "비밀번호"),
-                multilineSecret(
-                        "PROXMOX_VE_SSH_PRIVATE_KEY",
-                        "SSH 개인키",
-                        "ssh",
-                        "비밀번호 대신 키를 쓸 때",
-                        "-----BEGIN OPENSSH PRIVATE KEY-----\n...\n-----END OPENSSH PRIVATE KEY-----"));
+                // PVE 토큰 생성 화면이 두 값을 따로 보여준다. 한 칸으로 받으면 사용자가 손으로 잇는다.
+                field(
+                        "PROXMOX_VE_API_TOKEN_ID",
+                        "토큰 ID",
+                        true,
+                        false,
+                        false,
+                        "PVE 토큰 생성 후 표시되는 Token ID",
+                        "aipaas@pve!provisioner"),
+                secret(
+                        "PROXMOX_VE_API_TOKEN_SECRET",
+                        "토큰 시크릿",
+                        true,
+                        "발급 시점에 한 번만 표시된다",
+                        "00000000-0000-0000-0000-000000000000"),
+                field("PROXMOX_VE_INSECURE", "인증서 검증 생략", false, false, false, "자체 서명 인증서면 true", "true"));
     }
 
     private static CredentialFieldSchema field(
@@ -156,48 +147,5 @@ public final class CredentialSchema {
     private static CredentialFieldSchema secret(
             String key, String label, boolean required, String description, String placeholder) {
         return field(key, label, required, true, false, description, placeholder);
-    }
-
-    /** 택일 묶음의 한 칸 — 묶음 안에서 하나만 채우면 되므로 개별 required 는 false. */
-    private static CredentialFieldSchema grouped(
-            String key, String label, String group, String description, String placeholder) {
-        return CredentialFieldSchema.builder()
-                .key(key)
-                .label(label)
-                .required(false)
-                .secret(false)
-                .multiline(false)
-                .description(description)
-                .placeholder(placeholder)
-                .group(group)
-                .build();
-    }
-
-    private static CredentialFieldSchema groupedSecret(
-            String key, String label, String group, String description, String placeholder) {
-        return CredentialFieldSchema.builder()
-                .key(key)
-                .label(label)
-                .required(false)
-                .secret(true)
-                .multiline(false)
-                .description(description)
-                .placeholder(placeholder)
-                .group(group)
-                .build();
-    }
-
-    private static CredentialFieldSchema multilineSecret(
-            String key, String label, String group, String description, String placeholder) {
-        return CredentialFieldSchema.builder()
-                .key(key)
-                .label(label)
-                .required(false)
-                .secret(true)
-                .multiline(true)
-                .description(description)
-                .placeholder(placeholder)
-                .group(group)
-                .build();
     }
 }

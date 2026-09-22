@@ -25,11 +25,9 @@ class CredentialVerificationTest extends AbstractUnitTest {
         // OpenStack 은 Keystone 토큰을 받고, 나머지는 각자 API 를 친다. 여기서 빼면 멀쩡한
         // 자격증명이 '확인 불가'로 보인다.
         assertThat(CredentialVerification.verifiable("OpenStack")).isTrue();
-        assertThat(CredentialVerification.verifiable("Azure")).isTrue();
         assertThat(CredentialVerification.verifiable("Alibaba")).isTrue();
         assertThat(CredentialVerification.verifiable("GCP")).isTrue();
         assertThat(CredentialVerification.verifiable("OCI")).isTrue();
-        assertThat(CredentialVerification.verifiable("DigitalOcean")).isTrue();
     }
 
     @Test

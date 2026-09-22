@@ -69,11 +69,20 @@ public class VmClusterStatusResponse {
     @Schema(description = "등록된 클러스터 식별자", example = "aipaas-aws-01")
     private String clusterId;
 
-    @Schema(description = "마지막 오류 메시지", example = "")
+    @Schema(description = "마지막 오류 메시지 (CSP 원문)", example = "")
     private String lastError;
+
+    @Schema(description = "실패 원인을 한 줄로 정리한 것. 아는 실패가 아니면 null", example = "선택한 리전에 지금 만들 수 있는 자리가 없습니다.")
+    private String lastErrorSummary;
+
+    @Schema(description = "사용자가 할 일. lastErrorSummary 와 짝", example = "다른 인스턴스 타입이나 리전을 고르세요.")
+    private String lastErrorHint;
 
     @Schema(description = "Bootstrap 및 kubelet 진단 로그")
     private String bootstrapLog;
+
+    @Schema(description = "내려받은 kubeconfig 로 바로 닿는지 — DIRECT / PRIVATE_NETWORK / VIA_BASTION", example = "DIRECT")
+    private String apiServerReach;
 
     @Schema(description = "API 서버 URL", example = "https://3.39.10.20:6443")
     private String apiServerUrl;

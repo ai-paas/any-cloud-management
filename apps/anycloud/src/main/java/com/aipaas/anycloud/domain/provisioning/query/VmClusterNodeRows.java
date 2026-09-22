@@ -19,6 +19,8 @@ public final class VmClusterNodeRows {
 
     private VmClusterNodeRows() {}
 
+    private static final int DEFAULT_SSH_PORT = 22;
+
     public record Row(
             String nodeName,
             String role,
@@ -30,7 +32,11 @@ public final class VmClusterNodeRows {
             String clusterProvider,
             String region,
             String environment,
-            String infraStatus) {}
+            String infraStatus,
+            /* NAT 뒤 노드는 공유기가 노드마다 다른 포트를 연다. 예전 스택에는 없어 22 로 떨어진다. */
+            int sshPort,
+            /** 노드가 아직 없어 클러스터를 대신 세운 줄. */
+            boolean pending) {}
 
     /**
      * 목록에 세울 대표값.
@@ -64,12 +70,30 @@ public final class VmClusterNodeRows {
 
     public static List<Row> of(ObjectMapper mapper, VmClusterEntity cluster) {
         List<JsonNode> nodes = readNodes(mapper, cluster.getRawOutputs());
-        if (nodes.isEmpty()) {
-            return List.of();
-        }
         String status = cluster.getProvisioningStatus() == null
                 ? null
                 : cluster.getProvisioningStatus().name();
+        if (nodes.isEmpty()) {
+            /*
+             * 노드는 PROVISION 이 끝나야 생긴다. 빈 목록을 돌려주면 만들어지는 중이거나 실패한
+             * 클러스터가 목록에서 통째로 사라진다. 화면이 대신 끼워 넣던 줄을 여기서 만든다 —
+             * 자르는 곳과 세는 곳이 갈리면 페이지마다 전체 개수가 달라진다.
+             */
+            return List.of(new Row(
+                    cluster.getClusterName(),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    cluster.getClusterName(),
+                    cluster.getClusterProvider(),
+                    cluster.getRegion(),
+                    cluster.getEnvironment(),
+                    status,
+                    DEFAULT_SSH_PORT,
+                    true));
+        }
         Map<String, Integer> seenPerRole = new HashMap<>();
         List<Row> rows = new ArrayList<>(nodes.size());
         for (JsonNode node : nodes) {
@@ -87,7 +111,9 @@ public final class VmClusterNodeRows {
                     cluster.getClusterProvider(),
                     cluster.getRegion(),
                     cluster.getEnvironment(),
-                    status));
+                    status,
+                    node.path("sshPort").asInt(DEFAULT_SSH_PORT),
+                    false));
         }
         return rows;
     }

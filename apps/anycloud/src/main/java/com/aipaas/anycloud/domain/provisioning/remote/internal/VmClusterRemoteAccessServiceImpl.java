@@ -2,6 +2,7 @@ package com.aipaas.anycloud.domain.provisioning.remote.internal;
 
 import com.aipaas.anycloud.common.util.CommandExecutionSupport;
 import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
+import com.aipaas.anycloud.domain.provisioning.bootstrap.support.VmClusterNodeResolver;
 import com.aipaas.anycloud.domain.provisioning.properties.PulumiProperties;
 import com.aipaas.anycloud.domain.provisioning.remote.SshJump;
 import com.aipaas.anycloud.domain.provisioning.remote.SshJumpEnvironment;
@@ -24,21 +25,39 @@ public class VmClusterRemoteAccessServiceImpl implements VmClusterRemoteAccessSe
 
     private final PulumiProperties pulumiProperties;
     private final ClusterSshJumpResolver sshJumpResolver;
+    private final ClusterSshUserResolver sshUserResolver;
+    private final VmClusterNodeResolver nodeResolver;
+
+    @Override
+    public String runOnHost(
+            VmClusterEntity vmCluster,
+            Map<String, Object> outputs,
+            String host,
+            int port,
+            String command,
+            Duration timeout) {
+        try {
+            return executeSsh(vmCluster, outputs, host, port, command, timeout);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to execute remote command on host " + host + ":" + port, e);
+        }
+    }
 
     @Override
     public String runOnHost(
             VmClusterEntity vmCluster, Map<String, Object> outputs, String host, String command, Duration timeout) {
-        try {
-            return executeSsh(vmCluster, outputs, host, command, timeout);
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to execute remote command on host " + host, e);
-        }
+        return runOnHost(vmCluster, outputs, host, nodeResolver.sshPortOf(outputs, host), command, timeout);
     }
 
     @Override
     public String runOnMaster(
             VmClusterEntity vmCluster, Map<String, Object> outputs, String command, Duration timeout) {
-        return runOnHost(vmCluster, outputs, resolveMasterHost(outputs), command, timeout);
+        VmClusterNodeResolver.VmClusterNode master = nodeResolver.masterNode(outputs);
+        String host = master == null || master.host() == null || master.host().isBlank()
+                ? resolveMasterHost(outputs)
+                : master.host();
+        int port = master == null ? VmClusterNodeResolver.DEFAULT_SSH_PORT : master.port();
+        return runOnHost(vmCluster, outputs, host, port, command, timeout);
     }
 
     @Override
@@ -48,7 +67,12 @@ public class VmClusterRemoteAccessServiceImpl implements VmClusterRemoteAccessSe
     }
 
     private String executeSsh(
-            VmClusterEntity vmCluster, Map<String, Object> outputs, String host, String command, Duration timeout)
+            VmClusterEntity vmCluster,
+            Map<String, Object> outputs,
+            String host,
+            int port,
+            String command,
+            Duration timeout)
             throws IOException {
         String privateKeyPem = stringValue(outputs.get("sshPrivateKeyPem"));
         if (privateKeyPem == null || privateKeyPem.isBlank()) {
@@ -79,7 +103,11 @@ public class VmClusterRemoteAccessServiceImpl implements VmClusterRemoteAccessSe
             sshCommand.addAll(SshJumpOptions.args(jump));
             sshCommand.add("-i");
             sshCommand.add(privateKeyPath.toString());
-            sshCommand.add(pulumiProperties.getSshUser() + "@" + host);
+            if (port != VmClusterNodeResolver.DEFAULT_SSH_PORT) {
+                sshCommand.add("-p");
+                sshCommand.add(String.valueOf(port));
+            }
+            sshCommand.add(sshUserResolver.resolve(outputs) + "@" + host);
             sshCommand.add("bash -lc " + shellQuote(command));
 
             CommandExecutionSupport.CommandExecutionResult result;

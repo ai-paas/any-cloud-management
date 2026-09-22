@@ -34,6 +34,13 @@ addon-catalog:
       repoUrl: https://prometheus-community.github.io/helm-charts
       requiredCapabilities: []
       tags: [monitoring, default, observability]
+      defaultValuesYaml: |
+        # 기본 30s 로는 화면이 멈춰 보인다 — 가속기 지표는 DCGM 이 15s 로 내보내는데
+        # 그보다 성기게 긁으면 그래프에 새 점이 30s 에 한 번만 생긴다.
+        prometheus:
+          prometheusSpec:
+            scrapeInterval: 15s
+            evaluationInterval: 15s
       # OidcGroupBinding operator 활성 시 install 후 자동 binding.
       # operator 미배포 환경에선 rbac.groupBindings 무시 (CR apply 안 됨).
       rbac:
@@ -57,7 +64,9 @@ addon-catalog:
       description: "GPU 노드 의 NVIDIA driver / nvidia-container-toolkit / device plugin / MIG 자동 관리. cluster.hasGpuNodes=true 시 driver install 의 K8s native 경로 — bootstrap-worker SSH driver install 대체."
       chartRepo: nvidia
       chartName: gpu-operator
-      chartVersion: "v24.6.0"
+      # v24.6 의 드라이버 이미지는 ubuntu22.04 까지다. 노드 기본 이미지가 Ubuntu 24.04 라
+      # nvcr.io/nvidia/driver:550.90.07-ubuntu24.04 을 찾다가 ImagePullBackOff 로 멈춘다.
+      chartVersion: "v26.3.3"
       namespace: gpu-operator
       releaseName: gpu-operator
       repoUrl: https://helm.ngc.nvidia.com/nvidia
@@ -71,9 +80,16 @@ addon-catalog:
         # nvidia-container-toolkit — containerd 의 nvidia runtime 자동 config.
         toolkit:
           enabled: true
-        # DCGM 은 별도 dcgm-exporter addon 으로 install — duplicate 회피.
+        # DCGM — GPU 사용률 metric. serviceMonitor 의 release 라벨이 있어야
+        # kube-prometheus-stack 의 serviceMonitorSelector 가 집어 간다. 라벨이 없으면
+        # exporter 는 뜨는데 Prometheus 에는 GPU metric 이 하나도 안 들어온다.
         dcgmExporter:
-          enabled: false
+          enabled: true
+          serviceMonitor:
+            enabled: true
+            interval: 15s
+            additionalLabels:
+              release: kube-prometheus-stack
         # GPU Feature Discovery — node label (nvidia.com/gpu.product 등) 자동 부착.
         gfd:
           enabled: true
@@ -84,6 +100,8 @@ addon-catalog:
     - id: dcgm-exporter
       type: GPU_EXPORTER
       displayName: "NVIDIA DCGM Exporter"
+      # gpu-operator 가 DCGM 을 함께 올리므로 보통은 필요 없다. operator 없이 metric 만
+      # 뽑거나 버전을 따로 고정할 때 쓴다 — 둘 다 켜면 같은 exporter 가 두 벌 뜬다.
       description: "GPU 노드 metric (utilization, memory, temperature) Prometheus exporter. nvidia-gpu-operator 의 driver/runtime 이 prerequisite."
       chartRepo: nvidia
       chartName: dcgm-exporter

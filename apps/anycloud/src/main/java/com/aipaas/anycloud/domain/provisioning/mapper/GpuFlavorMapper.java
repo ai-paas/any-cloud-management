@@ -37,7 +37,6 @@ public final class GpuFlavorMapper {
      * <pre>
      * AWS         g5.xlarge       NVIDIA A10G x1 (24GB) — Inference / lightweight training
      * GCP         n1-standard-4 + accelerator nvidia-tesla-t4 x1
-     * Azure       Standard_NC4as_T4_v3   NVIDIA T4 x1 (16GB)
      * OCI         VM.GPU.A10.1    NVIDIA A10 x1 (24GB)
      * Alibaba     ecs.gn6i-c4g1.xlarge   NVIDIA T4 x1
      * </pre>
@@ -45,7 +44,6 @@ public final class GpuFlavorMapper {
     private static final Map<String, String> DEFAULT_GPU_INSTANCE = Map.of(
             "aws", "g5.xlarge",
             "gcp", "n1-standard-4",
-            "azure", "Standard_NC4as_T4_v3",
             "oci", "VM.GPU.A10.1",
             "alibaba", "ecs.gn6i-c4g1.xlarge");
 
@@ -71,7 +69,6 @@ public final class GpuFlavorMapper {
      *               gpu-small (T4/L4 — inference) | gpu-medium (A10/V100 — mid) | gpu-large (A100 — training) | gpu-h100 (H100 — large training)
      * AWS           g4dn.xlarge                    g5.xlarge                     p4d.24xlarge                  p5.48xlarge
      * GCP           n1-standard-4 (T4)             g2-standard-4 (L4)            a2-highgpu-1g (A100)          a3-highgpu-8g (H100 8x)
-     * Azure         Standard_NC4as_T4_v3           Standard_NC6s_v3 (V100)       Standard_NC24ads_A100_v4      Standard_ND96isr_H100_v5
      * OCI           VM.GPU3.1 (V100)               VM.GPU.A10.1                  BM.GPU.A100-v2.8              BM.GPU.H100.8
      * Alibaba       ecs.gn6i-c4g1.xlarge (T4)      ecs.gn7i-c8g1.2xlarge (A10)   ecs.ebmgn7e.32xlarge (A100)   (미지원)
      * </pre>
@@ -89,12 +86,6 @@ public final class GpuFlavorMapper {
                             "gpu-medium", "g2-standard-4",
                             "gpu-large", "a2-highgpu-1g",
                             "gpu-h100", "a3-highgpu-8g"),
-            "azure",
-                    Map.of(
-                            "gpu-small", "Standard_NC4as_T4_v3",
-                            "gpu-medium", "Standard_NC6s_v3",
-                            "gpu-large", "Standard_NC24ads_A100_v4",
-                            "gpu-h100", "Standard_ND96isr_H100_v5"),
             "oci",
                     Map.of(
                             "gpu-small", "VM.GPU3.1",
@@ -148,7 +139,7 @@ public final class GpuFlavorMapper {
      * hasGpuNodes=true 일 때 호출. provided config 에 workerInstanceType 이 없으면 provider default
      * 주입. 이미 있으면 변경 없음 (운영자 명시 우선).
      *
-     * @param provider CSP provider (aws/gcp/azure/oci/alibaba 등 — 소문자 권장이지만 대소문자 무관 처리)
+     * @param provider CSP provider (aws/gcp/oci/alibaba 등 — 소문자 권장이지만 대소문자 무관 처리)
      * @param config   Pulumi config (mutable copy 전달 권장 — 본 메서드가 직접 mutate)
      * @return mutate 발생 여부. true 면 caller 가 log/audit.
      */
@@ -175,20 +166,35 @@ public final class GpuFlavorMapper {
         }
     }
 
+    /** 운영자가 명시적으로 끄지 않는 한 GPU cluster 는 driver/runtime 이 반드시 필요하다. */
+    private static boolean enableGpuOperatorByDefault(Map<String, String> config) {
+        String existing = read(config, CONFIG_KEY_ENABLE_GPU_OPERATOR);
+        if (existing != null && !existing.isBlank()) {
+            return false;
+        }
+        write(config, CONFIG_KEY_ENABLE_GPU_OPERATOR, "true");
+        return true;
+    }
+
     public static boolean applyGpuDefaults(String provider, Map<String, String> config) {
         if (config == null || provider == null || provider.isBlank()) {
             return false;
         }
         String key = provider.toLowerCase().trim();
+        /*
+         * operator 기본값은 flavor 표보다 먼저 정한다. 표에 없는 CSP(IBM, OpenStack)가 이 아래에서
+         * 되돌아가면서 플래그까지 빠져, GPU 노드가 드라이버 없이 READY 가 됐다.
+         */
+        boolean mutated = enableGpuOperatorByDefault(config);
+
         String defaultInstance = DEFAULT_GPU_INSTANCE.get(key);
         if (defaultInstance == null) {
             log.warn(
                     "GpuFlavorMapper: no default GPU instance for provider={} — operator must specify "
                             + "workerInstanceType in config",
                     provider);
-            return false;
+            return mutated;
         }
-        boolean mutated = false;
 
         String existing = read(config, CONFIG_KEY_WORKER_INSTANCE_TYPE);
         String aliasResolved = null;
@@ -234,14 +240,6 @@ public final class GpuFlavorMapper {
                     "GpuFlavorMapper: provider={} workerInstanceType={} (operator-specified, kept)",
                     provider,
                     existing);
-        }
-
-        // 운영자가 명시적으로 끄지 않는 한 GPU cluster 는 driver/runtime 이 반드시 필요하므로 default true.
-        String gpuOpExisting = read(config, CONFIG_KEY_ENABLE_GPU_OPERATOR);
-        if (gpuOpExisting == null || gpuOpExisting.isBlank()) {
-            write(config, CONFIG_KEY_ENABLE_GPU_OPERATOR, "true");
-            log.info("GpuFlavorMapper: provider={} → enableGpuOperator=true (auto)", provider);
-            mutated = true;
         }
 
         Map<String, String> extras = EXTRA_GPU_CONFIG.get(key);

@@ -34,6 +34,12 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+const (
+	// helm 이 보관하는 리비전 수를 넘어설 일이 없다. 넘겨받은 값을 여기서 자른다.
+	maxHelmHistory  = 1000
+	maxHelmRevision = 1_000_000
+)
+
 // Helm install/upgrade concurrency lock.
 //
 // 동일 release name 에 대한 동시 install/upgrade race 차단. Helm SDK 자체는 serialize 안 함 —
@@ -375,7 +381,7 @@ func (d *Dispatcher) uninstallAddon(ctx context.Context, cmd *agentv1.CommandReq
 		Namespace:   namespace,
 		KeepHistory: keepHistory,
 		Wait:        wait,
-	}); err != nil {
+	}); err != nil && !isReleaseAbsent(err) {
 		return errorResponse(agentv1.Status_FAILED, "HELM_UNINSTALL_FAILED", err.Error())
 	}
 	// uninstall 성공 직후 release lock entry 즉시 제거. 다음 install 은
@@ -479,7 +485,7 @@ func (d *Dispatcher) getHelmReleaseHistory(ctx context.Context, cmd *agentv1.Com
 		return errorResponse(agentv1.Status_PERMISSION_DENIED, "NAMESPACE_NOT_ALLOWED",
 			fmt.Sprintf("namespace %s not in allowlist", namespace))
 	}
-	max := int(parseInt64(getStringParam(cmd, "max"), 0))
+	max := parseBoundedInt(getStringParam(cmd, "max"), 0, maxHelmHistory)
 	revs, err := d.helm.History(ctx, namespace, release, max)
 	if err != nil {
 		code := "HELM_HISTORY_FAILED"
@@ -526,7 +532,7 @@ func (d *Dispatcher) rollbackHelmRelease(ctx context.Context, cmd *agentv1.Comma
 		return errorResponse(agentv1.Status_PERMISSION_DENIED, "NAMESPACE_NOT_ALLOWED",
 			fmt.Sprintf("namespace %s not in allowlist", namespace))
 	}
-	revision := int(parseInt64(getStringParam(cmd, "revision"), 0))
+	revision := parseBoundedInt(getStringParam(cmd, "revision"), 0, maxHelmRevision)
 	wait := parseBool(getStringParam(cmd, "wait"))
 	rel, err := d.helm.Rollback(ctx, helm.RollbackOptions{
 		ReleaseName: release,
@@ -596,4 +602,14 @@ func (d *Dispatcher) listHelmReleaseResources(ctx context.Context, cmd *agentv1.
 		"agent_instance_id": d.agentInstanceID,
 	})
 	return okResponse(result)
+}
+
+// isReleaseAbsent — 이미 없는 release 의 uninstall 은 성공으로 본다. 실패로 돌려주면 backend 의
+// addon row 가 DELETING 에서 빠져나오지 못해, 같은 이름으로 다시 설치할 수도 지울 수도 없다.
+func isReleaseAbsent(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "release: not found") || strings.Contains(msg, "release not loaded")
 }

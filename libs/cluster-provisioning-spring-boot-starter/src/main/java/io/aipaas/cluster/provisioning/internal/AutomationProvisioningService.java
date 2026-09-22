@@ -298,7 +298,27 @@ public class AutomationProvisioningService implements ProvisioningService {
             allConfig.put(entry.getKey(), new ConfigValue(entry.getValue(), true));
         }
 
+        applyProviderRegion(allConfig, request);
+
         stack.setAllConfig(allConfig);
+    }
+
+    /**
+     * 프로바이더 리전이 자격증명에 없으면 요청 리전을 쓴다.
+     *
+     * <p>비워 두면 프로바이더가 자기 기본 리전으로 붙는다. IBM 은 {@code us-south} 라, 도쿄를 골라도
+     * 자원은 us-south 에 생기고 존은 "invalid zone" 으로 거절된다 — 리전 선택이 조용히 무시된다.
+     */
+    private void applyProviderRegion(Map<String, ConfigValue> allConfig, ProvisioningRequest request) {
+        String region = request.getRegion();
+        if (region == null || region.isBlank()) {
+            return;
+        }
+        String key = CspCredentialPulumiConfigMapper.regionConfigKey(request.getProvider());
+        if (key == null || allConfig.containsKey(key)) {
+            return;
+        }
+        allConfig.put(key, new ConfigValue(region));
     }
 
     private WorkspaceStack openStack(

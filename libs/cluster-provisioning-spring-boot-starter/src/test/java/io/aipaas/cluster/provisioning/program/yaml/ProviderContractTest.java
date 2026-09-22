@@ -26,7 +26,12 @@ class ProviderContractTest {
     private static final Map<String, Map<String, String>> PROVIDER_CONFIG = Map.of(
             "aws", Map.of(),
             "gcp", Map.of("providerSpec.project", "demo"),
-            "azure", Map.of("providerSpec.resourceGroup", "demo-rg"),
+            "alibaba",
+                    Map.of(
+                            "providerSpec.zone",
+                            "ap-northeast-2a",
+                            "osImage",
+                            "ubuntu_24_04_x64_20G_alibase_20260828.vhd"),
             "oci", Map.of("providerSpec.compartmentId", "ocid1.compartment.oc1..demo", "osImage", "ocid1.image.demo"),
             "openstack",
                     Map.of(
@@ -35,10 +40,26 @@ class ProviderContractTest {
                             "providerSpec.externalNetworkId", "net-1",
                             "providerSpec.floatingIpPool", "external"),
             "proxmox", Map.of("providerSpec.nodeName", "pve1"),
-            "ibm", Map.of("providerSpec.zone", "us-south-1"));
+            "ibm", Map.of("providerSpec.zone", "jp-tok-1", "osImage", "ibm-ubuntu-24-04-4-minimal-amd64-7"));
 
     /** Proxmox 는 하이퍼바이저라 네트워크를 만들지 않는다. 방화벽은 운영자가 노드에서 관리한다. */
     private static final List<String> NO_FIREWALL = List.of("proxmox");
+
+    /**
+     * 기본 SSH 사용자가 그 CSP 이미지에 실재해야 한다.
+     *
+     * <p>Alibaba 의 Ubuntu 이미지에는 ubuntu 계정이 없고 키가 root 에 들어간다. 다른 CSP 값을
+     * 그대로 두면 인프라는 다 생기고 BOOTSTRAP 단계에서 publickey 거절로만 끝난다 — 만들어진
+     * 인스턴스가 과금되는 채로 남는다.
+     */
+    @ParameterizedTest
+    @MethodSource("providers")
+    void everyProviderBootsWithAUserThatExistsInItsImage(String provider) {
+        String expected = "alibaba".equals(provider) ? "root" : "ubuntu";
+        assertThat(spec(provider).sshUser())
+                .as("%s 의 기본 SSH 사용자가 이미지에 없으면 부트스트랩에서만 드러난다", provider)
+                .isEqualTo(expected);
+    }
 
     static List<String> providers() {
         return PROVIDER_CONFIG.keySet().stream().sorted().toList();
@@ -123,9 +144,12 @@ class ProviderContractTest {
                         "masterPublicIp",
                         "masterPrivateIp",
                         "apiServerUrl",
+                        "sshUser",
                         "sshPrivateKeyPem",
                         "kubeconfigRemotePath",
                         "nodes");
+        // 스택 밖에서도 접속 사용자를 알아야 한다. 백엔드가 전역 기본값으로 붙으면 Alibaba 만 막힌다.
+        assertThat(outputs).containsEntry("sshUser", spec(provider).sshUser());
     }
 
     @ParameterizedTest
@@ -199,7 +223,7 @@ class ProviderContractTest {
             "oci", "protocol=4",
             "openstack", "protocol=4",
             "gcp", "protocol=ipip",
-            "azure", "protocol=*",
+            "alibaba", "ipProtocol=all",
             "ibm", "");
 
     @ParameterizedTest

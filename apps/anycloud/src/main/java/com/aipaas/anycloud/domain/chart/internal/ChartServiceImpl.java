@@ -63,6 +63,8 @@ public class ChartServiceImpl implements ChartService {
      */
     private final ChartArchiveFetcher chartArchiveFetcher;
 
+    private final io.aipaas.cluster.agent.runtime.KubeResourceService kubeResourceService;
+
     /** Helm chart 설치 — agent 의 INSTALL_ADDON 전용. agent 없으면 503. */
     @Override
     public ChartDeployResponse deployChartFromYaml(
@@ -536,4 +538,79 @@ public class ChartServiceImpl implements ChartService {
     }
 
     // Agent 의 helm op 실패 분류 / agent 가용성 가드는 ChartAgentInteractions (@Component) 가 담당.
+
+    /**
+     * helm 은 release 를 {@code sh.helm.release.v1.<name>.v<revision>} secret 에 넣는다.
+     *
+     * <p>내용은 gzip 한 JSON 을 base64 로 감싼 것이고, k8s 가 secret data 를 한 번 더 base64 로
+     * 감싼다. 두 겹을 벗기고 {@code config} 를 꺼내면 설치할 때 넘긴 values 다.
+     */
+    @Override
+    public String getReleaseValues(String clusterName, String namespace, String releaseName) {
+        String ns = Namespaces.defaultIfBlank(namespace);
+        int rev = currentRevision(clusterName, ns, releaseName);
+        String secretName = "sh.helm.release.v1." + releaseName + ".v" + rev;
+
+        com.fasterxml.jackson.databind.JsonNode secret =
+                kubeResourceService.getResource(clusterName, ns, "secrets", secretName);
+        String packed =
+                secret == null ? null : secret.path("data").path("release").asText(null);
+        if (packed == null || packed.isBlank()) {
+            log.warn("release secret 에 release 필드가 없다 cluster={} secret={}", clusterName, secretName);
+            return "";
+        }
+        try {
+            byte[] gzipped = java.util.Base64.getDecoder()
+                    .decode(new String(
+                            java.util.Base64.getDecoder().decode(packed), java.nio.charset.StandardCharsets.UTF_8));
+            String json;
+            try (var in = new java.util.zip.GZIPInputStream(new java.io.ByteArrayInputStream(gzipped))) {
+                json = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            }
+            com.fasterxml.jackson.databind.JsonNode config =
+                    objectMapper.readTree(json).path("config");
+            if (config.isMissingNode() || config.isNull() || config.isEmpty()) {
+                // 기본값만 쓴 릴리즈는 config 가 비어 있다 — 오류가 아니다.
+                return "";
+            }
+            return new org.yaml.snakeyaml.Yaml(yamlDumperOptions())
+                    .dump(objectMapper.convertValue(config, java.util.Map.class));
+        } catch (Exception e) {
+            log.warn(
+                    "release values 해석 실패 cluster={} release={} rev={}: {}",
+                    clusterName,
+                    releaseName,
+                    rev,
+                    e.toString());
+            return "";
+        }
+    }
+
+    private static org.yaml.snakeyaml.DumperOptions yamlDumperOptions() {
+        org.yaml.snakeyaml.DumperOptions options = new org.yaml.snakeyaml.DumperOptions();
+        options.setDefaultFlowStyle(org.yaml.snakeyaml.DumperOptions.FlowStyle.BLOCK);
+        options.setPrettyFlow(true);
+        options.setIndent(2);
+        return options;
+    }
+
+    /** 지금 배포된 revision. 못 읽으면 1 로 본다 — 한 번만 설치한 릴리즈가 가장 흔하다. */
+    private int currentRevision(String clusterName, String namespace, String releaseName) {
+        try {
+            var releases = getReleases(clusterName, namespace);
+            if (releases == null || releases.getReleases() == null) {
+                return 1;
+            }
+            return releases.getReleases().stream()
+                    .filter(r -> releaseName.equals(r.getName()))
+                    .map(r -> r.getRevision())
+                    .filter(v -> v != null && !v.isBlank())
+                    .map(v -> Integer.parseInt(v.trim()))
+                    .findFirst()
+                    .orElse(1);
+        } catch (RuntimeException e) {
+            log.debug("revision 조회 실패 cluster={} release={}: {}", clusterName, releaseName, e.toString());
+            return 1;
+        }
+    }
 }

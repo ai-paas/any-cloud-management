@@ -125,4 +125,31 @@ class AgentChartRendererTest extends AbstractUnitTest {
         assertThat(Files.isRegularFile(chart.resolve("templates").resolve("deployment.yaml")))
                 .isTrue();
     }
+
+    @Test
+    @EnabledIfSystemProperty(named = "chart.integration", matches = "true")
+    void aNewTokenRollsThePodsOut() {
+        /*
+         * 등록 토큰은 env 로 주입돼 파드가 뜰 때 값이 고정된다. Secret 만 바꾸면 이미 떠 있는
+         * 파드는 만료된 토큰으로 계속 재시도한다. 체크섬이 바뀌어야 새 파드가 뜬다.
+         */
+        String before = renderer.render("eyJhbGc.token-a.sig");
+        String after = renderer.render("eyJhbGc.token-b.sig");
+
+        assertThat(checksumOf(before)).isNotBlank().isNotEqualTo(checksumOf(after));
+    }
+
+    @Test
+    @EnabledIfSystemProperty(named = "chart.integration", matches = "true")
+    void theSameTokenLeavesThePodsAlone() {
+        // 매번 달라지면 재적용 주기마다 에이전트가 재시작해 명령이 끊긴다.
+        assertThat(checksumOf(renderer.render("eyJhbGc.same.sig")))
+                .isEqualTo(checksumOf(renderer.render("eyJhbGc.same.sig")));
+    }
+
+    private static String checksumOf(String manifest) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("registration-token-checksum\"?:\\s*\"([^\"]+)\"")
+                .matcher(manifest);
+        return m.find() ? m.group(1) : "";
+    }
 }

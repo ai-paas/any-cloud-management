@@ -38,9 +38,8 @@ spring:
       ddl-auto: ${SPRING_JPA_DDL_AUTO:validate}
 
 # docker (운영) profile 에서는 외부 public helm-repo 자동 등록 비활성 default.
-# 운영자가 명시적으로 ANYCLOUD_HELM_REPO_AUTO_SEED=true 로 켜야만 prometheus-community / grafana
-# / bitnami seed. air-gapped 환경 (가장 흔한 운영 시나리오) 즉시 안전. dev profile (application-dev.yaml)
-# 은 그대로 true default.
+# 운영자가 ANYCLOUD_HELM_REPO_AUTO_SEED=true 로 켜야 application.yaml 의 목록이 등록된다.
+# air-gapped 환경 (가장 흔한 운영 시나리오) 즉시 안전. dev profile 은 그대로 true default.
 helm-repo:
   auto-seed:
     enabled: ${ANYCLOUD_HELM_REPO_AUTO_SEED:false}

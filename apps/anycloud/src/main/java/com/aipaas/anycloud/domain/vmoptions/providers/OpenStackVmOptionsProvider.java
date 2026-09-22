@@ -34,6 +34,8 @@ import org.springframework.web.client.RestTemplate;
 @RequiredArgsConstructor
 public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
 
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(OpenStackVmOptionsProvider.class);
+
     @Qualifier("cspRestTemplate")
     private final RestTemplate restTemplate;
 
@@ -61,6 +63,101 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
                         .available(true)
                         .build())
                 .sorted(Comparator.comparing(VmOptionRegion::getId))
+                .toList();
+    }
+
+    /** 선택 상자에 담을 최대 개수. 카탈로그가 크면 화면이 못 쓰게 된다. */
+    private static final int OPTION_LIMIT = 200;
+
+    /**
+     * 같은 값을 한 화면에서 한쪽은 고르고 한쪽은 타이핑하게 두지 않는다.
+     *
+     * <p>이미지와 플레이버는 이미 카탈로그 조회가 있는데 providerSpec 쪽은 자유 입력이었다.
+     * 이름을 손으로 적으면 오타가 프로비저닝 직전까지 드러나지 않는다.
+     */
+    @Override
+    @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsFallback")
+    public List<String> listConfigOptions(String configKey, String region) {
+        return switch (configKey) {
+            case "providerSpec.imageName" -> listImages(region, null, null, null, OPTION_LIMIT).stream()
+                    .map(VmOptionImage::getName)
+                    .filter(StringUtils::hasText)
+                    .distinct()
+                    .toList();
+            case "providerSpec.flavorName" -> listSpecs(region, null, false, OPTION_LIMIT).stream()
+                    .map(VmOptionSpec::getName)
+                    .filter(StringUtils::hasText)
+                    .distinct()
+                    .toList();
+                /*
+                 * 라우터 게이트웨이와 floating IP 는 external 네트워크에만 붙는다. 내부망을 고르면
+                 * 라우터 생성이 거절되는데, 이름만 보고는 어느 쪽인지 알 수 없다.
+                 */
+            case "providerSpec.externalNetworkId" -> externalNetworks(region).stream()
+                    .map(OpenStackRecords.Network::id)
+                    .filter(StringUtils::hasText)
+                    .toList();
+                // 풀 이름은 external 네트워크 이름과 같다. 두 값을 따로 찾아 적을 이유가 없다.
+            case "providerSpec.floatingIpPool" -> externalNetworks(region).stream()
+                    .map(OpenStackRecords.Network::name)
+                    .filter(StringUtils::hasText)
+                    .toList();
+            default -> List.of();
+        };
+    }
+
+    /** 외부망은 UUID 로 지정한다. 이름을 함께 주지 않으면 화면에서 어느 망인지 알 수 없다. */
+    @Override
+    @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsWithLabelsFallback")
+    public List<com.aipaas.anycloud.domain.vmoptions.api.ConfigOption> listConfigOptionsWithLabels(
+            Map<String, String> credentials, String configKey, String region) {
+        if (!"providerSpec.externalNetworkId".equals(configKey)) {
+            return super.listConfigOptionsWithLabels(credentials, configKey, region);
+        }
+        return withCredentials(credentials, () -> externalNetworks(region).stream()
+                .filter(n -> StringUtils.hasText(n.id()))
+                .map(n -> new com.aipaas.anycloud.domain.vmoptions.api.ConfigOption(
+                        n.id(), StringUtils.hasText(n.name()) ? n.name() : n.id()))
+                .toList());
+    }
+
+    private List<com.aipaas.anycloud.domain.vmoptions.api.ConfigOption> listConfigOptionsWithLabelsFallback(
+            Map<String, String> credentials, String configKey, String region, Throwable throwable) {
+        LOG.warn("OpenStack config options fallback: key={} cause={}", configKey, String.valueOf(throwable));
+        return List.of();
+    }
+
+    private List<String> listConfigOptionsFallback(String configKey, String region, Throwable throwable) {
+        // 조회가 막혀도 자유 입력으로 남는다. 목록을 못 준다고 생성을 막을 이유는 없다.
+        LOG.warn("OpenStack config options fallback: key={} cause={}", configKey, String.valueOf(throwable));
+        return List.of();
+    }
+
+    /**
+     * Neutron 카탈로그 주소는 배포마다 {@code /v2.0} 을 포함하기도 하고 아니기도 하다. 그대로 이어
+     * 붙이면 {@code /v2.0/v2.0/networks} 가 되어 404 로 끝난다.
+     */
+    static String neutronUrl(String endpoint, String path) {
+        String base = endpoint.endsWith("/") ? endpoint.substring(0, endpoint.length() - 1) : endpoint;
+        return base.endsWith("/v2.0") ? base + path : base + "/v2.0" + path;
+    }
+
+    private List<OpenStackRecords.Network> externalNetworks(String region) {
+        OpenStackSession session = authenticate();
+        String resolvedRegion = resolveRegion(region, session);
+        ResponseEntity<String> response = exchange(
+                neutronUrl(session.networkEndpoint(resolvedRegion), "/networks?router:external=true"),
+                session.token(),
+                HttpMethod.GET,
+                null);
+        OpenStackRecords.NetworksResponse body = parseBody(response.getBody(), OpenStackRecords.NetworksResponse.class);
+        if (body.networks() == null) {
+            return List.of();
+        }
+        // 질의로 걸렀어도 배포에 따라 필터를 무시하는 경우가 있다. 받은 값을 다시 확인한다.
+        return body.networks().stream()
+                .filter(network -> Boolean.TRUE.equals(network.external()))
+                .limit(OPTION_LIMIT)
                 .toList();
     }
 
@@ -346,11 +443,21 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
         return StringUtils.hasText(value) ? value : defaultValue;
     }
 
+    /**
+     * flavor 이름으로 GPU 를 짚는다. 운영자가 이름을 정하므로 이것이 유일한 단서다.
+     *
+     * <p>{@code novgpu} 처럼 "없다" 는 뜻을 담은 이름이 있다. 단순 포함으로 보면 GPU 없는
+     * flavor 가 GPU 로 잡혀, GPU 를 요청한 사람이 GPU 없는 노드를 받는다.
+     */
     private int detectGpuCount(String flavorName) {
         if (!StringUtils.hasText(flavorName)) {
             return 0;
         }
-        return flavorName.toLowerCase(Locale.ROOT).contains("gpu") ? 1 : 0;
+        String normalized = flavorName.toLowerCase(Locale.ROOT);
+        if (normalized.contains("nogpu") || normalized.contains("novgpu") || normalized.contains("non-gpu")) {
+            return 0;
+        }
+        return normalized.contains("gpu") ? 1 : 0;
     }
 
     private String inferFamily(String flavorName) {
@@ -431,6 +538,10 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
 
         String imageEndpoint(String region) {
             return serviceEndpoint("image", region);
+        }
+
+        String networkEndpoint(String region) {
+            return serviceEndpoint("network", region);
         }
 
         private String serviceEndpoint(String serviceType, String region) {

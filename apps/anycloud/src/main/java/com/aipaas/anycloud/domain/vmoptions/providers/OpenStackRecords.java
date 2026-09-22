@@ -48,4 +48,16 @@ final class OpenStackRecords {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     record ImagesResponse(List<Image> images) {}
+
+    /**
+     * Neutron 네트워크.
+     *
+     * @param external 라우터 게이트웨이와 floating IP 는 external 네트워크에만 붙는다. 내부망을
+     *     고르면 라우터 생성이 거절된다
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record Network(String id, String name, @JsonProperty("router:external") Boolean external) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record NetworksResponse(List<Network> networks) {}
 }

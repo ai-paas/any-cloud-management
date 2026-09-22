@@ -21,7 +21,8 @@ import org.junit.jupiter.api.Test;
 class VmClusterPayloadServiceSanitizationTest extends AbstractUnitTest {
 
     // sanitize 는 componentRepository / addonInspector 를 쓰지 않는다 — null 로 충분하다.
-    private final VmClusterPayloadServiceImpl service = new VmClusterPayloadServiceImpl(new ObjectMapper(), null, null);
+    private final VmClusterPayloadServiceImpl service =
+            new VmClusterPayloadServiceImpl(new ObjectMapper(), null, null, null);
 
     @Test
     void sanitize_alwaysRedactsSshPrivateKeyPem() {
