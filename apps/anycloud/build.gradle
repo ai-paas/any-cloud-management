@@ -124,7 +124,7 @@ dependencies {
     implementation 'org.flywaydb:flyway-mysql'
     implementation 'org.springframework.boot:spring-boot-starter-cache'
     implementation "com.github.ben-manes.caffeine:caffeine"
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
     implementation 'org.mariadb.jdbc:mariadb-java-client'
     implementation 'io.fabric8:kubernetes-client'
     implementation 'org.modelmapper:modelmapper:3.1.1'
