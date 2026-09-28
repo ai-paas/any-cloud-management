@@ -127,7 +127,7 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6'
     implementation 'org.mariadb.jdbc:mariadb-java-client'
     implementation 'io.fabric8:kubernetes-client'
-    implementation 'org.modelmapper:modelmapper:3.1.1'
+    implementation 'org.modelmapper:modelmapper:3.2.6'
     // MapStruct 도입. ModelMapper / static mapper 와 점진 마이그레이션.
     // lombok-mapstruct-binding 은 annotation processor 순서 (Lombok → MapStruct) 보장 — 둘 다 사용 시 필수.
     implementation "org.mapstruct:mapstruct:${rootProject.ext.mapstructVersion}"
