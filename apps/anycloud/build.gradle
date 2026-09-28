@@ -135,7 +135,7 @@ dependencies {
     annotationProcessor "org.projectlombok:lombok-mapstruct-binding:${rootProject.ext.lombokMapstructBindingVersion}"
     implementation "org.json:json:20260814"
     implementation "com.google.code.gson:gson"
-    implementation 'com.google.auth:google-auth-library-oauth2-http:1.51.0'
+    implementation 'com.google.auth:google-auth-library-oauth2-http:1.53.0'
     implementation "com.fasterxml.jackson.core:jackson-core"
     implementation "com.fasterxml.jackson.core:jackson-databind"
     implementation 'org.apache.httpcomponents.client5:httpclient5'
