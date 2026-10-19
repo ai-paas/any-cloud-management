@@ -119,10 +119,13 @@ public class ClusterEntity implements Serializable {
      * </ul>
      *
      * <p>JSON column — Map&lt;String, String&gt; 형태로 직렬화. 빈 Map 으로 default.
+     *
+     * <p>직렬화는 {@link ClusterTagsConverter} 가 담당한다. MariaDB 의 JSON 이 longtext 별칭인
+     * 탓에 JdbcTypeCode 방식은 ddl-auto=validate 를 통과하지 못한다 (converter 주석 참고).
      */
     @Builder.Default
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
-    @Column(name = "tags", columnDefinition = "json")
+    @jakarta.persistence.Convert(converter = ClusterTagsConverter.class)
+    @Column(name = "tags")
     private java.util.Map<String, String> tags = new java.util.LinkedHashMap<>();
 
     @Builder.Default

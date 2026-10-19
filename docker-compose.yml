@@ -27,6 +27,11 @@
 #
 # Image tag override (선택):
 #   ANYCLOUD_BACKEND_IMAGE_TAG=v0.0.1   # default: latest
+#
+# 영속 데이터 (ANYCLOUD_DATA_DIR, default ./data) — mariadb, rustfs 는 bind mount.
+#   mkdir -p $ANYCLOUD_DATA_DIR/{mariadb,rustfs}
+#   chown -R 1001:1001   $ANYCLOUD_DATA_DIR/mariadb
+#   chown -R 10001:10001 $ANYCLOUD_DATA_DIR/rustfs
 # =============================================================================
 services:
   # --- MariaDB --------------------------------------------------------------
@@ -44,7 +49,7 @@ services:
       PGID: 1001
       TZ: ${TZ:-Asia/Seoul}
     volumes:
-      - mariadb-data:/config
+      - ${ANYCLOUD_DATA_DIR:-./data}/mariadb:/config
     healthcheck:
       test: ["CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 --silent || exit 1"]
       interval: 5s
@@ -80,7 +85,7 @@ services:
       RUSTFS_ROOT_PASSWORD: ${RUSTFS_ROOT_PASSWORD:?RUSTFS_ROOT_PASSWORD must be set (use openssl rand -hex 32)}
       RUSTFS_REGION: ${RUSTFS_REGION:-us-east-1}
     volumes:
-      - rustfs-data:/data
+      - ${ANYCLOUD_DATA_DIR:-./data}/rustfs:/data
     healthcheck:
       # RustFS 1.0.0-alpha.99 — MinIO /minio/health/live 미구현. S3 API root 의 200/403/400
       # 응답을 healthy 로 인정 (binary LISTEN 의 evidence).
@@ -93,6 +98,9 @@ services:
       start_period: 10s
 
   # --- OpenBao (Vault OSS fork) ---------------------------------------------
+  # dev 모드 — 메모리 저장, unseal 없음, TLS 없음. 재시작하면 데이터가 사라진다.
+  # PULUMI_SECRETS_PROVIDER 를 hashivault:// 로 바꾸면 재시작 시 state 복호화 불가.
+  # production 전환: server -config + raft/file storage, auto-unseal, TLS, AppRole.
   openbao:
     image: openbao/openbao:latest
     container_name: anycloud-openbao
@@ -171,7 +179,9 @@ services:
       AWS_SECRET_ACCESS_KEY: ${RUSTFS_ROOT_PASSWORD}
       AWS_REGION: ${RUSTFS_REGION:-us-east-1}
       VAULT_ADDR: ${VAULT_ADDR:-http://openbao:8200}
-      VAULT_TOKEN: ${VAULT_TOKEN:-${OPENBAO_DEV_ROOT_TOKEN}}
+      # 중첩 보간 금지 (compose v1 미지원). 빈 값일 때의 fallback 은 entrypoint 가 처리.
+      VAULT_TOKEN: ${VAULT_TOKEN:-}
+      OPENBAO_DEV_ROOT_TOKEN: ${OPENBAO_DEV_ROOT_TOKEN:?OPENBAO_DEV_ROOT_TOKEN must be set}
       PULUMI_BACKEND_URL: ${PULUMI_BACKEND_URL:-s3://pulumi-state?endpoint=http://rustfs:9000&s3ForcePathStyle=true&disableSSL=true}
       # --- yaml default override (compose 에서 명시적 enable) ---
       PULUMI_ENABLED: "true"
@@ -230,7 +240,9 @@ services:
       AWS_SECRET_ACCESS_KEY: ${RUSTFS_ROOT_PASSWORD}
       AWS_REGION: ${RUSTFS_REGION:-us-east-1}
       VAULT_ADDR: ${VAULT_ADDR:-http://openbao:8200}
-      VAULT_TOKEN: ${VAULT_TOKEN:-${OPENBAO_DEV_ROOT_TOKEN}}
+      # 중첩 보간 금지 (compose v1 미지원). 빈 값일 때의 fallback 은 entrypoint 가 처리.
+      VAULT_TOKEN: ${VAULT_TOKEN:-}
+      OPENBAO_DEV_ROOT_TOKEN: ${OPENBAO_DEV_ROOT_TOKEN:?OPENBAO_DEV_ROOT_TOKEN must be set}
       PULUMI_BACKEND_URL: ${PULUMI_BACKEND_URL:-s3://pulumi-state?endpoint=http://rustfs:9000&s3ForcePathStyle=true&disableSSL=true}
       # --- yaml default override ---
       PULUMI_ENABLED: "true"
@@ -248,9 +260,9 @@ services:
         limits: { memory: 4G, cpus: '2.0' }
         reservations: { memory: 2G, cpus: '1.0' }
 
+# mariadb, rustfs 는 bind mount 라 여기 없다. ANYCLOUD_DATA_DIR 참고.
+# 아래 셋은 유실돼도 재생성되는 것들 — 큐의 처리 중 메시지, 플러그인 캐시, 작업 디렉토리.
 volumes:
-  mariadb-data:
   rabbitmq-data:
-  rustfs-data:
   pulumi-home:
   pulumi-runtime:

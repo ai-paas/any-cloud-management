@@ -16,6 +16,11 @@ case "${PULUMI_PASSPHRASE:-}" in
     ;;
 esac
 
+# compose v1 은 ${A:-${B}} 를 해석하지 못하고, Spring 의 placeholder default 는 빈 문자열에
+# 적용되지 않는다. 셸의 := 는 unset 과 빈 값을 모두 잡는다.
+: "${VAULT_TOKEN:=${OPENBAO_DEV_ROOT_TOKEN:-}}"
+export VAULT_TOKEN
+
 # Pulumi CLI 존재 확인 — Automation API 가 invoke. binary 자체가 없으면 즉시 실패 (stale image).
 if ! command -v pulumi >/dev/null 2>&1; then
   echo "FATAL: 'pulumi' binary not in PATH — Pulumi Automation Java SDK 가 호출할 수 없음. Dockerfile.pulumi 재빌드 필요." >&2
