@@ -12,6 +12,7 @@ import com.aipaas.anycloud.domain.vmoptions.api.ProviderConfigKey;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionProvider;
 import com.aipaas.anycloud.domain.vmoptions.internal.ProviderConfigSchemaServiceImpl;
 import com.aipaas.anycloud.domain.vmoptions.internal.VmOptionsQueryServiceImpl;
+import com.aipaas.anycloud.domain.vmoptions.properties.ProxmoxProvisioningDefaults;
 import com.aipaas.anycloud.testsupport.AbstractUnitTest;
 import java.util.List;
 import java.util.Map;
@@ -101,7 +102,7 @@ class ConfigSchemaOffersAccountValuesTest extends AbstractUnitTest {
                 new VmOptionsProperties(),
                 cspCredentialService,
                 cspCredentialRepository,
-                new ProviderConfigSchemaServiceImpl());
+                new ProviderConfigSchemaServiceImpl(new ProxmoxProvisioningDefaults(null, null, null, null)));
         when(cspCredentialRepository.findById(anyString()))
                 .thenReturn(
                         Optional.of(CspCredentialEntity.builder().id("cred-1").build()));

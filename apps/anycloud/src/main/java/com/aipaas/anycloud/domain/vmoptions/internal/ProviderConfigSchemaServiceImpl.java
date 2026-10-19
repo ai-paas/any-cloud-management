@@ -13,6 +13,13 @@ import org.springframework.stereotype.Service;
 @Service
 public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaService {
 
+    private final com.aipaas.anycloud.domain.vmoptions.properties.ProxmoxProvisioningDefaults proxmoxDefaults;
+
+    public ProviderConfigSchemaServiceImpl(
+            com.aipaas.anycloud.domain.vmoptions.properties.ProxmoxProvisioningDefaults proxmoxDefaults) {
+        this.proxmoxDefaults = proxmoxDefaults;
+    }
+
     @Override
     public List<ProviderConfigKey> getSchema(String provider) {
         SupportedProvisioningProvider p;
@@ -164,6 +171,43 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                             .defaultValue("vmbr0")
                             .label("네트워크 브리지")
                             .description("VM 을 붙일 브리지. 외부와 통신하는 브리지를 고른다 (보통 vmbr0).")
+                            .build(),
+                    /*
+                     * 아래 넷은 defaultValue 가 비면 일괄 프로비저닝이 Proxmox 를 차단한다.
+                     * cloud 이미지에 qemu-guest-agent 가 없어 DHCP 주소를 알아낼 수 없고, 주소를
+                     * 모른 채 만들면 Pulumi 가 빈 목록을 색인하다 죽는다 — VM 이 생긴 뒤에.
+                     */
+                    ProviderConfigKey.builder()
+                            .key("anycloud-k8s:providerSpec.nodeIps")
+                            .type("string")
+                            .required(false)
+                            .defaultValue(proxmoxDefaults.nodeIps())
+                            .label("노드 고정 IP")
+                            .description("쉼표로 이은 IPv4. master 가 먼저고 worker 가 뒤따른다. 노드 수와 개수가 같아야 한다.")
+                            .build(),
+                    ProviderConfigKey.builder()
+                            .key("anycloud-k8s:providerSpec.gateway")
+                            .type("string")
+                            .required(false)
+                            .defaultValue(proxmoxDefaults.gateway())
+                            .label("게이트웨이")
+                            .description("고정 IP 를 쓰면 필수. 없으면 노드가 apt, 레지스트리로 나가지 못한다.")
+                            .build(),
+                    ProviderConfigKey.builder()
+                            .key("anycloud-k8s:providerSpec.sshHost")
+                            .type("string")
+                            .required(false)
+                            .defaultValue(proxmoxDefaults.sshHost())
+                            .label("SSH 접속 주소")
+                            .description("백엔드가 노드와 다른 망일 때 채운다. 비우면 노드 IP 로 직접 붙는다.")
+                            .build(),
+                    ProviderConfigKey.builder()
+                            .key("anycloud-k8s:providerSpec.sshPorts")
+                            .type("string")
+                            .required(false)
+                            .defaultValue(proxmoxDefaults.sshPorts())
+                            .label("SSH 포트")
+                            .description("sshHost 의 포트. nodeIps 와 같은 순서. 비우면 22.")
                             .build());
             case IBM -> List.of(
                     ProviderConfigKey.builder()

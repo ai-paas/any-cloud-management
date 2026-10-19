@@ -7,6 +7,7 @@ import com.aipaas.anycloud.domain.provisioning.model.SupportedProvisioningProvid
 import com.aipaas.anycloud.domain.provisioning.preflight.validation.ProvisioningConfigRules;
 import com.aipaas.anycloud.domain.vmoptions.api.ProviderConfigKey;
 import com.aipaas.anycloud.domain.vmoptions.internal.ProviderConfigSchemaServiceImpl;
+import com.aipaas.anycloud.domain.vmoptions.properties.ProxmoxProvisioningDefaults;
 import com.aipaas.anycloud.testsupport.AbstractUnitTest;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -26,7 +27,8 @@ import org.junit.jupiter.params.provider.EnumSource;
  */
 class ProviderConfigSchemaMatchesPreflightTest extends AbstractUnitTest {
 
-    private final ProviderConfigSchemaService schemaService = new ProviderConfigSchemaServiceImpl();
+    private final ProviderConfigSchemaService schemaService =
+            new ProviderConfigSchemaServiceImpl(new ProxmoxProvisioningDefaults(null, null, null, null));
 
     /** master/worker count 같은 공통 검증에 걸리지 않도록 최소값을 채운 config. */
     private Map<String, String> baselineConfig() {
