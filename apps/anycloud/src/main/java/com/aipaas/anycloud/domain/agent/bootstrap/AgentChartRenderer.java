@@ -47,7 +47,7 @@ public class AgentChartRenderer {
     @Value("${agent.grpc.public-endpoint:${ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT:host.docker.internal:9090}}")
     private String backendEndpoint;
 
-    @Value("${agent.manifest.image:${ANYCLOUD_AGENT_IMAGE:aipaas/cluster-agent:dev}}")
+    @Value("${agent.manifest.image:${ANYCLOUD_AGENT_IMAGE:ghcr.io/ai-paas/cluster-agent:v0.1.3-dev}}")
     private String agentImage;
 
     @Value("${agent.manifest.namespace:aipaas-system}")
@@ -177,7 +177,7 @@ public class AgentChartRenderer {
      */
     static ImageRef parseImageRef(String ref) {
         if (ref == null || ref.isBlank()) {
-            return new ImageRef("aipaas/cluster-agent", "dev");
+            return new ImageRef("ghcr.io/ai-paas/cluster-agent", "v0.1.3-dev");
         }
         int lastSlash = ref.lastIndexOf('/');
         int lastColon = ref.lastIndexOf(':');

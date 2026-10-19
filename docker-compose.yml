@@ -133,7 +133,7 @@ services:
 
   # --- Backend (pull from Docker Hub) ---------------------------------------
   anycloud-backend:
-    image: ${ANYCLOUD_BACKEND_IMAGE:-ghcr.io/aipaas/anycloud-backend}:${ANYCLOUD_BACKEND_IMAGE_TAG:-latest}
+    image: ${ANYCLOUD_BACKEND_IMAGE:-ghcr.io/ai-paas/anycloud-backend}:${ANYCLOUD_BACKEND_IMAGE_TAG:-latest}
     container_name: anycloud-backend
     ports:
       - "8888:8888"   # REST + Swagger
@@ -197,7 +197,7 @@ services:
 
   # --- Worker (pull from Docker Hub, same image, APP_ROLE=worker) -----------
   anycloud-bootstrap-worker:
-    image: ${ANYCLOUD_BACKEND_IMAGE:-ghcr.io/aipaas/anycloud-backend}:${ANYCLOUD_BACKEND_IMAGE_TAG:-latest}
+    image: ${ANYCLOUD_BACKEND_IMAGE:-ghcr.io/ai-paas/anycloud-backend}:${ANYCLOUD_BACKEND_IMAGE_TAG:-latest}
     container_name: anycloud-bootstrap-worker
     depends_on:
       mariadb:

@@ -64,8 +64,8 @@ CHART_TGZ             := /tmp/$(CHART_NAME)-$(CHART_VERSION).tgz
 SNAPSHOT_NS                   ?= aipaas-system
 SNAPSHOT_TOKEN                ?= REPLACE_WITH_REAL_JWT
 SNAPSHOT_BACKEND_GRPC         ?= host.docker.internal:9090
-SNAPSHOT_IMAGE_REPO           ?= aipaas/cluster-agent
-SNAPSHOT_IMAGE_TAG            ?= dev
+SNAPSHOT_IMAGE_REPO           ?= ghcr.io/ai-paas/cluster-agent
+SNAPSHOT_IMAGE_TAG            ?= v0.1.3-dev
 SNAPSHOT_OUT                  := apps/agent/deploy/k8s/agent.yaml
 
 # ============= .PHONY =============
@@ -105,7 +105,7 @@ help:
 	@echo "  secrets-check    필수 env 모두 export 되었는지 strict 검증 (prod-up 의존성)"
 	@echo "  test-*           dev-* 의 alias (test-up/down/reset/logs/rebuild)"
 	@echo ""
-	@echo "  prod-up          docker hub image pull only (aipaas/anycloud-backend) — 필수 env 미설정 시 fail-fast"
+	@echo "  prod-up          registry image pull only (ghcr.io/ai-paas/anycloud-backend) — 필수 env 미설정 시 fail-fast"
 	@echo "  prod-down        production 스택 정지"
 	@echo "  prod-pull        production image 만 최신 pull (기동 X)"
 	@echo ""

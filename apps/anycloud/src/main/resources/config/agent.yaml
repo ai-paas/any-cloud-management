@@ -55,7 +55,7 @@ agent:
     enabled: ${ANYCLOUD_AGENT_API_MANAGED_ENABLED:true}
   # Manifest template 의 image / namespace / pull policy.
   manifest:
-    image: ${ANYCLOUD_AGENT_IMAGE:aipaas/cluster-agent:dev}
+    image: ${ANYCLOUD_AGENT_IMAGE:ghcr.io/ai-paas/cluster-agent:v0.1.3-dev}
     namespace: ${ANYCLOUD_AGENT_NAMESPACE:aipaas-system}
     image-pull-policy: ${ANYCLOUD_AGENT_IMAGE_PULL_POLICY:IfNotPresent}
   # 사용자가 helm install 로 agent 를 직접 배포할 때 응답에 들어가는 정보 (HELM_BOOTSTRAP / MANUAL mode).

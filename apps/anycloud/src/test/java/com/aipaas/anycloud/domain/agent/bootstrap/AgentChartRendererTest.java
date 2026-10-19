@@ -44,15 +44,15 @@ class AgentChartRendererTest extends AbstractUnitTest {
 
     @Test
     void parseImageRef_noTag_defaultsLatest() {
-        ImageRef r = AgentChartRenderer.parseImageRef("ghcr.io/aipaas/cluster-agent");
-        assertThat(r.repository()).isEqualTo("ghcr.io/aipaas/cluster-agent");
+        ImageRef r = AgentChartRenderer.parseImageRef("ghcr.io/ai-paas/cluster-agent");
+        assertThat(r.repository()).isEqualTo("ghcr.io/ai-paas/cluster-agent");
         assertThat(r.tag()).isEqualTo("latest");
     }
 
     @Test
     void parseImageRef_blank_fallback() {
-        assertThat(AgentChartRenderer.parseImageRef(null).repository()).isEqualTo("aipaas/cluster-agent");
-        assertThat(AgentChartRenderer.parseImageRef("").tag()).isEqualTo("dev");
+        assertThat(AgentChartRenderer.parseImageRef(null).repository()).isEqualTo("ghcr.io/ai-paas/cluster-agent");
+        assertThat(AgentChartRenderer.parseImageRef("").tag()).isEqualTo("v0.1.3-dev");
     }
 
     /* ---------- render() — helm template integration ---------- */

@@ -62,7 +62,7 @@ public record AgentProperties(Grpc grpc, Manifest manifest, Helm helm, ApiManage
             /** Fleet upgrade 시 patch 대상 container 이름. */
             String containerName) {
         public Manifest {
-            if (image == null || image.isBlank()) image = "aipaas/cluster-agent:dev";
+            if (image == null || image.isBlank()) image = "ghcr.io/ai-paas/cluster-agent:v0.1.3-dev";
             if (namespace == null || namespace.isBlank()) namespace = "aipaas-system";
             if (imagePullPolicy == null || imagePullPolicy.isBlank()) imagePullPolicy = "IfNotPresent";
             if (deploymentName == null || deploymentName.isBlank()) deploymentName = "cluster-agent";
