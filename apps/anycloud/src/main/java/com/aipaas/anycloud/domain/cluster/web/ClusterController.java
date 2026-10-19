@@ -152,7 +152,7 @@ public class ClusterController {
                                             schema = @Schema(implementation = CreateClusterRequest.class),
                                             examples = {
                                                 @ExampleObject(
-                                                        name = "Registered (kubeconfig)",
+                                                        name = "Registered (외부 cluster 등록)",
                                                         value =
                                                                 """
 											{
@@ -161,10 +161,8 @@ public class ClusterController {
 											  "spec": {
 											    "provider": "AWS",
 											    "clusterType": "EKS",
-											    "apiServerUrl": "https://kube.example.com:6443",
-											    "serverCA": "<base64-CA>",
-											    "clientToken": "<bearer-token>",
-											    "description": "Imported via raw fields"
+											    "hasGpuNodes": false,
+											    "description": "Imported cluster"
 											  }
 											}""")
                                             }))

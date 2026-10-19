@@ -26,7 +26,7 @@ import org.springframework.stereotype.Component;
  *       {@code PathMatchingResourcePatternResolver} — jar / file 모두 동일하게 동작).</li>
  *   <li>호출마다 token / endpoint / image 등을 values.yaml 임시 파일에 write.</li>
  *   <li>{@code helm template <release> <chart-dir> --values <values.yaml>} 로 manifest 렌더.</li>
- *   <li>caller (AgentApiManagedInstaller) 가 그 결과를 fabric8 server-side apply.</li>
+ *   <li>caller (AgentApiManagedInstaller) 가 그 결과를 agent 경유로 apply.</li>
  * </ol>
  *
  * <p>이전 {@code AgentManifestRenderer} (Java String.format 으로 manifest 인라인) 는 chart 와

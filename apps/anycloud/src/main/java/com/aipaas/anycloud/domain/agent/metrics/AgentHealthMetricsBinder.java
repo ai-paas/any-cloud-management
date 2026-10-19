@@ -24,7 +24,7 @@ import org.springframework.stereotype.Component;
  * 등록된 cluster 의 agent health 시계열을 Prometheus 로 노출.
  *
  * <p>{@code AgentHealthService} 는 인스턴스 응답(REST snapshot)용이고, 알람/SLO 는 시계열이 필요해
- * 별도 binder. {@code ClusterCertExpiryMonitor} 와 동일한 MultiGauge + paginate scan 패턴.
+ * 별도 binder. MultiGauge + paginate scan 패턴.
  *
  * <h3>노출 metric</h3>
  * <pre>

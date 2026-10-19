@@ -5,11 +5,12 @@
 // 본 패키지 단일 진입점.
 //
 // 환경 변수:
-//   BACKEND_GRPC_TLS_ENABLED         "true" → TLS dial. default plaintext.
-//   BACKEND_CA_CERT_PATH             CA cert PEM 파일 경로 (Secret/ConfigMap mount).
-//   BACKEND_CA_CERT_PEM              inline PEM 내용 (chart 가 직접 주입할 때 — path 보다 우선).
-//   BACKEND_TLS_SERVER_NAME          SNI override. 비우면 backend addr 의 host 부분 사용.
-//   BACKEND_TLS_INSECURE_SKIP_VERIFY "true" 면 cert 검증 skip — dev/self-signed 만.
+//
+//	BACKEND_GRPC_TLS_ENABLED         "true" → TLS dial. default plaintext.
+//	BACKEND_CA_CERT_PATH             CA cert PEM 파일 경로 (Secret/ConfigMap mount).
+//	BACKEND_CA_CERT_PEM              inline PEM 내용 (chart 가 직접 주입할 때 — path 보다 우선).
+//	BACKEND_TLS_SERVER_NAME          SNI override. 비우면 backend addr 의 host 부분 사용.
+//	BACKEND_TLS_INSECURE_SKIP_VERIFY "true" 면 cert 검증 skip — dev/self-signed 만.
 //
 // 우선순위: PEM > path > system roots > skip-verify.
 package tlsconfig
@@ -63,7 +64,7 @@ func (c Config) DialOption(backendAddr string) (grpc.DialOption, error) {
 	}
 
 	if c.InsecureSkipVerify {
-		tlsCfg.InsecureSkipVerify = true     // nolint:gosec — dev only, opt-in via env
+		tlsCfg.InsecureSkipVerify = true // nolint:gosec — dev only, opt-in via env
 	} else {
 		pool, err := buildCertPool(c)
 		if err != nil {

@@ -64,8 +64,8 @@ var (
 	releaseLocks   = make(map[string]*releaseLock)
 	releaseLocksMu sync.Mutex
 	// cleanup 주기. 30분 idle entry 제거. 0 이면 정리 안 함 (test 가 disable 가능).
-	releaseLockTTL    = 30 * time.Minute
-	cleanupOnce       sync.Once
+	releaseLockTTL = 30 * time.Minute
+	cleanupOnce    sync.Once
 )
 
 // acquireReleaseLock — namespace/release 의 mutex 를 반환 (없으면 생성). 호출자는 즉시 Lock().
@@ -561,7 +561,7 @@ func (d *Dispatcher) rollbackHelmRelease(ctx context.Context, cmd *agentv1.Comma
 }
 
 // listHelmReleaseResources — helm release (label app.kubernetes.io/instance=<release>) 가 만든
-// K8s 자원을 한 번에 enumerate. backend 의 HelmReleaseScanner (fabric8 11 호출) 의 agent 측 대체.
+// K8s 자원을 한 번에 enumerate. backend 가 11번 직렬 호출하던 HelmReleaseScanner 를 대체한다.
 //
 // AllowList — namespace 만 검증 (read-only 명령 — chart-level 검증 불요).
 func (d *Dispatcher) listHelmReleaseResources(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {

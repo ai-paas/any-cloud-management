@@ -25,7 +25,7 @@ import org.springframework.stereotype.Service;
  * <ol>
  *   <li>{@link AgentBootstrapService#issueRegistrationToken} 로 단기 JWT 발급</li>
  *   <li>{@link AgentManifestRenderer#render} 로 manifest YAML 생성 (token + backend 주입)</li>
- *   <li>{@link KubeService#applyResource} 로 cluster 에 apply (fabric8 server-side)</li>
+ *   <li>{@link KubeService#applyResource} 로 agent gRPC 경유 apply</li>
  * </ol>
  *
  * <p>실패 시 본 service 는 예외 propagate — BOOTSTRAP step 이 catch 해 cluster 를 FAILED
@@ -57,12 +57,11 @@ public class AgentApiManagedInstaller {
     private String configuredPublicUrl;
 
     /**
-     * agent install path 별 counter — chicken-and-egg fallback (BOOTSTRAP) 발동 빈도 추적.
-     * Metric: {@code anycloud_agent_install_total{path="AGENT|BOOTSTRAP|FAILED"}}.
+     * agent install path 별 counter.
+     * Metric: {@code anycloud_agent_install_total{path="AGENT|FAILED"}}.
      */
     private Counter agentPathCounter;
 
-    private Counter bootstrapPathCounter;
     private Counter failedCounter;
 
     @PostConstruct
@@ -70,10 +69,6 @@ public class AgentApiManagedInstaller {
         this.agentPathCounter = Counter.builder("anycloud.agent.install.total")
                 .tag("path", "AGENT")
                 .description("Agent install via cluster-agent gRPC routing")
-                .register(meterRegistry);
-        this.bootstrapPathCounter = Counter.builder("anycloud.agent.install.total")
-                .tag("path", "BOOTSTRAP")
-                .description("Agent install via fabric8 bootstrap (chicken-and-egg fallback)")
                 .register(meterRegistry);
         this.failedCounter = Counter.builder("anycloud.agent.install.total")
                 .tag("path", "FAILED")
@@ -99,10 +94,6 @@ public class AgentApiManagedInstaller {
         IssuedToken issued = bootstrapService.issueRegistrationToken(clusterName, "API_MANAGED");
         String manifest = chartRenderer.render(issued.token(), adminKubeconfigEnabled(clusterName));
 
-        // First-install chicken-and-egg: agent 가 아직 cluster 안에 없으므로 agent gRPC routing 은
-        // "no active session" 으로 실패. 이 경우 ClusterEntity 의 kubeconfig 로 backend 가 직접 apply
-        // ({@link KubeService#applyResourceViaBootstrap}). 이후 agent 가 떠서 backend 에 connect 하면
-        // 다음부터의 day-2 ops 는 정상적으로 agent gRPC 통해 진행.
         try {
             kubeService.applyResource(clusterName, agentNamespace, manifest);
             agentPathCounter.increment();
@@ -112,46 +103,35 @@ public class AgentApiManagedInstaller {
                     issued.expiresAt(),
                     manifest.length());
         } catch (CustomException e) {
+            failedCounter.increment();
             if (e.getErrorCode() == ErrorCode.AGENT_UNAVAILABLE) {
-                log.info(
-                        "Agent gRPC not yet available for cluster_id={} — falling back to BOOTSTRAP fabric8 path",
-                        clusterName);
-                try {
-                    kubeService.applyResourceViaBootstrap(clusterName, agentNamespace, manifest);
-                    bootstrapPathCounter.increment();
-                    log.info(
-                            "Cluster agent manifest applied via BOOTSTRAP path cluster_id={} token_expires_at={} manifest_bytes={}",
-                            clusterName,
-                            issued.expiresAt(),
-                            manifest.length());
-                } catch (RuntimeException bootstrapFail) {
-                    failedCounter.increment();
-                    throw bootstrapFail;
-                }
-            } else {
-                failedCounter.increment();
-                throw e;
+                throw new CustomException(manualInstallGuide(clusterName), ErrorCode.AGENT_UNAVAILABLE);
             }
+            throw e;
         }
 
         return new AgentInstallResult(
                 clusterName, issued.jti(), issued.expiresAt().toString(), manifest.length());
     }
 
+    /**
+     * agent gRPC 가 없을 때의 복구 안내.
+     *
+     * <p>backend 는 cluster 자격증명을 보관하지 않아 agent 를 거치지 않고 apply 할 방법이 없다.
+     * 운영자가 자기 kubectl context 에서 돌릴 명령을 돌려준다.
+     *
+     * <p>registration token 은 넣지 않는다. 이 문자열은 에러 응답과 로그에 함께 남는데 token 은
+     * 그대로 등록에 쓸 수 있는 자격증명이다. manifest endpoint 가 호출 때마다 새로 발급한다.
+     */
+    private String manualInstallGuide(String clusterName) {
+        return "Cluster agent 가 응답하지 않습니다. backend 는 cluster 자격증명을 보관하지 않아 대신 적용할 수 "
+                + "없습니다. 직접 설치하세요: curl -sS " + resolveBackendBaseUrl() + "/v1/clusters/" + clusterName
+                + "/agent-manifest.yaml | kubectl apply -f -";
+    }
+
     public record AgentInstallResult(
             String clusterId, String registrationJti, String tokenExpiresAt, int manifestBytes) {}
 
-    /**
-     * Agent-led registration 의 핵심 — token 만 발급하고 manifest apply 는 사용자에게 위임. {@link #install} 의 (1) JWT 발급 부분만 분리 + helm install / kubectl apply 명령 문자열 빌드.
-     *
-     * @param clusterName 대상 cluster (ClusterEntity.id)
-     * @return Bootstrap 정보 — POST /v1/clusters 응답에 포함되어 사용자가 즉시 install 실행 가능.
-     */
-    @com.aipaas.anycloud.domain.audit.Audited(
-            action = "agent.bootstrap.prepare",
-            resourceType = "clusterAgent",
-            resourceId = "#clusterName",
-            summary = "'expires=' + #result?.expiresAt()")
     /** GET /v1/clusters/{id}/agent-manifest.yaml 가 호출하는 helper. */
     public String renderManifest(String clusterName, String registrationToken) {
         String chart = chartRenderer.render(registrationToken, adminKubeconfigEnabled(clusterName));
@@ -179,6 +159,18 @@ public class AgentApiManagedInstaller {
                 .orElse(false);
     }
 
+    /**
+     * Agent-led registration 의 핵심 — token 만 발급하고 manifest apply 는 사용자에게 위임.
+     * {@link #install} 의 JWT 발급 부분만 떼어 helm install / kubectl apply 명령 문자열을 함께 만든다.
+     *
+     * @param clusterName 대상 cluster (ClusterEntity.id)
+     * @return Bootstrap 정보 — POST /v1/clusters 응답에 포함되어 사용자가 즉시 install 실행 가능.
+     */
+    @com.aipaas.anycloud.domain.audit.Audited(
+            action = "agent.bootstrap.prepare",
+            resourceType = "clusterAgent",
+            resourceId = "#clusterName",
+            summary = "'expires=' + #result?.expiresAt()")
     public BootstrapInfo prepareBootstrap(String clusterName) {
         IssuedToken issued = bootstrapService.issueRegistrationToken(clusterName, "USER_MANAGED");
         String backendEndpoint = agentProperties.grpc().publicEndpoint();

@@ -21,7 +21,7 @@ import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
 /**
- * AgentApiManagedInstaller end-to-end (token issue → manifest render → fabric8 apply).
+ * AgentApiManagedInstaller end-to-end (token issue → manifest render → agent apply).
  *
  * <p>Renderer 는 AgentChartRenderer (chart 를 source-of-truth 로 helm template) 로 대체됨.
  * 본 테스트는 mocked renderer 로 collaboration 만 검증 — chart rendering 자체 검증은

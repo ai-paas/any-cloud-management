@@ -116,7 +116,7 @@ func TestResolveResource_ClusterScopedCRD(t *testing.T) {
 	c := newPreparedClient(t)
 
 	cases := []struct {
-		input     string
+		input      string
 		wantPlural string
 		wantGroup  string
 		wantNs     bool

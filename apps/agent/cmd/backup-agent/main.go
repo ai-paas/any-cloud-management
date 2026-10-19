@@ -39,8 +39,8 @@ func main() {
 	svc.Register(grpcServer)
 
 	slog.Info("backup-agent starting",
-			"node", svc.NodeName,
-			"addr", addr)
+		"node", svc.NodeName,
+		"addr", addr)
 
 	// graceful shutdown — SIGTERM 시 새 RPC 거부, 진행 중 RPC 는 timeout 까지 대기.
 	sigCh := make(chan os.Signal, 1)

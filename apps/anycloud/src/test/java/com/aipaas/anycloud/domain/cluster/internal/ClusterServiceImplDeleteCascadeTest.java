@@ -11,7 +11,6 @@ import static org.mockito.Mockito.when;
 import com.aipaas.anycloud.common.error.exception.ClusterNotFoundException;
 import com.aipaas.anycloud.common.error.exception.CustomException;
 import com.aipaas.anycloud.domain.agent.ClusterAgentRepository;
-import com.aipaas.anycloud.domain.cluster.AgentBootstrapKubeClient;
 import com.aipaas.anycloud.domain.cluster.ClusterEntity;
 import com.aipaas.anycloud.domain.cluster.ClusterRepository;
 import com.aipaas.anycloud.testsupport.AbstractUnitTest;
@@ -33,9 +32,6 @@ class ClusterServiceImplDeleteCascadeTest extends AbstractUnitTest {
     ClusterRepository clusterRepository;
 
     @Mock
-    AgentBootstrapKubeClient bootstrapKubeClient;
-
-    @Mock
     ClusterAgentRepository clusterAgentRepository;
 
     @Mock
@@ -52,7 +48,6 @@ class ClusterServiceImplDeleteCascadeTest extends AbstractUnitTest {
         service = new ClusterServiceImpl(
                 clusterRepository,
                 org.mapstruct.factory.Mappers.getMapper(com.aipaas.anycloud.domain.cluster.mapper.ClusterMapper.class),
-                bootstrapKubeClient,
                 clusterAgentRepository,
                 new SimpleMeterRegistry(),
                 connectivityService);
@@ -74,15 +69,14 @@ class ClusterServiceImplDeleteCascadeTest extends AbstractUnitTest {
         HttpStatus result = service.deleteCluster("c-1");
 
         assertThat(result).isEqualTo(HttpStatus.OK);
-        // Order: agent cleanup BEFORE cluster delete BEFORE cache invalidate.
-        var inOrder = org.mockito.Mockito.inOrder(clusterAgentRepository, clusterRepository, bootstrapKubeClient);
+        // Order: agent cleanup BEFORE cluster delete.
+        var inOrder = org.mockito.Mockito.inOrder(clusterAgentRepository, clusterRepository);
         inOrder.verify(clusterAgentRepository).deleteByClusterName("c-1");
         inOrder.verify(clusterRepository).delete(cluster);
-        inOrder.verify(bootstrapKubeClient).invalidate("c-1");
     }
 
     @Test
-    void deleteCluster_zeroAgents_stillDeletesAndInvalidates() {
+    void deleteCluster_zeroAgents_stillDeletes() {
         ClusterEntity cluster = importedCluster("c-2");
         when(clusterRepository.findById("c-2")).thenReturn(Optional.of(cluster));
         when(clusterAgentRepository.deleteByClusterName("c-2")).thenReturn(0L);
@@ -92,7 +86,6 @@ class ClusterServiceImplDeleteCascadeTest extends AbstractUnitTest {
         assertThat(result).isEqualTo(HttpStatus.OK);
         verify(clusterAgentRepository, times(1)).deleteByClusterName("c-2");
         verify(clusterRepository, times(1)).delete(cluster);
-        verify(bootstrapKubeClient, times(1)).invalidate("c-2");
     }
 
     @Test
@@ -104,10 +97,9 @@ class ClusterServiceImplDeleteCascadeTest extends AbstractUnitTest {
 
         assertThatThrownBy(() -> service.deleteCluster("vm-1")).isInstanceOf(CustomException.class);
 
-        // Critical: PULUMI 거부 시 cascade / delete / invalidate 모두 호출 안 됨 — side-effect 없음.
+        // Critical: PULUMI 거부 시 cascade / delete 모두 호출 안 됨 — side-effect 없음.
         verify(clusterAgentRepository, never()).deleteByClusterName(anyString());
         verify(clusterRepository, never()).delete(org.mockito.ArgumentMatchers.any(ClusterEntity.class));
-        verify(bootstrapKubeClient, never()).invalidate(anyString());
     }
 
     @Test

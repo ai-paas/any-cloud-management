@@ -67,7 +67,7 @@ anycloud monorepo 의 component / package / 의존 관계를 정리했습니다.
 | `service.agent.upgrade` | fleet-wide agent rollout | `FleetUpgradeOrchestratorImpl` |
 | `service.webhook` | 외부 portal 로의 push 이벤트 | `WebhookPublisher` |
 | `service.audit` | 감사 로그 SPI | `AuditLogger`, `DbAuditLogger` |
-| `service.monitoring` | Prometheus / cert expiry | `CertExpiryScheduler`, `ObservabilityServiceImpl` |
+| `service.monitoring` | Prometheus | `ObservabilityServiceImpl` |
 | `service.kube` / `service.helmrepo` | K8s client + Helm repo | `KubeServiceImpl`, `HelmRepoServiceImpl` |
 | `service.provisioning` | Pulumi 오케스트레이션 | `PulumiOrchestrator` |
 | `model.entity` | JPA `@Entity` 15+ classes | (3절 참고) |
@@ -125,7 +125,7 @@ anycloud monorepo 의 component / package / 의존 관계를 정리했습니다.
 | `WebConfig` | `configuration.web` | CORS, header reg | — |
 | `WebMvcInterceptorConfig` | `configuration.web` | 로깅 / req-resp wrap | `HandlerInterceptor` |
 | `CacheConfig` | `configuration.persistence` | Spring Cache L2 | `CacheManager` |
-| `ShedLockConfig` | `configuration.persistence` | 분산 잡 락 (sweeper / cert expiry) | `LockProvider` |
+| `ShedLockConfig` | `configuration.persistence` | 분산 잡 락 (sweeper) | `LockProvider` |
 | `DevFlywayMigrationStrategy` | `configuration.persistence` | dev 모드 baseline skip | — |
 | `BeanConfig` | `configuration.infrastructure` | RestTemplate / WebClient / YAML / ObjectMapper | (위 4개) |
 | `OpenApiConfig` | `configuration.infrastructure` | springdoc swagger UI | docs groups |
@@ -188,7 +188,6 @@ anycloud monorepo 의 component / package / 의존 관계를 정리했습니다.
 | `resilience4j.*` | circuit breaker / retry | yes |
 | `vm-options.*` | pagination 설정 | no |
 | `csp-credential.*` | encryption key | yes |
-| `cluster.cert.*` | cert expiry sweeper cron | yes |
 | `anycloud.*` | idempotency / helm timeout / webhook / mTLS | yes |
 | `webhook.*` | 외부 portal push | yes |
 | `management.*` | Actuator / Prometheus | yes |

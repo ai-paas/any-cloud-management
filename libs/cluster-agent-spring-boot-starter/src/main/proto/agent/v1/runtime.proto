@@ -213,7 +213,7 @@ enum CommandType {
   // ============================================================================
   // Helm release resource enumeration.
   // 한 helm release (app.kubernetes.io/instance=<release>) 가 만든 K8s 자원들을 한 번에 list.
-  // Backend 가 이전에 fabric8 로 11 종 자원을 직렬 호출하던 HelmReleaseScanner 를 agent 로 이전.
+  // Backend 가 11 종 자원을 직렬 호출하던 HelmReleaseScanner 를 agent 로 이전.
   // ============================================================================
 
   // params: { namespace(required), release(required) }.

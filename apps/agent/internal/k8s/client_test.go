@@ -9,8 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/version"
-	"k8s.io/client-go/kubernetes/fake"
 	fakediscovery "k8s.io/client-go/discovery/fake"
+	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
 )
 
@@ -29,8 +29,8 @@ func TestRealClient_ListPods(t *testing.T) {
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: "nginx-1", Namespace: "web"},
 		Status: corev1.PodStatus{
-			Phase: corev1.PodRunning,
-			PodIP: "10.0.0.5",
+			Phase:             corev1.PodRunning,
+			PodIP:             "10.0.0.5",
 			ContainerStatuses: []corev1.ContainerStatus{{Ready: true}, {Ready: false}},
 		},
 		Spec: corev1.PodSpec{NodeName: "node-1"},
@@ -62,7 +62,7 @@ func TestRealClient_ListPods_AllNamespaces(t *testing.T) {
 	}
 	c := newFakeRealClient(pods...)
 
-	got, err := c.ListPods(context.Background(), "")     // all-namespaces.
+	got, err := c.ListPods(context.Background(), "") // all-namespaces.
 	if err != nil {
 		t.Fatalf("ListPods: %v", err)
 	}
@@ -101,10 +101,10 @@ func TestRealClient_ClusterInfo(t *testing.T) {
 
 func TestInferDistribution(t *testing.T) {
 	cases := map[string]string{
-		"v1.34.3":              "kubeadm",
-		"v1.34.3-eks-12345":    "eks",
-		"v1.34.3-gke.100":      "gke",
-		"v1.34.3+k3s1":         "k3s",
+		"v1.34.3":           "kubeadm",
+		"v1.34.3-eks-12345": "eks",
+		"v1.34.3-gke.100":   "gke",
+		"v1.34.3+k3s1":      "k3s",
 	}
 	for input, want := range cases {
 		if got := inferDistribution(input); got != want {

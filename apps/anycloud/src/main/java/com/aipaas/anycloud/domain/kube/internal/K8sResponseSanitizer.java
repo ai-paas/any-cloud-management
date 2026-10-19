@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
  *   <li>kube 응답 외 임의 JSON 에는 무해 (metadata 노드 없으면 nop).</li>
  * </ul>
  * <p>
- * 호출 위치: agent path / fabric8 path 모두 응답 DTO build 직전. 두 path 통합.
+ * 호출 위치: 응답 DTO build 직전.
  */
 public final class K8sResponseSanitizer {
 

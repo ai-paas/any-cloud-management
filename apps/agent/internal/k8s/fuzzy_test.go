@@ -13,12 +13,12 @@ func TestLevenshtein(t *testing.T) {
 	}{
 		{"", "", 0},
 		{"pods", "pods", 0},
-		{"pod", "pods", 1},        // 1 insert
-		{"pds", "pods", 1},        // 1 insert
-		{"ppds", "pods", 1},       // 1 sub (p→o)
-		{"xyz", "pods", 4},        // 3 sub + 1 del
-		{"stragecls", "storageclass", 3},        // 운영 typo — within threshold
-		{"storageclas", "storageclasses", 3},    // 3 inserts ("ses")
+		{"pod", "pods", 1},                   // 1 insert
+		{"pds", "pods", 1},                   // 1 insert
+		{"ppds", "pods", 1},                  // 1 sub (p→o)
+		{"xyz", "pods", 4},                   // 3 sub + 1 del
+		{"stragecls", "storageclass", 3},     // 운영 typo — within threshold
+		{"storageclas", "storageclasses", 3}, // 3 inserts ("ses")
 	}
 	for _, c := range cases {
 		got := levenshtein(c.a, c.b)
@@ -93,10 +93,10 @@ func TestTopKByLevenshtein_UnrelatedExcluded(t *testing.T) {
 func TestTopKByLevenshtein_KCap(t *testing.T) {
 	// Many close candidates — should cap at K.
 	kinds := []APIResourceInfo{
-		{Plural: "pod"},  // 1
-		{Plural: "pos"},  // 1
-		{Plural: "pds"},  // 1
-		{Plural: "ods"},  // 1
+		{Plural: "pod"}, // 1
+		{Plural: "pos"}, // 1
+		{Plural: "pds"}, // 1
+		{Plural: "ods"}, // 1
 	}
 	got := TopKByLevenshtein("pods", kinds, 2)
 	if len(got) != 2 {
@@ -112,7 +112,7 @@ func TestTopKByLevenshtein_DeterministicTieBreak(t *testing.T) {
 		{Plural: "cc"},
 	}
 	got := TopKByLevenshtein("ab", kinds, 3)
-	want := []string{"aa", "bb", "cc"}     // all distance 1, alphabetical order.
+	want := []string{"aa", "bb", "cc"} // all distance 1, alphabetical order.
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("tie-break = %v, want %v", got, want)
 	}

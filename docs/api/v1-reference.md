@@ -471,7 +471,6 @@ DELETE /v1/clusters/demo-aws-01    # → 202 Operation
 | `anycloud.helm.long-exec-timeout` | `10m` | install/upgrade ProcessBuilder timeout |
 | `csp-credential.encryption-key` | _(empty)_ | credential AES-GCM key. min 32 chars, sentinel 거부 |
 | `security.auth.enabled` | `false` | gateway 가 인증 담당 시 false. true 면 token 필수 |
-| `cluster.cert.expiry-check.cron` | `0 0 2 * * *` | cert scan cron (KST 11am ≒ UTC 2am) |
 | `pulumi.backup.cron` | `0 0 3 * * *` | Pulumi state daily backup |
 | `pulumi.backup.restore-dry-run.cron` | `0 30 3 * * *` | backup 검증 dry-run |
 | `anycloud.idempotency.cleanup.cron` | `0 0 * * * *` | hourly cleanup of expired idempotency records |
@@ -492,7 +491,6 @@ Prometheus metric: `cache.gets{cache=..., result=hit|miss}` / `cache.puts` / `ca
 
 | Schedule | lockAtMostFor | lockAtLeastFor |
 |---|---|---|
-| `certExpiryScan` | 1h | 5m |
 | `pulumiStateBackup` | 2h | 10m |
 | `pulumiStateBackupValidate` | 1h | 10m |
 | `idempotencyCleanup` | 10m | 1m |

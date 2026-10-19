@@ -29,14 +29,14 @@ import lombok.NoArgsConstructor;
  *   }
  * }
  *
- * # 외부 클러스터 등록 — kubeconfig 직접
+ * # 외부 클러스터 등록 — metadata 만. 자격증명은 받지 않는다.
  * {
  *   "source": "registered",
  *   "clusterName": "imported-aws-01",
  *   "spec": {
  *     "provider": "aws",
  *     "clusterType": "EKS",
- *     "kubeconfig": "apiVersion: ...",
+ *     "hasGpuNodes": false,
  *     "description": "..."
  *   }
  * }

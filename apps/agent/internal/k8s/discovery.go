@@ -22,11 +22,11 @@ import (
 
 // APIResourceInfo — discovery API 결과의 단일 resource. UI 의 kind picker 용으로 정규화된 view.
 type APIResourceInfo struct {
-	Plural     string   // "pods", "deployments", "storageclasses"
-	Singular   string   // "pod"
-	Kind       string   // "Pod"
-	Group      string   // "", "apps", "storage.k8s.io"
-	Version    string   // "v1"
+	Plural     string // "pods", "deployments", "storageclasses"
+	Singular   string // "pod"
+	Kind       string // "Pod"
+	Group      string // "", "apps", "storage.k8s.io"
+	Version    string // "v1"
 	Namespaced bool
 	ShortNames []string // ["po"] for pods, [] when absent
 }

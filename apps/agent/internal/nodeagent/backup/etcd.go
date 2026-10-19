@@ -21,8 +21,8 @@ const (
 	DefaultEtcdCa       = "/etc/kubernetes/pki/etcd/ca.crt"
 	DefaultEtcdCert     = "/etc/kubernetes/pki/etcd/healthcheck-client.crt"
 	DefaultEtcdKey      = "/etc/kubernetes/pki/etcd/healthcheck-client.key"
-	DefaultChunkSize    = 1024 * 1024 // 1 MB
-	MinChunkSize        = 16 * 1024   // 16 KB
+	DefaultChunkSize    = 1024 * 1024     // 1 MB
+	MinChunkSize        = 16 * 1024       // 16 KB
 	MaxChunkSize        = 4 * 1024 * 1024 // 4 MB (gRPC default max msg size)
 )
 
@@ -63,11 +63,11 @@ type ChunkSink func(seq int, payload []byte, isLast bool, totalSha256 string, to
 // RunEtcdBackup — etcdctl snapshot save 실행 후 결과 file 을 ChunkSink 로 chunk 전송.
 //
 // 절차:
-//   1. mktemp /tmp/etcd-backup-*.db
-//   2. etcdctl snapshot save <tmpfile>  — environment ETCDCTL_API=3 강제
-//   3. file 을 chunk 단위로 읽어 sink.Send
-//   4. last chunk 에 SHA-256 + size + etcd_version metadata
-//   5. tmpfile 삭제
+//  1. mktemp /tmp/etcd-backup-*.db
+//  2. etcdctl snapshot save <tmpfile>  — environment ETCDCTL_API=3 강제
+//  3. file 을 chunk 단위로 읽어 sink.Send
+//  4. last chunk 에 SHA-256 + size + etcd_version metadata
+//  5. tmpfile 삭제
 //
 // caller (gRPC handler) 가 stream 종료 처리 책임.
 func RunEtcdBackup(ctx context.Context, opts EtcdBackupOptions, sink ChunkSink) error {

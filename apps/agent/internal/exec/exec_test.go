@@ -15,10 +15,10 @@ import (
 	"anycloud/agent/internal/config"
 	agentv1 "anycloud/agent/internal/gen/agent/v1"
 	"anycloud/agent/internal/k8s"
+	"google.golang.org/grpc"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
-	"google.golang.org/grpc"
 )
 
 // ---- in-process AgentRuntime stub ----
@@ -112,7 +112,7 @@ func denyAllLoader(t *testing.T) *config.Loader {
 	t.Helper()
 	cs := fake.NewSimpleClientset()
 	loader := config.NewLoader(cs, "aipaas-system", "missing-cm")
-	_ = loader.LoadOnce(context.Background())     // CM not found → deny-all.
+	_ = loader.LoadOnce(context.Background()) // CM not found → deny-all.
 	return loader
 }
 
@@ -144,7 +144,7 @@ func TestRun_AllowListDeniesNamespace_SendsEndPacket(t *testing.T) {
 	defer cleanup()
 
 	kube := &kubeStub{executed: make(chan k8s.PodExecOptions, 1)}
-	runner := New(kube, permissiveLoader(t, "default"))     // "kube-system" not allowed.
+	runner := New(kube, permissiveLoader(t, "default")) // "kube-system" not allowed.
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -155,7 +155,7 @@ func TestRun_AllowListDeniesNamespace_SendsEndPacket(t *testing.T) {
 		SessionID:          "sess-deny",
 		Request: &agentv1.ExecRequest{
 			SessionId: "sess-deny",
-			Namespace: "kube-system",     // denied.
+			Namespace: "kube-system", // denied.
 			Pod:       "etcd-0",
 			Command:   []string{"/bin/sh"},
 		},

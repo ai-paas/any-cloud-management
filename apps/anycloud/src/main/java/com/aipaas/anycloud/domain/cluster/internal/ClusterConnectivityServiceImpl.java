@@ -5,7 +5,6 @@ import com.aipaas.anycloud.configuration.properties.AsyncConfig;
 import com.aipaas.anycloud.domain.agent.ClusterAgentEntity;
 import com.aipaas.anycloud.domain.agent.ClusterAgentRepository;
 import com.aipaas.anycloud.domain.agent.model.ClusterAgentStatus;
-import com.aipaas.anycloud.domain.cluster.AgentBootstrapKubeClient;
 import com.aipaas.anycloud.domain.cluster.ClusterConnectivityService;
 import com.aipaas.anycloud.domain.cluster.ClusterEntity;
 import com.aipaas.anycloud.domain.cluster.ClusterRepository;
@@ -25,7 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * {@link ClusterConnectivityService} impl. agent-first + fabric8 fallback 로직 + scheduler.
+ * {@link ClusterConnectivityService} impl. agent heartbeat 판정 + 주기 sweep scheduler.
  *
  * <p>ClusterServiceImpl 에서 분리. 동일 로직이지만 단일 책임 (connectivity/status sync).
  */
@@ -36,7 +35,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class ClusterConnectivityServiceImpl implements ClusterConnectivityService {
 
     private final ClusterRepository clusterRepository;
-    private final AgentBootstrapKubeClient bootstrapKubeClient;
     private final ClusterAgentRepository clusterAgentRepository;
     private final AgentHealthService agentHealthService;
 
@@ -44,10 +42,9 @@ public class ClusterConnectivityServiceImpl implements ClusterConnectivityServic
     public boolean testClusterConnection(String clusterName) {
         log.info("Testing connection for cluster: {}", clusterName);
 
-        ClusterEntity cluster =
-                clusterRepository.findById(clusterName).orElseThrow(() -> new ClusterNotFoundException(clusterName));
+        // 존재하지 않는 cluster 는 "도달 불가" 가 아니라 호출 오류다.
+        clusterRepository.findById(clusterName).orElseThrow(() -> new ClusterNotFoundException(clusterName));
 
-        // Agent path 우선 — fresh heartbeat 가 있으면 reachable. fabric8 ping 불필요.
         ClusterHealth health = agentHealthService.getHealth(clusterName);
         if (health.healthy()) {
             log.info(
@@ -56,19 +53,9 @@ public class ClusterConnectivityServiceImpl implements ClusterConnectivityServic
                     clusterName);
             return true;
         }
-        // agent unhealthy 또는 미등록 → fabric8 fallback (kubeconfig 기반 ping).
-        log.debug("agent path unhealthy for cluster={}: {} — falling back to fabric8", clusterName, health.summary());
-        try {
-            return Boolean.TRUE.equals(bootstrapKubeClient.execute(cluster, client -> {
-                client.namespaces().list();
-                client.nodes().list();
-                log.info("Connection test OK (source=FABRIC8): cluster={}", clusterName);
-                return true;
-            }));
-        } catch (Exception e) {
-            log.warn("Connection test failed for cluster {}: {}", clusterName, e.getMessage());
-            return false;
-        }
+        // agent 가 유일한 경로다. backend 는 cluster 자격증명이 없어 직접 ping 할 수단이 없다.
+        log.info("Connection test failed (agent unhealthy): cluster={}, {}", clusterName, health.summary());
+        return false;
     }
 
     @Override
@@ -91,38 +78,11 @@ public class ClusterConnectivityServiceImpl implements ClusterConnectivityServic
             return;
         }
 
-        // Fabric8 fallback (agent 미설치/미활성). 의 strict-mode 시점에 본 블록 제거.
-        log.debug(
-                "agent unhealthy for cluster={}: {} — falling back to fabric8",
-                clusterEntity.getId(),
-                health.summary());
-        try {
-            String version = bootstrapKubeClient.execute(clusterEntity, client -> {
-                client.namespaces().list();
-                try {
-                    var versionInfo = client.getKubernetesVersion();
-                    if (versionInfo != null && versionInfo.getGitVersion() != null) {
-                        return versionInfo.getGitVersion();
-                    }
-                } catch (Exception versionException) {
-                    log.warn(
-                            "Failed to get Kubernetes version for cluster {}: {}",
-                            clusterEntity.getId(),
-                            versionException.getMessage());
-                }
-                return "Version Unknown";
-            });
-
-            clusterEntity.transitionStatus(ClusterStatus.ACTIVE, "health.ok");
-            clusterEntity.setVersion(version);
-            clusterRepository.save(clusterEntity);
-            log.info("Cluster {} updated (source=FABRIC8): status=ACTIVE, version={}", clusterEntity.getId(), version);
-        } catch (Exception e) {
-            log.warn("Cluster {} is not accessible: {}", clusterEntity.getId(), e.getMessage());
-            clusterEntity.transitionStatus(ClusterStatus.INACTIVE, "health.fail");
-            clusterEntity.setVersion("UNKNOWN");
-            clusterRepository.save(clusterEntity);
-        }
+        // agent 가 유일한 경로다. heartbeat 가 없으면 버전도 상태도 알 수 없다.
+        log.warn("Cluster {} is not accessible: {}", clusterEntity.getId(), health.summary());
+        clusterEntity.transitionStatus(ClusterStatus.INACTIVE, "health.fail");
+        clusterEntity.setVersion("UNKNOWN");
+        clusterRepository.save(clusterEntity);
     }
 
     @Override
@@ -142,7 +102,7 @@ public class ClusterConnectivityServiceImpl implements ClusterConnectivityServic
         return CompletableFuture.completedFuture(null);
     }
 
-    /** Periodic sweep 시 한 chunk 당 fan-out 되는 cluster 수. ClusterCertExpiryMonitor 와 동일한 50 — 너무 크면 KUBERNETES_EXECUTOR pool (core 4 / max 8) 가 한 chunk 의 처리에 묶여 caller-runs backpressure 가 발생해 sweep 자체가 느려진다. */
+    /** Periodic sweep 의 chunk 당 fan-out 수. 너무 크면 KUBERNETES_EXECUTOR pool (core 4 / max 8) 가 한 chunk 에 묶여 caller-runs backpressure 로 sweep 이 오히려 느려진다. */
     private static final int FAN_OUT_CHUNK_SIZE = 50;
 
     @Override

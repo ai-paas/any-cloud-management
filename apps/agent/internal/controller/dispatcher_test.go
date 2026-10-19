@@ -13,12 +13,12 @@ import (
 	agentv1 "anycloud/agent/internal/gen/agent/v1"
 	"anycloud/agent/internal/helm"
 	"anycloud/agent/internal/k8s"
+	"google.golang.org/protobuf/types/known/structpb"
 	"helm.sh/helm/v3/pkg/cli"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // ===== mocks =====
@@ -32,8 +32,8 @@ type mockK8sClient struct {
 	listResFn  func(ctx context.Context, opts k8s.ListResourcesOptions) (*k8s.ListResourcesResult, error)
 	applyFn    func(ctx context.Context, opts k8s.ApplyManifestOptions) (*k8s.ApplyManifestResult, error)
 	// resolveFn — 테스트가 RESTMapper 동작을 흉내내기 위한 stub. nil 이면 mockResolveDefault 사용.
-	resolveFn      func(input string) (k8s.ResolvedResource, error)
-	listAPIResFn   func(ctx context.Context) ([]k8s.APIResourceInfo, error)
+	resolveFn    func(input string) (k8s.ResolvedResource, error)
+	listAPIResFn func(ctx context.Context) ([]k8s.APIResourceInfo, error)
 	// clientset — APPLY_AGENT_CONFIG 등 raw clientset 을 필요로 하는 명령용. nil 이면 Clientset() 도 nil.
 	clientset kubernetes.Interface
 }
@@ -49,29 +49,29 @@ func mockResolveDefault(input string) (k8s.ResolvedResource, error) {
 	}
 	// lowercase singular / plural / short → spec
 	table := map[string]spec{
-		"pod":   {"pods", "", "v1", true},
-		"pods":  {"pods", "", "v1", true},
-		"po":    {"pods", "", "v1", true},
-		"node":  {"nodes", "", "v1", false},
-		"nodes": {"nodes", "", "v1", false},
-		"no":    {"nodes", "", "v1", false},
-		"namespace":  {"namespaces", "", "v1", false},
-		"namespaces": {"namespaces", "", "v1", false},
-		"ns":         {"namespaces", "", "v1", false},
-		"service":  {"services", "", "v1", true},
-		"services": {"services", "", "v1", true},
-		"svc":      {"services", "", "v1", true},
-		"configmap":  {"configmaps", "", "v1", true},
-		"configmaps": {"configmaps", "", "v1", true},
-		"cm":         {"configmaps", "", "v1", true},
-		"secret":     {"secrets", "", "v1", true},
-		"secrets":    {"secrets", "", "v1", true},
-		"deployment":  {"deployments", "apps", "v1", true},
-		"deployments": {"deployments", "apps", "v1", true},
-		"deploy":      {"deployments", "apps", "v1", true},
-		"storageclass":   {"storageclasses", "storage.k8s.io", "v1", false},
-		"storageclasses": {"storageclasses", "storage.k8s.io", "v1", false},
-		"sc":             {"storageclasses", "storage.k8s.io", "v1", false},
+		"pod":                       {"pods", "", "v1", true},
+		"pods":                      {"pods", "", "v1", true},
+		"po":                        {"pods", "", "v1", true},
+		"node":                      {"nodes", "", "v1", false},
+		"nodes":                     {"nodes", "", "v1", false},
+		"no":                        {"nodes", "", "v1", false},
+		"namespace":                 {"namespaces", "", "v1", false},
+		"namespaces":                {"namespaces", "", "v1", false},
+		"ns":                        {"namespaces", "", "v1", false},
+		"service":                   {"services", "", "v1", true},
+		"services":                  {"services", "", "v1", true},
+		"svc":                       {"services", "", "v1", true},
+		"configmap":                 {"configmaps", "", "v1", true},
+		"configmaps":                {"configmaps", "", "v1", true},
+		"cm":                        {"configmaps", "", "v1", true},
+		"secret":                    {"secrets", "", "v1", true},
+		"secrets":                   {"secrets", "", "v1", true},
+		"deployment":                {"deployments", "apps", "v1", true},
+		"deployments":               {"deployments", "apps", "v1", true},
+		"deploy":                    {"deployments", "apps", "v1", true},
+		"storageclass":              {"storageclasses", "storage.k8s.io", "v1", false},
+		"storageclasses":            {"storageclasses", "storage.k8s.io", "v1", false},
+		"sc":                        {"storageclasses", "storage.k8s.io", "v1", false},
 		"customresourcedefinition":  {"customresourcedefinitions", "apiextensions.k8s.io", "v1", false},
 		"customresourcedefinitions": {"customresourcedefinitions", "apiextensions.k8s.io", "v1", false},
 		"crd":                       {"customresourcedefinitions", "apiextensions.k8s.io", "v1", false},
@@ -137,7 +137,7 @@ func (m *mockK8sClient) ExecInPod(ctx context.Context, opts k8s.PodExecOptions, 
 	return errors.New("ExecInPod not stubbed (dispatcher tests do not route exec)")
 }
 func (m *mockK8sClient) CountGpuNodes(ctx context.Context) (int, error) {
-	return 0, nil     // dispatcher tests don't exercise GPU count.
+	return 0, nil // dispatcher tests don't exercise GPU count.
 }
 func (m *mockK8sClient) IssueServiceAccountToken(ctx context.Context, opts k8s.TokenRequestOptions) (k8s.TokenRequestResult, error) {
 	return k8s.TokenRequestResult{}, errors.New("IssueServiceAccountToken not stubbed")
@@ -472,8 +472,8 @@ func TestHandle_InstallAddon_AllowedChart_Success(t *testing.T) {
 	}
 	d := New("instance-1", "", nil, helmMock, permissiveLoader(t))
 	params, _ := structpb.NewStruct(map[string]interface{}{
-		"chart": "prometheus-community/kube-prometheus-stack",
-		"version": "46.0.0",
+		"chart":     "prometheus-community/kube-prometheus-stack",
+		"version":   "46.0.0",
 		"namespace": "monitoring",
 		"release":   "prom",
 	})
@@ -514,8 +514,8 @@ func TestHandle_InstallAddon_ChartNotAllowed_Reject(t *testing.T) {
 func TestHandle_InstallAddon_VersionOutOfRange_Reject(t *testing.T) {
 	d := New("instance-1", "", nil, &mockHelmClient{}, permissiveLoader(t))
 	params, _ := structpb.NewStruct(map[string]interface{}{
-		"chart": "prometheus-community/kube-prometheus-stack",
-		"version": "60.0.0",     // allowlist max 50.0.0.
+		"chart":     "prometheus-community/kube-prometheus-stack",
+		"version":   "60.0.0", // allowlist max 50.0.0.
 		"namespace": "monitoring",
 		"release":   "prom",
 	})
@@ -532,9 +532,9 @@ func TestHandle_InstallAddon_VersionOutOfRange_Reject(t *testing.T) {
 func TestHandle_InstallAddon_NamespaceNotAllowed_Reject(t *testing.T) {
 	d := New("instance-1", "", nil, &mockHelmClient{}, permissiveLoader(t))
 	params, _ := structpb.NewStruct(map[string]interface{}{
-		"chart": "prometheus-community/kube-prometheus-stack",
-		"version": "46.0.0",
-		"namespace": "production",     // allowlist 미허용.
+		"chart":     "prometheus-community/kube-prometheus-stack",
+		"version":   "46.0.0",
+		"namespace": "production", // allowlist 미허용.
 		"release":   "prom",
 	})
 	resp := d.Handle(&agentv1.CommandRequest{Type: agentv1.CommandType_INSTALL_ADDON, Params: params})
@@ -657,7 +657,7 @@ func TestHandle_DeleteResource_AllowedNamespace_Success(t *testing.T) {
 
 func TestHandle_DeleteResource_MissingParam_InvalidParams(t *testing.T) {
 	d := New("instance-1", "", &mockK8sClient{}, nil, permissiveLoader(t))
-	params, _ := structpb.NewStruct(map[string]interface{}{"kind": "pod"})     // name 누락.
+	params, _ := structpb.NewStruct(map[string]interface{}{"kind": "pod"}) // name 누락.
 	resp := d.Handle(&agentv1.CommandRequest{Type: agentv1.CommandType_DELETE_RESOURCE, Params: params})
 
 	if resp.GetStatus() != agentv1.Status_INVALID_PARAMS {
@@ -668,7 +668,7 @@ func TestHandle_DeleteResource_MissingParam_InvalidParams(t *testing.T) {
 func TestHandle_DeleteResource_NamespaceNotAllowed_Reject(t *testing.T) {
 	d := New("instance-1", "", &mockK8sClient{}, nil, permissiveLoader(t))
 	params, _ := structpb.NewStruct(map[string]interface{}{
-		"kind": "pod", "name": "nginx", "namespace": "production",     // not in allowlist.
+		"kind": "pod", "name": "nginx", "namespace": "production", // not in allowlist.
 	})
 	resp := d.Handle(&agentv1.CommandRequest{Type: agentv1.CommandType_DELETE_RESOURCE, Params: params})
 
@@ -691,7 +691,7 @@ func TestHandle_DeleteResource_ClusterScopedKind_BypassesNamespaceCheck(t *testi
 	}
 	d := New("instance-1", "", mock, nil, permissiveLoader(t))
 	params, _ := structpb.NewStruct(map[string]interface{}{
-		"kind": "node", "name": "node-1",     // namespace 비어있음.
+		"kind": "node", "name": "node-1", // namespace 비어있음.
 	})
 	resp := d.Handle(&agentv1.CommandRequest{Type: agentv1.CommandType_DELETE_RESOURCE, Params: params})
 
@@ -776,7 +776,7 @@ func TestHandle_GetResource_Success_ReturnsJsonResource(t *testing.T) {
 
 func TestHandle_GetResource_MissingParam_InvalidParams(t *testing.T) {
 	d := New("instance-1", "", &mockK8sClient{}, nil, permissiveLoader(t))
-	params, _ := structpb.NewStruct(map[string]interface{}{"kind": "pod"})     // name 누락.
+	params, _ := structpb.NewStruct(map[string]interface{}{"kind": "pod"}) // name 누락.
 	resp := d.Handle(&agentv1.CommandRequest{Type: agentv1.CommandType_GET_RESOURCE, Params: params})
 
 	if resp.GetStatus() != agentv1.Status_INVALID_PARAMS {
@@ -804,7 +804,7 @@ func TestHandle_GetResource_ClusterScopedKind_BypassesNamespaceCheck(t *testing.
 	}
 	d := New("instance-1", "", mock, nil, permissiveLoader(t))
 	params, _ := structpb.NewStruct(map[string]interface{}{
-		"kind": "node", "name": "node-1",     // no namespace.
+		"kind": "node", "name": "node-1", // no namespace.
 	})
 	resp := d.Handle(&agentv1.CommandRequest{Type: agentv1.CommandType_GET_RESOURCE, Params: params})
 
@@ -1165,7 +1165,7 @@ func TestHandle_ApplyManifest_ApplyFailure_PropagatesFailed(t *testing.T) {
 	}
 	d := New("instance-1", "", mock, nil, permissiveLoader(t))
 	params, _ := structpb.NewStruct(map[string]interface{}{
-		"manifest": "kind: Pod\nmetadata: { name: x }",
+		"manifest":  "kind: Pod\nmetadata: { name: x }",
 		"namespace": "web",
 	})
 	resp := d.Handle(&agentv1.CommandRequest{Type: agentv1.CommandType_APPLY_MANIFEST, Params: params})
@@ -1620,7 +1620,7 @@ allow:
 // LoadOnce 후엔 채워짐.
 func TestHandle_GetAgentConfig_LastReloadAt_AfterReload(t *testing.T) {
 	// LoadOnce 호출 전 — loader 가 emptyAllowList 만 가짐, meta 는 zero.
-	cs := fake.NewSimpleClientset()     // 빈 — ConfigMap 미존재.
+	cs := fake.NewSimpleClientset() // 빈 — ConfigMap 미존재.
 	loader := config.NewLoader(cs, "aipaas-system", "aipaas-agent-allowlist")
 	// GET_AGENT_CONFIG 가 deny-all 정책에선 commandAllowed false — 별도 loader 로 강제 허용.
 	// 대신 loader 의 LoadOnce 가 실패해도 GET_AGENT_CONFIG 통과시키는 별도 loader 가 필요.
@@ -1652,7 +1652,7 @@ func TestHandle_GetAgentConfig_LastReloadAt_AfterReload(t *testing.T) {
 	if _, perr := time.Parse(time.RFC3339, lastReload); perr != nil {
 		t.Errorf("last_reload_at not RFC3339: %q (%v)", lastReload, perr)
 	}
-	_ = loader     // initial-state loader는 별도 검증 path 가 까다로워 (deny-all) 본 테스트에서 사용 안함
+	_ = loader // initial-state loader는 별도 검증 path 가 까다로워 (deny-all) 본 테스트에서 사용 안함
 }
 
 // 명령이 allowlist 에 없으면 PERMISSION_DENIED.
@@ -1664,4 +1664,3 @@ func TestHandle_GetAgentConfig_NotInAllowlist_PermissionDenied(t *testing.T) {
 		t.Errorf("status = %v, want PERMISSION_DENIED", resp.GetStatus())
 	}
 }
-

@@ -40,10 +40,10 @@ func (o *PkiBackupOptions) applyDefaults() {
 // RunPkiBackup — /etc/kubernetes/pki (또는 IncludePaths 부분) 을 tar.gz 으로 묶어 ChunkSink 로 stream.
 //
 // 절차:
-//   1. mktemp /tmp/pki-backup-*.tar.gz
-//   2. include_paths 기준 (또는 전체) 탐색 → tar+gzip
-//   3. file 을 chunk 별 sink.Send
-//   4. last chunk 에 SHA-256 + size + file_count metadata
+//  1. mktemp /tmp/pki-backup-*.tar.gz
+//  2. include_paths 기준 (또는 전체) 탐색 → tar+gzip
+//  3. file 을 chunk 별 sink.Send
+//  4. last chunk 에 SHA-256 + size + file_count metadata
 func RunPkiBackup(ctx context.Context, opts PkiBackupOptions, sink ChunkSink) error {
 	opts.applyDefaults()
 

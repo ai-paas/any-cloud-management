@@ -107,7 +107,7 @@ func runtimeTestConfig(addr, token string) RuntimeConfig {
 	cfg.BackendAddr = addr
 	cfg.AgentIdentityToken = token
 	cfg.AgentInstanceID = "instance-1"
-	cfg.HeartbeatInterval = 0     // disabled — test 가 명시적으로 control.
+	cfg.HeartbeatInterval = 0 // disabled — test 가 명시적으로 control.
 	cfg.DialTimeout = 2 * time.Second
 	cfg.InitialBackoff = 50 * time.Millisecond
 	cfg.MaxBackoff = 500 * time.Millisecond
@@ -182,7 +182,7 @@ func TestRunStream_CommandRoundTrip(t *testing.T) {
 	}
 
 	cancel()
-	<-streamErr     // wait for RunStream to exit.
+	<-streamErr // wait for RunStream to exit.
 }
 
 func TestRunStream_HeartbeatSentPeriodically(t *testing.T) {
@@ -241,7 +241,7 @@ func TestRunStream_ContextCanceled_ReturnsCanceled(t *testing.T) {
 
 func TestRunStream_RejectsEmptyToken(t *testing.T) {
 	dispatcher := controller.New("instance-1", "", nil, nil, nil)
-	cfg := runtimeTestConfig("127.0.0.1:1", "")     // empty token.
+	cfg := runtimeTestConfig("127.0.0.1:1", "") // empty token.
 
 	err := RunStream(context.Background(), cfg, dispatcher, nil, nil, nil)
 	if err == nil {

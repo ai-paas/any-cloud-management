@@ -121,7 +121,7 @@ public interface ChartService {
      * 클러스터의 helm 릴리즈 리소스 목록을 조회합니다.
      * <p>
      * 가벼운 ref (kind/apiVersion/namespace/name) 만 반환. full spec/status 가 필요하면
-     * 호출자가 ref 별로 별도 GET. agent-only path — 에서 fabric8 fall-through
+     * 호출자가 ref 별로 별도 GET. agent-only path — fall-through
      * (HelmReleaseScanner) 는 제거됨. agent session 없거나 호출 실패 시 503 AGENT_UNAVAILABLE.
      *
      * @param clusterName 클러스터 이름

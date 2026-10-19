@@ -10,7 +10,7 @@ import java.util.List;
  * ClassName : KubeService
  * Type : interface
  * Description : 쿠버네티스 관련된 함수를 정리한 인터페이스입니다. 이후 모든 day-2 op 는
- *               agent path 전용 — fabric8 fall-through 없음.
+ *               agent path 전용 — fall-through 없음.
  * Related : KubeServiceImpl
  * </pre>
  */
@@ -36,22 +36,6 @@ public interface KubeService {
      * @param dryRun true 면 server-side dry-run. false 면 일반 apply 와 동일.
      */
     JsonNode applyResource(String clusterName, String namespace, String manifest, boolean dryRun);
-
-    /**
-     * Bootstrap-only manifest apply — backend 가 ClusterEntity 의 kubeconfig (CA / clientCert /
-     * clientKey) 로 직접 fabric8 KubernetesClient 만들어 server-side apply.
-     *
-     * <p>호출 시점: cluster 등록 직후 agent 가 아직 cluster 안에 없어 {@link #applyResource} 의
-     * agent gRPC routing 이 "no active session" 으로 실패하는 chicken-and-egg 케이스. Day-2 ops
-     * 는 여전히 {@link #applyResource} (agent-only). 본 메서드는 install-time 1회성 fallback.
-     *
-     * @param clusterName ClusterEntity.id — kubeconfig 조회용
-     * @param namespace manifest 의 metadata.namespace 가 비어있을 때 fallback. cluster-scoped 리소스면 무시.
-     * @param manifest YAML 또는 JSON. multi-doc YAML 도 지원.
-     * @return 적용된 자원의 K8s 표현 (마지막 자원 기준).
-     * @throws com.aipaas.anycloud.common.error.exception.CustomException kubeconfig 누락 / apply 실패 시.
-     */
-    JsonNode applyResourceViaBootstrap(String clusterName, String namespace, String manifest);
 
     boolean deleteResource(String clusterName, String namespace, String kind, String name);
 

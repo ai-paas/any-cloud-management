@@ -83,7 +83,7 @@ public class HelmCommandExecutor {
         return result.stdout() == null ? "" : result.stdout();
     }
 
-    /** {@code helm template <release> <chartDir> --namespace <ns> --values <valuesFile>} <p>cluster 와 무관 — 로컬에서 chart 를 manifest YAML 로 렌더. caller (AgentChartRenderer) 가 그 결과를 fabric8 server-side apply 로 cluster 에 적용. */
+    /** {@code helm template <release> <chartDir> --namespace <ns> --values <valuesFile>} <p>cluster 와 무관 — 로컬에서 chart 를 manifest YAML 로 렌더. caller (AgentChartRenderer) 가 그 결과를 agent 경유로 cluster 에 적용. */
     public List<String> templateArgs(String releaseName, Path chartDir, String namespace, Path valuesFile) {
         List<String> args = new ArrayList<>();
         args.add("template");

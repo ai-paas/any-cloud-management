@@ -72,7 +72,7 @@ func (s *Sweeper) sweepOnce(ctx context.Context) {
 	listCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	pods, err := s.kube.ListPodsRaw(listCtx, "", ManagedByLabel)     // all namespaces
+	pods, err := s.kube.ListPodsRaw(listCtx, "", ManagedByLabel) // all namespaces
 	if err != nil {
 		slog.Warn("debug pod sweeper: list failed (will retry next tick)",
 			slog.String("error", err.Error()))

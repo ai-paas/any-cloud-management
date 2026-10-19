@@ -29,7 +29,7 @@ class ClusterAgentValueInjectorTest extends AbstractUnitTest {
                 tlsEnabled, caCert, serverName, insecureSkipVerify);
         var grpc = new com.aipaas.anycloud.domain.agent.AgentProperties.Grpc(null, publicEndpoint, tls);
         var manifest = new com.aipaas.anycloud.domain.agent.AgentProperties.Manifest(imageRef, null, null, null, null);
-        return new com.aipaas.anycloud.domain.agent.AgentProperties(grpc, manifest, null, null, null);
+        return new com.aipaas.anycloud.domain.agent.AgentProperties(grpc, manifest, null, null);
     }
 
     private final ClusterAgentValueInjector injector =

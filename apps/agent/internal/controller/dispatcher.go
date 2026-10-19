@@ -225,6 +225,7 @@ func (d *Dispatcher) commandAllowed(typeName string) bool {
 //   - single    : 모든 명령 허용 (단일 pod 가 모든 명령 처리, 기존 default)
 //   - core      : coreCommands 안에 있어야
 //   - installer : installerCommands 안에 있어야
+//
 // 알 수 없는 mode 값은 conservative 하게 single 처럼 처리 (forward-compat).
 func (d *Dispatcher) modeAllowsCommand(typeName string) bool {
 	switch d.mode {

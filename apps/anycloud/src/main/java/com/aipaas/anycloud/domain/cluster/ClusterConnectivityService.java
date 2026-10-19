@@ -3,14 +3,14 @@ package com.aipaas.anycloud.domain.cluster;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * cluster 의 connectivity / status sync 책임 — agent path 우선, fabric8 ping fallback.
+ * cluster 의 connectivity / status sync 책임. 판정 근거는 agent heartbeat 뿐이다.
  *
  * <p>Impl: {@link com.aipaas.anycloud.domain.cluster.internal.ClusterConnectivityServiceImpl}.
  */
 public interface ClusterConnectivityService {
 
     /**
-     * Cluster 연결 가능 여부 — agent path 우선 (fresh heartbeat), 실패 시 fabric8 ping fallback.
+     * Cluster 연결 가능 여부 — agent 의 fresh heartbeat 유무.
      *
      * @return true = reachable, false = unreachable (예외 throw 안 함, 단 cluster 미존재 시
      *         {@link com.aipaas.anycloud.common.error.exception.ClusterNotFoundException}).
@@ -20,7 +20,7 @@ public interface ClusterConnectivityService {
     /**
      * Cluster 의 K8s version + status 를 동기 업데이트.
      *
-     * <p>우선순위: (1) agent 의 fresh k8sVersion → (2) fabric8 직접 조회 → (3) UNKNOWN + INACTIVE.
+     * <p>agent 의 fresh k8sVersion 이 없으면 UNKNOWN + INACTIVE.
      */
     void updateClusterVersionAndStatus(ClusterEntity clusterEntity);
 

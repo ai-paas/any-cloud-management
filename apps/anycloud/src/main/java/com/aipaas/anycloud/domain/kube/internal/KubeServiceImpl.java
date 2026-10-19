@@ -3,9 +3,6 @@ package com.aipaas.anycloud.domain.kube.internal;
 import com.aipaas.anycloud.common.error.enums.ErrorCode;
 import com.aipaas.anycloud.common.error.exception.ClusterNotFoundException;
 import com.aipaas.anycloud.common.error.exception.CustomException;
-import com.aipaas.anycloud.domain.cluster.AgentBootstrapKubeClient;
-import com.aipaas.anycloud.domain.cluster.ClusterEntity;
-import com.aipaas.anycloud.domain.cluster.ClusterRepository;
 import com.aipaas.anycloud.domain.kube.KubeService;
 import com.aipaas.anycloud.domain.kube.Namespaces;
 import com.aipaas.anycloud.domain.kube.PagedKubeResourceResponse;
@@ -20,15 +17,9 @@ import io.aipaas.cluster.agent.runtime.KubeRoutingException;
 import io.aipaas.cluster.agent.runtime.ResolvedResource;
 import io.aipaas.cluster.agent.runtime.ResourceKindInfo;
 import io.aipaas.cluster.agent.runtime.UnsupportedKindException;
-import io.fabric8.kubernetes.api.model.HasMetadata;
-import io.fabric8.kubernetes.client.dsl.base.PatchContext;
-import io.fabric8.kubernetes.client.dsl.base.PatchType;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -43,8 +34,8 @@ import org.springframework.stereotype.Service;
  * ClassName : KubeServiceImpl
  * Type : class
  * Description : 쿠버네티스 리소스 조회·삭제 day-2 서비스. 이후 모든 ops 는
- *               {@link KubeResourceService} (cluster agent) 로 routing — backend 는 fabric8
- *               client 를 보유하지 않는다.
+ *               {@link KubeResourceService} (cluster agent) 로 routing — backend 는 K8s API
+ *               클라이언트를 보유하지 않는다.
  * Related : KubeResourceService (starter)
  * </pre>
  */
@@ -56,9 +47,6 @@ import org.springframework.stereotype.Service;
  * <li>Day-2 ops routing — {@code kubeResourceService} (agent stream). 모든
  * list/get/delete 가
  * 이 path 만 사용.</li>
- * <li>Bootstrap-only fabric8 fallback — {@code bootstrapKubeClient} +
- * {@code clusterRepository}.
- * cluster 등록 직후 agent 미존재 chicken-and-egg 해소 전용.</li>
  * <li>Error classification + degraded metric — {@code degradedReasonCounter} +
  * private classifier
  * methods. 향후 {@code KubeErrorClassifier} 로 추출 가능.</li>
@@ -79,15 +67,6 @@ public class KubeServiceImpl implements KubeService {
      * path.
      */
     private final KubeResourceService kubeResourceService;
-    /**
-     * Bootstrap-only fabric8 client cache — cluster 등록 직후 agent 미존재 시
-     * chicken-and-egg 해소.
-     */
-    private final AgentBootstrapKubeClient bootstrapKubeClient;
-    /**
-     * ClusterEntity 의 kubeconfig 조회 — bootstrap path 전용. day-2 ops 는 entity 접근 안 함.
-     */
-    private final ClusterRepository clusterRepository;
 
     private final KubeDegradedMetricsRecorder degradedMetricsRecorder;
 
@@ -95,14 +74,11 @@ public class KubeServiceImpl implements KubeService {
     @org.springframework.beans.factory.annotation.Value("${security.kube.redact-secrets:true}")
     private boolean redactSecrets;
 
-    /** log marker — day-2 = AGENT, install-time bootstrap fallback = BOOTSTRAP. */
+    /** log marker — 모든 ops 가 agent 경유다. */
     private static final String SRC_AGENT = "AGENT";
-
-    private static final String SRC_BOOTSTRAP = "BOOTSTRAP";
-
     /**
      * managedFields strip + (optional) Secret redact 의 단일 진입점.
-     * 모든 agent path / bootstrap path 의 응답이 본 helper 를 통과해 일관 sanitize.
+     * 모든 agent path 의 응답이 본 helper 를 통과해 일관 sanitize.
      */
     private JsonNode sanitize(JsonNode node) {
         JsonNode stripped = K8sResponseSanitizer.stripManagedFields(node);
@@ -116,7 +92,7 @@ public class KubeServiceImpl implements KubeService {
      * Day-2 agent path 실패 시 항상 {@link ErrorCode#AGENT_UNAVAILABLE} 로 변환.
      *
      * <p>
-     * fabric8 fall-through 제거 — 모든 day-2 path 가 agent-only.
+     * 모든 day-2 path 가 agent-only.
      * {@code KubeResourceService.isActiveFor=false} 또는 {@link KubeRoutingException}
      * →
      * 503 AGENT_UNAVAILABLE 즉시. caller (UI) 는 cluster degraded 알림/재시도 결정.
@@ -150,7 +126,7 @@ public class KubeServiceImpl implements KubeService {
      * 지정 kind 의 자원 목록을 한 번에 모두 반환 — agent-only.
      *
      * <p>
-     * legacy 경로 (fabric8 + {@link ResourceType} dispatcher) 제거. agent 의
+     * legacy 경로 ({@link ResourceType} dispatcher) 제거. agent 의
      * {@code LIST_RESOURCES} 를 큰 limit 으로 호출해 동일 결과 산출. caller (legacy /v1
      * endpoint)
      * 의 페이지 미사용 시그니처를 유지하면서 day-2 path 통합.
@@ -235,76 +211,6 @@ public class KubeServiceImpl implements KubeService {
         }
     }
 
-    /**
-     * Bootstrap path — ClusterEntity 의 kubeconfig 로 fabric8 client 만들어 server-side
-     * apply.
-     *
-     * <p>
-     * 호출 시점: cluster 등록 직후. day-2 ops 는 절대 이걸 부르지 않는다.
-     * {@link AgentApiManagedInstaller}
-     * 가 {@link #applyResource} 가 AGENT_UNAVAILABLE 로 실패할 때만 fallback 으로 사용.
-     *
-     * <p>
-     * fabric8 의 multi-doc YAML 지원으로 manifest 안의 모든 resource 를 한 번에 apply. 마지막
-     * resource 의 K8s 표현을 반환 (호출자가 단일 결과만 필요).
-     */
-    @Override
-    public JsonNode applyResourceViaBootstrap(String clusterName, String namespace, String manifest) {
-        if (manifest == null || manifest.isBlank()) {
-            throw new IllegalArgumentException("manifest body is required");
-        }
-        ClusterEntity cluster =
-                clusterRepository.findById(clusterName).orElseThrow(() -> new ClusterNotFoundException(clusterName));
-
-        return bootstrapKubeClient.execute(cluster, client -> {
-            // server-side apply force=true. 기존에 kubectl edit / 다른 fieldManager 로
-            // 수정된 필드가 있으면 default apply 가 FieldManagerConflict (409) 로 fail. anycloud 가
-            // 권한 있는 운영 도구 입장에서 ownership 가져옴 (helm-style 동작).
-            final PatchContext apply = new PatchContext.Builder()
-                    .withPatchType(PatchType.SERVER_SIDE_APPLY)
-                    .withFieldManager("anycloud-backend")
-                    .withForce(true)
-                    .build();
-
-            // helm 의 --create-namespace 와 동등 — manifest 의 namespaced 리소스가 참조하는 namespace 가
-            // 없으면 fabric8 가 PATCH 단계에서 404 로 즉시 fail. 호출 측에서 명시한 namespace 가 비어있지
-            // 않으면 idempotent server-side apply 로 먼저 만들어둔다. 이미 존재하면 no-op.
-            if (namespace != null && !namespace.isBlank()) {
-                io.fabric8.kubernetes.api.model.Namespace ns = new io.fabric8.kubernetes.api.model.NamespaceBuilder()
-                        .withNewMetadata()
-                        .withName(namespace)
-                        .endMetadata()
-                        .build();
-                client.resource(ns).patch(apply, ns);
-                log.info("BOOTSTRAP namespace ensured: cluster={}, ns={}", clusterName, namespace);
-            }
-
-            List<HasMetadata> resources = client.load(
-                            new ByteArrayInputStream(manifest.getBytes(StandardCharsets.UTF_8)))
-                    .items();
-            List<HasMetadata> applied = new ArrayList<>();
-            for (HasMetadata r : resources) {
-                // manifest 의 metadata.namespace 가 비어있고 cluster-scoped 가 아니면 namespace 인자 사용.
-                if ((r.getMetadata().getNamespace() == null
-                                || r.getMetadata().getNamespace().isBlank())
-                        && namespace != null
-                        && !namespace.isBlank()) {
-                    r.getMetadata().setNamespace(namespace);
-                }
-                applied.add(client.resource(r).patch(apply, r));
-            }
-            log.info(
-                    "applyResource OK (source={}): cluster={}, ns={}, manifest_bytes={}, resources={}",
-                    SRC_BOOTSTRAP,
-                    clusterName,
-                    namespace,
-                    manifest.length(),
-                    applied.size());
-            // 다중 자원 — list 로 반환. caller (Installer) 는 적용 성공 여부만 필요.
-            return sanitize(objectMapper.valueToTree(applied));
-        });
-    }
-
     public boolean deleteResource(String clusterName, String namespace, String kind, String name) {
         String ns = (namespace == null || namespace.trim().isEmpty()) ? "default" : namespace;
         requireAgent("deleteResource", clusterName);
@@ -327,7 +233,7 @@ public class KubeServiceImpl implements KubeService {
     // ============== Pod logs ==============
 
     /**
-     * Pod log tail 최댓값 cap — 응답 메모리 / 네트워크 폭주 방지. fabric8 의 getLog() 가 전체 string
+     * Pod log tail 최댓값 cap — 응답 메모리 / 네트워크 폭주 방지. agent 의 로그 조회가 전체 string
      * 을 메모리로 가져오므로 10000 줄 정도가 합리적 상한.
      */
     private static final int MAX_TAIL_LINES = 10000;

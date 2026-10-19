@@ -30,13 +30,11 @@ import org.yaml.snakeyaml.constructor.SafeConstructor;
 public class ChartParser {
 
     /**
-     * Jackson YAMLFactory 는 내부적으로 SnakeYAML 의 ScannerImpl 을 사용. classpath 에 fabric8
-     * 이 끌어오는 {@code org.snakeyaml:snakeyaml-engine} (YAML 1.2 strict, 별개 namespace) 와 충돌이
-     * 의심되는 케이스에서 plain ASCII YAML 도 "special characters at line 1, column 1" 으로 reject 되는
-     * regression 관찰됨 (ChartMuseum index.yaml 파싱 실패).
+     * Jackson YAMLFactory 를 쓰지 않고 {@code org.yaml:snakeyaml} 을 직접 호출한다.
      *
-     * <p>워크어라운드: Spring Boot 가 제공하는 {@code org.yaml:snakeyaml} 2.2 를 직접 호출 → Map/List
-     * 로 받은 뒤 Jackson 으로 JsonNode 변환. 결과는 동일하지만 reserved-character check 우회.
+     * <p>plain ASCII YAML 도 "special characters at line 1, column 1" 으로 거절되는 regression 이
+     * 있었다 (ChartMuseum index.yaml). 원인으로 의심했던 {@code snakeyaml-engine} 은 fabric8 를
+     * 걷어내면서 classpath 에서 사라졌으므로, 이 우회가 아직 필요한지는 재확인이 필요하다.
      */
     /**
      * 공개 저장소의 index.yaml 은 크다 — prometheus-community 6.4MB, bitnami 는 더 크다.
