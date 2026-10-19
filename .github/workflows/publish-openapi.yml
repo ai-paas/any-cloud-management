@@ -58,31 +58,30 @@ jobs:
       - name: Set up Gradle (with cache)
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Start backend (SPRING_PROFILES_ACTIVE=test)
-        run: |
-          ./gradlew :anycloud:bootRun --no-daemon \
-            -Dspring-boot.run.profiles=test \
-            -Dspring-boot.run.jvmArguments="-Dspring.main.web-application-type=servlet" &
-          BACKEND_PID=$!
-          echo "BACKEND_PID=$BACKEND_PID" >> $GITHUB_ENV
+      # 앱을 따로 띄우지 않는다. bootRun 은 main 런타임 클래스패스만 보는데 test 프로파일 설정이
+      # src/test/resources 에 있어 datasource 조차 잡히지 않는다. 테스트는 Testcontainers 로
+      # 이미 검증된 부팅 경로를 쓴다.
+      - name: Extract OpenAPI spec
+        run: ./gradlew :anycloud:test --tests '*OpenApiSpecDumpTest*' --no-daemon --console=plain
 
-      - name: Wait for backend
+      # Docker 가 없으면 테스트가 skipped 로 끝나 build 는 성공한다. 산출물로 확인한다.
+      - name: Collect spec
         run: |
-          for i in {1..30}; do
-            curl -fsS http://localhost:8888/docs/json > /dev/null 2>&1 && break
-            sleep 5
-          done
-
-      - name: Extract OpenAPI spec (JSON + YAML)
-        run: |
+          SRC=apps/anycloud/build/openapi/openapi.json
+          if [ ! -s "$SRC" ]; then
+            echo "::error::OpenAPI 스펙이 생성되지 않았습니다 ($SRC)"
+            exit 1
+          fi
           mkdir -p dist/openapi
-          # 경로는 application.yaml 의 springdoc.api-docs.path 를 따른다. 기본값이 아니다.
-          curl -fsS http://localhost:8888/docs/json > dist/openapi/openapi.json
-          curl -fsS http://localhost:8888/docs/json.yaml > dist/openapi/openapi.yaml || true
-
-      - name: Stop backend
-        if: always()
-        run: kill ${{ env.BACKEND_PID }} || true
+          cp "$SRC" dist/openapi/openapi.json
+          python3 - <<'PY'
+          import json, pathlib, sys
+          spec = json.loads(pathlib.Path("dist/openapi/openapi.json").read_text(encoding="utf-8"))
+          paths = len(spec.get("paths", {}))
+          if paths == 0:
+              sys.exit("경로가 비어 있습니다 — 그룹 목록을 받았을 가능성이 큽니다")
+          print(f"openapi={spec['openapi']} paths={paths}")
+          PY
 
       - name: Upload as artifact (versioned)
         uses: actions/upload-artifact@v4

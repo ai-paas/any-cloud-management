@@ -86,7 +86,7 @@ publishing {
                     'alert-rules / Grafana dashboards) features atop cluster-agent-spring-boot-starter. ' +
                     'Hosts add this dependency and optionally override SPI (BindingTemplateCatalog, ' +
                     'BackupHistoryWriter, ClusterCatalog).'
-                url = 'https://github.com/aipaas/any-cloud-management'
+                url = 'https://github.com/ai-paas/any-cloud-management'
 
                 licenses {
                     license {
@@ -105,21 +105,29 @@ publishing {
                 }
 
                 scm {
-                    url = 'https://github.com/aipaas/any-cloud-management'
-                    connection = 'scm:git:https://github.com/aipaas/any-cloud-management.git'
-                    developerConnection = 'scm:git:ssh://git@github.com/aipaas/any-cloud-management.git'
+                    url = 'https://github.com/ai-paas/any-cloud-management'
+                    connection = 'scm:git:https://github.com/ai-paas/any-cloud-management.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/ai-paas/any-cloud-management.git'
                 }
             }
         }
     }
 
     repositories {
-        maven {
-            name = 'GitHubPackages'
-            url = uri("https://maven.pkg.github.com/${System.getenv('GITHUB_REPOSITORY') ?: 'aipaas/any-cloud-management'}")
-            credentials {
-                username = System.getenv('GITHUB_ACTOR') ?: ''
-                password = System.getenv('GITHUB_TOKEN') ?: ''
+        // 다른 두 starter 와 같은 규약. publish-starters 워크플로는 환경변수가 아니라
+        // -PpublishUrl / -PpublishUsername / -PpublishPassword 로만 넘긴다.
+        def remoteUrl = findProperty('publishUrl')
+        if (remoteUrl) {
+            maven {
+                name = 'remote'
+                url = remoteUrl
+                allowInsecureProtocol = remoteUrl.toString().startsWith('http://')
+                if (findProperty('publishUsername') && findProperty('publishPassword')) {
+                    credentials {
+                        username = findProperty('publishUsername')
+                        password = findProperty('publishPassword')
+                    }
+                }
             }
         }
         mavenLocal()
