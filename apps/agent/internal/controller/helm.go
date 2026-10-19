@@ -561,7 +561,7 @@ func (d *Dispatcher) rollbackHelmRelease(ctx context.Context, cmd *agentv1.Comma
 }
 
 // listHelmReleaseResources — helm release (label app.kubernetes.io/instance=<release>) 가 만든
-// K8s 자원을 한 번에 enumerate. backend 의 HelmReleaseScanner (fabric8 11 호출) 의 agent 측 대체.
+// K8s 자원을 한 번에 enumerate. backend 가 11번 직렬 호출하던 HelmReleaseScanner 를 대체한다.
 //
 // AllowList — namespace 만 검증 (read-only 명령 — chart-level 검증 불요).
 func (d *Dispatcher) listHelmReleaseResources(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {

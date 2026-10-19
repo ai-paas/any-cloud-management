@@ -5,7 +5,6 @@ import com.aipaas.anycloud.common.error.exception.ClusterNotFoundException;
 import com.aipaas.anycloud.common.error.exception.CustomException;
 import com.aipaas.anycloud.common.error.exception.EntityNotFoundException;
 import com.aipaas.anycloud.domain.agent.ClusterAgentRepository;
-import com.aipaas.anycloud.domain.cluster.AgentBootstrapKubeClient;
 import com.aipaas.anycloud.domain.cluster.ClusterEntity;
 import com.aipaas.anycloud.domain.cluster.ClusterRepository;
 import com.aipaas.anycloud.domain.cluster.ClusterService;
@@ -39,9 +38,9 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <ol>
  *   <li>CRUD / domain mapping — {@code clusterRepository}, {@code clusterMapper}.</li>
- *   <li>Connectivity probing — {@code bootstrapKubeClient}, {@code clusterAgentRepository},
- *       {@code connectivityService}. agent-mediated 우선 + fabric8 fallback. 향후 별도
- *       {@code ClusterReachabilityChecker} 로 추출 가능.</li>
+ *   <li>Connectivity probing — {@code clusterAgentRepository}, {@code connectivityService}.
+ *       agent heartbeat 가 유일한 판정 근거다. 향후 별도 {@code ClusterReachabilityChecker} 로
+ *       추출 가능.</li>
  *   <li>Observability — {@code meterRegistry} (hit/miss counter). 단일 카운터라 추출 무가치.</li>
  * </ol>
  *
@@ -55,9 +54,6 @@ public class ClusterServiceImpl implements ClusterService {
 
     private final ClusterRepository clusterRepository;
     private final ClusterMapper clusterMapper;
-    /** Bootstrap-only fabric8 client — agent 미설치/inactive cluster 의 connectivity + version 확인. */
-    private final AgentBootstrapKubeClient bootstrapKubeClient;
-    // Agent-mediated health/version 우선. fabric8 fallback 유지 — agent 미설치 / 미활성 cluster 호환.
     private final ClusterAgentRepository clusterAgentRepository;
     private final MeterRegistry meterRegistry;
     /** connectivity / status sync 로직 분리. 본 service 는 CRUD + 검증 중심. */
@@ -283,8 +279,6 @@ public class ClusterServiceImpl implements ClusterService {
         clusterRepository.save(clusterEntity);
         log.info("Successfully saved updated cluster: {}", clusterName);
 
-        // K8s admin 자격이 더 이상 update body 에 없음 — KubernetesClient
-        // 캐시 invalidate 도 무의미. connectivity test 도 cluster-agent dial-in 으로 대체.
         log.info("Cluster update completed successfully for: {}", clusterName);
         return HttpStatus.OK;
     }
@@ -339,7 +333,6 @@ public class ClusterServiceImpl implements ClusterService {
         }
 
         clusterRepository.delete(cluster);
-        bootstrapKubeClient.invalidate(cluster.getId());
         return HttpStatus.OK;
     }
 

@@ -5,8 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.aipaas.anycloud.common.error.exception.ClusterNotFoundException;
 import com.aipaas.anycloud.common.error.exception.CustomException;
-import com.aipaas.anycloud.domain.cluster.AgentBootstrapKubeClient;
-import com.aipaas.anycloud.domain.cluster.ClusterRepository;
 import com.aipaas.anycloud.testsupport.AbstractUnitTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.aipaas.cluster.agent.runtime.KubeResourceService;
@@ -24,8 +22,6 @@ class KubeServiceImplFallbackTest extends AbstractUnitTest {
     private final KubeServiceImpl service = new KubeServiceImpl(
             new ObjectMapper(),
             Mockito.mock(KubeResourceService.class),
-            Mockito.mock(AgentBootstrapKubeClient.class),
-            Mockito.mock(ClusterRepository.class),
             Mockito.mock(KubeDegradedMetricsRecorder.class));
 
     private static final Throwable AGENT_DOWN = new IllegalStateException("Agent LIST_RESOURCES timeout after 20s");

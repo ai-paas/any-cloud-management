@@ -13,7 +13,6 @@ import com.aipaas.anycloud.common.error.enums.ErrorCode;
 import com.aipaas.anycloud.common.error.exception.ClusterNotFoundException;
 import com.aipaas.anycloud.common.error.exception.CustomException;
 import com.aipaas.anycloud.domain.agent.ClusterAgentRepository;
-import com.aipaas.anycloud.domain.cluster.AgentBootstrapKubeClient;
 import com.aipaas.anycloud.domain.cluster.ClusterConnectivityService;
 import com.aipaas.anycloud.domain.cluster.ClusterEntity;
 import com.aipaas.anycloud.domain.cluster.ClusterRepository;
@@ -45,7 +44,6 @@ import org.springframework.http.HttpStatus;
 class ClusterServiceImplTest {
 
     private ClusterRepository clusterRepository;
-    private AgentBootstrapKubeClient bootstrapKubeClient;
     private ClusterAgentRepository clusterAgentRepository;
     private MeterRegistry meterRegistry;
     private ClusterConnectivityService connectivityService;
@@ -54,14 +52,12 @@ class ClusterServiceImplTest {
     @BeforeEach
     void setUp() {
         clusterRepository = Mockito.mock(ClusterRepository.class);
-        bootstrapKubeClient = Mockito.mock(AgentBootstrapKubeClient.class);
         clusterAgentRepository = Mockito.mock(ClusterAgentRepository.class);
         meterRegistry = new SimpleMeterRegistry();
         connectivityService = Mockito.mock(ClusterConnectivityService.class);
         service = new ClusterServiceImpl(
                 clusterRepository,
                 org.mapstruct.factory.Mappers.getMapper(com.aipaas.anycloud.domain.cluster.mapper.ClusterMapper.class),
-                bootstrapKubeClient,
                 clusterAgentRepository,
                 meterRegistry,
                 connectivityService);
@@ -263,8 +259,6 @@ class ClusterServiceImplTest {
         // cascade 회귀 lock — agent row 정리 안 하면 cluster 재등록 시 stale agent 충돌.
         verify(clusterAgentRepository).deleteByClusterName("orb-001");
         verify(clusterRepository).delete(entity);
-        // 캐시 invalidate — 같은 ID 재등록 시 stale bootstrap client 안 됨.
-        verify(bootstrapKubeClient).invalidate("orb-001");
     }
 
     @Test
@@ -279,7 +273,6 @@ class ClusterServiceImplTest {
                 .hasMessageContaining("/system/vm/clusters");
 
         verify(clusterRepository, never()).delete(any(ClusterEntity.class));
-        verify(bootstrapKubeClient, never()).invalidate(anyString());
     }
 
     @Test

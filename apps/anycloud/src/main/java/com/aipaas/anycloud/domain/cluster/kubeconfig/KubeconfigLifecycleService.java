@@ -1,24 +1,10 @@
 package com.aipaas.anycloud.domain.cluster.kubeconfig;
 
 /**
- * cluster_agent.status = ACTIVE 시 ClusterEntity 의 kubeconfig 필드 cleanup.
+ * cluster_agent.status = ACTIVE 시 ClusterEntity 의 자격증명 컬럼 cleanup.
  *
- * <p>Agent path 가 안정적으로 동작하면 fabric8 fallback 의 kubeconfig 보관 의미가 약해짐.
- * 옵트인 flag {@code agent.kubeconfig.cleanup-on-active} (default false) 로 enable —
- * 운영 안정성 검증 후 점진 활성화.
- *
- * <p>Cleanup 대상 필드 (모두 ClusterEntity 의 sensitive 인증 정보):
- * <ul>
- *   <li>serverCa — Cluster CA cert</li>
- *   <li>clientCa — mTLS client cert</li>
- *   <li>clientKey — mTLS client private key</li>
- *   <li>clientToken — bearer token</li>
- * </ul>
- *
- * <p>{@code apiServerUrl} 은 유지 — UI 표시 / agent 접속 endpoint 용. PII 아님.
- *
- * <p>주의: Cleanup 후 agent 가 죽으면 fabric8 fallback path 가 인증 실패.
- * (agent 통해 kubeconfig 재발급) 이 완성되면 그 path 로 복구 가능.
+ * <p>지울 컬럼이 더 이상 없다. serverCa, clientCa, clientKey, clientToken 이 모두 DROP 돼
+ * 구현은 no-op 이다. 인터페이스는 호출부 정리 전까지 남겨 둔다.
  */
 public interface KubeconfigLifecycleService {
 

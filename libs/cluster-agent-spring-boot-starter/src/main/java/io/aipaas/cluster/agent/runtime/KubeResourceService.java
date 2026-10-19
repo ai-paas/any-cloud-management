@@ -27,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
  * <ul>
  *   <li>지원: getPodLogs / getResource / listResourcesPaginated / deleteResource / applyResource</li>
  *   <li>flag {@code cluster-agent.routing.enabled} — false 면 항상 {@link #isActiveFor} = false</li>
- *   <li>session 없으면 isActiveFor=false → caller 가 fabric8 등 fallback 결정</li>
+ *   <li>session 없으면 isActiveFor=false → caller 가 실패 처리 결정</li>
  * </ul>
  * @see docs/architecture/k8s-access-paths.md
  */

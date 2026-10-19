@@ -39,7 +39,7 @@ public enum ClusterStatus {
     /** Agent-first 등록 — agent backfill 대기 중. */
     AGENT_PENDING,
 
-    /** K8s API 정상 응답 + agent ACTIVE (또는 fabric8 fallback OK). */
+    /** agent ACTIVE. */
     ACTIVE,
 
     /** K8s API 응답 실패 또는 agent 끊김. 일시적이거나 영구. */

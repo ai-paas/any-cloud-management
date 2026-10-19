@@ -93,7 +93,6 @@ spotless {
 
 dependencyManagement {
     imports {
-        mavenBom "io.fabric8:kubernetes-client-bom:7.9.0"
         mavenBom "org.testcontainers:testcontainers-bom:2.0.5"
     }
 }
@@ -126,7 +125,6 @@ dependencies {
     implementation "com.github.ben-manes.caffeine:caffeine"
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.9.1'
     implementation 'org.mariadb.jdbc:mariadb-java-client'
-    implementation 'io.fabric8:kubernetes-client'
     implementation 'org.modelmapper:modelmapper:3.2.7'
     // MapStruct 도입. ModelMapper / static mapper 와 점진 마이그레이션.
     // lombok-mapstruct-binding 은 annotation processor 순서 (Lombok → MapStruct) 보장 — 둘 다 사용 시 필수.

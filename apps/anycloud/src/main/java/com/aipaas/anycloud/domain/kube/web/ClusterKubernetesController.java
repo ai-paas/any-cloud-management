@@ -253,7 +253,6 @@ public class ClusterKubernetesController {
         String ns = effectiveNamespace(clusterName, namespace, "pods");
 
         // agent active 가 아니면 즉시 fail (snapshot endpoint 와 의도적으로 다름 — streaming 은 agent-only).
-        // 향후 fabric8 fallback streaming 도 가능하지만 그 작업은 별도 sprint.
         if (!podLogStreamService.isActiveFor(clusterName)) {
             log.warn(
                     "streamPodLogs: agent not active cluster={} — caller should retry or use snapshot endpoint",

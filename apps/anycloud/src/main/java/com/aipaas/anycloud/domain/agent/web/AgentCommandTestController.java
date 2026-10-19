@@ -44,9 +44,7 @@ public class AgentCommandTestController {
     private final AgentCommandRouter commandRouter;
 
     @GetMapping("/pods")
-    @Operation(
-            summary = "[TEST] Agent 통해 pod list",
-            description = "AgentRuntime stream 위에서 LIST_PODS 명령. 운영용 X — fabric8 direct 와 동등.")
+    @Operation(summary = "[TEST] Agent 통해 pod list", description = "AgentRuntime stream 위에서 LIST_PODS 명령. 운영용 X.")
     public ResponseEntity<ApiSuccessResponse<Map<String, Object>>> listPods(
             @PathVariable
                     @NotBlank
@@ -65,9 +63,7 @@ public class AgentCommandTestController {
     }
 
     @GetMapping("/logs")
-    @Operation(
-            summary = "[TEST] Agent 통해 pod log snapshot",
-            description = "GET_LOG 명령. T2 의 fabric8 direct 와 동등하지만 agent 우회.")
+    @Operation(summary = "[TEST] Agent 통해 pod log snapshot", description = "GET_LOG 명령.")
     public ResponseEntity<ApiSuccessResponse<Map<String, Object>>> getLog(
             @PathVariable
                     @NotBlank
