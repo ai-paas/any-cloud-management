@@ -29,6 +29,12 @@ updates:
       # Boot 4 로 올릴 때 이 항목을 지운다.
       - dependency-name: "org.springdoc:*"
         update-types: ["version-update:semver-major"]
+      # fabric8 kubernetes-client 8.x 는 Vert.x 5(Netty 4.2)와 Jackson annotations 2.22 를
+      # 요구한다. Boot 3.5 BOM 이 Netty 4.1.135 와 annotations 2.21 로 눌러 클라이언트 생성이
+      # NoClassDefFoundError 로 죽는다. Netty 4.2 는 webflux, AWS SDK 와도 공유해 따로 못 올린다.
+      # Boot 4 로 올릴 때 이 항목을 지운다.
+      - dependency-name: "io.fabric8:*"
+        update-types: ["version-update:semver-major"]
     groups:
       spring:
         patterns: ["org.springframework.*"]
