@@ -64,8 +64,11 @@ fi
 # ──────────────────────────────────────────────────────────────────────────────
 # 3. 비밀 누출 가벼운 휴리스틱 — .env / *.key / id_rsa 류 staged 차단.
 #    완전한 secret scan 은 아니지만 명백한 실수만 잡는다.
+#    sample / example / template 은 값이 아니라 키 목록이라 버전 관리 대상이다.
 # ──────────────────────────────────────────────────────────────────────────────
-secret_paths=$(git diff --cached --name-only --diff-filter=ACM | grep -E '(^|/)(\.env(\..*)?$|.*\.pem$|.*\.key$|id_rsa$|id_ed25519$)' || true)
+secret_paths=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -vE '(^|/)\.env\.(sample|example|template)$' \
+  | grep -E '(^|/)(\.env(\..*)?$|.*\.pem$|.*\.key$|id_rsa$|id_ed25519$)' || true)
 if [ -n "$secret_paths" ]; then
   err "비밀 키 또는 .env 파일이 staged 되어 있습니다:"
   echo "$secret_paths" >&2
