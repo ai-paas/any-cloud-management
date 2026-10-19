@@ -160,7 +160,9 @@ services:
       AWS_REGION: ${RUSTFS_REGION:-us-east-1}
       PULUMI_SECRETS_PROVIDER: ${PULUMI_SECRETS_PROVIDER:-passphrase}
       VAULT_ADDR: ${VAULT_ADDR:-http://openbao:8200}
-      VAULT_TOKEN: ${VAULT_TOKEN:-${OPENBAO_DEV_ROOT_TOKEN:-dev-only-openbao-root-token-replace-in-real-use}}
+      # 중첩 보간 금지 (compose v1 미지원). 빈 값일 때의 fallback 은 entrypoint 가 처리.
+      VAULT_TOKEN: ${VAULT_TOKEN:-}
+      OPENBAO_DEV_ROOT_TOKEN: ${OPENBAO_DEV_ROOT_TOKEN:-dev-only-openbao-root-token-replace-in-real-use}
       # RabbitMQ
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: "5672"
@@ -233,7 +235,9 @@ services:
       AWS_REGION: ${RUSTFS_REGION:-us-east-1}
       PULUMI_SECRETS_PROVIDER: ${PULUMI_SECRETS_PROVIDER:-passphrase}
       VAULT_ADDR: ${VAULT_ADDR:-http://openbao:8200}
-      VAULT_TOKEN: ${VAULT_TOKEN:-${OPENBAO_DEV_ROOT_TOKEN:-dev-only-openbao-root-token-replace-in-real-use}}
+      # 중첩 보간 금지 (compose v1 미지원). 빈 값일 때의 fallback 은 entrypoint 가 처리.
+      VAULT_TOKEN: ${VAULT_TOKEN:-}
+      OPENBAO_DEV_ROOT_TOKEN: ${OPENBAO_DEV_ROOT_TOKEN:-dev-only-openbao-root-token-replace-in-real-use}
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: "5672"
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-anycloud}
