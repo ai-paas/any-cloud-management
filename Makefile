@@ -44,9 +44,8 @@ BUILDX_BUILDER  ?= anycloud-multiarch
 
 # ============= Chart publishing =============
 CHART_DIR             := apps/agent/deploy/helm/cluster-agent
-# Chart version — dev iteration 동안 0.1.0 에 고정. ChartMuseum 의 ALLOW_OVERWRITE=true 가
-# 동일 version 의 재 push 를 허용 → Bruno body 의 "version": "0.1.0" 는 영구 동일하게 두고,
-# 매 publish 마다 chart 내용만 갈아치움. 첫 release 시점에 unfreeze.
+# Chart version — dev iteration 동안 0.1.0 에 고정. Bruno body 의 "version": "0.1.0" 를
+# 영구 동일하게 두기 위함. 첫 release 시점에 unfreeze.
 CHART_VERSION         ?= 0.1.0
 # 매 publish 의 실체 추적용 appVersion — git short SHA 자동 주입. helm install/list/history
 # 에서 "지금 deployed 된 게 어느 build" 인지 즉시 확인 가능.
@@ -94,7 +93,7 @@ help:
 	@echo "  format           spotlessApply — Palantir Java Format 자동 적용                  [~5s]"
 	@echo "  format-check     spotlessCheck — 포맷 위반 시 fail (CI 동일)                     [~5s]"
 	@echo ""
-	@echo "  dev-up           Pulumi 통합 full stack 기동 (DB + RabbitMQ + ChartMuseum + RustFS + OpenBao + backend + worker)  [* ~3m]"
+	@echo "  dev-up           Pulumi 통합 full stack 기동 (DB + RabbitMQ + RustFS + OpenBao + backend + worker)  [* ~3m]"
 	@echo "                   local source 빌드 (Dockerfile.pulumi). 모든 env 에 dev default 있어 export 없이 동작."
 	@echo "  dev-down         정지 (volume 보존)"
 	@echo "  dev-reset        정지 + volume 제거 (완전 초기화)"
@@ -187,7 +186,7 @@ secrets-check:
 	         RUSTFS_ROOT_USER RUSTFS_ROOT_PASSWORD OPENBAO_DEV_ROOT_TOKEN \
 	         PULUMI_PASSPHRASE ANYCLOUD_AGENT_JWT_SECRET \
 	         CSP_CREDENTIAL_ENCRYPTION_KEY \
-	         ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT ANYCLOUD_AGENT_HELM_REPO_URL; do \
+	         ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT; do \
 	  eval "val=\$$$$v"; \
 	  if [ -z "$$val" ]; then \
 	    echo "missing env $$v"; \

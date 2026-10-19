@@ -73,13 +73,13 @@ public record AgentProperties(Grpc grpc, Manifest manifest, Helm helm, ApiManage
     public record Helm(
             /** helm repo add 의 alias. */
             String repoAlias,
-            /** helm chart repository URL. */
+            /** helm chart repository URL. 빈 값 = 미설정 — 자동 install 에는 영향 없음. */
             String repoUrl,
             String chartName,
             String chartVersion) {
         public Helm {
             if (repoAlias == null || repoAlias.isBlank()) repoAlias = "anycloud";
-            if (repoUrl == null || repoUrl.isBlank()) repoUrl = "http://chartmuseum:8080";
+            if (repoUrl == null) repoUrl = "";
             if (chartName == null || chartName.isBlank()) chartName = "cluster-agent";
             if (chartVersion == null || chartVersion.isBlank()) chartVersion = "0.1.0";
         }

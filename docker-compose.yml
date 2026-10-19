@@ -19,7 +19,6 @@
 #   ANYCLOUD_AGENT_JWT_SECRET
 #   CSP_CREDENTIAL_ENCRYPTION_KEY
 #   ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT
-#   ANYCLOUD_AGENT_HELM_REPO_URL
 #
 # 비-secret 변수 (DB_USER, RUSTFS_REGION, PULUMI_STACK_PREFIX 등) 는 default 보유:
 #   - container path 류  → Dockerfile.pulumi 의 ENV
@@ -182,7 +181,10 @@ services:
       ANYCLOUD_AGENT_JWT_SECRET: ${ANYCLOUD_AGENT_JWT_SECRET:?ANYCLOUD_AGENT_JWT_SECRET must be set}
       CSP_CREDENTIAL_ENCRYPTION_KEY: ${CSP_CREDENTIAL_ENCRYPTION_KEY:?CSP_CREDENTIAL_ENCRYPTION_KEY must be set}
       ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT: ${ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT:?ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT must be set (e.g. anycloud.example.com:9090)}
-      ANYCLOUD_AGENT_HELM_REPO_URL: ${ANYCLOUD_AGENT_HELM_REPO_URL:?ANYCLOUD_AGENT_HELM_REPO_URL must be set}
+      # --- Optional ---
+      # 사용자가 직접 helm install 할 때 안내에 들어갈 chart repo URL (HELM_BOOTSTRAP / MANUAL).
+      # backend 의 자동 설치는 jar 에 packaged 된 chart 를 쓰므로 비워도 된다.
+      ANYCLOUD_AGENT_HELM_REPO_URL: ${ANYCLOUD_AGENT_HELM_REPO_URL:-}
       # Cluster 등록 응답의 kubectl apply 명령에 박히는 base URL. 미설정 시 HTTP 요청 host 자동 사용.
       ANYCLOUD_PUBLIC_URL: ${ANYCLOUD_PUBLIC_URL:-}
     volumes:
