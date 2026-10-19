@@ -22,8 +22,8 @@ import (
 
 // RepoEntry — backend JSON 의 한 entry. helm SDK 의 repo.Entry 와 1:1.
 //
-//   { "name": "...", "url": "...", "username": "...", "password": "...",
-//     "ca_file": "...", "insecure_skip_tls_verify": false }
+//	{ "name": "...", "url": "...", "username": "...", "password": "...",
+//	  "ca_file": "...", "insecure_skip_tls_verify": false }
 //
 // 모든 field 는 omitempty — backend 가 빈 값을 보내면 빈 문자열.
 type RepoEntry struct {
@@ -81,7 +81,7 @@ func SyncRepositories(settings *cli.EnvSettings, repos []RepoEntry) (int, error)
 	count := 0
 	for _, r := range repos {
 		if r.Name == "" || r.URL == "" {
-			continue     // skip invalid
+			continue // skip invalid
 		}
 		e := &repo.Entry{
 			Name:                  r.Name,
@@ -151,7 +151,7 @@ func SyncRepositoriesWithCleanup(settings *cli.EnvSettings, repos []RepoEntry) (
 		if strings.HasPrefix(e.Name, AnycloudManagedRepoPrefix) {
 			if _, ok := desired[e.Name]; !ok {
 				removed++
-				continue     // skip — orphan
+				continue // skip — orphan
 			}
 		}
 		keep = append(keep, e)

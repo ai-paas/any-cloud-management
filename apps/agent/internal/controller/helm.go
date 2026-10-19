@@ -64,8 +64,8 @@ var (
 	releaseLocks   = make(map[string]*releaseLock)
 	releaseLocksMu sync.Mutex
 	// cleanup 주기. 30분 idle entry 제거. 0 이면 정리 안 함 (test 가 disable 가능).
-	releaseLockTTL    = 30 * time.Minute
-	cleanupOnce       sync.Once
+	releaseLockTTL = 30 * time.Minute
+	cleanupOnce    sync.Once
 )
 
 // acquireReleaseLock — namespace/release 의 mutex 를 반환 (없으면 생성). 호출자는 즉시 Lock().

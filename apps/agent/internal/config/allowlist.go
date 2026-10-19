@@ -5,31 +5,31 @@
 //
 // ConfigMap 형식 (aipaas-agent-allowlist):
 //
-//   apiVersion: v1
-//   kind: ConfigMap
-//   metadata:
-//     name: aipaas-agent-allowlist
-//     namespace: aipaas-system
-//   data:
-//     allowed_charts: |
-//       - prometheus-community/kube-prometheus-stack:45.0.0-50.0.0
-//       - ingress-nginx/ingress-nginx:4.8.0-4.9.0
-//       - jetstack/cert-manager:v1.12.0-v1.13.0
-//     allowed_namespaces: |
-//       - monitoring
-//       - ingress-system
-//       - cert-manager
-//     allowed_commands: |
-//       - LIST_PODS
-//       - GET_LOG
-//       - GET_CLUSTER_INFO
-//       - INSTALL_ADDON
-//       - UNINSTALL_ADDON
-//       - LIST_HELM_RELEASES
-//       - EXEC_POD                                  # PodExec WebSocket terminal.
-//     allowed_exec_namespaces: |                    # PodExec target namespace 화이트리스트.
-//       - default
-//       - apps
+//	apiVersion: v1
+//	kind: ConfigMap
+//	metadata:
+//	  name: aipaas-agent-allowlist
+//	  namespace: aipaas-system
+//	data:
+//	  allowed_charts: |
+//	    - prometheus-community/kube-prometheus-stack:45.0.0-50.0.0
+//	    - ingress-nginx/ingress-nginx:4.8.0-4.9.0
+//	    - jetstack/cert-manager:v1.12.0-v1.13.0
+//	  allowed_namespaces: |
+//	    - monitoring
+//	    - ingress-system
+//	    - cert-manager
+//	  allowed_commands: |
+//	    - LIST_PODS
+//	    - GET_LOG
+//	    - GET_CLUSTER_INFO
+//	    - INSTALL_ADDON
+//	    - UNINSTALL_ADDON
+//	    - LIST_HELM_RELEASES
+//	    - EXEC_POD                                  # PodExec WebSocket terminal.
+//	  allowed_exec_namespaces: |                    # PodExec target namespace 화이트리스트.
+//	    - default
+//	    - apps
 //
 // Default policy = deny-all. allowed_commands 에 없는 명령은 dispatcher 가 PERMISSION_DENIED.
 // PodExec 은 allowed_exec_namespaces 도 추가로 통과해야 함 (kube-system 등 격리).
@@ -53,10 +53,10 @@ import (
 
 // ChartRule — "prometheus-community/kube-prometheus-stack:45.0.0-50.0.0" 파싱 결과.
 type ChartRule struct {
-	Repo         string     // "prometheus-community"
-	Chart        string     // "kube-prometheus-stack"
-	MinVersion   string     // "45.0.0"  (semver, inclusive)
-	MaxVersion   string     // "50.0.0"  (semver, inclusive)
+	Repo       string // "prometheus-community"
+	Chart      string // "kube-prometheus-stack"
+	MinVersion string // "45.0.0"  (semver, inclusive)
+	MaxVersion string // "50.0.0"  (semver, inclusive)
 }
 
 // AllowList — 현재 활성 정책. snapshot — 변경 시 atomic 교체.
@@ -70,9 +70,9 @@ type AllowList struct {
 	Charts                 []ChartRule
 	Namespaces             map[string]struct{}
 	Commands               map[string]struct{}
-	ExecNamespaces         map[string]struct{}     // PodExec 전용 namespace 화이트리스트.
-	AllowAllNamespaces     bool                    // "*" 가 allowed_namespaces 안에 있는 경우 true.
-	AllowAllExecNamespaces bool                    // PodExec wildcard.
+	ExecNamespaces         map[string]struct{} // PodExec 전용 namespace 화이트리스트.
+	AllowAllNamespaces     bool                // "*" 가 allowed_namespaces 안에 있는 경우 true.
+	AllowAllExecNamespaces bool                // PodExec wildcard.
 
 	// ResourcePolicy — LIST/GET/DELETE resource 명령의 kind-level 화이트/블랙리스트.
 	// nil = legacy 동작 (allow-all-discovered: RESTMapper 가 해석한 모든 자원 통과,
@@ -94,7 +94,7 @@ type AllowList struct {
 //	  allow:
 //	    - kind: pods
 type ResourcePolicy struct {
-	Mode  string         `json:"mode,omitempty"`     // "allow_all_discovered" | "strict"
+	Mode  string         `json:"mode,omitempty"` // "allow_all_discovered" | "strict"
 	Deny  []ResourceRule `json:"deny,omitempty"`
 	Allow []ResourceRule `json:"allow,omitempty"`
 }
@@ -102,8 +102,8 @@ type ResourcePolicy struct {
 // ResourceRule — 단일 kind/namespace 룰. Kind 는 lowercase plural (예: "pods", "storageclasses").
 // Namespace="" 는 모든 namespace 매칭 (cluster-scoped 자원에도 자연스럽게 적용).
 type ResourceRule struct {
-	Kind      string     `json:"kind,omitempty"`
-	Namespace string     `json:"namespace,omitempty"`
+	Kind      string `json:"kind,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
 }
 
 // ResourcePolicy mode 상수.
@@ -130,7 +130,7 @@ type Loader struct {
 
 	mu      sync.RWMutex
 	current *AllowList
-	meta    LoaderMeta     // current 와 동일 lock 으로 보호.
+	meta    LoaderMeta // current 와 동일 lock 으로 보호.
 }
 
 func NewLoader(cs kubernetes.Interface, namespace, configMapName string) *Loader {
@@ -179,7 +179,7 @@ func (l *Loader) Watch(ctx context.Context) error {
 			return ctx.Err()
 		case event, ok := <-w.ResultChan():
 			if !ok {
-				return nil     // channel closed — caller 가 재시작.
+				return nil // channel closed — caller 가 재시작.
 			}
 			switch event.Type {
 			case watch.Added, watch.Modified:

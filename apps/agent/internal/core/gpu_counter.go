@@ -28,7 +28,7 @@ type gpuNodeCounter struct {
 	ttl  time.Duration
 
 	count       atomic.Int32
-	lastFetched atomic.Int64     // unix nano
+	lastFetched atomic.Int64 // unix nano
 	initOnce    sync.Once
 
 	// 진행 중인 refresh 가 1 개만 — 중복 K8s 호출 방지.

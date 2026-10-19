@@ -1,11 +1,11 @@
 // Package k8s — agent 가 Kubernetes API 와 통신하는 thin abstraction.
 //
 // Interface 분리 이유:
-//   1. Dispatcher 가 client-go 의 구체 타입에 직접 의존하면 테스트가 매우 어려움 (특히 GetLogs
-//      의 SubResource API 는 fake clientset 으로 채우기 까다로움).
-//   2. kubeclient connection 을 in-cluster vs out-of-cluster 로 dynamic switch 할 수 있도록
-//      front-loaded abstraction.
-//   3. AllowList enforcement  도 본 interface 의 메서드 호출 전후로 wrap 가능.
+//  1. Dispatcher 가 client-go 의 구체 타입에 직접 의존하면 테스트가 매우 어려움 (특히 GetLogs
+//     의 SubResource API 는 fake clientset 으로 채우기 까다로움).
+//  2. kubeclient connection 을 in-cluster vs out-of-cluster 로 dynamic switch 할 수 있도록
+//     front-loaded abstraction.
+//  3. AllowList enforcement  도 본 interface 의 메서드 호출 전후로 wrap 가능.
 package k8s
 
 import (
@@ -202,26 +202,26 @@ type HelmReleaseResourcesOptions struct {
 // HelmReleaseResourceRef — release 가 소유한 단일 자원의 식별 정보. backend 의
 // ChartReleasesResponse.ReleaseResource 와 1:1.
 type HelmReleaseResourceRef struct {
-	Kind       string     // "Deployment", "Service" 등
-	APIVersion string     // "apps/v1", "v1" 등 (선택 — 일부 자원은 빈 문자열)
-	Namespace  string     // cluster-scoped 자원 (PV 등) 은 ""
+	Kind       string // "Deployment", "Service" 등
+	APIVersion string // "apps/v1", "v1" 등 (선택 — 일부 자원은 빈 문자열)
+	Namespace  string // cluster-scoped 자원 (PV 등) 은 ""
 	Name       string
 }
 
 // ListResourcesOptions — kubectl get <kind> 등가의 paginated list.
 type ListResourcesOptions struct {
 	Kind          string
-	Namespace     string     // 비어 있으면 all-namespaces (k8s server-side default).
-	Limit         int64      // 0 = server default (cluster 별로 다름).
-	ContinueToken string     // 이전 응답의 continueToken — 첫 호출은 빈 문자열.
-	LabelSelector string     // K8s label selector 식. 빈 문자열이면 미적용.
-	FieldSelector string     // K8s field selector 식 빈 문자열이면 미적용.
+	Namespace     string // 비어 있으면 all-namespaces (k8s server-side default).
+	Limit         int64  // 0 = server default (cluster 별로 다름).
+	ContinueToken string // 이전 응답의 continueToken — 첫 호출은 빈 문자열.
+	LabelSelector string // K8s label selector 식. 빈 문자열이면 미적용.
+	FieldSelector string // K8s field selector 식 빈 문자열이면 미적용.
 }
 
 // ListResourcesResult — server-side paginated list 결과.
 type ListResourcesResult struct {
-	Items         string     // JSON-encoded array of objects.
-	ContinueToken string     // null/빈 문자열이면 마지막 페이지.
+	Items         string // JSON-encoded array of objects.
+	ContinueToken string // null/빈 문자열이면 마지막 페이지.
 	ReturnedCount int
 }
 
@@ -255,13 +255,13 @@ type DeleteResourceOptions struct {
 // APIResource 와 매칭해서 best-effort 로 채운다. 매칭 실패 시 빈 값 — caller (dispatcher)
 // 는 빈 값이어도 OK 응답을 만든다.
 type ResolvedResource struct {
-	Plural     string     // lowercase plural resource name (RESTMapping.Resource.Resource)
-	Singular   string     // lowercase singular (예: "pod"). discovery match 실패 시 "".
-	Kind       string     // PascalCase kind (예: "Pod", "StorageClass").
-	Group      string     // API group (예: "", "apps", "storage.k8s.io", "apiextensions.k8s.io")
-	Version    string     // API version (예: "v1", "v1beta1")
-	Namespaced bool       // RESTScope == Namespace.
-	ShortNames []string   // 빈 slice 일 수 있음. e.g. {"po"} for pods, {"pvc"} 등.
+	Plural     string   // lowercase plural resource name (RESTMapping.Resource.Resource)
+	Singular   string   // lowercase singular (예: "pod"). discovery match 실패 시 "".
+	Kind       string   // PascalCase kind (예: "Pod", "StorageClass").
+	Group      string   // API group (예: "", "apps", "storage.k8s.io", "apiextensions.k8s.io")
+	Version    string   // API version (예: "v1", "v1beta1")
+	Namespaced bool     // RESTScope == Namespace.
+	ShortNames []string // 빈 slice 일 수 있음. e.g. {"po"} for pods, {"pvc"} 등.
 }
 
 // PodSummary — list 결과의 간략 요약 (전체 Pod object 안 노출).
@@ -281,11 +281,11 @@ type PodSummary struct {
 type PodLogsOptions struct {
 	Namespace    string
 	Pod          string
-	Container    string     // optional — 다중 container pod 의 특정 container
-	TailLines    int64      // 0 = unlimited
+	Container    string // optional — 다중 container pod 의 특정 container
+	TailLines    int64  // 0 = unlimited
 	Previous     bool
-	SinceSeconds int64      // 0 = no filter
-	MaxBytes     int        // 응답 cap (default 1MB)
+	SinceSeconds int64 // 0 = no filter
+	MaxBytes     int   // 응답 cap (default 1MB)
 }
 
 // StreamPodLogsOptions — `kubectl logs -f` 등가. agent → backend gRPC streaming 용.
@@ -294,20 +294,20 @@ type PodLogsOptions struct {
 type StreamPodLogsOptions struct {
 	Namespace    string
 	Pod          string
-	Container    string     // optional
-	TailLines    int64      // 0 = unlimited
-	Follow       bool       // tail -f
+	Container    string // optional
+	TailLines    int64  // 0 = unlimited
+	Follow       bool   // tail -f
 	SinceSeconds int64
-	Timestamps   bool       // RFC3339 prefix
-	Previous     bool       // crash 이전 container 로그
+	Timestamps   bool // RFC3339 prefix
+	Previous     bool // crash 이전 container 로그
 }
 
 // ClusterInfo — bootstrap 시점에 수집할 클러스터 메타.
 type ClusterInfo struct {
-	K8sClusterUID    string     // kube-system namespace UID
-	Version          string     // server version (예: "v1.34.3")
-	Distribution     string     // best-effort — kubeadm/k3s/eks/gke 등. 자동 추정.
-	NodeCount        int
+	K8sClusterUID     string // kube-system namespace UID
+	Version           string // server version (예: "v1.34.3")
+	Distribution      string // best-effort — kubeadm/k3s/eks/gke 등. 자동 추정.
+	NodeCount         int
 	APIServerEndpoint string
 }
 
@@ -455,7 +455,7 @@ func (c *realClient) GetPodLogs(ctx context.Context, opts PodLogsOptions) (strin
 	}
 	maxBytes := opts.MaxBytes
 	if maxBytes <= 0 {
-		maxBytes = 1 << 20     // 1 MB default cap.
+		maxBytes = 1 << 20 // 1 MB default cap.
 	}
 	logOpts := &corev1.PodLogOptions{
 		Container: opts.Container,
@@ -1011,7 +1011,7 @@ func (c *realClient) ApplyManifest(ctx context.Context, opts ApplyManifestOption
 			return nil, fmt.Errorf("decode manifest: %w", err)
 		}
 		if len(raw) == 0 {
-			continue     // empty doc (---).
+			continue // empty doc (---).
 		}
 		u := &unstructured.Unstructured{Object: raw}
 		gvk := u.GroupVersionKind()
@@ -1096,7 +1096,7 @@ func (c *realClient) ExecInPod(ctx context.Context, opts PodExecOptions, streams
 		Command:   command,
 		Stdin:     opts.Stdin && streams.Stdin != nil,
 		Stdout:    streams.Stdout != nil,
-		Stderr:    streams.Stderr != nil && !opts.TTY,     // TTY=true 면 stderr 머지됨.
+		Stderr:    streams.Stderr != nil && !opts.TTY, // TTY=true 면 stderr 머지됨.
 		TTY:       opts.TTY,
 	}
 	req.VersionedParams(execOpts, scheme.ParameterCodec)

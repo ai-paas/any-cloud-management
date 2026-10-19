@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func gpuNode(name string, gpuCount int64, withLabel bool) *corev1.Node {
@@ -59,7 +59,7 @@ func TestCountGpuNodes_LabelBased(t *testing.T) {
 
 func TestCountGpuNodes_BothCapacityAndLabel_CountsOnce(t *testing.T) {
 	c := newFakeRealClient(
-		gpuNode("gpu-1", 4, true),     // 두 조건 모두 만족 — 1 회만 카운트.
+		gpuNode("gpu-1", 4, true), // 두 조건 모두 만족 — 1 회만 카운트.
 	)
 	n, err := c.CountGpuNodes(context.Background())
 	if err != nil {

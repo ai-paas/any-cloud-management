@@ -57,7 +57,7 @@ func TestLoadOnce_ValidPolicy(t *testing.T) {
 }
 
 func TestLoadOnce_MissingConfigMap_DenyAll(t *testing.T) {
-	cs := fake.NewSimpleClientset()     // empty.
+	cs := fake.NewSimpleClientset() // empty.
 	loader := NewLoader(cs, "aipaas-system", "aipaas-agent-allowlist")
 
 	err := loader.LoadOnce(context.Background())
@@ -89,13 +89,13 @@ func TestFindChartRule(t *testing.T) {
 
 func TestParseChartRule(t *testing.T) {
 	cases := []struct {
-		raw                  string
+		raw                   string
 		repo, chart, min, max string
-		shouldErr            bool
+		shouldErr             bool
 	}{
 		{"prom/kube-prom:45.0.0-50.0.0", "prom", "kube-prom", "45.0.0", "50.0.0", false},
 		{"jetstack/cert-manager:v1.12.0-v1.13.0", "jetstack", "cert-manager", "v1.12.0", "v1.13.0", false},
-		{"ns/chart:1.0.0", "ns", "chart", "1.0.0", "1.0.0", false},     // single version.
+		{"ns/chart:1.0.0", "ns", "chart", "1.0.0", "1.0.0", false}, // single version.
 		{"no-slash:1.0.0", "", "", "", "", true},
 		{"prom/chart-no-version", "", "", "", "", true},
 	}
@@ -210,7 +210,7 @@ func TestIsNamespaceAllowed_WildcardOverridesExplicit(t *testing.T) {
 	policy := &AllowList{
 		AllowAllNamespaces: true,
 		Namespaces: map[string]struct{}{
-			"monitoring": {},     // redundant but harmless
+			"monitoring": {}, // redundant but harmless
 		},
 	}
 	if !policy.IsNamespaceAllowed("kube-system") {
@@ -345,9 +345,9 @@ func TestChartWildcard_FullWildcard_MatchesAny(t *testing.T) {
 func TestChartWildcard_PriorityOrder(t *testing.T) {
 	policy := &AllowList{
 		Charts: []ChartRule{
-			{Repo: "*", Chart: "*", MinVersion: "0.0.0", MaxVersion: "99.99.99"},                                  // 4
-			{Repo: "*", Chart: "cert-manager", MinVersion: "1.0.0", MaxVersion: "1.99.99"},                        // 3
-			{Repo: "prometheus-community", Chart: "*", MinVersion: "0.0.0", MaxVersion: "99.99.99"},               // 2
+			{Repo: "*", Chart: "*", MinVersion: "0.0.0", MaxVersion: "99.99.99"},                                       // 4
+			{Repo: "*", Chart: "cert-manager", MinVersion: "1.0.0", MaxVersion: "1.99.99"},                             // 3
+			{Repo: "prometheus-community", Chart: "*", MinVersion: "0.0.0", MaxVersion: "99.99.99"},                    // 2
 			{Repo: "prometheus-community", Chart: "kube-prometheus-stack", MinVersion: "65.0.0", MaxVersion: "65.0.0"}, // 1
 		},
 	}
@@ -467,13 +467,13 @@ deny:
 		kind, ns string
 		want     bool
 	}{
-		{"secrets", "default", false},          // global deny
+		{"secrets", "default", false}, // global deny
 		{"secrets", "kube-system", false},
 		{"secrets", "", false},
-		{"configmaps", "kube-system", false},   // namespace-scoped deny
-		{"configmaps", "default", true},        // not denied in this ns
-		{"pods", "kube-system", true},          // not in deny list
-		{"storageclasses", "", true},           // CRD-ish cluster-scoped — allowed
+		{"configmaps", "kube-system", false}, // namespace-scoped deny
+		{"configmaps", "default", true},      // not denied in this ns
+		{"pods", "kube-system", true},        // not in deny list
+		{"storageclasses", "", true},         // CRD-ish cluster-scoped — allowed
 	}
 	for _, c := range cases {
 		if got := policy.IsResourceKindAllowed(c.kind, c.ns); got != c.want {

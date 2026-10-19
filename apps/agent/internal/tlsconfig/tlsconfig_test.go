@@ -90,7 +90,7 @@ func TestStripPort(t *testing.T) {
 		{"192.168.1.10:9090", "192.168.1.10"},
 		{"[::1]:9090", "::1"},
 		{"[fe80::1]:443", "fe80::1"},
-		{"localhost", "localhost"},     // 포트 없으면 그대로
+		{"localhost", "localhost"}, // 포트 없으면 그대로
 	}
 	for _, c := range cases {
 		if got := stripPort(c.in); got != c.want {

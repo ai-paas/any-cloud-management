@@ -58,7 +58,7 @@ func TestNormalizeAPIResources_FilterAndSort(t *testing.T) {
 				makeResource("pods", "pod", "Pod", true,
 					metav1.Verbs{"get", "list", "watch", "create", "update", "patch", "delete"},
 					[]string{"po"}),
-				makeResource("pods/log", "", "Pod", true, metav1.Verbs{"get"}, nil),  // subresource.
+				makeResource("pods/log", "", "Pod", true, metav1.Verbs{"get"}, nil),     // subresource.
 				makeResource("pods/exec", "", "Pod", true, metav1.Verbs{"create"}, nil), // subresource.
 				makeResource("services", "service", "Service", true,
 					metav1.Verbs{"get", "list", "watch"}, []string{"svc"}),
@@ -151,10 +151,10 @@ func TestSplitGroupVersion(t *testing.T) {
 		wantGroup   string
 		wantVersion string
 	}{
-		{"v1", "", "v1"},                                 // core.
-		{"apps/v1", "apps", "v1"},                         // typed group.
-		{"storage.k8s.io/v1", "storage.k8s.io", "v1"},     // dotted group.
-		{"apiextensions.k8s.io/v1", "apiextensions.k8s.io", "v1"}, // CRD group.
+		{"v1", "", "v1"},                                                  // core.
+		{"apps/v1", "apps", "v1"},                                         // typed group.
+		{"storage.k8s.io/v1", "storage.k8s.io", "v1"},                     // dotted group.
+		{"apiextensions.k8s.io/v1", "apiextensions.k8s.io", "v1"},         // CRD group.
 		{"custom.example.com/v1alpha1", "custom.example.com", "v1alpha1"}, // CRD alpha.
 	}
 	for _, c := range cases {

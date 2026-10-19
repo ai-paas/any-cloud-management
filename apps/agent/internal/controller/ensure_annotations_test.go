@@ -59,7 +59,7 @@ func existingAllowlistCMOtherAnnotations() *corev1.ConfigMap {
 			Namespace:       "aipaas-system",
 			ResourceVersion: "3",
 			Annotations: map[string]string{
-				"meta.aipaas.io/owner":  "platform",
+				"meta.aipaas.io/owner":                             "platform",
 				"kubectl.kubernetes.io/last-applied-configuration": "{}",
 			},
 		},

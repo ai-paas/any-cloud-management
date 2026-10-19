@@ -313,4 +313,3 @@ func yamlQuote(s string) string {
 	escaped = strings.ReplaceAll(escaped, `"`, `\"`)
 	return `"` + escaped + `"`
 }
-
