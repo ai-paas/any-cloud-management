@@ -65,7 +65,7 @@ SNAPSHOT_NS                   ?= aipaas-system
 SNAPSHOT_TOKEN                ?= REPLACE_WITH_REAL_JWT
 SNAPSHOT_BACKEND_GRPC         ?= host.docker.internal:9090
 SNAPSHOT_IMAGE_REPO           ?= ghcr.io/ai-paas/cluster-agent
-SNAPSHOT_IMAGE_TAG            ?= v0.1.3-dev
+SNAPSHOT_IMAGE_TAG            ?= latest
 SNAPSHOT_OUT                  := apps/agent/deploy/k8s/agent.yaml
 
 # ============= .PHONY =============

@@ -180,7 +180,7 @@ public class ClusterAgentValueInjector {
      */
     static ImageRef parseImageRef(String ref) {
         if (ref == null || ref.isBlank()) {
-            return new ImageRef("ghcr.io/ai-paas/cluster-agent", "v0.1.3-dev");
+            return new ImageRef("ghcr.io/ai-paas/cluster-agent", "latest");
         }
         int lastSlash = ref.lastIndexOf('/');
         int lastColon = ref.lastIndexOf(':');

@@ -232,9 +232,9 @@ class ClusterAgentValueInjectorTest extends AbstractUnitTest {
         ImageRef r1 = ClusterAgentValueInjector.parseImageRef(null);
         ImageRef r2 = ClusterAgentValueInjector.parseImageRef("");
         assertThat(r1.repository()).isEqualTo("ghcr.io/ai-paas/cluster-agent");
-        assertThat(r1.tag()).isEqualTo("v0.1.3-dev");
+        assertThat(r1.tag()).isEqualTo("latest");
         assertThat(r2.repository()).isEqualTo("ghcr.io/ai-paas/cluster-agent");
-        assertThat(r2.tag()).isEqualTo("v0.1.3-dev");
+        assertThat(r2.tag()).isEqualTo("latest");
     }
 
     @Test

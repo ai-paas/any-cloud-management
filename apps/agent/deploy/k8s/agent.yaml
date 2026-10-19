@@ -499,7 +499,7 @@ spec:
         runAsUser: 65534
       containers:
       - name: agent
-        image: "ghcr.io/ai-paas/cluster-agent:v0.1.3-dev"
+        image: "ghcr.io/ai-paas/cluster-agent:latest"
         imagePullPolicy: IfNotPresent
         env:
         - name: AGENT_MODE
