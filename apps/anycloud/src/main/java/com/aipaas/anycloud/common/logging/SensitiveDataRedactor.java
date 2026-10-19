@@ -34,14 +34,21 @@ public final class SensitiveDataRedactor {
 
     private static final List<RedactRule> RULES = List.of(
             new RedactRule(Pattern.compile("(?i)\\b(?:AKIA|ASIA)[0-9A-Z]{16}\\b"), "AWS_KEY"),
-            new RedactRule(Pattern.compile("\\barn:aws:[^\\s\"']+:\\d{12}:[^\\s\"']+"), "AWS_ARN"),
+            // service, region 을 콜론까지 먹는 문자 클래스로 두면 ARN 이 아닌 긴 입력에서 역추적이
+            // 제곱으로 는다 (polynomial ReDoS). 두 칸을 콜론으로 끊어 분기를 없앤다. region 은 IAM
+            // ARN 처럼 비어 있을 수 있다.
+            new RedactRule(Pattern.compile("\\barn:aws:[^\\s\"':]+:[^\\s\"':]*:\\d{12}:[^\\s\"']+"), "AWS_ARN"),
             new RedactRule(Pattern.compile("(?<![0-9])\\d{12}(?![0-9])"), "AWS_ACCT"),
             new RedactRule(
                     Pattern.compile("(?i)\\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\b"), "UUID"),
             new RedactRule(Pattern.compile("\\b(?:[0-9a-f]{2}:){15}[0-9a-f]{2}\\b"), "OCI_FP"),
             new RedactRule(Pattern.compile("(?i)\\bocid1\\.[a-z]+\\.[a-z0-9._-]+"), "OCID"),
             new RedactRule(
-                    Pattern.compile("-----BEGIN[^-]+PRIVATE KEY-----[\\s\\S]+?-----END[^-]+PRIVATE KEY-----"),
+                    // BEGIN 과 PRIVATE KEY 사이는 " RSA ", " OPENSSH " 처럼 짧다. [^-]+ 로 열어 두면
+                    // END 를 못 찾는 긴 입력에서 역추적이 제곱으로 는다. 본문도 같은 이유로 상한을 둔다
+                    // — RSA 4096 PEM 이 3.2KB 라 16KB 면 실제 키는 모두 들어온다.
+                    Pattern.compile(
+                            "-----BEGIN[A-Z ]{0,32}PRIVATE KEY-----[\\s\\S]{0,16384}?-----END[A-Z ]{0,32}PRIVATE KEY-----"),
                     "PRIVATE_KEY"));
 
     /**

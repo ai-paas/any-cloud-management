@@ -8,7 +8,7 @@
 ARG PULUMI_PLUGINS="aws:7.44.0 gcp:9.36.1 oci:4.22.0 openstack:5.5.1 proxmoxve:8.6.0 alicloud:3.108.0 tls:5.6.0"
 
 # Gradle (Java) build stage.
-FROM eclipse-temurin:21-jdk AS gradle-builder
+FROM --platform=$BUILDPLATFORM eclipse-temurin:21-jdk AS gradle-builder
 
 WORKDIR /app
 
@@ -40,7 +40,7 @@ RUN java -Djarmode=tools -jar apps/anycloud/build/libs/*-SNAPSHOT.jar \
 
 
 # CLI 스테이지 — pulumi, helm 바이너리만 받는다.
-FROM alpine:3.20 AS cli-fetch
+FROM alpine:3.24 AS cli-fetch
 
 ARG PULUMI_VERSION=3.261.0
 ARG HELM_VERSION=3.19.0

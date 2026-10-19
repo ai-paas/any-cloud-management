@@ -124,7 +124,7 @@ final class ProxmoxYamlEmitter implements ProviderYamlEmitter {
                 && px.dnsServers() != null
                 && !px.dnsServers().isBlank()) {
             // 고정 주소를 쓰면 DHCP 가 주던 resolver 도 사라진다. 없으면 apt 와 레지스트리가 막힌다.
-            initialization.put("dns", Map.of("servers", List.of(px.dnsServers().split("\\s*,\\s*"))));
+            initialization.put("dns", Map.of("servers", splitCsv(px.dnsServers())));
         }
         vm.put("initialization", initialization);
         b.resource(node, T_VM, vm);
@@ -210,6 +210,21 @@ final class ProxmoxYamlEmitter implements ProviderYamlEmitter {
         if (value == null || value.isBlank()) {
             throw new IllegalStateException("필수 config 누락: " + key);
         }
+    }
+
+    /**
+     * 쉼표로 이은 값을 항목으로 가른다.
+     *
+     * <p>구분자 정규식에 {@code \s*} 를 두면 공백이 길어질수록 매칭 비용이 제곱으로 는다
+     * (polynomial ReDoS). 값이 외부 입력이라 고정 문자로 가르고 공백은 따로 턴다.
+     */
+    private static List<String> splitCsv(String value) {
+        List<String> out = new ArrayList<>();
+        for (String part : value.split(",")) {
+            String trimmed = part.trim();
+            if (!trimmed.isEmpty()) out.add(trimmed);
+        }
+        return out;
     }
 
     /** provider 전용 설정. 다른 CSP 의 spec 이 오면 assembler 가 provider 를 잘못 라우팅한 것이다. */
