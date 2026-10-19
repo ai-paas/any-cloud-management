@@ -197,6 +197,12 @@ services:
       ANYCLOUD_AGENT_HELM_REPO_URL: ${ANYCLOUD_AGENT_HELM_REPO_URL:-}
       # Cluster 등록 응답의 kubectl apply 명령에 박히는 base URL. 미설정 시 HTTP 요청 host 자동 사용.
       ANYCLOUD_PUBLIC_URL: ${ANYCLOUD_PUBLIC_URL:-}
+      # Proxmox 고정 주소 기본값. qemu-guest-agent 가 없어 IP 를 역질의할 수 없으므로
+      # 일괄 프로비저닝에서는 이 값이 없으면 노드마다 주소를 손으로 넣어야 한다.
+      ANYCLOUD_PROXMOX_NODE_IPS: ${ANYCLOUD_PROXMOX_NODE_IPS:-}
+      ANYCLOUD_PROXMOX_GATEWAY: ${ANYCLOUD_PROXMOX_GATEWAY:-}
+      ANYCLOUD_PROXMOX_SSH_HOST: ${ANYCLOUD_PROXMOX_SSH_HOST:-}
+      ANYCLOUD_PROXMOX_SSH_PORTS: ${ANYCLOUD_PROXMOX_SSH_PORTS:-}
     volumes:
       - pulumi-home:/app/.pulumi
       - pulumi-runtime:/app/runtime
@@ -254,6 +260,15 @@ services:
       PULUMI_PASSPHRASE: ${PULUMI_PASSPHRASE}
       ANYCLOUD_AGENT_JWT_SECRET: ${ANYCLOUD_AGENT_JWT_SECRET}
       CSP_CREDENTIAL_ENCRYPTION_KEY: ${CSP_CREDENTIAL_ENCRYPTION_KEY}
+      # --- Agent 설치 (BOOTSTRAP 단계가 워커에서 돌아 backend 와 같은 값이 필요하다) ---
+      # 빠지면 yaml 기본값 host.docker.internal:9090 이 agent 에 박혀 조용히 연결에 실패한다.
+      ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT: ${ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT:?ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT must be set (e.g. anycloud.example.com:9090)}
+      # 워커에는 HTTP 요청 컨텍스트가 없어 자동 추론이 http://localhost:8888 로 떨어진다.
+      ANYCLOUD_PUBLIC_URL: ${ANYCLOUD_PUBLIC_URL:-}
+      ANYCLOUD_PROXMOX_NODE_IPS: ${ANYCLOUD_PROXMOX_NODE_IPS:-}
+      ANYCLOUD_PROXMOX_GATEWAY: ${ANYCLOUD_PROXMOX_GATEWAY:-}
+      ANYCLOUD_PROXMOX_SSH_HOST: ${ANYCLOUD_PROXMOX_SSH_HOST:-}
+      ANYCLOUD_PROXMOX_SSH_PORTS: ${ANYCLOUD_PROXMOX_SSH_PORTS:-}
     volumes:
       - pulumi-home:/app/.pulumi
       - pulumi-runtime:/app/runtime

@@ -179,6 +179,11 @@ services:
       # Cluster 등록 응답의 kubectl apply 명령 base URL. 미설정 시 HTTP 요청 host 자동 사용.
       # dev 단일 host 환경에서는 비워두면 사용자가 브라우저로 접근한 host (예: localhost:8888) 자동 반영.
       ANYCLOUD_PUBLIC_URL: ${ANYCLOUD_PUBLIC_URL:-}
+      # Proxmox 고정 주소 기본값. qemu-guest-agent 가 없어 IP 를 역질의할 수 없다.
+      ANYCLOUD_PROXMOX_NODE_IPS: ${ANYCLOUD_PROXMOX_NODE_IPS:-}
+      ANYCLOUD_PROXMOX_GATEWAY: ${ANYCLOUD_PROXMOX_GATEWAY:-}
+      ANYCLOUD_PROXMOX_SSH_HOST: ${ANYCLOUD_PROXMOX_SSH_HOST:-}
+      ANYCLOUD_PROXMOX_SSH_PORTS: ${ANYCLOUD_PROXMOX_SSH_PORTS:-}
       ANYCLOUD_MTLS_CA_PERSISTENCE: ${ANYCLOUD_MTLS_CA_PERSISTENCE:-jpa}
       # Observability (optional)
       THANOS_URL: ${THANOS_URL:-https://localhost:9000}
@@ -249,6 +254,12 @@ services:
       ANYCLOUD_AGENT_IMAGE: ${ANYCLOUD_AGENT_IMAGE:-ghcr.io/ai-paas/cluster-agent:latest}
       # dev 태그는 같은 이름으로 다시 밀린다. IfNotPresent 면 노드가 옛 이미지를 계속 쓴다.
       ANYCLOUD_AGENT_IMAGE_PULL_POLICY: ${ANYCLOUD_AGENT_IMAGE_PULL_POLICY:-IfNotPresent}
+      # 워커에는 HTTP 요청 컨텍스트가 없어 자동 추론이 http://localhost:8888 로 떨어진다.
+      ANYCLOUD_PUBLIC_URL: ${ANYCLOUD_PUBLIC_URL:-}
+      ANYCLOUD_PROXMOX_NODE_IPS: ${ANYCLOUD_PROXMOX_NODE_IPS:-}
+      ANYCLOUD_PROXMOX_GATEWAY: ${ANYCLOUD_PROXMOX_GATEWAY:-}
+      ANYCLOUD_PROXMOX_SSH_HOST: ${ANYCLOUD_PROXMOX_SSH_HOST:-}
+      ANYCLOUD_PROXMOX_SSH_PORTS: ${ANYCLOUD_PROXMOX_SSH_PORTS:-}
     volumes:
       - pulumi-home:/app/.pulumi
       - pulumi-runtime:/app/runtime
