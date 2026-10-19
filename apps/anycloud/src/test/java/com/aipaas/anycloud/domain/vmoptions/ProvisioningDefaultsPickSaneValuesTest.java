@@ -79,7 +79,7 @@ class ProvisioningDefaultsPickSaneValuesTest extends AbstractUnitTest {
                         .id("RegionOne")
                         .name("RegionOne")
                         .build()));
-        when(capacityProbe.firstWithCapacity(any(), anyString(), anyString(), any()))
+        when(capacityProbe.firstWithCapacity(any(), anyString(), anyString(), any(), any()))
                 .thenAnswer(call -> new CapacityProbe.SpecChoice(((List<String>) call.getArgument(3)).get(0), null));
     }
 
