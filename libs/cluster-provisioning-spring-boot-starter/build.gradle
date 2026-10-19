@@ -98,7 +98,7 @@ publishing {
                 description = 'Spring Boot starter for multi-cloud VM Kubernetes provisioning via ' +
                     'Pulumi Automation Java SDK (in-JVM, no Go runtime). 7 CSP providers + ' +
                     'standard output schema. SPI port: ExecutionConfig.'
-                url = 'https://github.com/aipaas/any-cloud-management'
+                url = 'https://github.com/ai-paas/any-cloud-management'
 
                 licenses {
                     license {
@@ -117,9 +117,9 @@ publishing {
                 }
 
                 scm {
-                    url = 'https://github.com/aipaas/any-cloud-management'
-                    connection = 'scm:git:https://github.com/aipaas/any-cloud-management.git'
-                    developerConnection = 'scm:git:ssh://git@github.com/aipaas/any-cloud-management.git'
+                    url = 'https://github.com/ai-paas/any-cloud-management'
+                    connection = 'scm:git:https://github.com/ai-paas/any-cloud-management.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/ai-paas/any-cloud-management.git'
                 }
             }
         }

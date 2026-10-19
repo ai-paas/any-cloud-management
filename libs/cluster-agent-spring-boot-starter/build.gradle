@@ -169,7 +169,7 @@ publishing {
                     'agent identity authentication, session registry, and PodExec WebSocket bridge. ' +
                     'External Spring Boot apps add this dependency and implement two SPI interfaces ' +
                     '(AgentIdentityStore + IdempotencyStore) to host the cluster-agent control plane.'
-                url = 'https://github.com/aipaas/any-cloud-management'
+                url = 'https://github.com/ai-paas/any-cloud-management'
 
                 licenses {
                     license {
@@ -188,9 +188,9 @@ publishing {
                 }
 
                 scm {
-                    url = 'https://github.com/aipaas/any-cloud-management'
-                    connection = 'scm:git:https://github.com/aipaas/any-cloud-management.git'
-                    developerConnection = 'scm:git:ssh://git@github.com/aipaas/any-cloud-management.git'
+                    url = 'https://github.com/ai-paas/any-cloud-management'
+                    connection = 'scm:git:https://github.com/ai-paas/any-cloud-management.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/ai-paas/any-cloud-management.git'
                 }
             }
         }
