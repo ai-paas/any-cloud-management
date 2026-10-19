@@ -226,7 +226,9 @@ services:
       retries: 5
     environment:
       APP_ROLE: worker
-      SPRING_PROFILES_ACTIVE: docker
+      # vm-cluster-worker 없이는 bootstrap/verify listener 가 등록되지 않는다.
+      # entrypoint 의 기본값은 compose 가 값을 넣는 순간 밀린다 (셸 :- 의미).
+      SPRING_PROFILES_ACTIVE: docker,vm-cluster-worker
       JAVA_OPTS: ${JAVA_OPTS:--XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError}
       # --- Service wiring ---
       DATABASE_HOST: mariadb
@@ -262,6 +264,15 @@ services:
 
 # mariadb, rustfs 는 bind mount 라 여기 없다. ANYCLOUD_DATA_DIR 참고.
 # 아래 셋은 유실돼도 재생성되는 것들 — 큐의 처리 중 메시지, 플러그인 캐시, 작업 디렉토리.
+# 호스트 경로 MTU 가 1500 보다 작은 환경(터널 등)에서는 맞춰야 한다. daemon.json 의 mtu 는
+# 기본 브리지에만 적용되고 compose 가 만드는 네트워크는 물려받지 않는다. 어긋나면 TLS
+# ServerHello 처럼 큰 응답이 버려져 인증서 체인이 긴 엔드포인트만 타임아웃된다.
+networks:
+  default:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: ${ANYCLOUD_NETWORK_MTU:-1500}
+
 volumes:
   rabbitmq-data:
   pulumi-home:
