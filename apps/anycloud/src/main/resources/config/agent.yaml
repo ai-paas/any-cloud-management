@@ -66,10 +66,6 @@ agent:
     repo-url: ${ANYCLOUD_AGENT_HELM_REPO_URL:}
     chart-name: ${ANYCLOUD_AGENT_HELM_CHART_NAME:cluster-agent}
     chart-version: ${ANYCLOUD_AGENT_HELM_CHART_VERSION:0.1.0}
-  # Agent ACTIVE 시 ClusterEntity 의 kubeconfig 필드 (server_ca/client_ca/client_key/client_token) 비동기 NULL.
-  # agent path 안정 후 활성 권장 — 보안 우위.
-  kubeconfig:
-    cleanup-on-active: ${ANYCLOUD_AGENT_KUBECONFIG_CLEANUP:false}
 
 # agent.policy.* 는 ConfigMap 이 단일 truth — backend defaults 없음.
 # 정책 변경은 PUT/PATCH /v1/admin/clusters/{c}/agent-policy 로 운영자가 명시.

@@ -17,13 +17,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *   <li>{@code agent.manifest.image, namespace, image-pull-policy}</li>
  *   <li>{@code agent.helm.repo-alias, repo-url, chart-name, chart-version}</li>
  *   <li>{@code agent.api-managed.enabled}</li>
- *   <li>{@code agent.kubeconfig.cleanup-on-active}</li>
  * </ul>
  *
  * <p>등록은 {@code AgentConfiguration} 의 {@code @EnableConfigurationProperties} 가 처리.
  */
 @ConfigurationProperties("agent")
-public record AgentProperties(Grpc grpc, Manifest manifest, Helm helm, ApiManaged apiManaged, Kubeconfig kubeconfig) {
+public record AgentProperties(Grpc grpc, Manifest manifest, Helm helm, ApiManaged apiManaged) {
 
     public record Grpc(
             Integer port,
@@ -89,10 +88,6 @@ public record AgentProperties(Grpc grpc, Manifest manifest, Helm helm, ApiManage
             /** Pulumi-provisioned cluster 에 backend 가 자동 agent 설치 여부. */
             boolean enabled) {}
 
-    public record Kubeconfig(
-            /** Agent ACTIVE 시 ClusterEntity 의 kubeconfig 필드 (server_ca/client_ca/client_key/client_token) 비동기 NULL. */
-            boolean cleanupOnActive) {}
-
     // Policy record 제거. ConfigMap 이 단일 source. backend defaults 없음.
 
     // constructor가 nested null 경우 fallback default 채워주도록.
@@ -101,6 +96,5 @@ public record AgentProperties(Grpc grpc, Manifest manifest, Helm helm, ApiManage
         if (manifest == null) manifest = new Manifest(null, null, null, null, null);
         if (helm == null) helm = new Helm(null, null, null, null);
         if (apiManaged == null) apiManaged = new ApiManaged(true);
-        if (kubeconfig == null) kubeconfig = new Kubeconfig(false);
     }
 }

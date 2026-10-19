@@ -38,7 +38,7 @@ class AgentUpgradeServiceTest extends AbstractUnitTest {
     void setUp() {
         // @Value → AgentProperties. test 는 default 값 사용 (record 가 자동 채움).
         com.aipaas.anycloud.domain.agent.AgentProperties props =
-                new com.aipaas.anycloud.domain.agent.AgentProperties(null, null, null, null, null);
+                new com.aipaas.anycloud.domain.agent.AgentProperties(null, null, null, null);
         service = new AgentUpgradeServiceImpl(repository, kubeService, props);
     }
 
