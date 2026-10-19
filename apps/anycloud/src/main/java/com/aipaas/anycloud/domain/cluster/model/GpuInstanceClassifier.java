@@ -11,7 +11,9 @@ public final class GpuInstanceClassifier {
 
     private static final Pattern AWS = Pattern.compile("^(p\\d|g\\d|inf\\d|trn\\d).*");
     private static final Pattern GCP = Pattern.compile("^(a2-|a3-|g2-).*|.*-with-gpu");
-    private static final Pattern OCI = Pattern.compile(".*\\.GPU.*", Pattern.CASE_INSENSITIVE);
+    /** OCI shape 은 BM.GPU4.8 처럼 .GPU 를 낀다. 패턴이 아니라 부분 문자열 — 아래 OpenStack 과 같은 이유. */
+    private static final String OCI_MARKER = ".gpu";
+
     private static final Pattern ALIBABA = Pattern.compile("^ecs\\.(gn|ebmgn).*");
 
     /** IBM VPC 의 GPU 프로파일 — gx3-16x80x1l4, gx3d-160x1792x8h100. */
@@ -35,7 +37,7 @@ public final class GpuInstanceClassifier {
         return switch (provider.toLowerCase()) {
             case "aws" -> AWS.matcher(type).matches();
             case "gcp" -> GCP.matcher(type).matches();
-            case "oci" -> OCI.matcher(type).matches();
+            case "oci" -> type.toLowerCase(Locale.ROOT).contains(OCI_MARKER);
             case "alibaba" -> ALIBABA.matcher(type).matches();
             case "ibm" -> IBM.matcher(type).matches();
             case "openstack" -> isOpenStackGpuFlavor(type);
