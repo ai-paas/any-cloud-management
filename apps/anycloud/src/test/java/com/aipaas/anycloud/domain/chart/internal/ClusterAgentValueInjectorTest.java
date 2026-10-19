@@ -222,8 +222,8 @@ class ClusterAgentValueInjectorTest extends AbstractUnitTest {
 
     @Test
     void parseImageRef_noTag_defaultsToLatest() {
-        ImageRef r = ClusterAgentValueInjector.parseImageRef("ghcr.io/aipaas/cluster-agent");
-        assertThat(r.repository()).isEqualTo("ghcr.io/aipaas/cluster-agent");
+        ImageRef r = ClusterAgentValueInjector.parseImageRef("ghcr.io/ai-paas/cluster-agent");
+        assertThat(r.repository()).isEqualTo("ghcr.io/ai-paas/cluster-agent");
         assertThat(r.tag()).isEqualTo("latest");
     }
 
@@ -231,10 +231,10 @@ class ClusterAgentValueInjectorTest extends AbstractUnitTest {
     void parseImageRef_blankOrNull_fallback() {
         ImageRef r1 = ClusterAgentValueInjector.parseImageRef(null);
         ImageRef r2 = ClusterAgentValueInjector.parseImageRef("");
-        assertThat(r1.repository()).isEqualTo("aipaas/cluster-agent");
-        assertThat(r1.tag()).isEqualTo("dev");
-        assertThat(r2.repository()).isEqualTo("aipaas/cluster-agent");
-        assertThat(r2.tag()).isEqualTo("dev");
+        assertThat(r1.repository()).isEqualTo("ghcr.io/ai-paas/cluster-agent");
+        assertThat(r1.tag()).isEqualTo("latest");
+        assertThat(r2.repository()).isEqualTo("ghcr.io/ai-paas/cluster-agent");
+        assertThat(r2.tag()).isEqualTo("latest");
     }
 
     @Test

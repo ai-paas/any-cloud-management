@@ -171,7 +171,7 @@ services:
       ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT: ${ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT:-127.0.0.1:9090}
       # dev 스택은 공개 저장소를 바로 쓴다. 운영(docker profile) 기본은 꺼짐 — air-gapped 대비.
       ANYCLOUD_HELM_REPO_AUTO_SEED: ${ANYCLOUD_HELM_REPO_AUTO_SEED:-true}
-      ANYCLOUD_AGENT_IMAGE: ${ANYCLOUD_AGENT_IMAGE:-aipaas/cluster-agent:dev}
+      ANYCLOUD_AGENT_IMAGE: ${ANYCLOUD_AGENT_IMAGE:-ghcr.io/ai-paas/cluster-agent:latest}
       # dev 태그는 같은 이름으로 다시 밀린다. IfNotPresent 면 노드가 옛 이미지를 계속 쓴다.
       ANYCLOUD_AGENT_IMAGE_PULL_POLICY: ${ANYCLOUD_AGENT_IMAGE_PULL_POLICY:-IfNotPresent}
       # Cluster 등록 응답의 kubectl apply 명령 base URL. 미설정 시 HTTP 요청 host 자동 사용.
@@ -242,7 +242,7 @@ services:
       ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT: ${ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT:-127.0.0.1:9090}
       # dev 스택은 공개 저장소를 바로 쓴다. 운영(docker profile) 기본은 꺼짐 — air-gapped 대비.
       ANYCLOUD_HELM_REPO_AUTO_SEED: ${ANYCLOUD_HELM_REPO_AUTO_SEED:-true}
-      ANYCLOUD_AGENT_IMAGE: ${ANYCLOUD_AGENT_IMAGE:-aipaas/cluster-agent:dev}
+      ANYCLOUD_AGENT_IMAGE: ${ANYCLOUD_AGENT_IMAGE:-ghcr.io/ai-paas/cluster-agent:latest}
       # dev 태그는 같은 이름으로 다시 밀린다. IfNotPresent 면 노드가 옛 이미지를 계속 쓴다.
       ANYCLOUD_AGENT_IMAGE_PULL_POLICY: ${ANYCLOUD_AGENT_IMAGE_PULL_POLICY:-IfNotPresent}
     volumes:

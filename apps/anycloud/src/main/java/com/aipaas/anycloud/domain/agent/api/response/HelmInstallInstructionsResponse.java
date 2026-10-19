@@ -27,7 +27,9 @@ import lombok.Builder;
 public record HelmInstallInstructionsResponse(
         @Schema(description = "helm install 시 사용할 chart 의 repo 이름 (사용자가 helm repo add 등록한 이름)", example = "anycloud")
                 String repoAlias,
-        @Schema(description = "chartmuseum 의 chart 다운로드 URL (helm repo add 시 사용)", example = "http://chartmuseum:8080")
+        @Schema(
+                        description = "chart 다운로드 URL (helm repo add 시 사용). 미설정 시 빈 값",
+                        example = "https://ai-paas.github.io/helm-charts")
                 String repoUrl,
         @Schema(description = "chart 이름 (\"<repoAlias>/<chartName>\" 형식의 chart 부분)", example = "cluster-agent")
                 String chartName,

@@ -62,7 +62,7 @@ public record AgentProperties(Grpc grpc, Manifest manifest, Helm helm, ApiManage
             /** Fleet upgrade 시 patch 대상 container 이름. */
             String containerName) {
         public Manifest {
-            if (image == null || image.isBlank()) image = "aipaas/cluster-agent:dev";
+            if (image == null || image.isBlank()) image = "ghcr.io/ai-paas/cluster-agent:latest";
             if (namespace == null || namespace.isBlank()) namespace = "aipaas-system";
             if (imagePullPolicy == null || imagePullPolicy.isBlank()) imagePullPolicy = "IfNotPresent";
             if (deploymentName == null || deploymentName.isBlank()) deploymentName = "cluster-agent";
@@ -73,13 +73,13 @@ public record AgentProperties(Grpc grpc, Manifest manifest, Helm helm, ApiManage
     public record Helm(
             /** helm repo add 의 alias. */
             String repoAlias,
-            /** helm chart repository URL. */
+            /** helm chart repository URL. 빈 값 = 미설정 — 자동 install 에는 영향 없음. */
             String repoUrl,
             String chartName,
             String chartVersion) {
         public Helm {
             if (repoAlias == null || repoAlias.isBlank()) repoAlias = "anycloud";
-            if (repoUrl == null || repoUrl.isBlank()) repoUrl = "http://chartmuseum:8080";
+            if (repoUrl == null) repoUrl = "";
             if (chartName == null || chartName.isBlank()) chartName = "cluster-agent";
             if (chartVersion == null || chartVersion.isBlank()) chartVersion = "0.1.0";
         }

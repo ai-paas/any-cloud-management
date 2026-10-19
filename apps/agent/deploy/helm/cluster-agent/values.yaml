@@ -5,11 +5,10 @@
 
 # ---------- image ----------
 image:
-  # 본 chart 는 어떤 registry 든 가리킬 수 있게 설계됨. default 는 GHCR 의 publish-agents.yml
-  # workflow 가 release tag push 시 부착하는 :latest (= main branch tag 의 latest semver).
+  # 본 chart 는 어떤 registry 든 가리킬 수 있게 설계됨.
   # local dev 는 `helm install --set image.repository=consine2c/cluster-agent --set image.tag=dev` 로 override.
-  # 운영에서는 image.tag 를 pin (예: v0.1.0) 권장 — :latest 가 다음 release 로 silent 갱신되는 위험 회피.
-  repository: ghcr.io/aipaas/cluster-agent
+  # 운영에서는 image.tag 를 pin (예: v0.1.3-dev) 권장 — :latest 는 다음 push 로 조용히 바뀐다.
+  repository: ghcr.io/ai-paas/cluster-agent
   tag: latest
   pullPolicy: IfNotPresent
   # private repo (GHCR 초기 private 상태) 면 imagePullSecret 이름 (별도 secret 생성 후 여기에 박기)
