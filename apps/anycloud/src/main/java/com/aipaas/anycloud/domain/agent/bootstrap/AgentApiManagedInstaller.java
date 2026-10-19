@@ -132,17 +132,6 @@ public class AgentApiManagedInstaller {
     public record AgentInstallResult(
             String clusterId, String registrationJti, String tokenExpiresAt, int manifestBytes) {}
 
-    /**
-     * Agent-led registration 의 핵심 — token 만 발급하고 manifest apply 는 사용자에게 위임. {@link #install} 의 (1) JWT 발급 부분만 분리 + helm install / kubectl apply 명령 문자열 빌드.
-     *
-     * @param clusterName 대상 cluster (ClusterEntity.id)
-     * @return Bootstrap 정보 — POST /v1/clusters 응답에 포함되어 사용자가 즉시 install 실행 가능.
-     */
-    @com.aipaas.anycloud.domain.audit.Audited(
-            action = "agent.bootstrap.prepare",
-            resourceType = "clusterAgent",
-            resourceId = "#clusterName",
-            summary = "'expires=' + #result?.expiresAt()")
     /** GET /v1/clusters/{id}/agent-manifest.yaml 가 호출하는 helper. */
     public String renderManifest(String clusterName, String registrationToken) {
         String chart = chartRenderer.render(registrationToken, adminKubeconfigEnabled(clusterName));
@@ -170,6 +159,18 @@ public class AgentApiManagedInstaller {
                 .orElse(false);
     }
 
+    /**
+     * Agent-led registration 의 핵심 — token 만 발급하고 manifest apply 는 사용자에게 위임.
+     * {@link #install} 의 JWT 발급 부분만 떼어 helm install / kubectl apply 명령 문자열을 함께 만든다.
+     *
+     * @param clusterName 대상 cluster (ClusterEntity.id)
+     * @return Bootstrap 정보 — POST /v1/clusters 응답에 포함되어 사용자가 즉시 install 실행 가능.
+     */
+    @com.aipaas.anycloud.domain.audit.Audited(
+            action = "agent.bootstrap.prepare",
+            resourceType = "clusterAgent",
+            resourceId = "#clusterName",
+            summary = "'expires=' + #result?.expiresAt()")
     public BootstrapInfo prepareBootstrap(String clusterName) {
         IssuedToken issued = bootstrapService.issueRegistrationToken(clusterName, "USER_MANAGED");
         String backendEndpoint = agentProperties.grpc().publicEndpoint();
