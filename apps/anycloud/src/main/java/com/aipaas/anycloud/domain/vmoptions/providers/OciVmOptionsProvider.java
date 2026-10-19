@@ -111,14 +111,21 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
             boolean isFlex = s.shapeConfigOptions() != null
                     && !s.shapeConfigOptions().isMissingNode()
                     && !s.shapeConfigOptions().isNull();
+            /*
+             * Flex shape 의 ocpus/memoryInGBs 는 최소값이다. 그대로 쓰면 VM.Standard.A1.Flex 가
+             * 1 vCPU 로 보고돼 "최소 2 vCPU" 조건에서 걸러진다 — 실제로는 올려 잡을 수 있는데도.
+             */
             results.add(VmOptionSpec.builder()
                     .provider(getProvider().getCanonicalName())
                     .region(resolvedRegion)
                     .id(shape)
                     .name(shape)
                     .family(inferFamily(shape))
-                    .vcpu(s.ocpus())
-                    .memoryGb(s.memoryInGBs())
+                    .vcpu(isFlex ? maxFrom(s.shapeConfigOptions(), "maxOcpus", s.ocpus()) : s.ocpus())
+                    .memoryGb(
+                            isFlex
+                                    ? maxFromDouble(s.shapeConfigOptions(), "maxMemoryInGBs", s.memoryInGBs())
+                                    : s.memoryInGBs())
                     .gpuCount(gpuCount)
                     .architecture(inferArchitecture(shape))
                     .description(isFlex ? "flex shape" : s.processorDescription())
@@ -129,6 +136,18 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
             }
         }
         return results;
+    }
+
+    /** shapeConfigOptions 의 상한. 없으면 fallback (= 최소값) 을 그대로 쓴다. */
+    private static Integer maxFrom(com.fasterxml.jackson.databind.JsonNode options, String field, Integer fallback) {
+        com.fasterxml.jackson.databind.JsonNode node = options.path(field);
+        return node.isNumber() ? node.asInt() : fallback;
+    }
+
+    private static Double maxFromDouble(
+            com.fasterxml.jackson.databind.JsonNode options, String field, Double fallback) {
+        com.fasterxml.jackson.databind.JsonNode node = options.path(field);
+        return node.isNumber() ? node.asDouble() : fallback;
     }
 
     /** ListImages 한 번에 받을 개수. 기본 페이지는 키워드 필터를 무의미하게 만든다. */

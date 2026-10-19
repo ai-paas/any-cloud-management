@@ -373,7 +373,7 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
                     (filter.gpu() ? "GPU 인스턴스가 없습니다" : "조건에 맞는 인스턴스 타입이 없습니다") + " (최소 " + filter.minVcpu() + "vCPU, "
                             + filter.minMemoryGb() + "GB).");
         }
-        return capacityProbe.firstWithCapacity(provider, credentialId, region, candidates);
+        return capacityProbe.firstWithCapacity(provider, credentialId, region, candidates, filter);
     }
 
     /**

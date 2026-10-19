@@ -135,6 +135,16 @@ anycloud:
   node-ssh:
     enabled: ${ANYCLOUD_NODE_SSH_ENABLED:true}
 
+  # 일괄 프로비저닝이 집어갈 Proxmox 기본값. 설치마다 다른 주소라 env 로만 받는다.
+  # 비우면 providerSpec.nodeIps 가 없어 Proxmox 가 차단된다 (의도된 가드).
+  provisioning:
+    proxmox:
+      node-ips: ${ANYCLOUD_PROXMOX_NODE_IPS:}
+      gateway: ${ANYCLOUD_PROXMOX_GATEWAY:}
+      # 백엔드가 노드와 같은 망이면 비운다. 비면 노드 IP 로 직접 붙는다.
+      ssh-host: ${ANYCLOUD_PROXMOX_SSH_HOST:}
+      ssh-ports: ${ANYCLOUD_PROXMOX_SSH_PORTS:}
+
   vm-cluster:
     workflow:
       # 단계 실행은 소비자 스레드에서 떼어내 즉시 ack 한다. 그래서 크래시가 나면 되돌아올 것이

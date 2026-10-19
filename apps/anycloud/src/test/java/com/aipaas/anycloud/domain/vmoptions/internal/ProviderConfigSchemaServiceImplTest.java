@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.aipaas.anycloud.common.error.exception.CustomException;
 import com.aipaas.anycloud.domain.vmoptions.api.ProviderConfigKey;
+import com.aipaas.anycloud.domain.vmoptions.properties.ProxmoxProvisioningDefaults;
 import com.aipaas.anycloud.testsupport.AbstractUnitTest;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -17,7 +18,8 @@ import org.junit.jupiter.api.Test;
  */
 class ProviderConfigSchemaServiceImplTest extends AbstractUnitTest {
 
-    private final ProviderConfigSchemaServiceImpl service = new ProviderConfigSchemaServiceImpl();
+    private final ProviderConfigSchemaServiceImpl service =
+            new ProviderConfigSchemaServiceImpl(new ProxmoxProvisioningDefaults(null, null, null, null));
 
     @Test
     void awsSchema_containsCrossCuttingKeys() {

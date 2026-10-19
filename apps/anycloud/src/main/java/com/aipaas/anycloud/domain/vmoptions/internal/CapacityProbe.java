@@ -20,11 +20,6 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class CapacityProbe {
 
-    /** 검증용 클러스터 기준. 용량 조회는 크기를 함께 물어야 답이 달라진다. */
-    private static final int PROBE_OCPUS = 2;
-
-    private static final int PROBE_MEMORY_GB = 16;
-
     /** 한 리전에서 자리를 찾느라 목록 전체를 두드리지 않는다. */
     private static final int CANDIDATE_LIMIT = 8;
 
@@ -34,8 +29,16 @@ public class CapacityProbe {
     /** 고른 타입과, 못 고른 이유. 둘 중 하나만 채워진다. */
     public record SpecChoice(String specId, String blockedReason) {}
 
+    /**
+     * @param filter 요청한 최소 사양. Flex shape 은 크기에 따라 가용 여부가 달라져 그대로 물어야
+     *     한다. 고정 크기로 물으면 있는 자리를 없다고 답한다
+     */
     public SpecChoice firstWithCapacity(
-            SupportedProvisioningProvider provider, String credentialId, String region, List<String> candidates) {
+            SupportedProvisioningProvider provider,
+            String credentialId,
+            String region,
+            List<String> candidates,
+            com.aipaas.anycloud.domain.vmoptions.api.SpecFilter filter) {
         if (candidates.isEmpty()) {
             return new SpecChoice(null, "고를 수 있는 인스턴스 타입이 없습니다.");
         }
@@ -49,7 +52,7 @@ public class CapacityProbe {
             try {
                 if (ociVmOptionsProvider
                         .findAvailabilityDomainWithCapacity(
-                                credentials, region, candidate, PROBE_OCPUS, PROBE_MEMORY_GB)
+                                credentials, region, candidate, filter.minVcpu(), (int) Math.ceil(filter.minMemoryGb()))
                         .isPresent()) {
                     return new SpecChoice(candidate, null);
                 }
@@ -59,6 +62,11 @@ public class CapacityProbe {
                 return new SpecChoice(candidates.get(0), null);
             }
         }
-        return new SpecChoice(null, region + " 에 자리가 없습니다. 확인한 타입 " + scanned.size() + "개 모두 용량 부족입니다.");
+        // 어떤 타입을 어떤 크기로 물었는지 없으면 다음 행동이 보이지 않는다.
+        return new SpecChoice(
+                null,
+                region + " 에 자리가 없습니다. " + filter.minVcpu() + "vCPU "
+                        + (int) Math.ceil(filter.minMemoryGb()) + "GB 기준으로 확인한 타입 "
+                        + String.join(", ", scanned) + " 모두 용량 부족입니다.");
     }
 }
