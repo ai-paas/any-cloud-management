@@ -24,6 +24,11 @@ updates:
       # MariaDB JDBC major
       - dependency-name: "org.mariadb.jdbc:*"
         update-types: ["version-update:semver-major"]
+      # springdoc 3.x 는 Spring Boot 4 베이스다. Boot 3.5.x 에 올리면 기동 중
+      # ServletWebServerApplicationContextFactory 에서 NoClassDefFoundError 가 난다.
+      # Boot 4 로 올릴 때 이 항목을 지운다.
+      - dependency-name: "org.springdoc:*"
+        update-types: ["version-update:semver-major"]
     groups:
       spring:
         patterns: ["org.springframework.*"]
