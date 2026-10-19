@@ -34,10 +34,13 @@ jobs:
           java-version: '21'
 
       - name: Set up Gradle (with cache)
-        uses: gradle/actions/setup-gradle@v3
+        # v3 의 cache cleanup init script 가 Gradle 9 에서 깨진다. removeUnusedEntriesOlderThan
+        # 이 write-only 로 바뀌어 post-action 이 실패한다. PR 은 cache 를 읽기만 해서
+        # 안 드러나고 default branch push 에서만 터진다.
+        uses: gradle/actions/setup-gradle@v4
         with:
           cache-disabled: false
-          gradle-home-cache-cleanup: true
+          cache-cleanup: on-success
 
       - name: Gradle build + spotless + starter publish
         run: |

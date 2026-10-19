@@ -56,7 +56,7 @@ jobs:
           java-version: '21'
 
       - name: Set up Gradle (with cache)
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Start backend (SPRING_PROFILES_ACTIVE=test)
         run: |
