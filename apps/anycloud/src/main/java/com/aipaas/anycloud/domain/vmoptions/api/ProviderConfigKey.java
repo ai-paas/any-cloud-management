@@ -10,11 +10,11 @@ import lombok.Builder;
 public record ProviderConfigKey(
         @Schema(description = "전체 키 이름 (anycloud-k8s: prefix 포함)", example = "anycloud-k8s:masterCount") String key,
         @Schema(
-                        description = "값 타입 — 모든 값은 string 으로 전달되지만 의미상 type",
+                        description = "값 타입: 모든 값은 string 으로 전달되지만 의미상 type",
                         example = "integer",
                         allowableValues = {"string", "integer", "boolean", "cidr", "enum"})
                 String type,
-        @Schema(description = "필수 여부 — true 면 누락 시 400", example = "false") boolean required,
+        @Schema(description = "필수 여부: true 면 누락 시 400", example = "false") boolean required,
         @Schema(description = "기본값 (applyDefaults 가 putIfAbsent). null 이면 default 없음", example = "1")
                 String defaultValue,
         @Schema(description = "화면에 띄울 이름. 비면 키 뒷부분을 그대로 쓴다", example = "컴파트먼트") String label,

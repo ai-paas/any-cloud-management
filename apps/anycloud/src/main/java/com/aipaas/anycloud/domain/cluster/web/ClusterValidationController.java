@@ -92,9 +92,9 @@ public class ClusterValidationController {
     @PostMapping("/preview")
     @Operation(
             summary = "VM cluster 생성 미리보기 (pulumi preview)",
-            description = "실제로 생성될 CSP resource 계획을 반환 — `pulumi preview --json` 기반. "
+            description = "실제로 생성될 CSP resource 계획을 반환: `pulumi preview --json` 기반. "
                     + "CSP 자원은 만들지 않는다. preflight (정적 검증, ~ms) 와 달리 Pulumi CLI + CSP API 를 "
-                    + "실제 호출하므로 수십 초 걸릴 수 있다 — client timeout 60s 이상 권장. "
+                    + "실제 호출하므로 수십 초 걸릴 수 있다. client timeout 60s 이상 권장. "
                     + "신규 cluster 는 preview 용 stack 을 임시 생성 후 정리, 기존 stack 은 diff 만 반환.")
     public ResponseEntity<
                     ApiSuccessResponse<com.aipaas.anycloud.domain.provisioning.api.response.VmClusterPreviewResponse>>

@@ -52,7 +52,7 @@ public class ClusterHealthController {
             summary = "Cluster 종합 health",
             description = "Agent status + stream 활성 + heartbeat 신선도 + K8s API 활성 종합. "
                     + "healthy=true 면 day-2 ops 즉시 가능. 실패 시 summary 로 원인 파악.")
-    @ApiResponses({@ApiResponse(responseCode = "200", description = "Health 정보 조회 성공 — healthy 필드 확인")})
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Health 정보 조회 성공: healthy 필드 확인")})
     public ResponseEntity<ApiSuccessResponse<ClusterHealthResponse>> getHealth(
             @PathVariable
                     @NotBlank
@@ -69,7 +69,7 @@ public class ClusterHealthController {
     @Operation(
             summary = "Fleet-wide agent health 요약",
             description = "등록된 모든 cluster 의 agent 활성도. healthy/unhealthy/noAgent 집계 + "
-                    + "status 분포 + per-cluster 상세. UI 대시보드용 snapshot — 시계열 metric 은 "
+                    + "status 분포 + per-cluster 상세. UI 대시보드용 snapshot: 시계열 metric 은 "
                     + "/actuator/prometheus 의 anycloud_agent_* 시리즈.")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "Fleet health 조회 성공")})
     public ResponseEntity<ApiSuccessResponse<FleetAgentHealthResponse>> getFleetHealth() {

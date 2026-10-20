@@ -51,7 +51,7 @@ public class CreateClusterRequest {
 
     @NotNull
     @Schema(
-            description = "클러스터 source — vm: Pulumi provision, registered: 외부 클러스터 등록",
+            description = "클러스터 source: vm: Pulumi provision, registered: 외부 클러스터 등록",
             allowableValues = {"vm", "registered"},
             example = "vm")
     private Source source;

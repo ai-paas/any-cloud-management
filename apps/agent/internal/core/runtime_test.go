@@ -107,7 +107,7 @@ func runtimeTestConfig(addr, token string) RuntimeConfig {
 	cfg.BackendAddr = addr
 	cfg.AgentIdentityToken = token
 	cfg.AgentInstanceID = "instance-1"
-	cfg.HeartbeatInterval = 0 // disabled — test 가 명시적으로 control.
+	cfg.HeartbeatInterval = 0 // disabled: test 가 명시적으로 control.
 	cfg.DialTimeout = 2 * time.Second
 	cfg.InitialBackoff = 50 * time.Millisecond
 	cfg.MaxBackoff = 500 * time.Millisecond

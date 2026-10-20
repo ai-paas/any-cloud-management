@@ -165,7 +165,7 @@ func (r *Runner) Run(ctx context.Context, cfg SessionConfig) error {
 				slog.Debug("logstream: send chunk failed (likely backend cancel)",
 					slog.String("session_id", cfg.SessionID),
 					slog.String("error", sendErr.Error()))
-				return nil // backend 가 cancel — 정상 종료
+				return nil // backend 가 cancel: 정상 종료
 			}
 			bytesSent += int64(n)
 			chunksSent++

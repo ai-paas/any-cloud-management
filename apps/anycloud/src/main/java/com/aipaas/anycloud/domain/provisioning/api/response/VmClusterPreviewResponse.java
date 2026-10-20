@@ -8,10 +8,10 @@ import java.util.Map;
 /**
  * VM cluster create 사전 미리보기 응답: {@code pulumi preview --json} 의 구조화 결과.
  */
-@Schema(description = "Pulumi preview 결과 — 실제로 생성/변경될 CSP resource 계획")
+@Schema(description = "Pulumi preview 결과: 실제로 생성/변경될 CSP resource 계획")
 public record VmClusterPreviewResponse(
         @Schema(description = "preview 대상 Pulumi stack 이름", example = "anycloud-AWS-dev-demo-aws-01") String stackName,
-        @Schema(description = "stack 이 preview 이전부터 존재했는지 — false 면 신규 create 미리보기", example = "false")
+        @Schema(description = "stack 이 preview 이전부터 존재했는지: false 면 신규 create 미리보기", example = "false")
                 boolean stackExistedBefore,
         @Schema(description = "op 별 resource 수 (create/update/delete/same/replace ...)", example = "{\"create\": 14}")
                 Map<String, Integer> changeSummary,

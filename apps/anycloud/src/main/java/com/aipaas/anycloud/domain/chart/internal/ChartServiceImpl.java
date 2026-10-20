@@ -140,7 +140,7 @@ public class ChartServiceImpl implements ChartService {
                         version == null ? "" : version,
                         ns,
                         valuesJson,
-                        true)); // createNamespace — chart 가 명시 ns 가 없으면 만들어줌
+                        true)); // createNamespace: chart 가 명시 ns 가 없으면 만들어줌
 
         log.info(
                 "Helm install OK (source=AGENT): cluster={}, release={}, revision={}, status={}",

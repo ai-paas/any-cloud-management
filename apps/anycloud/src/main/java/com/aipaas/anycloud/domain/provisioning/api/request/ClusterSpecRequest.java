@@ -19,7 +19,7 @@ public record ClusterSpecRequest(
         @Schema(description = "master 인스턴스 타입. Proxmox 는 \"코어-메모리MiB\"", example = "4-8-50") String masterInstanceType,
         @Schema(description = "worker 인스턴스 타입", example = "4-8-50") String workerInstanceType,
         @Min(20) @Max(2000) @Schema(description = "루트 디스크 GB", example = "50") Integer rootDiskSizeGb,
-        @Schema(description = "OS 이미지. 표현이 CSP 마다 다르다 — OCI 는 OCID, Azure 는 4단 좌표", example = "ubuntu-24.04")
+        @Schema(description = "OS 이미지. 표현이 CSP 마다 다르다. OCI 는 OCID, Azure 는 4단 좌표", example = "ubuntu-24.04")
                 String osImage,
         @Schema(description = "SSH 사용자", example = "ubuntu") String sshUser,
         @Valid @Schema(description = "네트워크 대역") NetworkSpecRequest network,

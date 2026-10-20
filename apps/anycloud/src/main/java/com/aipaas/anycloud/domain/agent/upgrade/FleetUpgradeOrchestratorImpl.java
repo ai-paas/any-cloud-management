@@ -176,7 +176,7 @@ public class FleetUpgradeOrchestratorImpl implements FleetUpgradeOrchestrator {
 
         ClusterAgentUpgradeWave currentWave = resolveOrInitCurrentWave(run, waves, now);
         if (currentWave == null) {
-            return; // ABORT 또는 COMPLETED — helper 가 이미 save + return.
+            return; // ABORT 또는 COMPLETED: helper 가 이미 save + return.
         }
 
         Map<String, ClusterAgentEntity> primaryByCluster = collectWavePrimaries(currentWave);
@@ -328,7 +328,7 @@ public class FleetUpgradeOrchestratorImpl implements FleetUpgradeOrchestrator {
             run.setCompletedAt(now);
             run.setLastError("Wave " + currentWave + " failure rate " + failurePct + "% >= threshold "
                     + run.getFailureThreshold() + "%");
-            runRepository.save(run); // ABORT 는 terminal — 즉시 commit.
+            runRepository.save(run); // ABORT 는 terminal: 즉시 commit.
             log.warn("Fleet upgrade ABORTED run_id={} wave={} failure_pct={}", run.getRunId(), currentWave, failurePct);
             return;
         }

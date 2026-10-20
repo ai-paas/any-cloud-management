@@ -1620,7 +1620,7 @@ allow:
 // LoadOnce 후엔 채워짐.
 func TestHandle_GetAgentConfig_LastReloadAt_AfterReload(t *testing.T) {
 	// LoadOnce 호출 전: loader 가 emptyAllowList 만 가짐, meta 는 zero.
-	cs := fake.NewSimpleClientset() // 빈 — ConfigMap 미존재.
+	cs := fake.NewSimpleClientset() // 빈: ConfigMap 미존재.
 	loader := config.NewLoader(cs, "aipaas-system", "aipaas-agent-allowlist")
 	// GET_AGENT_CONFIG 가 deny-all 정책에선 commandAllowed false: 별도 loader 로 강제 허용.
 	// 대신 loader 의 LoadOnce 가 실패해도 GET_AGENT_CONFIG 통과시키는 별도 loader 가 필요.

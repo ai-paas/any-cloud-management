@@ -68,10 +68,10 @@ public class AdminClusterCleanupController {
     @Operation(
             summary = "Pulumi orphan stack file 정리 (RustFS 의 state 만)",
             description = "옛 cred 로 쓰여진 또는 destroy 실패로 잔존하는 stack file 을 backend 에서 제거. "
-                    + "force-delete 의 자매 — DB 는 손 안 대고 Pulumi state 만.")
+                    + "force-delete 의 자매: DB 는 손 안 대고 Pulumi state 만.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "stack file 정리 (혹은 이미 없음)"),
-        @ApiResponse(responseCode = "500", description = "Pulumi command 실패 — message 참고")
+        @ApiResponse(responseCode = "500", description = "Pulumi command 실패: message 참고")
     })
     public ResponseEntity<ApiSuccessResponse<Map<String, Object>>> cleanupOrphanState(
             @PathVariable @Size(max = 200) String stackName) {

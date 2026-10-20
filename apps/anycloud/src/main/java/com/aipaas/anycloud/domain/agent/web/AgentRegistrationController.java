@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/v1/clusters/{clusterId}/agent-registration")
 @RequiredArgsConstructor
 @Validated
-@Tag(name = "Cluster Agent (v1)", description = "Cluster Agent bootstrap — registration_token 발급")
+@Tag(name = "Cluster Agent (v1)", description = "Cluster Agent bootstrap: registration_token 발급")
 public class AgentRegistrationController {
 
     private final AgentBootstrapService bootstrapService;

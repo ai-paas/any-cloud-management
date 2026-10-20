@@ -193,13 +193,13 @@ func (d *Dispatcher) Handle(cmd *agentv1.CommandRequest) *agentv1.CommandRespons
 		return d.generateKubeconfig(ctx, cmd)
 	case agentv1.CommandType_CREATE_NODE_DEBUG_POD: //
 		return d.createNodeDebugPod(ctx, cmd)
-	case agentv1.CommandType_LIST_RESOURCE_KINDS: // discovery — cluster 가 지원하는 모든 kind (CRD 포함).
+	case agentv1.CommandType_LIST_RESOURCE_KINDS: // discovery: cluster 가 지원하는 모든 kind (CRD 포함).
 		return d.listResourceKinds(ctx)
 	case agentv1.CommandType_RESOLVE_RESOURCE: // 단일 input (short/singular/plural) → 정규화된 ResolvedResource.
 		return d.resolveResource(ctx, cmd)
-	case agentv1.CommandType_GET_AGENT_CONFIG: // self-introspection — allowlist + resource_policy snapshot.
+	case agentv1.CommandType_GET_AGENT_CONFIG: // self-introspection: allowlist + resource_policy snapshot.
 		return d.getAgentConfig(ctx, cmd)
-	case agentv1.CommandType_APPLY_AGENT_CONFIG: // backend PUT — agent 가 자기 ConfigMap 갱신 → watch reload.
+	case agentv1.CommandType_APPLY_AGENT_CONFIG: // backend PUT: agent 가 자기 ConfigMap 갱신 → watch reload.
 		return d.applyAgentConfig(ctx, cmd)
 	case agentv1.CommandType_ENSURE_AGENT_CONFIG_ANNOTATIONS: // helm.sh/resource-policy=keep annotation 멱등 backfill.
 		return d.ensureAgentConfigAnnotations(ctx, cmd)

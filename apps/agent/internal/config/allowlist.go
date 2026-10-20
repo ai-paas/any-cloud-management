@@ -156,7 +156,7 @@ func (l *Loader) Watch(ctx context.Context) error {
 			return ctx.Err()
 		case event, ok := <-w.ResultChan():
 			if !ok {
-				return nil // channel closed — caller 가 재시작.
+				return nil // channel closed: caller 가 재시작.
 			}
 			switch event.Type {
 			case watch.Added, watch.Modified:
@@ -433,7 +433,7 @@ func parseYAMLList(value string) ([]string, error) {
 	// 2) Fallback: line / comma 토큰 분할.
 	tokens := splitListTokens(value)
 	if len(tokens) > 0 {
-		return tokens, yamlErr // yamlErr 는 nil — fallback 성공.
+		return tokens, yamlErr // yamlErr 는 nil: fallback 성공.
 	}
 	// Fallback 도 빈 결과면 원본 YAML 에러 그대로 노출.
 	return nil, yamlErr

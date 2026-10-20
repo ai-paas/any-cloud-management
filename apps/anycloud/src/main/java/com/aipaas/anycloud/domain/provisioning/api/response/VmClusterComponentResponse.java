@@ -13,7 +13,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "VM 클러스터 구성 요소 상태 — 백엔드가 SSH 로 직접 설치하는 계층")
+@Schema(description = "VM 클러스터 구성 요소 상태: 백엔드가 SSH 로 직접 설치하는 계층")
 public class VmClusterComponentResponse {
 
     @Schema(description = "구성 요소", example = "AGENT")

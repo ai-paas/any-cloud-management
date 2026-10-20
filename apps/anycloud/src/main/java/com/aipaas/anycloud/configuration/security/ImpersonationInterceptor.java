@@ -41,7 +41,7 @@ public class ImpersonationInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         String user = trim(request.getHeader(USER_HEADER));
         if (user == null || user.isEmpty()) {
-            return true; // 헤더 없으면 admin-equivalent 동작 — 별도 처리 없음.
+            return true; // 헤더 없으면 admin-equivalent 동작: 별도 처리 없음.
         }
         try {
             List<String> groups = parseGroups(request);

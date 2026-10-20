@@ -55,7 +55,7 @@ public class AgentUpgradeProgressMonitor {
             String target = primary.getUpgradeTargetImage();
             String targetTag = extractTag(target);
             if (targetTag == null) {
-                continue; // 잘못된 target image — 추후 wait 만.
+                continue; // 잘못된 target image: 추후 wait 만.
             }
             // 같은 cluster 의 row 중 어느 하나라도 target version 으로 갱신됐으면 SUCCEEDED.
             List<ClusterAgentEntity> siblings = clusterAgentRepository.findByClusterName(primary.getClusterName());

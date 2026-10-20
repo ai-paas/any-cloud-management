@@ -373,7 +373,7 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
         if ("false".equals(normalized)) {
             return Boolean.FALSE;
         }
-        return null; // validation 우회 케이스 — silent false 회피.
+        return null; // validation 우회 케이스: silent false 회피.
     }
 
     private String stringValue(Object value) {

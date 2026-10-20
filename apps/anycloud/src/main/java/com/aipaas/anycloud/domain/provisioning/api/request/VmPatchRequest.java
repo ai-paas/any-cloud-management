@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "VM 변경 요청 — 현재는 scale 만 지원")
+@Schema(description = "VM 변경 요청: 현재는 scale 만 지원")
 public class VmPatchRequest {
 
     @Schema(description = "변경 항목들")

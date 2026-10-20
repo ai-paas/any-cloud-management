@@ -38,7 +38,7 @@ public final class K8sResponseSanitizer {
             return;
         }
         if (!node.isObject()) {
-            return; // scalar — 흥미 없음
+            return; // scalar: 흥미 없음
         }
         // object 시작.
         // 1) metadata.managedFields 제거 (단일 자원 형태).

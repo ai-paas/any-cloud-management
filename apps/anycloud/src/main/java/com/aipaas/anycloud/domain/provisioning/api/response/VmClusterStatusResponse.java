@@ -81,7 +81,7 @@ public class VmClusterStatusResponse {
     @Schema(description = "Bootstrap 및 kubelet 진단 로그")
     private String bootstrapLog;
 
-    @Schema(description = "내려받은 kubeconfig 로 바로 닿는지 — DIRECT / PRIVATE_NETWORK / VIA_BASTION", example = "DIRECT")
+    @Schema(description = "내려받은 kubeconfig 로 바로 닿는지: DIRECT / PRIVATE_NETWORK / VIA_BASTION", example = "DIRECT")
     private String apiServerReach;
 
     @Schema(description = "API 서버 URL", example = "https://3.39.10.20:6443")
@@ -114,7 +114,7 @@ public class VmClusterStatusResponse {
     @Schema(description = "노드 목록")
     private List<VmClusterNodeResponse> nodes;
 
-    @Schema(description = "구성 요소 상태 — DEGRADED 사유를 여기서 확인한다")
+    @Schema(description = "구성 요소 상태: DEGRADED 사유를 여기서 확인한다")
     private List<VmClusterComponentResponse> components;
 
     @Schema(description = "요청 addon 설치 상태")

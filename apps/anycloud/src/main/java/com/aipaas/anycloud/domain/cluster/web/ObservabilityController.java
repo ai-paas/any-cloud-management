@@ -290,7 +290,7 @@ public class ObservabilityController {
     @DeleteMapping("/clusters/{clusterName}/observability/alert-silences/{silenceId}")
     @Operation(
             summary = "Alertmanager silence 삭제",
-            description = "Alertmanager /api/v2/silence/{id} DELETE — silenceId 는 create 시 발급된 UUID.")
+            description = "Alertmanager /api/v2/silence/{id} DELETE: silenceId 는 create 시 발급된 UUID.")
     public ResponseEntity<ApiSuccessResponse<Boolean>> deleteSilence(
             @PathVariable @NotBlank @Pattern(regexp = CLUSTER_REGEXP) @Size(max = CLUSTER_MAX) String clusterName,
             @PathVariable @NotBlank @Size(max = 128) String silenceId) {
@@ -338,7 +338,7 @@ public class ObservabilityController {
     @PostMapping("/clusters/{clusterName}/observability/alert-rules/install-all")
     @Operation(
             summary = "카탈로그 전체 설치",
-            description = "각 rule-set 별 결과 list 반환. 일부 실패해도 나머지 계속 — status='failed:<code>' 표시.")
+            description = "각 rule-set 별 결과 list 반환. 일부 실패해도 나머지 계속: status='failed:<code>' 표시.")
     public ResponseEntity<ApiSuccessResponse<List<AlertRuleApplyResult>>> installAllRuleSets(
             @PathVariable @NotBlank @Pattern(regexp = CLUSTER_REGEXP) @Size(max = CLUSTER_MAX) String clusterName,
             @RequestParam(required = false) String namespace,

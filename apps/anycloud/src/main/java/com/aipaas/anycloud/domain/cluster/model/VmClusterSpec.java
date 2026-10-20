@@ -7,7 +7,7 @@ import java.util.Map;
 /**
  * VM-source cluster spec (Pulumi provision).
  */
-@Schema(description = "VM provisioning spec — Pulumi 가 새 cluster 를 생성")
+@Schema(description = "VM provisioning spec: Pulumi 가 새 cluster 를 생성")
 public record VmClusterSpec(
         @Schema(
                         description = "CSP provider",
@@ -17,7 +17,7 @@ public record VmClusterSpec(
                 String provider,
         @Schema(description = "region", example = "ap-northeast-2") @NotBlank String region,
         @Schema(description = "환경 (dev/stage/prod)", example = "dev") String environment,
-        @Schema(description = "사전 등록한 CSP credential id (선택 — 미지정 시 ENV)") String credentialId,
+        @Schema(description = "사전 등록한 CSP credential id (선택: 미지정 시 ENV)") String credentialId,
         @Schema(description = "Pulumi config map. 키는 'anycloud-k8s:xxx' 형식 또는 단순 키 (workerCount 등). 값은 모두 문자열.")
                 Map<String, String> config,
 

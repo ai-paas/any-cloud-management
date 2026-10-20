@@ -149,7 +149,7 @@ func (d *Dispatcher) applyManifest(ctx context.Context, cmd *agentv1.CommandRequ
 	}
 	defaultNamespace := getStringParam(cmd, "namespace")
 	if defaultNamespace == "_all" || defaultNamespace == "-" {
-		defaultNamespace = "" // sentinel — cluster-scoped or all-namespaces.
+		defaultNamespace = "" // sentinel: cluster-scoped or all-namespaces.
 	}
 
 	// AllowList: default namespace 가 비어있지 않으면 검사.
@@ -217,7 +217,7 @@ func (d *Dispatcher) listResources(ctx context.Context, cmd *agentv1.CommandRequ
 	}
 	namespace := getStringParam(cmd, "namespace")
 	if namespace == "_all" {
-		namespace = "" // all-namespaces sentinel — backend convention 과 일치.
+		namespace = "" // all-namespaces sentinel: backend convention 과 일치.
 	}
 	if denied := d.checkResourceAccess(kind, namespace); denied != nil {
 		return denied

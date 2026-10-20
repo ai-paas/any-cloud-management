@@ -73,11 +73,11 @@ public class ClusterHelmReleaseController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
-            summary = "release 설치 (JSON — values 객체 또는 valuesYaml 문자열)",
+            summary = "release 설치 (JSON: values 객체 또는 valuesYaml 문자열)",
             description = "values 입력은 최대 하나만 제공. values (JSON object, 권장) 또는 valuesYaml (raw string). "
                     + "큰 values 파일은 multipart variant 사용 권장.")
     @ApiResponses({
-        @ApiResponse(responseCode = "202", description = "install accepted — Location: /v1/operations/{id}"),
+        @ApiResponse(responseCode = "202", description = "install accepted: Location: /v1/operations/{id}"),
         @ApiResponse(responseCode = "400", description = "chart 형식 위반 / values+valuesYaml 동시 지정 / YAML 직렬화 실패")
     })
     public ResponseEntity<ApiSuccessResponse<OperationResponse>> installJson(
@@ -138,7 +138,7 @@ public class ClusterHelmReleaseController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
-            summary = "release 설치 (multipart — values.yaml 파일 업로드)",
+            summary = "release 설치 (multipart: values.yaml 파일 업로드)",
             description = "UI 의 파일 업로드 / 큰 values 파일에 적합. valuesFile 미제공 시 default values 로 설치.")
     @ApiResponses({
         @ApiResponse(responseCode = "202", description = "install accepted"),
@@ -348,9 +348,9 @@ public class ClusterHelmReleaseController {
     @org.springframework.web.bind.annotation.PutMapping(
             value = "/{releaseName}",
             consumes = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "release 업그레이드 — 새 chart version / values 로 갱신")
+    @Operation(summary = "release 업그레이드: 새 chart version / values 로 갱신")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "upgrade OK — revision 증가, status=deployed"),
+        @ApiResponse(responseCode = "200", description = "upgrade OK: revision 증가, status=deployed"),
         @ApiResponse(responseCode = "400", description = "release 미존재 (HELM_NOT_FOUND), 또는 chart resolution 실패"),
         @ApiResponse(responseCode = "503", description = "Agent unreachable")
     })
@@ -489,12 +489,12 @@ public class ClusterHelmReleaseController {
 
     @DeleteMapping("/{releaseName}")
     @Operation(
-            summary = "release uninstall (LRO — helm uninstall)",
+            summary = "release uninstall (LRO: helm uninstall)",
             description = "지정 release 를 cluster 에서 제거. 기본은 history 도 같이 삭제 (idempotent 재설치 가능). "
                     + "`keepHistory=true` 면 helm 의 revision 이력을 보존 (롤백 추적용). "
                     + "`wait=true` 면 모든 K8s 자원이 실제로 사라질 때까지 대기.")
     @ApiResponses({
-        @ApiResponse(responseCode = "202", description = "uninstall accepted — Location: /v1/operations/{id}"),
+        @ApiResponse(responseCode = "202", description = "uninstall accepted: Location: /v1/operations/{id}"),
         @ApiResponse(responseCode = "404", description = "release 또는 cluster 미존재"),
         @ApiResponse(responseCode = "500", description = "helm CLI 실행 실패")
     })

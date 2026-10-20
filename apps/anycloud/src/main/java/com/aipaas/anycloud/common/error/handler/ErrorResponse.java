@@ -21,7 +21,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
  */
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Schema(description = "공통 에러 응답 — RFC 9457 Problem Details 호환 (type URI 포함)")
+@Schema(description = "공통 에러 응답: RFC 9457 Problem Details 호환 (type URI 포함)")
 public class ErrorResponse {
 
     /**
@@ -49,7 +49,7 @@ public class ErrorResponse {
 
     /** 특정 에러에 대한 추가 context (예: UNSUPPORTED_KIND 의 suggestions, RATE_LIMIT 의 retryAfter 등). */
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    @Schema(description = "핸들러별 추가 context — code 따라 의미 다름. UNSUPPORTED_KIND 면 'input', 'suggestions' 키 포함.")
+    @Schema(description = "핸들러별 추가 context: code 따라 의미 다름. UNSUPPORTED_KIND 면 'input', 'suggestions' 키 포함.")
     private Map<String, Object> metadata;
 
     /**

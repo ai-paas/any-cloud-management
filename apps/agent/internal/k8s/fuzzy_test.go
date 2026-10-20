@@ -17,7 +17,7 @@ func TestLevenshtein(t *testing.T) {
 		{"pds", "pods", 1},                   // 1 insert
 		{"ppds", "pods", 1},                  // 1 sub (p→o)
 		{"xyz", "pods", 4},                   // 3 sub + 1 del
-		{"stragecls", "storageclass", 3},     // 운영 typo — within threshold
+		{"stragecls", "storageclass", 3},     // 운영 typo: within threshold
 		{"storageclas", "storageclasses", 3}, // 3 inserts ("ses")
 	}
 	for _, c := range cases {

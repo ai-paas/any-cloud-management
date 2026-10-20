@@ -111,7 +111,7 @@ public class AdminAgentPolicyController {
     @Operation(
             summary = "Fleet-wide policy audit",
             description = "모든 등록 cluster 의 agent policy snapshot + validator 결과 집계. "
-                    + "HIGH severity 우선 정렬 — 운영자가 즉시 문제 cluster 식별. "
+                    + "HIGH severity 우선 정렬: 운영자가 즉시 문제 cluster 식별. "
                     + "agent unreachable cluster 는 UNREACHABLE 표시.")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "Fleet audit 결과")})
     public ResponseEntity<ApiSuccessResponse<Map<String, Object>>> fleetAudit() {
@@ -146,7 +146,7 @@ public class AdminAgentPolicyController {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "정책 적용 성공"),
         @ApiResponse(responseCode = "400", description = "필수 list 누락"),
-        @ApiResponse(responseCode = "422", description = "HIGH severity warning — force=true 필요"),
+        @ApiResponse(responseCode = "422", description = "HIGH severity warning: force=true 필요"),
         @ApiResponse(responseCode = "503", description = "Cluster agent 비활성")
     })
     public ResponseEntity<ApiSuccessResponse<Map<String, Object>>> putUpdate(
@@ -177,7 +177,7 @@ public class AdminAgentPolicyController {
                     + "CCC: RFC 7396 표준 따르려면 Content-Type: application/merge-patch+json 사용.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "부분 갱신 성공"),
-        @ApiResponse(responseCode = "422", description = "HIGH severity warning — force=true 필요"),
+        @ApiResponse(responseCode = "422", description = "HIGH severity warning: force=true 필요"),
         @ApiResponse(responseCode = "503", description = "Cluster agent 비활성")
     })
     public ResponseEntity<ApiSuccessResponse<Map<String, Object>>> patchUpdate(
@@ -224,12 +224,12 @@ public class AdminAgentPolicyController {
     @PatchMapping(value = "/clusters/{clusterName}/agent-policy", consumes = "application/merge-patch+json")
     @Operation(
             summary = "Agent policy RFC 7396 merge patch",
-            description = "RFC 7396 표준 — field 명시 + null 값 = 그 필드 비우기 (legacy 의 'null=keep' 와 반대). "
+            description = "RFC 7396 표준: field 명시 + null 값 = 그 필드 비우기 (legacy 의 'null=keep' 와 반대). "
                     + "Content-Type: application/merge-patch+json 사용.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "부분 갱신 성공"),
         @ApiResponse(responseCode = "400", description = "잘못된 JSON 또는 schema"),
-        @ApiResponse(responseCode = "422", description = "HIGH severity warning — force=true 필요"),
+        @ApiResponse(responseCode = "422", description = "HIGH severity warning: force=true 필요"),
         @ApiResponse(responseCode = "503", description = "Cluster agent 비활성")
     })
     public ResponseEntity<ApiSuccessResponse<Map<String, Object>>> mergePatchUpdate(
@@ -277,7 +277,7 @@ public class AdminAgentPolicyController {
             before = kubeResourceService.getAgentConfig(clusterName);
         } catch (KubeRoutingException e) {
             log.warn("Could not fetch before-snapshot for diff: {}", e.getMessage());
-            before = null; // diff 일부 정보 누락 가능 — apply 자체는 진행
+            before = null; // diff 일부 정보 누락 가능: apply 자체는 진행
         }
 
         // 2) request → 가상 snapshot 구성 (검증용)
@@ -342,7 +342,7 @@ public class AdminAgentPolicyController {
             body.put("notApplied", notApplied);
         }
         body.put("appliedResourceVersion", newResourceVersion);
-        body.put("diff", diff.toMap()); // ww — 응답에 diff 포함
+        body.put("diff", diff.toMap()); // ww: 응답에 diff 포함
         body.put("warnings", warnings);
         body.put("highestSeverity", highestSeverity);
         body.put(

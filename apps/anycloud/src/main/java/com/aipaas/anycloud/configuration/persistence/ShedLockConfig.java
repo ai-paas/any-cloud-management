@@ -16,7 +16,7 @@ public class ShedLockConfig {
     public LockProvider lockProvider(DataSource dataSource) {
         return new JdbcTemplateLockProvider(JdbcTemplateLockProvider.Configuration.builder()
                 .withJdbcTemplate(new org.springframework.jdbc.core.JdbcTemplate(dataSource))
-                .usingDbTime() // DB 시간 사용 — replica 간 시계 차이 회피
+                .usingDbTime() // DB 시간 사용: replica 간 시계 차이 회피
                 .build());
     }
 }

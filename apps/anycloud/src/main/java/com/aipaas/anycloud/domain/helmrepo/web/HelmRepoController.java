@@ -159,7 +159,7 @@ public class HelmRepoController {
             description = "변경 가능 필드: url / username / password / caFile / insecureSkipTlsVerify. "
                     + "null 필드는 현재 값 유지 (partial update). "
                     + "<br><br>"
-                    + "<b>name 변경 미지원</b> — repository 이름은 URL identity (path variable). "
+                    + "<b>name 변경 미지원</b>: repository 이름은 URL identity (path variable). "
                     + "이름 변경이 필요하면 DELETE + POST 패턴 사용.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "부분 갱신 성공"),

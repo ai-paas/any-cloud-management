@@ -8,12 +8,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * 모두 얻을 수 있도록 제공.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@Schema(description = "응답 메타 — 요청 추적/시간/페이지네이션 정보")
+@Schema(description = "응답 메타: 요청 추적/시간/페이지네이션 정보")
 public record ResponseMeta(
         @Schema(description = "요청 추적 id (헤더 X-Request-Id 와 동일)", example = "abc12345") String requestId,
         @Schema(description = "응답 발생 시각 (ISO 8601)", example = "2026-05-11T03:45:21.123Z") String timestamp,
         @Schema(description = "서버 처리 시간 (ms)", example = "42") Long processingTimeMs,
-        @Schema(description = "페이지네이션 — list 응답일 때만") Pagination pagination) {
+        @Schema(description = "페이지네이션: list 응답일 때만") Pagination pagination) {
 
     public static ResponseMeta of(String requestId, String timestamp, Long processingTimeMs) {
         return new ResponseMeta(requestId, timestamp, processingTimeMs, null);

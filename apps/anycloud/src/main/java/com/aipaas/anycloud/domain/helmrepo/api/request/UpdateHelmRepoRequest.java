@@ -34,7 +34,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@Schema(description = "Helm repository 부분 갱신 요청. name 변경 미지원 — DELETE + POST 패턴 사용.")
+@Schema(description = "Helm repository 부분 갱신 요청. name 변경 미지원: DELETE + POST 패턴 사용.")
 public class UpdateHelmRepoRequest implements Serializable {
 
     @Serial

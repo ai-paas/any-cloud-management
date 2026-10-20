@@ -17,4 +17,4 @@ public record FleetAgentHealthResponse(
                         description = "agent status 별 cluster 개수 (ACTIVE/REGISTERED/DEGRADED/FAILED/REVOKED/NONE)",
                         example = "{\"ACTIVE\":10,\"DEGRADED\":1,\"NONE\":1}")
                 Map<String, Long> byStatus,
-        @Schema(description = "per-cluster health 상세 — 단일 endpoint 와 동일 DTO") List<ClusterHealthResponse> clusters) {}
+        @Schema(description = "per-cluster health 상세: 단일 endpoint 와 동일 DTO") List<ClusterHealthResponse> clusters) {}

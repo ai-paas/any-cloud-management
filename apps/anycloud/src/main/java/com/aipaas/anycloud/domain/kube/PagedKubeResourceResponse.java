@@ -56,6 +56,6 @@ public class PagedKubeResourceResponse {
     private String degradedReason;
 
     /** Human-readable detail: 운영자 진단 / 사용자 메시지 후보. */
-    @Schema(description = "degraded detail message", example = "Cluster agent not connected — install agent first")
+    @Schema(description = "degraded detail message", example = "Cluster agent not connected: install agent first")
     private String degradedMessage;
 }

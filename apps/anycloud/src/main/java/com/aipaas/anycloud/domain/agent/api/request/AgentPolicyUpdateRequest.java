@@ -41,7 +41,7 @@ public record AgentPolicyUpdateRequest(
          */
         @Schema(
                         description = "true 면 HIGH severity warning 도 무시하고 적용 (긴급 대응용). "
-                                + "MISSING_MANAGEMENT_COMMANDS 우회 시 다음 backend 호출에서 PERMISSION_DENIED — "
+                                + "MISSING_MANAGEMENT_COMMANDS 우회 시 다음 backend 호출에서 PERMISSION_DENIED: "
                                 + "복구는 kubectl patch 만 가능.",
                         defaultValue = "false")
                 boolean force) {}

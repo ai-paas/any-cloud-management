@@ -202,7 +202,7 @@ type HelmReleaseResourcesOptions struct {
 // ChartReleasesResponse.ReleaseResource 와 1:1.
 type HelmReleaseResourceRef struct {
 	Kind       string // "Deployment", "Service" 등
-	APIVersion string // "apps/v1", "v1" 등 (선택 — 일부 자원은 빈 문자열)
+	APIVersion string // "apps/v1", "v1" 등 (선택: 일부 자원은 빈 문자열)
 	Namespace  string // cluster-scoped 자원 (PV 등) 은 ""
 	Name       string
 }
@@ -212,7 +212,7 @@ type ListResourcesOptions struct {
 	Kind          string
 	Namespace     string // 비어 있으면 all-namespaces (k8s server-side default).
 	Limit         int64  // 0 = server default (cluster 별로 다름).
-	ContinueToken string // 이전 응답의 continueToken — 첫 호출은 빈 문자열.
+	ContinueToken string // 이전 응답의 continueToken: 첫 호출은 빈 문자열.
 	LabelSelector string // K8s label selector 식. 빈 문자열이면 미적용.
 	FieldSelector string // K8s field selector 식 빈 문자열이면 미적용.
 }
@@ -277,7 +277,7 @@ type PodSummary struct {
 type PodLogsOptions struct {
 	Namespace    string
 	Pod          string
-	Container    string // optional — 다중 container pod 의 특정 container
+	Container    string // optional: 다중 container pod 의 특정 container
 	TailLines    int64  // 0 = unlimited
 	Previous     bool
 	SinceSeconds int64 // 0 = no filter
@@ -302,7 +302,7 @@ type StreamPodLogsOptions struct {
 type ClusterInfo struct {
 	K8sClusterUID     string // kube-system namespace UID
 	Version           string // server version (예: "v1.34.3")
-	Distribution      string // best-effort — kubeadm/k3s/eks/gke 등. 자동 추정.
+	Distribution      string // best-effort: kubeadm/k3s/eks/gke 등. 자동 추정.
 	NodeCount         int
 	APIServerEndpoint string
 }

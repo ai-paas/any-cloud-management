@@ -18,7 +18,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * @param helmInstallCommand 권장 helm install 명령 (one-line, copy/paste).
  * @param kubectlApplyCommand 대안: manifest URL 을 curl + kubectl apply.
  */
-@Schema(description = "Agent-led cluster bootstrap 정보 — cluster 등록 직후 한 번만 노출")
+@Schema(description = "Agent-led cluster bootstrap 정보: cluster 등록 직후 한 번만 노출")
 public record BootstrapInfo(
         @Schema(description = "Short-lived registration JWT", example = "eyJhbGciOi...") String token,
         @Schema(description = "Token 만료 시각 (ISO-8601)", example = "2026-06-08T00:30:00Z") String expiresAt,
@@ -27,12 +27,12 @@ public record BootstrapInfo(
         @Schema(description = "Ready-to-apply manifest URL", example = "/v1/clusters/orb-001/agent-manifest.yaml")
                 String manifestUrl,
         @Schema(
-                        description = "권장 helm install 명령 — kubectl context 에서 직접 실행",
+                        description = "권장 helm install 명령: kubectl context 에서 직접 실행",
                         example =
                                 "helm install cluster-agent --namespace aipaas-system --create-namespace --set bootstrap.registrationToken=eyJ... --set backend.grpcAddr=anycloud:9090 oci://docker.io/aipaas/cluster-agent")
                 String helmInstallCommand,
         @Schema(
-                        description = "대안 — manifest URL 을 curl 로 받아 kubectl apply",
+                        description = "대안: manifest URL 을 curl 로 받아 kubectl apply",
                         example =
                                 "curl http://localhost:8888/v1/clusters/orb-001/agent-manifest.yaml | kubectl apply -f -")
                 String kubectlApplyCommand) {}

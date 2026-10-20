@@ -48,7 +48,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/clusters/{clusterName}/namespaces/{namespace}")
-@Tag(name = "Cluster Kubernetes Resources (v1)", description = "Cluster 의 K8s 리소스 — pods/services/deployments 등")
+@Tag(name = "Cluster Kubernetes Resources (v1)", description = "Cluster 의 K8s 리소스: pods/services/deployments 등")
 @Validated
 public class ClusterKubernetesController {
 
@@ -65,7 +65,7 @@ public class ClusterKubernetesController {
             description = "지원 kind: pods, services, deployments, statefulsets, daemonsets, replicasets, "
                     + "configmaps, secrets, persistentvolumeclaims, jobs, cronjobs (namespaced); "
                     + "nodes, namespaces, persistentvolumes, storageclasses, customresourcedefinitions "
-                    + "(cluster-scoped — {namespace} path 값 무시, 권장 `-`).")
+                    + "(cluster-scoped: {namespace} path 값 무시, 권장 `-`).")
     public ResponseEntity<ApiSuccessResponse<PagedKubeResourceResponse>> list(
             @PathVariable
                     @NotBlank
@@ -200,7 +200,7 @@ public class ClusterKubernetesController {
     @Operation(
             summary = "Pod 로그 streaming (kubectl logs -f 등가, SSE)",
             description = "지정 pod 의 container log 를 SSE 로 chunk-by-chunk push. cluster agent ACTIVE "
-                    + "필수 — inactive 면 503 AGENT_UNAVAILABLE. follow=true 면 tail -f 처럼 실시간 push, "
+                    + "필수: inactive 면 503 AGENT_UNAVAILABLE. follow=true 면 tail -f 처럼 실시간 push, "
                     + "false 면 tail_lines 만큼 snapshot 전송 후 close. SSE event 이름 = 'log'.")
     public SseEmitter streamPodLogs(
             @PathVariable
@@ -331,7 +331,7 @@ public class ClusterKubernetesController {
     @Operation(
             summary = "리소스 단건의 K8s Event 목록",
             description =
-                    "involvedObject.kind/name(/namespace) 로 fieldSelector 필터링. core/v1 Event 만 — events.k8s.io/v1 은 미지원.")
+                    "involvedObject.kind/name(/namespace) 로 fieldSelector 필터링. core/v1 Event 만: events.k8s.io/v1 은 미지원.")
     public ResponseEntity<ApiSuccessResponse<PagedKubeResourceResponse>> listEvents(
             @PathVariable
                     @NotBlank

@@ -49,7 +49,7 @@ public class InstallHelmReleaseRequest {
     private String namespace;
 
     @Schema(
-            description = "values 객체 — JSON 으로 자연스럽게 작성. 백엔드가 YAML 로 직렬화.",
+            description = "values 객체: JSON 으로 자연스럽게 작성. 백엔드가 YAML 로 직렬화.",
             example = "{\"replicaCount\":3,\"image\":{\"repository\":\"nginx\"}}")
     private Map<String, Object> values;
 

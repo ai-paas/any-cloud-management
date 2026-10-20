@@ -173,7 +173,7 @@ public class CspCredentialController {
     @PatchMapping("/{credentialId}")
     @Operation(
             summary = "CSP 자격증명 수정",
-            description = "설명과 값을 바꿉니다. 이름과 프로바이더는 바꿀 수 없습니다 — "
+            description = "설명과 값을 바꿉니다. 이름과 프로바이더는 바꿀 수 없습니다. "
                     + "vm_cluster 가 프로비저닝 당시 이름을 기록으로 들고 있고, 프로바이더가 바뀌면 키 구성이 달라집니다. "
                     + "값은 통째로 교체됩니다. 일부만 보내면 나머지는 사라집니다.")
     @ApiResponses({

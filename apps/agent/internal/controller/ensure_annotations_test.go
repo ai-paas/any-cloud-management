@@ -210,7 +210,7 @@ func TestHandle_EnsureAnnotations_NotInAllowlist_PermissionDenied(t *testing.T) 
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestHandle_EnsureAnnotations_NotFound_ReturnsConfigMapNotFound(t *testing.T) {
-	cs := fake.NewSimpleClientset() // 빈 CS — ConfigMap 자체가 없음.
+	cs := fake.NewSimpleClientset() // 빈 CS: ConfigMap 자체가 없음.
 	d := ensureAnnotationsDispatcher(t, cs, permissiveLoader(t))
 
 	resp := d.Handle(&agentv1.CommandRequest{

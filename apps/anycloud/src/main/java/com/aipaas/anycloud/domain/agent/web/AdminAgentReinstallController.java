@@ -53,7 +53,7 @@ public class AdminAgentReinstallController {
                     + "기존 cluster_agent DB row 는 보존되며 agent 가 새 token 으로 re-register 시 "
                     + "identity_token + cert 가 갱신됨.")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "재배포 trigger 성공 — 응답의 token 정보 + manifest 크기"),
+        @ApiResponse(responseCode = "200", description = "재배포 trigger 성공: 응답의 token 정보 + manifest 크기"),
         @ApiResponse(responseCode = "404", description = "Cluster 미등록"),
         @ApiResponse(responseCode = "503", description = "Cluster 도달 불가 (kubeconfig / network 점검)")
     })

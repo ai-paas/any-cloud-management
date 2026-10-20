@@ -48,12 +48,12 @@ public class AdminClusterDriftController {
     @GetMapping("/{clusterName}/drift")
     @Operation(
             summary = "Pulumi state drift 감지 (read-only)",
-            description = "`pulumi preview --refresh --json` — 실제 CSP 상태를 읽어 state/프로그램과 비교. "
+            description = "`pulumi preview --refresh --json`: 실제 CSP 상태를 읽어 state/프로그램과 비교. "
                     + "same 외의 op 가 있으면 drift 또는 미적용 변경. CSP API 호출로 수십 초 걸릴 수 있다.")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "감지 완료 — drifted + changeSummary"),
+        @ApiResponse(responseCode = "200", description = "감지 완료: drifted + changeSummary"),
         @ApiResponse(responseCode = "404", description = "cluster not found"),
-        @ApiResponse(responseCode = "500", description = "Pulumi command 실패 — stderr 참고")
+        @ApiResponse(responseCode = "500", description = "Pulumi command 실패: stderr 참고")
     })
     public ResponseEntity<ApiSuccessResponse<Map<String, Object>>> detectDrift(
             @PathVariable
@@ -69,12 +69,12 @@ public class AdminClusterDriftController {
     @Operation(
             summary = "Pulumi state 를 실제 CSP 상태와 동기화 (pulumi refresh)",
             description = "운영자가 콘솔에서 자원을 직접 변경/삭제해 state 가 낡았을 때 사용. "
-                    + "state file 만 갱신 — CSP 자원 자체는 만들지도 지우지도 않는다. "
+                    + "state file 만 갱신: CSP 자원 자체는 만들지도 지우지도 않는다. "
                     + "이후 drift 재확인 또는 scale/destroy 재시도 권장.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "refresh 완료"),
         @ApiResponse(responseCode = "404", description = "cluster not found"),
-        @ApiResponse(responseCode = "500", description = "Pulumi command 실패 — stderr 참고")
+        @ApiResponse(responseCode = "500", description = "Pulumi command 실패: stderr 참고")
     })
     public ResponseEntity<ApiSuccessResponse<Map<String, Object>>> refreshState(
             @PathVariable

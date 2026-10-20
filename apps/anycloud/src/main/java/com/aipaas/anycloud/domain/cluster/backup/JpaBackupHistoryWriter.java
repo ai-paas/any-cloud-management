@@ -114,7 +114,7 @@ public class JpaBackupHistoryWriter implements BackupHistoryWriter {
 
     private static String truncate(String s) {
         if (s == null) return null;
-        int max = 10_000; // TEXT column — DB 자체는 더 길지만 log/UI 친화 cap.
+        int max = 10_000; // TEXT column: DB 자체는 더 길지만 log/UI 친화 cap.
         return s.length() <= max ? s : s.substring(0, max) + "...(truncated)";
     }
 }

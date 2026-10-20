@@ -473,7 +473,7 @@ deny:
 		{"configmaps", "kube-system", false}, // namespace-scoped deny
 		{"configmaps", "default", true},      // not denied in this ns
 		{"pods", "kube-system", true},        // not in deny list
-		{"storageclasses", "", true},         // CRD-ish cluster-scoped — allowed
+		{"storageclasses", "", true},         // CRD-ish cluster-scoped: allowed
 	}
 	for _, c := range cases {
 		if got := policy.IsResourceKindAllowed(c.kind, c.ns); got != c.want {

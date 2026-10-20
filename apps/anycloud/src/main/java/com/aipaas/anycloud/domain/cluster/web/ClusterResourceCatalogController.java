@@ -49,7 +49,7 @@ public class ClusterResourceCatalogController {
                     + "version / namespaced / shortNames 포함. CRD 자동 포함. cluster 마다 결과 다름.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "kind 목록 조회 성공 (group/plural 순 정렬)"),
-        @ApiResponse(responseCode = "503", description = "Cluster agent 비활성 — 기본 12 kind 로 degrade 권장")
+        @ApiResponse(responseCode = "503", description = "Cluster agent 비활성: 기본 12 kind 로 degrade 권장")
     })
     public ResponseEntity<ApiSuccessResponse<List<ResourceKindInfo>>> listResourceKinds(
             @PathVariable
@@ -71,7 +71,7 @@ public class ClusterResourceCatalogController {
         @ApiResponse(responseCode = "200", description = "정규화 성공"),
         @ApiResponse(
                 responseCode = "404",
-                description = "kind resolve 실패 — body 의 suggestions 배열 (Levenshtein 거리 ≤ 3) 활용"),
+                description = "kind resolve 실패: body 의 suggestions 배열 (Levenshtein 거리 ≤ 3) 활용"),
         @ApiResponse(responseCode = "503", description = "Cluster agent 비활성")
     })
     public ResponseEntity<ApiSuccessResponse<ResolvedResource>> resolveKind(

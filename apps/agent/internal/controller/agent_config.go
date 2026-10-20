@@ -44,7 +44,7 @@ func (d *Dispatcher) getAgentConfig(_ context.Context, _ *agentv1.CommandRequest
 	for ns := range snapshot.Namespaces {
 		allowedNamespaces = append(allowedNamespaces, ns)
 	}
-	sortInterfaceStrings(allowedNamespaces) // 결정성 — UI 의 list 안정 정렬.
+	sortInterfaceStrings(allowedNamespaces) // 결정성: UI 의 list 안정 정렬.
 
 	allowedExecNamespaces := make([]interface{}, 0, len(snapshot.ExecNamespaces)+1)
 	if snapshot.AllowAllExecNamespaces {

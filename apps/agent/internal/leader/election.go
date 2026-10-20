@@ -35,7 +35,7 @@ type Options struct {
 
 	OnStartedLeading func(ctx context.Context) // leader 획득 → 시작
 	OnStoppedLeading func()                    // leader 잃음 → 정리
-	OnNewLeader      func(leader string)       // 정보 — 다른 leader 등극
+	OnNewLeader      func(leader string)       // 정보: 다른 leader 등극
 
 	// Optional: default 15s / 10s / 2s 권장값.
 	LeaseDuration time.Duration
@@ -96,7 +96,7 @@ func Run(ctx context.Context, opts Options) error {
 		LeaseDuration:   opts.LeaseDuration,
 		RenewDeadline:   opts.RenewDeadline,
 		RetryPeriod:     opts.RetryPeriod,
-		ReleaseOnCancel: true, // ctx cancel 시 lease 즉시 release — 다른 replica 가 빠르게 take.
+		ReleaseOnCancel: true, // ctx cancel 시 lease 즉시 release: 다른 replica 가 빠르게 take.
 		Callbacks: leaderelection.LeaderCallbacks{
 			OnStartedLeading: func(c context.Context) {
 				slog.Info("leader election: STARTED LEADING", slog.String("identity", identity))
@@ -112,7 +112,7 @@ func Run(ctx context.Context, opts Options) error {
 			},
 			OnNewLeader: func(other string) {
 				if other == identity {
-					return // 자기 자신 — OnStartedLeading 에서 이미 처리.
+					return // 자기 자신: OnStartedLeading 에서 이미 처리.
 				}
 				slog.Info("leader election: new leader observed",
 					slog.String("new_leader", other),

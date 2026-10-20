@@ -71,7 +71,7 @@ func impersonationKey(imp *Impersonation) string {
 
 	raw := imp.User + "|" + strings.Join(groupsCopy, ",") + "|" + strings.Join(extrasJoined, ";")
 	sum := sha256.Sum256([]byte(raw))
-	return hex.EncodeToString(sum[:16]) // 16 byte (32 hex char) — 충돌 확률 무시 가능.
+	return hex.EncodeToString(sum[:16]) // 16 byte (32 hex char). 충돌 확률 무시 가능.
 }
 
 // getOrCreate: cache hit 이면 (cs, dyn) 반환, miss 또는 expired 면 build 후 cache.

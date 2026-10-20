@@ -102,11 +102,11 @@ public class CachedKindResolver implements KindResolver {
         String lower = input.toLowerCase(Locale.ROOT);
         boolean clusterScoped = K8sKinds.isClusterScoped(lower);
         return new ResolvedResource(
-                lower, // plural — 입력 그대로 (정규화 미보장)
+                lower, // plural: 입력 그대로 (정규화 미보장)
                 null, // singular
                 null, // kind
-                "", // group — caller 가 명시 안하면 core
-                "v1", // version — best guess
+                "", // group: caller 가 명시 안하면 core
+                "v1", // version: best guess
                 !clusterScoped, // namespaced
                 List.of());
     }

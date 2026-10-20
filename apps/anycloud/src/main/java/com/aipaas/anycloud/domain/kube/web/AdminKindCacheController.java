@@ -53,7 +53,7 @@ public class AdminKindCacheController {
     @Operation(
             summary = "단일 cluster 의 kind metadata cache flush",
             description =
-                    "RESOLVE_RESOURCE 결과 cache 를 즉시 무효화. 다음 호출부터 agent 재조회. " + "resource data 는 캐시 대상 아님 — 동작 변경 없음.")
+                    "RESOLVE_RESOURCE 결과 cache 를 즉시 무효화. 다음 호출부터 agent 재조회. " + "resource data 는 캐시 대상 아님: 동작 변경 없음.")
     public ResponseEntity<ApiSuccessResponse<Map<String, Object>>> flushOne(
             @PathVariable
                     @NotBlank
@@ -69,7 +69,7 @@ public class AdminKindCacheController {
     @PostMapping("/kind-cache/flush")
     @Operation(
             summary = "모든 cluster 의 kind metadata cache flush (전역)",
-            description = "Backend 전체 KindResolver cache 무효화. 사용 빈도 낮음 — boot-time / sanity 용.")
+            description = "Backend 전체 KindResolver cache 무효화. 사용 빈도 낮음. boot-time / sanity 용.")
     public ResponseEntity<ApiSuccessResponse<Map<String, Object>>> flushAll() {
         log.warn("AdminKindCacheController: flush ALL clusters — global");
         kindResolver.invalidateAll();

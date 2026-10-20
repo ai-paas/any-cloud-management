@@ -26,20 +26,20 @@ public class VmCreateRequest {
             message = "vmGroupName must be RFC 1123 label (a-z, 0-9, -)")
     @Size(max = ApiValidationConstants.K8S_NAME_MAX)
     @Schema(
-            description = "VM 그룹 이름 — master + worker 인스턴스 집합을 묶는 식별자. K8s cluster registration 시에는 "
+            description = "VM 그룹 이름: master + worker 인스턴스 집합을 묶는 식별자. K8s cluster registration 시에는 "
                     + "동일 이름이 cluster.id 로도 사용됨 (현재 1:1 매핑).",
             example = "demo-aws-01")
     private String vmGroupName;
 
     @NotBlank
-    @Schema(description = "CSP — aws | gcp | azure | openstack | oci | proxmox | ibm", example = "aws")
+    @Schema(description = "CSP: aws | gcp | azure | openstack | oci | proxmox | ibm", example = "aws")
     private String provider;
 
     @NotBlank
     @Schema(description = "CSP 리전", example = "ap-northeast-2")
     private String region;
 
-    @Schema(description = "환경 태그 — dev | stage | prod (선택)", example = "dev")
+    @Schema(description = "환경 태그: dev | stage | prod (선택)", example = "dev")
     private String environment;
 
     @NotBlank
@@ -62,6 +62,6 @@ public class VmCreateRequest {
             example = "{\"externalNetworkId\": \"3f8d3f36-...\", \"floatingIpPool\": \"external\"}")
     private Map<String, Object> providerSpec;
 
-    @Schema(description = "GPU 노드 포함 여부 — cluster-observability 가 dcgm-exporter 설치 결정에 활용", example = "false")
+    @Schema(description = "GPU 노드 포함 여부: cluster-observability 가 dcgm-exporter 설치 결정에 활용", example = "false")
     private Boolean hasGpuNodes;
 }

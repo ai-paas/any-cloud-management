@@ -48,11 +48,11 @@ public abstract class AbstractHelmAddonInstaller implements AddonInstaller {
                 addon.getReleaseName(),
                 chartRef, // "prometheus-community/kube-prometheus-stack"
                 addon.getRepoUrl(), // 명시 URL 전달 (null OK)
-                null, // chartTarballBase64 — pre-fetch 미사용
+                null, // chartTarballBase64: pre-fetch 미사용
                 addon.getChartVersion(),
                 addon.getNamespace(),
                 AddonValues.toJson(addon.getValuesYaml()),
-                true); // createNamespace — addon namespace 자동 생성
+                true); // createNamespace: addon namespace 자동 생성
 
         // addon install 직후 cache flush: 신규 CRD 가 추가되었을 가능성 cover. invalidate 는 idempotent
         // 이므로 CRD 미추가 케이스에서도 다음 호출 시 한 번만 miss → 재캐시 비용만 발생. side-effect 안전.

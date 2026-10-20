@@ -47,9 +47,9 @@ func TestNormalizeAPIResources_FilterAndSort(t *testing.T) {
 					metav1.Verbs{"get", "list", "watch", "create", "update", "patch", "delete"},
 					[]string{"deploy"}),
 				makeResource("deployments/scale", "", "Scale", true,
-					metav1.Verbs{"get", "update", "patch"}, nil), // subresource — must skip.
+					metav1.Verbs{"get", "update", "patch"}, nil), // subresource: must skip.
 				makeResource("deployments/status", "", "Deployment", true,
-					metav1.Verbs{"get", "update", "patch"}, nil), // subresource — must skip.
+					metav1.Verbs{"get", "update", "patch"}, nil), // subresource: must skip.
 			},
 		},
 		{
@@ -65,7 +65,7 @@ func TestNormalizeAPIResources_FilterAndSort(t *testing.T) {
 				// componentstatuses 는 list 가능하지만 historical로 verbs 가 list 빠진 경우도 있음.
 				// 본 케이스는 verbs 가 list 없으면 skip 되는지 회귀.
 				makeResource("bindings", "binding", "Binding", true,
-					metav1.Verbs{"create"}, nil), // no list verb — must skip.
+					metav1.Verbs{"create"}, nil), // no list verb: must skip.
 			},
 		},
 		{
@@ -75,7 +75,7 @@ func TestNormalizeAPIResources_FilterAndSort(t *testing.T) {
 					metav1.Verbs{"get", "list", "watch"}, []string{"sc"}),
 			},
 		},
-		nil, // defensive — nil list 도 skip.
+		nil, // defensive: nil list 도 skip.
 	}
 
 	got := normalizeAPIResources(lists)

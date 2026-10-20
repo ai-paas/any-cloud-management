@@ -149,7 +149,7 @@ func SyncRepositoriesWithCleanup(settings *cli.EnvSettings, repos []RepoEntry) (
 		if strings.HasPrefix(e.Name, AnycloudManagedRepoPrefix) {
 			if _, ok := desired[e.Name]; !ok {
 				removed++
-				continue // skip — orphan
+				continue // skip: orphan
 			}
 		}
 		keep = append(keep, e)

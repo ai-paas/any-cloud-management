@@ -69,7 +69,7 @@ public class ClusterAccessController {
                     + "KubeconfigIdentityResolver 가 결정: serviceAccount 명시 시 그대로, 미지정 + VM(PULUMI) "
                     + "cluster 면 자동 생성 cluster-admin SA(기본 aipaas-admin / aipaas-system) 로 전체 권한 다운로드. "
                     + "registered/BYO 는 존재하는 serviceAccount(+namespace) 명시 필요 (미지정 시 400). "
-                    + "단일 발급 엔드포인트 — 이전 POST /kubeconfig 는 본 GET 으로 통합됐다.")
+                    + "단일 발급 엔드포인트: 이전 POST /kubeconfig 는 본 GET 으로 통합됐다.")
     public ResponseEntity<String> downloadKubeconfig(
             @PathVariable @NotBlank @Pattern(regexp = CLUSTER_REGEXP) @Size(max = CLUSTER_MAX) String clusterName,
             @RequestParam(name = "serviceAccount", required = false)
@@ -141,9 +141,9 @@ public class ClusterAccessController {
     @Operation(
             summary = "VM cluster SSH private key 발급",
             description = "Pulumi 가 cluster 생성 시 만든 SSH keypair 의 private key (PEM) 를 state 에서 "
-                    + "복호화해 반환 — 노드 직접 접속용. format=pem 이면 .pem 파일 다운로드, 기본 json 은 "
+                    + "복호화해 반환: 노드 직접 접속용. format=pem 이면 .pem 파일 다운로드, 기본 json 은 "
                     + "key + 노드별 ssh 명령 포함. CSP 무관 동일 동작. "
-                    + "⚠ key 소지 = 전 노드 root 등가 — 전달/보관 주의.")
+                    + "⚠ key 소지 = 전 노드 root 등가: 전달/보관 주의.")
     public ResponseEntity<?> issueSshKey(
             @PathVariable @NotBlank @Pattern(regexp = CLUSTER_REGEXP) @Size(max = CLUSTER_MAX) String clusterName,
             @RequestParam(name = "format", defaultValue = "json") String format) {

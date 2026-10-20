@@ -61,7 +61,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/clusters")
-@Tag(name = "Clusters (v1)", description = "통합 cluster 자원 — VM provisioned + 외부 registered")
+@Tag(name = "Clusters (v1)", description = "통합 cluster 자원: VM provisioned + 외부 registered")
 @Validated
 public class ClusterController {
 
@@ -82,7 +82,7 @@ public class ClusterController {
             description = "source 미지정 시 vm + registered 통합 반환. "
                     + "page meta (pageSize / nextPageToken / totalEstimate) 가 응답 envelope 에 포함됨.")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "성공 — PagedData<UnifiedClusterResponse> + page meta"),
+        @ApiResponse(responseCode = "200", description = "성공: PagedData<UnifiedClusterResponse> + page meta"),
         @ApiResponse(responseCode = "400", description = "filter 정규식 위반 (provider/environment/status/source)")
     })
     public ResponseEntity<ApiSuccessResponse<PagedData<UnifiedClusterResponse>>> list(
@@ -101,7 +101,7 @@ public class ClusterController {
                     int pageSize,
             @Parameter(
                             description =
-                                    "다음 페이지 token (opaque — 첫 호출 시 omit, 응답 meta.pagination.nextPageToken 그대로 round-trip). 형식은 service 내부 구현이라 client 가 파싱 금지.")
+                                    "다음 페이지 token (opaque: 첫 호출 시 omit, 응답 meta.pagination.nextPageToken 그대로 round-trip). 형식은 service 내부 구현이라 client 가 파싱 금지.")
                     @RequestParam(name = "pageToken", required = false)
                     String pageToken) {
         var paged = clusterFacade.listPaged(source, provider, environment, status, pageSize, pageToken);
@@ -117,7 +117,7 @@ public class ClusterController {
     @ApiResponses({
         @ApiResponse(
                 responseCode = "200",
-                description = "성공 — links{self,operations,helmReleases,namespaces,events} 포함"),
+                description = "성공: links{self,operations,helmReleases,namespaces,events} 포함"),
         @ApiResponse(responseCode = "400", description = "clusterName 형식 위반 (RFC 1123 label)"),
         @ApiResponse(responseCode = "404", description = "cluster not found (vm + registered 둘 다 없음)")
     })
@@ -135,7 +135,7 @@ public class ClusterController {
     @Operation(
             summary = "cluster 등록 (외부 K8s cluster 등록 전용)",
             description = "외부 K8s cluster 를 자체 DB 에 등록한다 (즉시 → 201 + Operation(SUCCEEDED)). "
-                    + "VM provision 은 별도 namespace 인 POST /v1/vms 사용 — source=vm 요청은 400. "
+                    + "VM provision 은 별도 namespace 인 POST /v1/vms 사용: source=vm 요청은 400. "
                     + "Idempotency-Key 헤더 지원 (24h).")
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "등록 완료"),
@@ -144,7 +144,7 @@ public class ClusterController {
     })
     public ResponseEntity<ApiSuccessResponse<ClusterRegistrationResponse>> create(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                            description = "외부 K8s cluster 등록 — sync 201. VM provision 은 POST /v1/vms 사용.",
+                            description = "외부 K8s cluster 등록: sync 201. VM provision 은 POST /v1/vms 사용.",
                             required = true,
                             content =
                                     @Content(
@@ -195,7 +195,7 @@ public class ClusterController {
     @PatchMapping("/{clusterName}")
     @Operation(summary = "cluster state 변경 (scale)", description = "spec.workerCount(1..50) 변경.")
     @ApiResponses({
-        @ApiResponse(responseCode = "202", description = "변경 수락 — Location 헤더 + Operation"),
+        @ApiResponse(responseCode = "202", description = "변경 수락: Location 헤더 + Operation"),
         @ApiResponse(responseCode = "400", description = "workerCount 범위 외 / spec 비어 있음"),
         @ApiResponse(responseCode = "404", description = "cluster not found")
     })
@@ -247,7 +247,7 @@ public class ClusterController {
                     @Size(max = ApiValidationConstants.K8S_NAME_MAX)
                     String clusterName,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                            description = "변경할 capability flag 들 — null 필드는 변경 안 함.",
+                            description = "변경할 capability flag 들: null 필드는 변경 안 함.",
                             required = true,
                             content =
                                     @Content(
@@ -273,7 +273,7 @@ public class ClusterController {
     @DeleteMapping("/{clusterName}")
     @Operation(summary = "cluster 삭제 (비동기)")
     @ApiResponses({
-        @ApiResponse(responseCode = "202", description = "삭제 수락 — Location 헤더 + Operation"),
+        @ApiResponse(responseCode = "202", description = "삭제 수락: Location 헤더 + Operation"),
         @ApiResponse(responseCode = "404", description = "cluster not found")
     })
     public ResponseEntity<ApiSuccessResponse<OperationResponse>> delete(
@@ -295,7 +295,7 @@ public class ClusterController {
             summary = "액션 operation 생성 (retry/refresh)",
             description = "type=retryWorkflow|retryRegistration|refreshStatus. **항상 202 + Operation resource** "
                     + "반환 (Google AIP LRO 패턴). sync 한 op (refreshStatus) 는 응답 body 의 state=SUCCEEDED "
-                    + "필드로 즉시 식별 가능 — 클라이언트는 state 만 보면 polling 여부 판단.")
+                    + "필드로 즉시 식별 가능: 클라이언트는 state 만 보면 polling 여부 판단.")
     @ApiResponses({
         @ApiResponse(
                 responseCode = "202",
@@ -390,7 +390,7 @@ public class ClusterController {
             summary = "K8s API 연결 검사 (검사 결과 자체가 자원)",
             description = "검사 즉시 수행, 결과 record 반환 (connected/checkedAt). 향후 비동기 전환 시 LRO 패턴 적용 가능.")
     @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "검사 완료 — connected=true|false 포함"),
+        @ApiResponse(responseCode = "201", description = "검사 완료: connected=true|false 포함"),
         @ApiResponse(responseCode = "404", description = "cluster not found")
     })
     public ResponseEntity<ApiSuccessResponse<Map<String, Object>>> checkConnectivity(
@@ -413,12 +413,12 @@ public class ClusterController {
             description = "Cluster 등록 직후 사용자가 자신의 kubectl context 에서 직접 apply 할 수 있는 "
                     + "ready-to-apply YAML. JWT token + backend gRPC endpoint 가 baked in. "
                     + "예: `curl -sS .../agent-manifest.yaml | kubectl apply -f -`. "
-                    + "Token 은 cluster registration 시점에 발급된 한 번뿐인 단기 JWT — 본 endpoint 는 매 호출 "
+                    + "Token 은 cluster registration 시점에 발급된 한 번뿐인 단기 JWT: 본 endpoint 는 매 호출 "
                     + "새 token 을 발급 (Bruno 등 GUI 가 등록 후 별도 fetch 시 재발급 가능).")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "manifest YAML (application/yaml)"),
         @ApiResponse(responseCode = "404", description = "cluster not found"),
-        @ApiResponse(responseCode = "410", description = "cluster 가 이미 ACTIVE — 재발급 원하면 admin reinstall endpoint")
+        @ApiResponse(responseCode = "410", description = "cluster 가 이미 ACTIVE: 재발급 원하면 admin reinstall endpoint")
     })
     public ResponseEntity<String> agentManifestYaml(
             @PathVariable
@@ -438,7 +438,7 @@ public class ClusterController {
     @GetMapping("/{clusterName}/agent-bootstrap")
     @Operation(
             summary = "Cluster-agent bootstrap 정보 (JSON, helm/kubectl 명령 + token)",
-            description = "등록 직후 modal 또는 detail 페이지의 '재발급' 시 사용. 매 호출 새 token 발급 — "
+            description = "등록 직후 modal 또는 detail 페이지의 '재발급' 시 사용. 매 호출 새 token 발급: "
                     + "helmInstallCommand / kubectlApplyCommand 즉시 복사 가능. yaml 만 필요하면 "
                     + "/agent-manifest.yaml 사용.")
     @ApiResponses({

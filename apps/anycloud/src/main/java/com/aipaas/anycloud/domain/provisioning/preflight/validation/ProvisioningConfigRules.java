@@ -136,7 +136,7 @@ public final class ProvisioningConfigRules {
     private static void validateMasterCount(Map<String, String> config) {
         String raw = config.get(MASTER_COUNT);
         if (raw == null || raw.isBlank()) {
-            return; // putIfAbsent in applyDefaults — should not reach here.
+            return; // putIfAbsent in applyDefaults: should not reach here.
         }
         int value;
         try {

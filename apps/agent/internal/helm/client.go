@@ -127,7 +127,7 @@ type InstallOptions struct {
 	// 완전 우회 (agent 가 chartmuseum 등 외부 네트워크 접근 불요). 1순위 path.
 	LocalChartPath  string
 	Chart           string                 // 예: kube-prometheus-stack
-	Version         string                 // 빈 문자열이면 latest (그러나 AllowList 통과 못 함 — 빈 안 됨)
+	Version         string                 // 빈 문자열이면 latest (그러나 AllowList 통과 못 함. 빈 안 됨)
 	Values          map[string]interface{} // helm chart values
 	CreateNamespace bool
 	Timeout         time.Duration
@@ -199,7 +199,7 @@ func (c *helmClient) actionConfig(namespace string) (*action.Configuration, erro
 // actionConfigReal: production default. K8s RESTClientGetter 로 cfg.Init.
 func (c *helmClient) actionConfigReal(namespace string) (*action.Configuration, error) {
 	cfg := new(action.Configuration)
-	driver := c.settings.Debug // helm secrets 드라이버 (default) — 별도 storage backend 설정 안 함.
+	driver := c.settings.Debug // helm secrets 드라이버 (default). 별도 storage backend 설정 안 함.
 	logger := func(format string, v ...interface{}) {
 		slog.Debug("helm", slog.String("msg", fmt.Sprintf(format, v...)))
 	}
@@ -218,7 +218,7 @@ func (c *helmClient) actionConfigReal(namespace string) (*action.Configuration, 
 
 func driverEnv(debugFlag bool) string {
 	// helm 의 secrets driver 가 default. memory/sql 등 envvar 가능.
-	_ = debugFlag // suppress unused warning — debug 로깅에 사용.
+	_ = debugFlag // suppress unused warning: debug 로깅에 사용.
 	return "secrets"
 }
 
@@ -247,7 +247,7 @@ func (c *helmClient) Install(ctx context.Context, opts InstallOptions) (*Release
 	var chartLocator string
 	if opts.LocalChartPath != "" {
 		chartLocator = opts.LocalChartPath
-		install.RepoURL = "" // no remote — 파일 경로만 사용.
+		install.RepoURL = "" // no remote: 파일 경로만 사용.
 	} else {
 		chartLocator = opts.Chart
 		if opts.RepoURL != "" {
@@ -256,7 +256,7 @@ func (c *helmClient) Install(ctx context.Context, opts InstallOptions) (*Release
 			install.RepoURL = repoURL(c.settings, opts.Repo)
 		}
 	}
-	install.Wait = false // 비동기 — agent 가 long-blocking install 으로 stream 막지 않도록.
+	install.Wait = false // 비동기: agent 가 long-blocking install 으로 stream 막지 않도록.
 	if opts.Timeout > 0 {
 		install.Timeout = opts.Timeout
 	} else {
@@ -426,7 +426,7 @@ func (c *helmClient) Upgrade(ctx context.Context, opts UpgradeOptions) (*Release
 	if opts.MaxHistory > 0 {
 		upgrade.MaxHistory = opts.MaxHistory
 	}
-	upgrade.Wait = false // 비동기 — install 과 동일
+	upgrade.Wait = false // 비동기: install 과 동일
 	if opts.Timeout > 0 {
 		upgrade.Timeout = opts.Timeout
 	} else {
@@ -472,7 +472,7 @@ func repoURL(settings *cli.EnvSettings, raw string) string {
 	// Repo file 에서 alias resolve.
 	rf, err := repo.LoadFile(settings.RepositoryConfig)
 	if err != nil {
-		return raw // best-effort — Install 이 chart locate 단계에서 실패.
+		return raw // best-effort: Install 이 chart locate 단계에서 실패.
 	}
 	for _, e := range rf.Repositories {
 		if e.Name == raw {

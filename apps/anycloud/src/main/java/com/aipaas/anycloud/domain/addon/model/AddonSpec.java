@@ -37,7 +37,7 @@ public record AddonSpec(
         @Size(max = 32) @Schema(description = "Chart version override", example = "65.0.0") String chartVersion,
         @Size(max = 512)
                 @Schema(
-                        description = "M8 — explicit repo URL (alias resolve 우회)",
+                        description = "M8: explicit repo URL (alias resolve 우회)",
                         example = "https://prometheus-community.github.io/helm-charts")
                 String repoUrl,
         @Schema(description = "Values JSON/YAML override") String valuesYaml,

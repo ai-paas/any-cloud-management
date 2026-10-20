@@ -64,7 +64,7 @@ func (c Config) DialOption(backendAddr string) (grpc.DialOption, error) {
 	}
 
 	if c.InsecureSkipVerify {
-		tlsCfg.InsecureSkipVerify = true // nolint:gosec — dev only, opt-in via env
+		tlsCfg.InsecureSkipVerify = true // nolint:gosec: dev only, opt-in via env
 	} else {
 		pool, err := buildCertPool(c)
 		if err != nil {
