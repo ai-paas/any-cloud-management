@@ -9,14 +9,13 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 /**
- * {@code cluster-agent} chart 를 설치할 때 values 에 backend 주소와 image 를 채워 넣습니다.
- * 빠뜨리면 agent 가 chart 기본값인 {@code host.docker.internal} 로 붙으려다 조용히 실패합니다.
- * 다른 chart 는 그대로 통과시킵니다.
+ * {@code cluster-agent} chart 설치 시 values 에 backend 주소와 image 주입. 누락 시 agent 가
+ * chart 기본값 {@code host.docker.internal} 로 접속을 시도하다 무음 실패. 다른 chart 는 통과.
  *
- * <p>사용자가 직접 지정한 값이 있으면 덮어쓰지 않습니다.
+ * <p>사용자 지정 값이 있으면 덮어쓰지 않음.
  *
- * <p>image 는 {@code <repo>:<tag>} 로 나눕니다. {@code registry:5000/img:v1} 처럼 registry 에
- * 포트가 붙을 수 있어 마지막 슬래시 뒤의 콜론만 구분자로 씁니다.
+ * <p>image 는 {@code <repo>:<tag>} 로 분리. {@code registry:5000/img:v1} 처럼 registry 에
+ * 포트가 포함될 수 있어 마지막 슬래시 뒤의 콜론만 구분자로 사용.
  */
 @Slf4j
 @Component

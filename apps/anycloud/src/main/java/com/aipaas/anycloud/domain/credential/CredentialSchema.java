@@ -5,17 +5,17 @@ import com.aipaas.anycloud.domain.provisioning.model.SupportedProvisioningProvid
 import java.util.List;
 
 /**
- * 프로바이더마다 자격증명으로 무엇을 받아야 하는지.
+ * 프로바이더별 자격증명 입력 항목.
  *
- * <p>화면이 KEY=VALUE 를 직접 받으면 사용자가 키 이름을 알아야 하고, 오타는 등록한 뒤 프로비저닝이
- * 실패해야 드러난다. 여기 목록이 입력 칸이 된다.
+ * <p>화면이 KEY=VALUE 를 직접 받으면 사용자가 키 이름을 알아야 하고, 오타는 등록 후 프로비저닝
+ * 실패 시점에 드러남. 이 목록이 입력 칸을 구성.
  *
- * <p>{@code ProvisioningCredentialRules.requiredCredentialKeys} 가 검증의 기준이고, 이 목록은 그것을
- * 모두 포함해야 한다. 테스트가 그 관계를 고정한다.
+ * <p>검증 기준은 {@code ProvisioningCredentialRules.requiredCredentialKeys} 이며 이 목록은 해당
+ * 키를 모두 포함해야 함. 테스트가 그 관계를 고정.
  */
 public final class CredentialSchema {
 
-    /** Azure 식별자는 모두 UUID 모양이라 예시를 공유한다. */
+    /** Azure 식별자는 전부 UUID 형식이라 예시 공유. */
     private static final String UUID_EXAMPLE = "00000000-0000-0000-0000-000000000000";
 
     private CredentialSchema() {}
@@ -91,7 +91,7 @@ public final class CredentialSchema {
                 field("OS_USERNAME", "사용자 이름", true, false, false, null, "admin"),
                 secret("OS_PASSWORD", "비밀번호", true, null, "비밀번호"),
                 field("OS_PROJECT_NAME", "프로젝트 이름", true, false, false, null, "admin"),
-                // 사설망이면 점프 없이는 노드에 닿지 않는다. 공인망이면 비워 둔다.
+                // 사설망은 점프 호스트 없이 노드 접근 불가. 공인망은 비워 둠.
                 field("SSH_JUMP_HOST", "점프 호스트", false, false, false, "노드가 사설망일 때만. 비우면 직접 접속", "bastion.example.com"),
                 field("SSH_JUMP_PORT", "점프 포트", false, false, false, "비우면 22", "22"),
                 field("SSH_JUMP_USER", "점프 사용자", false, false, false, null, "ubuntu"),
@@ -101,7 +101,7 @@ public final class CredentialSchema {
     private static List<CredentialFieldSchema> proxmox() {
         return List.of(
                 field("PROXMOX_VE_ENDPOINT", "엔드포인트", true, false, false, null, "https://pve.example.com:8006"),
-                // PVE 토큰 생성 화면이 두 값을 따로 보여준다. 한 칸으로 받으면 사용자가 손으로 잇는다.
+                // PVE 토큰 생성 화면은 두 값을 분리 표시. 단일 입력 칸으로 받으면 사용자가 수동 결합.
                 field(
                         "PROXMOX_VE_API_TOKEN_ID",
                         "토큰 ID",

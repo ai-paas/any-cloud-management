@@ -29,11 +29,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * {@code /v1/clusters} 컨트롤러의 단일 진입점입니다. VM 과 registered 두 source 를 한 목록으로
- *합쳐 보여 줍니다.
+ * {@code /v1/clusters} 컨트롤러의 단일 진입점. VM 과 registered 두 source 를 하나의 목록으로 병합.
  *
- * <p>source 별 분기는 {@link ClusterProvider} strategy 가 맡습니다. 새 source 를 추가할 때
- * 여기에 if 를 더하지 말고 provider 를 등록하세요.
+ * <p>source 별 분기는 {@link ClusterProvider} strategy 담당. source 추가 시 이 클래스에 분기를
+ * 추가하지 않고 provider 등록.
  */
 @Slf4j
 @Service
@@ -113,17 +112,16 @@ public class ClusterFacadeImpl implements ClusterFacade {
         return new PagedClusters(items.subList(from, to), nextToken, (long) items.size());
     }
 
-    /** 운영할 수 없는 상태. 여기 걸린 VM 시도만 있는 이름은 클러스터 목록에서 뺀다. */
+    /** 운영 불가 상태. 해당 상태의 VM 시도만 존재하는 이름은 클러스터 목록에서 제외. */
     private static final Set<String> DEAD_VM_STATUS = Set.of("FAILED", "DELETED", "BLOCKED");
 
     /**
-     * 이름이 같은 행을 한 줄로 합친다.
+     * 동일 이름 행 병합.
      *
-     * <p>VM 으로 만든 클러스터는 agent 가 등록하는 순간 vm 행과 registered 행을 동시에 갖고, 같은
-     * 이름으로 재시도하면 실패한 vm 행이 계속 남는다. 합치지 않으면 클러스터 하나가 화면에 여러 줄로
-     * 보인다.
+     * <p>VM 생성 클러스터는 agent 등록 시점에 vm 행과 registered 행을 동시 보유하고, 동일 이름
+     * 재시도 시 실패한 vm 행이 잔존. 미병합 시 클러스터 하나가 여러 행으로 표시.
      *
-     * @param hideDeadOnly status 필터가 없을 때만 true 입니다. FAILED 를 직접 조회하면 숨기지 않습니다.
+     * @param hideDeadOnly status 필터 부재 시에만 true. FAILED 직접 조회 시 미적용
      */
     private List<UnifiedClusterResponse> collapseByName(List<UnifiedClusterResponse> rows, boolean hideDeadOnly) {
         Map<String, List<UnifiedClusterResponse>> byName = rows.stream()
@@ -145,8 +143,8 @@ public class ClusterFacadeImpl implements ClusterFacade {
     }
 
     /**
-     * 대표 행은 살아 있는 VM 행을 우선하고, 없으면 최신 VM 행을 쓴다. agent 정보는 registered 행에만
-     * 있어 옮겨 담지 않으면 합치는 순간 사라진다.
+     * 대표 행은 유효한 VM 행 우선, 부재 시 최신 VM 행 사용. agent 정보는 registered 행에만
+     * 존재하므로 이전하지 않으면 병합 시점에 유실.
      */
     private UnifiedClusterResponse mergeGroup(List<UnifiedClusterResponse> group) {
         UnifiedClusterResponse vm = group.stream()
@@ -466,7 +464,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
 
     /**
      * VM cluster 의 in-flight workflow 단계를 UI 노출용으로 압축. cluster 의 latest row 를 조회해
-     * step / lastSuccessful / percent / stepStartedAt / retryCount 추출합니다. 없으면 null 입니다.
+     * step, lastSuccessful, percent, stepStartedAt, retryCount 추출. 대상 부재 시 null.
      */
     private UnifiedClusterResponse.WorkflowProgress buildWorkflowProgress(String clusterName) {
         return vmClusterRepository

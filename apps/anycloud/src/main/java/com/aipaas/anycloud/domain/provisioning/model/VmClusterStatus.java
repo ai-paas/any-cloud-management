@@ -6,15 +6,14 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * VM cluster workflow 의 lifecycle state 입니다.
+ * VM cluster workflow 의 lifecycle state.
  *
- * <p>전이 규칙은 {@link #canTransitionTo} 가 단일 출처이고, 그림은
- * {@code docs/architecture/vmcluster-state-machine.md} 에 있습니다.
+ * <p>전이 규칙의 단일 출처는 {@link #canTransitionTo}, 다이어그램은
+ * {@code docs/architecture/vmcluster-state-machine.md}.
  *
- * <p>규칙에 없는 전이는 기본값에서 경고 로그와 metric 만 남기고 그대로 진행합니다.
- * {@code anycloud.vm-cluster.state-machine.strict=true} 로 켜면 예외를 던집니다. 기본값이
- * 느슨한 이유는 운영 중 상태가 한 칸 건너뛰는 경우가 있어 전이 실패로 워크플로를 세우지 않기
- * 위해서입니다.
+ * <p>규칙에 없는 전이는 기본 설정에서 경고 로그와 metric 만 기록하고 진행.
+ * {@code anycloud.vm-cluster.state-machine.strict=true} 설정 시 예외 발생. 운영 중 상태가 한
+ * 단계 건너뛰는 경우가 있어 전이 실패로 워크플로를 중단시키지 않기 위한 기본값.
  */
 public enum VmClusterStatus {
     REQUESTED,
@@ -23,9 +22,8 @@ public enum VmClusterStatus {
     VERIFYING,
     READY,
     /**
-     * Kubernetes API 는 정상이나 REQUIRED 컴포넌트 일부가 미충족. 조정 루프가 계속 시도한다.
-     * FAILED 로 보내지 않는 이유는 VM 이 이미 떠서 과금되는데 워크플로우만 죽은 상태를 만들지
-     * 않기 위해서다.
+     * Kubernetes API 정상, REQUIRED 컴포넌트 일부 미충족. 조정 루프가 재시도 지속.
+     * VM 이 기동돼 과금 중인 상태에서 워크플로만 중단되는 상황을 피하기 위해 FAILED 미전이.
      */
     DEGRADED,
     /** Day-2 ops: workerCount 변경 진행 중. */

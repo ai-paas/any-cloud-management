@@ -24,13 +24,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * cluster agent 등록 로직입니다. 단기 JWT 를 발급하고, agent 가 그걸로 register 하면 장기
- * identity_token 으로 바꿔 줍니다.
+ * cluster agent 등록. 단기 JWT 발급 후 agent 가 해당 토큰으로 register 하면 장기
+ * identity_token 으로 교환.
  *
- * <p>인증 경로는 identity_token 하나뿐입니다. mTLS 는 쓰지 않습니다. 60일 TTL 의 opaque token 이
- * cluster 의 K8s Secret 에 저장돼 pod 가 재시작해도 그대로 삽니다.
+ * <p>인증 경로는 identity_token 단일. mTLS 미사용. 60일 TTL 의 opaque token 을 cluster 의
+ * K8s Secret 에 저장해 pod 재시작 후에도 유지.
  *
- * <p>DB 트랜잭션이 끝난 뒤 응답하는 동기 흐름입니다.
+ * <p>DB 트랜잭션 완료 후 응답하는 동기 흐름.
  */
 @Slf4j
 @Service
@@ -280,7 +280,7 @@ public class AgentBootstrapServiceImpl implements AgentBootstrapService {
         return (v == null || v.isBlank()) ? null : v;
     }
 
-    /** 등록을 막지 않는 뒤처리. 커밋 전에 부르면 실패가 등록 트랜잭션을 되돌린다. */
+    /** 등록을 차단하지 않는 후처리. 커밋 전 호출 시 실패가 등록 트랜잭션을 롤백. */
     private void afterCommit(Runnable task) {
         if (!org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
             task.run();
@@ -316,7 +316,7 @@ public class AgentBootstrapServiceImpl implements AgentBootstrapService {
             addonService.create(clusterId, spec);
             log.info("GPU operator auto-enrolled for cluster_id={}", clusterId);
         } catch (Exception e) {
-            // 이미 등록돼 있으면 그것으로 충분하다: 프로비저닝 요청이 먼저 넣어 두는 경로가 있다.
+            // 기등록 상태면 추가 처리 불필요. 프로비저닝 요청이 선행 등록하는 경로 존재.
             log.debug("GPU operator auto-enroll skipped cluster={}: {}", clusterId, e.toString());
         }
     }

@@ -1,16 +1,16 @@
-// Package config 는 agent 의 정책을 ConfigMap aipaas-agent-allowlist 에서 읽고,
-// watch 로 변경을 즉시 반영한다.
+// Package config 는 agent 정책을 ConfigMap aipaas-agent-allowlist 에서 읽고 watch 로 변경을
+// 즉시 반영.
 //
-// data 의 키 네 개가 backend 와의 계약이다. 각각 YAML 목록을 담는다.
+// data 의 키 4개가 backend 와의 계약. 각각 YAML 목록 보유.
 //
 //	allowed_charts          repo/name:min-max 형식의 chart 허용 범위
 //	allowed_namespaces      helm 설치를 허용할 namespace
 //	allowed_commands        dispatch 를 허용할 RPC 이름
 //	allowed_exec_namespaces PodExec 을 허용할 namespace
 //
-// 기본은 전부 거부다. allowed_commands 에 없는 명령은 dispatcher 가 PERMISSION_DENIED 로 끊는다.
-// PodExec 은 allowed_commands 를 통과해도 allowed_exec_namespaces 를 한 번 더 본다.
-// kube-system 같은 곳에 터미널이 열리지 않게 하려는 것이다.
+// 기본 정책은 전체 거부. allowed_commands 미등록 명령은 dispatcher 가 PERMISSION_DENIED 응답.
+// PodExec 은 allowed_commands 통과 후 allowed_exec_namespaces 추가 검사. kube-system 등에
+// 터미널 개방 차단 목적.
 package config
 
 import (
@@ -250,16 +250,16 @@ func (a *AllowList) IsExecNamespaceAllowed(name string) bool {
 // IsResourceKindAllowed: LIST/GET/DELETE 명령의 kind-level 정책 검사.
 //
 // Plural 입력: k8s.Client.ResolveResource(...).Plural 가 normalize 한 lowercase plural
-// (예: "pods", "storageclasses", "customresourcedefinitions"). short name ("pvc", "sc") 으로
-// 전달되면 정책에 plural 로 적힌 룰과 일치하지 않을 수 있으니 caller 는 plural 만 넘긴다.
+// (예: "pods", "storageclasses", "customresourcedefinitions"). short name ("pvc", "sc") 전달 시
+// 정책의 plural 룰과 불일치 가능하므로 caller 는 plural 만 전달.
 //
-// Namespace 의미: cluster-scoped 자원이면 "" 가 전달됨. Deny/Allow 룰의 Namespace="" 는
-// "어떤 namespace 든" 의미: cluster-scoped 자원도 자연스럽게 적용.
+// Namespace 의미: cluster-scoped 자원은 "" 전달. Deny/Allow 룰의 Namespace="" 는 모든
+// namespace 를 의미하며 cluster-scoped 자원에도 적용.
 //
 // 정책 우선순위:
-//  1. ResourcePolicy == nil → return true (legacy / backwards-compatible. RBAC 의존).
-//  2. Mode == "strict" → Allow 에 매칭되는 룰이 있으면 통과, 없으면 deny.
-//  3. Mode == "allow_all_discovered" (또는 default) → Deny 매칭 룰 있으면 deny, 그 외 통과.
+//  1. ResourcePolicy == nil → return true (legacy 호환. RBAC 의존)
+//  2. Mode == "strict" → Allow 매칭 룰 존재 시 통과, 없으면 deny
+//  3. Mode == "allow_all_discovered" (또는 default) → Deny 매칭 룰 존재 시 deny, 그 외 통과
 func (a *AllowList) IsResourceKindAllowed(resourcePlural, namespace string) bool {
 	if a == nil {
 		return false

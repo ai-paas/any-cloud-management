@@ -30,14 +30,14 @@ public class VmClusterDestroyStepServiceImpl implements VmClusterDestroyStepServ
     private final ProvisioningService provisioningService;
     private final VmClusterWorkflowSupportService workflowSupportService;
 
-    /** CSP 호출이 늘어나므로 끌 수 있어야 한다. */
+    /** CSP 호출 증가를 동반하므로 비활성화 가능해야 함. */
     @org.springframework.beans.factory.annotation.Value("${anycloud.vm-cluster.destroy.precheck:true}")
     private boolean precheckEnabled;
 
     @Override
     public void execute(String clusterName) {
-        // 같은 이름의 세대가 여럿이면 전부 DELETING 으로 들어온다. 스택은 하나지만 행은 모두
-        // 닫아야 한다. 최신 1건만 닫으면 옛 행이 DELETING 에 영원히 남는다.
+        // 동일 이름 세대가 여럿이면 전부 DELETING 진입. 스택은 하나지만 행은 전부 종료 처리
+        // 필요. 최신 1건만 처리하면 이전 행이 DELETING 에 잔존.
         List<VmClusterEntity> deleting = VmClusterDeletionTargets.beingDeleted(
                 vmClusterRepository.findAllByClusterNameOrderByCreatedAtDesc(clusterName));
 
@@ -61,19 +61,19 @@ public class VmClusterDestroyStepServiceImpl implements VmClusterDestroyStepServ
             Map<String, String> credentialEnvironment = cspCredentialService.resolveEnvironment(
                     vmCluster.getClusterProvider(), vmCluster.getCredentialId());
 
-            // 화면에서만 상태가 바뀌는 것이 아니다. 누가 콘솔에서 직접 지우면 우리 기록과 어긋나는데,
-            // 확인하지 않으면 그걸 모른 채 destroy 를 돌린다.
+            // 상태 변경 경로는 화면 외에도 존재. 콘솔에서 직접 삭제 시 기록과 불일치하며,
+            // 미확인 상태로 destroy 실행.
             DestroyPrecheck precheck = precheck(vmCluster, credentialEnvironment);
             if (precheck.note() != null) {
                 log.info("삭제 전 확인 cluster={}: {}", clusterName, precheck.note());
             }
-            // 확인 결과와 무관하게 돌린다. destroy 는 멱등이고, 건너뛰면 만들다 만 자원이 남는다.
+            // 확인 결과와 무관하게 실행. destroy 는 멱등이며 생략 시 생성 중단된 자원 잔존.
             provisioningService.destroy(vmCluster.getStackName(), credentialEnvironment);
 
             Optional<ClusterEntity> cluster = clusterRepository.findById(clusterName);
             cluster.ifPresent(clusterRepository::delete);
 
-            // 스택은 하나지만 그 이름의 DELETING 행은 모두 닫는다.
+            // 스택은 하나지만 해당 이름의 DELETING 행은 전부 종료 처리.
             if (deleting.isEmpty()) {
                 workflowSupportService.markDeleteCompleted(vmCluster);
             } else {
@@ -85,7 +85,7 @@ public class VmClusterDestroyStepServiceImpl implements VmClusterDestroyStepServ
         }
     }
     /**
-     * CSP 를 실제로 본다. 확인하지 못해도 삭제는 진행한다. 막으면 CSP 장애 때 정리할 방법이 없어진다.
+     * CSP 실제 상태 조회. 확인 실패 시에도 삭제 진행. 차단 시 CSP 장애 상황에서 정리 수단 부재.
      */
     private DestroyPrecheck precheck(VmClusterEntity vmCluster, Map<String, String> credentialEnvironment) {
         if (!precheckEnabled) {

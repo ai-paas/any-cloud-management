@@ -15,15 +15,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * gateway 가 검증한 사용자 identity 를 trusted header 에서 읽어 K8s Impersonation 으로 넘깁니다.
- * 같은 thread 의 후속 starter K8s 호출이 그 사용자의 RBAC 로 평가됩니다.
+ * gateway 가 검증한 사용자 identity 를 trusted header 에서 읽어 K8s Impersonation 으로 전달.
+ * 동일 thread 의 후속 starter K8s 호출은 해당 사용자 RBAC 로 평가.
  *
- * <p>{@code afterCompletion} 에서 반드시 clear 합니다. ThreadLocal 이라 빠뜨리면 다음 요청이 앞
- * 사용자의 권한으로 돕니다.
+ * <p>{@code afterCompletion} 에서 clear 필수. ThreadLocal 이라 누락 시 다음 요청이 이전 사용자
+ * 권한으로 실행.
  *
- * <p>{@code security.auth.enabled=true} 일 때만 {@link WebMvcImpersonationConfig} 가 등록합니다.
- * 꺼져 있거나 interceptor 가 닿지 않는 비동기 경로(RabbitMQ listener, scheduled job)에서는 holder 가
- * 비어 starter 가 admin 권한으로 호출합니다. system action 은 그게 맞습니다.
+ * <p>{@code security.auth.enabled=true} 일 때만 {@link WebMvcImpersonationConfig} 가 등록.
+ * 비활성 상태이거나 interceptor 미적용 비동기 경로(RabbitMQ listener, scheduled job)에서는
+ * holder 가 비어 starter 가 admin 권한으로 호출. system action 의 의도된 동작.
  */
 @Slf4j
 public class ImpersonationInterceptor implements HandlerInterceptor {
