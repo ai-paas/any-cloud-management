@@ -6,19 +6,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
- * 도메인별 비동기 풀 설정.
- * <p>
- * 각 풀은 독립된 {@code ThreadPoolTaskExecutor} 로 구성되어 한 도메인의 부하 폭주가
- * 다른 도메인의 비동기 작업을 굶기지 않도록 격리.
- *
- * <pre>
- * async:
- *   pools:
- *     helm:         { core-size: 5, max-size: 10, queue-capacity: 50,  thread-name-prefix: helm- }
- *     kubernetes:   { core-size: 4, max-size: 8,  queue-capacity: 100, thread-name-prefix: k8s- }
- *     provisioning: { core-size: 3, max-size: 6,  queue-capacity: 30,  thread-name-prefix: pulumi- }
- *     bootstrap:    { core-size: 3, max-size: 6,  queue-capacity: 30,  thread-name-prefix: bootstrap- }
- * </pre>
+ * 도메인별 비동기 풀 설정입니다. 풀을 나눠 한 도메인의 부하가 다른 도메인의 작업을 굶기지 않게
+ * 합니다. 기본값은 아래 필드 선언이 단일 출처이고 {@code async.pools.*} 로 덮어씁니다.
  */
 @Getter
 @Setter
@@ -34,9 +23,9 @@ public class AsyncProperties {
      */
     private Pool provisioning = Pool.rejecting("pulumi-", 16, 24, 8);
     /*
-     * 워크플로 4단계(PROVISION/BOOTSTRAP/VERIFY/DESTROY)가 이 풀 하나를 같이 쓴다. 한 단계가 최악
-     * 170분까지 스레드를 잡으므로, 동시 프로비저닝 수가 곧 필요한 스레드 수다.
-     * 큐를 max 이하로 두어야 core 를 넘겨 늘어난다 — 큐가 크면 max 는 쓰이지 않는다.
+     * 워크플로 4단계(PROVISION/BOOTSTRAP/VERIFY/DESTROY)가 이 풀 하나를 같이 씁니다. 한 단계가
+     * 최악 170분까지 스레드를 잡으므로 동시 프로비저닝 수가 곧 필요한 스레드 수입니다.
+     * 큐는 max 이하로 둡니다. 큐가 크면 core 를 넘겨 늘지 않아 max 가 쓰이지 않습니다.
      */
     private Pool bootstrap = Pool.rejecting("bootstrap-", 16, 24, 8);
 
@@ -53,11 +42,11 @@ public class AsyncProperties {
         private int keepAliveSeconds = 60;
 
         /**
-         * 넘쳤을 때 호출자 스레드에서 실행할지.
+         * 넘쳤을 때 호출자 스레드에서 실행할지 여부입니다.
          *
-         * <p>워크플로 풀은 false 여야 한다 — 호출자가 AMQP 리스너라, 거기서 170분짜리 작업을
-         * 돌리면 그 큐의 소비가 멈추고 ack 를 못 해 재전달 루프가 돌아온다. 거부하면 dispatcher 가
-         * 락을 반납하고 메시지를 되돌린다.
+         * <p>워크플로 풀은 false 여야 합니다. 호출자가 AMQP 리스너라 거기서 170분짜리 작업을 돌리면
+         * 그 큐의 소비가 멈추고 ack 를 못 해 재전달 루프에 빠집니다. 거부하면 dispatcher 가 락을
+         * 반납하고 메시지를 되돌립니다.
          */
         private boolean runOnCallerWhenFull = true;
 

@@ -9,11 +9,8 @@ public final class ApiValidationConstants {
     public static final int K8S_NAME_MAX = 63;
 
     /**
-     * K8s namespace path 값. RFC 1123 label 규칙 + 다음 sentinel 허용:
-     * <ul>
-     *   <li>{@code -} : K8s 컨벤션 — cluster-scoped kind 에서 ns 가 의미 없을 때.</li>
-     *   <li>{@code _all} : 모든 namespace 조회 (all-namespaces).</li>
-     * </ul>
+     * namespace path 값. RFC 1123 label 에 sentinel 둘을 더 받습니다. {@code -} 는 cluster-scoped
+     * kind 라 namespace 가 의미 없을 때, {@code _all} 은 전체 namespace 조회입니다.
      */
     public static final String NAMESPACE_PATTERN = "^(-|_all|[a-z0-9]([-a-z0-9]*[a-z0-9])?)$";
 

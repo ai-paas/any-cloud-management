@@ -3,10 +3,9 @@ package com.aipaas.anycloud.common.web;
 import java.util.List;
 
 /**
- * 한 페이지와 전체 개수.
+ * 한 페이지와 전체 개수입니다.
  *
- * <p>목록을 전량 내려보내면 노드가 수백인 환경에서 응답이 그만큼 커지고, 중간 계층이 잘라 내면
- * 각 층이 서로 다른 페이지를 가정하게 된다. 자르는 곳을 한 곳으로 둔다.
+ * <p>중간 계층이 각자 잘라 내면 층마다 다른 페이지를 가정하게 됩니다. 자르는 곳을 한 군데로 모읍니다.
  */
 public record OffsetPage<T>(List<T> items, long total) {
 

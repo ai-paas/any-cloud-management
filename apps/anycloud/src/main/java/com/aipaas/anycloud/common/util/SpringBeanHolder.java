@@ -6,18 +6,11 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 /**
- * JPA entity / 비-Spring-managed 객체가 Spring bean 에 접근하기 위한 static holder.
+ * JPA entity 처럼 Spring 이 관리하지 않는 객체가 bean 을 꺼내 쓰기 위한 static holder 입니다.
+ * 생성자 주입이 닿지 않는 자리에서만 쓰세요. 일반 bean 은 생성자 주입을 씁니다.
  *
- * <p><b>제한된 사용</b> — DI 가 핵심 (entity, util static method) 인 좁은 케이스만. 일반 Spring 빈은
- * 생성자 주입을 사용필요. 본 holder 는 다음 케이스용:
- * <ul>
- *   <li>JPA entity 의 method 가 service 호출 (예: {@code VmClusterEntity.transitionTo}
- *       내부에서 state history recorder 호출)</li>
- *   <li>@Configuration 외부의 static utility 안에서 bean 접근</li>
- * </ul>
- *
- * <p>Test 환경에서는 ApplicationContext 가 wire 안 된 상태일 수 있어 {@link #beanOrNull} 가 null
- * 반환 — 호출 측이 null-tolerant 필요.
+ * <p>테스트에서는 ApplicationContext 가 아직 없을 수 있어 {@link #beanOrNull} 이 null 을
+ * 돌려줍니다. 호출 측이 null 을 견뎌야 합니다.
  */
 @Component
 public class SpringBeanHolder implements ApplicationContextAware {

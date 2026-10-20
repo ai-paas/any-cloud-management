@@ -1,15 +1,8 @@
 /**
- * 백엔드 인증 / 권한 관련 컴포넌트의 단일 패키지.
+ * 백엔드 인증과 권한 컴포넌트를 모아 둔 패키지입니다.
  *
- * <p>3 핵심 컴포넌트:
- * <ul>
- *   <li>{@link StaticTokenAuthFilter} — 정적 토큰 검증 filter (gateway 뒤에서만 유효).</li>
- *   <li>{@link WebSecurityConfig} — Spring Security 설정. filter chain ordering.</li>
- *   <li>{@link ImpersonationInterceptor} — K8s impersonation pass-through 헤더 (X-User-* / X-Groups)
- *       조합. 사용자 단위 K8s RBAC enforcement 의 진입점.</li>
- * </ul>
- *
- * <p>{@link WebSecurityDisabledConfig} 는 dev / test 환경에서 SecurityConfig 를 무력화.
- * {@link SecurityProperties} 가 toggle 보유.
+ * <p>{@link StaticTokenAuthFilter} 가 정적 토큰을 검증하고,
+ * {@link ImpersonationInterceptor} 가 gateway 가 붙인 identity 헤더를 K8s impersonation 으로
+ * 넘깁니다. {@link SecurityProperties} 의 토글이 둘 다를 켜고 끕니다.
  */
 package com.aipaas.anycloud.configuration.security;

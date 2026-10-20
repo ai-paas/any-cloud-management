@@ -7,21 +7,13 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
- * H2 — outbox-lite. 트랜잭션 안에서 RabbitMQ / webhook / SSE 같은 외부 sink 로 발행해야 할 때,
- * 트랜잭션 commit 이후로 발행을 미뤄 두 시스템 간 inconsistency 를 줄인다.
- * <p>
- * 시나리오:
- * <ol>
- *   <li>호출 메서드 안: {@code repository.save(...)}</li>
- *   <li>호출 메서드 안: {@code afterCommitPublisher.publish(() -> rabbit.send(msg))}</li>
- *   <li>메서드 return 후 트랜잭션 commit</li>
- *   <li>commit 성공 시: rabbit.send 호출</li>
- *   <li>commit 실패 (rollback) 시: rabbit.send 호출되지 않음 → DB 변화 없음 + 메시지도 없음 = 일관</li>
- * </ol>
- * <p>
- * 트랜잭션이 없는 컨텍스트에서 호출되면 즉시 발행 (fallback). 진짜 outbox 가 필요한 시나리오
- * (commit 후 send 가 망가지면 message 유실) 는 DB outbox 테이블이 필요하나, 본 helper 는
- * 대부분의 use-case 에서 충분하고 추가 인프라 없이 즉시 사용 가능.
+ * RabbitMQ, webhook, SSE 같은 외부 발행을 트랜잭션 commit 이후로 미룹니다. rollback 되면 발행도
+ * 일어나지 않아 DB 와 메시지가 어긋나지 않습니다.
+ *
+ * <p>트랜잭션이 없으면 그 자리에서 발행합니다.
+ *
+ * <p>commit 과 발행 사이에 프로세스가 죽으면 메시지는 유실됩니다. 그것까지 막으려면 DB outbox
+ * 테이블이 필요합니다.
  */
 @Slf4j
 @Component
@@ -35,8 +27,7 @@ public class AfterCommitPublisher {
      */
     public void publish(String description, Runnable action) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            // 트랜잭션 없음 → 즉시 발행. 호출자가 TX 컨텍스트 없는 케이스 (e.g. @Async / scheduled)
-            // 는 outbox 시맨틱이 무의미하므로 기존 거동 유지.
+            // @Async 나 scheduled 처럼 트랜잭션이 없는 호출. 미룰 commit 이 없으니 바로 발행합니다.
             runSafely(description, action);
             return;
         }
@@ -64,8 +55,8 @@ public class AfterCommitPublisher {
         try {
             action.run();
         } catch (Exception e) {
-            // publish 실패는 비즈니스 흐름이 이미 commit 됐으므로 throw 하지 않는다.
-            // metric / alert 로 수렴되도록 warn log 남기고 swallow.
+            // 비즈니스 흐름은 이미 commit 됐으므로 여기서 던지면 되돌릴 게 없습니다.
+            // 알림은 로그로 넘깁니다.
             log.warn("afterCommit publish failed ({}): {}", description, e.toString(), e);
         }
     }

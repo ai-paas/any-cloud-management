@@ -14,15 +14,10 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /**
- * <pre>
- * ClassName : ErrorResponse
- * Type : class
- * Description : 에러 메시지 처리와 관련된 함수를 포함하고 있는 클래스입니다.
- * Related : ErrorCode
- * How-to :
- *  1. throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
- *  2. final ErrorResponse response = ErrorResponse.of(ErrorCode.FORBIDDEN);
- * </pre>
+ * 에러 응답 본문.
+ *
+ * <p>{@code ErrorResponse.of(ErrorCode.FORBIDDEN)} 으로 만들거나,
+ * {@code throw new CustomException(ErrorCode.INVALID_INPUT_VALUE)} 를 던지면 핸들러가 만듭니다.
  */
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

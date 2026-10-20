@@ -16,22 +16,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Bootstrap anonymous endpoint per-IP rate limit.
+ * {@code /v1/agent-bootstrap/**} 의 IP 별 분당 호출을 제한합니다. 인증 없이 열려 있는 CA bundle
+ * 다운로드라 cache 를 우회하는 호출을 막을 층이 필요합니다. 초과하면 429 와 {@code Retry-After: 60}
+ * 을 돌려줍니다.
  *
- * <p>대상: {@code /v1/agent-bootstrap/**} (CA bundle download — anonymous). Cache-Control:
- * max-age=300 이 90%+ 흡수하지만 cache miss / client-side cache 우회 / DDoS 시 보호 layer 필요.
- *
- * <p>구현: Caffeine 기반 fixed-window (1 분) per-IP counter. 한 분에 한 IP 가 limit 초과하면
- * HTTP 429 + {@code Retry-After: 60}. 단일 backend instance 내 in-memory — multi-replica 환경
- * 에서는 instance 별 limit (전체 효과 = replicas × limit). 정확한 cluster-wide rate limit 이
- * 필요하면 Redis / sticky session 도입.
- *
- * <p>Limit 결정 근거:
- * <ul>
- *   <li>정상 use case: cluster 등록 시 1회 / helm rollout 시 1회. 안정 시 IP 당 시간당 수회.</li>
- *   <li>60 req/min 은 reasonable headroom (실수 retry / 자동화 script 허용).</li>
- *   <li>Cache 5분 hit 가 대부분 흡수하므로 실제 backend hit 는 더 낮음.</li>
- * </ul>
+ * <p>카운터가 instance 메모리에 있어 실제 상한은 replica 수를 곱한 값입니다. 클러스터 전체에
+ * 정확한 상한을 걸려면 Redis 가 필요합니다.
  */
 @Slf4j
 @Component

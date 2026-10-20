@@ -4,15 +4,11 @@ import com.aipaas.anycloud.common.error.enums.ErrorCode;
 import com.aipaas.anycloud.common.error.exception.CustomException;
 
 /**
- * Provisioning 도메인 예외의 베이스. {@link CustomException} 상속이라 기존
- * {@code GlobalExceptionHandler#handleBusinessException} 가 그대로 캐치하지만, 의미상
- * 분류를 위해 별도 hierarchy 를 둔다.
+ * provisioning 예외의 베이스입니다.
  *
- * <p>하위 클래스는 transient (재시도 가능) / permanent (영구 실패) 로 명확히 분리.
- * 외부 시스템 (Pulumi / CSP API / SSH) 호출 실패는 transient, 입력/상태 충돌은 permanent.
- *
- * <p>{@link #isTransient()} 가 true 면 retry interceptor 가 재시도를 시도해야 함을
- * 호출자가 판단가능.
+ * <p>하위 클래스는 transient 와 permanent 로 나뉩니다. Pulumi, CSP API, SSH 같은 외부 호출 실패는
+ * transient 고 입력이나 상태 충돌은 permanent 입니다. {@link #isTransient()} 로 retry interceptor 가
+ * 재시도 여부를 정하므로 둘을 섞으면 영구 실패를 계속 재시도하게 됩니다.
  */
 public abstract class ProvisioningException extends CustomException {
 

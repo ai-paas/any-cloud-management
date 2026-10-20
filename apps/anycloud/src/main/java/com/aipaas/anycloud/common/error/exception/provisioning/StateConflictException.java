@@ -3,13 +3,10 @@ package com.aipaas.anycloud.common.error.exception.provisioning;
 import com.aipaas.anycloud.common.error.enums.ErrorCode;
 
 /**
- * 현재 리소스 상태가 요청과 충돌 — 예: 이미 PROVISIONING 중인 cluster 에 다시 create 시도,
- * DELETED state cluster 에 scale 시도, addon 이 FAILED 외 state 에서 retry 등.
+ * 지금 상태로는 받을 수 없는 요청입니다. PROVISIONING 중인 cluster 에 다시 create, DELETED 에 scale
+ * 같은 경우입니다. 409 로 나갑니다.
  *
- * <p>HTTP 409 (STATE_CONFLICT). 기존엔 {@link IllegalStateException} → handler 가 409 로
- * 매핑했으나, 의미가 명확하지 않아 신규 코드는 본 예외 사용 권장.
- *
- * <p>호출자는 응답 본문의 hint / current state 를 보고 재시도 시점을 판단.
+ * <p>응답에 현재 상태를 실어 호출자가 언제 다시 시도할지 판단하게 합니다.
  */
 public class StateConflictException extends ProvisioningException {
 

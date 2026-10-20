@@ -4,14 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Getter;
 import lombok.ToString;
 
-/**
- * <pre>
- * ClassName : ErrorCode
- * Type : enum
- * Description : 에러 코드, 에러 메시지를 포함하고 있는 enum입니다.
- * Related : ErrorResponse
- * </pre>
- */
+/** 에러 코드와 사용자에게 보일 메시지. HTTP status 도 여기서 정합니다. */
 @Getter
 @ToString
 @JsonFormat(shape = JsonFormat.Shape.OBJECT)

@@ -13,13 +13,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * 모든 HTTP 요청에 대해 짧은 requestId 와 clientIp 를 MDC 에 채워, controller / service /
- * 호출하는 외부 시스템까지의 모든 로그 줄에 동일한 컨텍스트가 표시되.
- * <p>
- * X-Request-Id 헤더가 들어오면 그 값을 우선 사용(분산 추적과 연동). 없으면 UUID 앞 8자.
- * 응답에도 X-Request-Id 헤더를 넣어 클라이언트가 동일 id 로 다시 추적 가능.
- * <p>
- * X-Forwarded-For 가 있으면 첫 hop 을 clientIp 로 사용(gateway 뒤에 있는 환경 고려).
+ * 요청마다 requestId 와 clientIp 를 MDC 에 채워 한 요청의 모든 로그 줄이 같은 값을 달게 합니다.
+ *
+ * <p>{@code X-Request-Id} 가 들어오면 그 값을 씁니다. 분산 추적과 id 를 맞추기 위해서입니다.
+ * 응답에도 같은 헤더를 실어 클라이언트가 되짚을 수 있게 합니다.
+ *
+ * <p>{@code X-Forwarded-For} 가 있으면 첫 hop 을 clientIp 로 봅니다. gateway 뒤라 remote address 는
+ * gateway 주소이기 때문입니다.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)

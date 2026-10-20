@@ -15,30 +15,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * 게이트웨이가 검증한 사용자 identity 를 K8s Impersonation 으로 전파하는 interceptor.
+ * gateway 가 검증한 사용자 identity 를 trusted header 에서 읽어 K8s Impersonation 으로 넘깁니다.
+ * 같은 thread 의 후속 starter K8s 호출이 그 사용자의 RBAC 로 평가됩니다.
  *
- * <p>운영 모델 (memory: gateway 뒤 + 인증 toggle):
- * <ol>
- *   <li>외부 트래픽이 gateway 를 거쳐 backend 로 옴.</li>
- *   <li>gateway 가 OIDC / JWT 검증 후 사용자 identity 를 trusted headers 로 첨가:
- *       <ul>
- *         <li>{@code X-Forwarded-User} — K8s username (OIDC sub / email / preferred_username)</li>
- *         <li>{@code X-Forwarded-Groups} — CSV 또는 multi-value group memberships</li>
- *         <li>{@code X-Forwarded-Extra-<key>} — multi-value extras (드물게 사용)</li>
- *       </ul>
- *   </li>
- *   <li>본 interceptor 가 preHandle 에서 header 읽어 {@link ImpersonationIdentity} 생성 후
- *       {@link ThreadLocalImpersonationContext#set} → 같은 thread 의 후속 starter K8s 호출이
- *       자동으로 user 의 RBAC 로 평가.</li>
- *   <li>afterCompletion 에서 clear — ThreadLocal leak 방지 필수.</li>
- * </ol>
+ * <p>{@code afterCompletion} 에서 반드시 clear 합니다. ThreadLocal 이라 빠뜨리면 다음 요청이 앞
+ * 사용자의 권한으로 돕니다.
  *
- * <p>활성 조건: {@code security.auth.enabled=true} 일 때만 {@link WebMvcImpersonationConfig} 가
- * 등록. OFF 면 자동 비활성 → admin-equivalent 동작 그대로 (memory 의 toggle 정책 정합).
- *
- * <p>비동기 경로 (RabbitMQ listener, scheduled job, 외부 worker) 에는 interceptor 가 닿지 않으므로
- * holder 가 비어 있고 → starter 는 admin-equivalent 로 호출. 의도된 동작 (system action 은
- * SA 권한으로).
+ * <p>{@code security.auth.enabled=true} 일 때만 {@link WebMvcImpersonationConfig} 가 등록합니다.
+ * 꺼져 있거나 interceptor 가 닿지 않는 비동기 경로(RabbitMQ listener, scheduled job)에서는 holder 가
+ * 비어 starter 가 admin 권한으로 호출합니다. system action 은 그게 맞습니다.
  */
 @Slf4j
 public class ImpersonationInterceptor implements HandlerInterceptor {

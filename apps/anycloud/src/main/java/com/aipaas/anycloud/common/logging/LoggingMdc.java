@@ -5,16 +5,15 @@ import java.util.Map;
 import org.slf4j.MDC;
 
 /**
- * MDC 컨텍스트 키 정의 + try-with-resources 헬퍼.
- * <p>
- * 비동기 / 메시지 컨슈머 경계에서 {@link MDC} 의 값을 채워두면 logback 패턴이
- * 자동으로 모든 로그 줄에 cluster/messageId/step 등을 표시. 호출자는
- * {@link #scope} 로 try-with-resources 블록을 열어 자동 클리어를 보장.
+ * MDC 키와 try-with-resources 헬퍼입니다. 비동기나 메시지 컨슈머 경계에서 채워 두면 logback 패턴이
+ * 모든 로그 줄에 cluster, messageId, step 을 찍습니다.
+ *
+ * <p>{@link #scope} 로 열어야 블록을 벗어날 때 자동으로 지워집니다. 직접 {@link MDC} 에 넣으면
+ * 스레드가 재사용될 때 다음 작업 로그에 남은 값이 따라붙습니다.
  *
  * <pre>{@code
  * try (var ignored = LoggingMdc.scope(Map.of(
  *         LoggingMdc.CLUSTER_NAME, message.getClusterName(),
- *         LoggingMdc.MESSAGE_ID, message.getMessageId(),
  *         LoggingMdc.STEP, message.getStep().name()))) {
  *     handle(message);
  * }

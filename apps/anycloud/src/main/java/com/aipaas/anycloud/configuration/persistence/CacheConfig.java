@@ -9,17 +9,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Caffeine 기반 in-process cache.
- * <p>
- * 적용 대상은 외부 API 호출이 비싼 read-mostly 데이터:
- * <ul>
- *   <li>provider catalog (regions / specs / images) — AWS describe* / GCP list* 등은 시간당 호출
- *       quota 가 있고 데이터가 분/시간 단위로 거의 변하지 않음.</li>
- *   <li>helm chart metadata — index.yaml 은 helm repo 가 분 단위로 갱신되지만 chart values /
- *       readme 는 unsigned read 라 cache OK.</li>
- * </ul>
- * <p>
- * cache eviction: TTL 30분 (catalog 류는 더 길게도 무방하지만 안전).
+ * Caffeine in-process cache 입니다. CSP catalog(regions, specs, images)처럼 호출 quota 가 있고 잘
+ * 변하지 않는 데이터를 담습니다.
+ *
+ * <p>프로세스 메모리라 replica 끼리 공유하지 않습니다. 즉시 반영돼야 하는 값은 넣지 마세요.
  */
 @Configuration
 @EnableCaching

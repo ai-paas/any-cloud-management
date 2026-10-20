@@ -38,33 +38,14 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
- * 글로벌 예외 → ErrorResponse 매핑.
+ * 예외를 ErrorCode 로 매핑합니다. 직렬화와 status 변환은 {@link ErrorResponseFormatter} 담당입니다.
  *
- * <p>핸들러는 의도적으로 카테고리 별 섹션으로 정리. 새 핸들러 추가 시 적절한 카테고리에 둘 것.
+ * <p>핸들러는 아래 주석 구분선대로 VALIDATION, NOT FOUND, BUSINESS, EXTERNAL, SECURITY, FALLBACK
+ * 순으로 둡니다. 같은 예외에 핸들러가 둘이면 Spring 이 더 구체적인 쪽을 고릅니다.
  *
- * <ol>
- *   <li><b>VALIDATION</b> — 입력 검증 실패. 400. {@code HttpMessageNotReadableException},
- *       {@code MethodArgumentNotValidException}, {@code ConstraintViolationException},
- *       {@code MethodArgumentTypeMismatchException}, {@code IllegalArgumentException}.</li>
- *   <li><b>NOT FOUND / METHOD</b> — 리소스 / 메서드 매칭 실패. 404 / 405.
- *       {@code NoResourceFoundException}, {@code HttpRequestMethodNotSupportedException},
- *       JPA / 도메인 NotFound 예외 (ClusterNotFound, HelmRepoNotFound, …).</li>
- *   <li><b>BUSINESS / STATE</b> — 도메인 로직 + 상태 충돌. {@code CustomException} (전반적
- *       호환 catch-all), {@code IllegalStateException}, {@code ProvisioningException} (transient
- *       / permanent / state-conflict / pulumi).</li>
- *   <li><b>EXTERNAL</b> — Pulumi / starter / agent route 실패. 502 / 503 / 504.
- *       {@code ProvisioningExecutionException} (starter), {@code ObservabilityException},
- *       {@code BackupException}, {@code UnsupportedKindException}.</li>
- *   <li><b>SECURITY / DATA</b> — auth / duplicate. 403 / 409.
- *       {@code AccessDeniedException}, {@code DuplicateKeyException}.</li>
- *   <li><b>FALLBACK</b> — 그 외 모든 {@code Exception} 은 500.</li>
- * </ol>
- *
- * <p>직렬화 / SSE 응답 / status 변환은 {@link ErrorResponseFormatter} 로 분리됨. 본 클래스는
- * "어떤 ErrorCode 로 매핑할지" 결정에만 집중.
- *
- * <p>신규 provisioning 코드는 {@code TransientProvisioningFailure} / {@code PermanentProvisioningFailure}
- * 를 throw 한다 — retry classifier 가 {@code isTransient()} 로 RabbitMQ DLQ 라우팅 결정.
+ * <p>provisioning 실패는 {@code TransientProvisioningFailure} 나
+ * {@code PermanentProvisioningFailure} 로 던지세요. retry classifier 가 {@code isTransient()} 로
+ * RabbitMQ DLQ 라우팅을 정하므로, RuntimeException 을 그대로 던지면 재시도되지 않습니다.
  */
 @Slf4j
 @RestControllerAdvice
@@ -79,17 +60,10 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Body 가 비어있거나 JSON parse 실패 시 발생. 두 가지 sub-case 로 분기 :
+     * body 가 비었거나 JSON 파싱이 실패했을 때입니다.
      *
-     * <ol>
-     *   <li>"Required request body is missing" — body 가 0 byte 도착 (클라이언트가 안 보냄).
-     *       Content-Length 헤더 0 / Bruno 의 변수 substitution 실패 등.</li>
-     *   <li>그 외 — JSON syntax error, escape 오류, 필드 type mismatch 등. cause class 가
-     *       Jackson 의 JsonParseException / JsonMappingException 등으로 구체.</li>
-     * </ol>
-     *
-     * cause 의 raw message 는 사용자 input 일부 포함 가능성이 있어 log 만, 클라이언트 응답에는
-     * cause class 명만 (보안 + 진단 균형).
+     * <p>cause 의 raw message 는 사용자 입력을 그대로 담을 수 있어 로그에만 남기고, 응답에는 cause
+     * 클래스명만 내보냅니다.
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     protected ResponseEntity<ErrorResponse> httpMessageNotReadableExceptionHandler(
@@ -161,11 +135,8 @@ public class GlobalExceptionHandler {
         log.warn("Constraint violation: {}", violations);
         final ErrorResponse response = ErrorResponse.of(ErrorCode.INVALID_INPUT_VALUE, violations);
 
-        // SSE endpoint (text/event-stream) 에서는 JSON 응답이 Accept 매칭 실패 — SSE 이벤트로 변환.
-        // 형식: "event: error\ndata: <json>\n\n" + status 400 + Content-Type: text/event-stream.
-        // 일반 endpoint 는 기존 JSON 응답 유지 — 단 SSE endpoint 의 produces 제약을 우회하려면
-        // Content-Type 을 명시적으로 application/json 으로 설정해야 함 (그렇지 않으면 controller
-        // 의 produces=text/event-stream 가 exception handler 의 content negotiation 까지 영향).
+        // 양쪽 모두 Content-Type 을 명시합니다. 비워 두면 controller 의
+        // produces=text/event-stream 이 예외 핸들러의 content negotiation 까지 끌고 갑니다.
         if (acceptsEventStream(request)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .contentType(MediaType.TEXT_EVENT_STREAM)
@@ -177,17 +148,11 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * SSE 응답이 적절한지 판단:
-     * <ol>
-     *   <li>Accept 헤더에 text/event-stream 포함 (정상 SSE 클라이언트), 또는
-     *   <li>request URI 가 SSE 전용 endpoint 패턴 (.../events) 매칭 — Accept 누락/와일드카드 (*<!---->/*)
-     *       케이스에 SSE 응답 강제. 정상 SSE 클라이언트 시나리오 대부분 커버.
-     * </ol>
+     * SSE 로 응답할지 판단합니다. URI 로도 보는 이유는 Accept 가 비었거나 와일드카드인 클라이언트
+     * 때문입니다.
      *
-     * <p><b>한계</b>: 클라이언트가 명시적으로 Accept: application/json 을 SSE endpoint 에 보낸 경우는
-     * Spring 의 응답 측 content negotiation 이 SSE 응답을 거부 (HttpMediaTypeNotAcceptable)
-     * → 500 fallback. 이는 클라이언트의 misconfigured Accept 가 원인이며 handler 차원에서 해결 불가.
-     * 정상 SSE 클라이언트 (Bruno / EventSource API) 는 항상 Accept: text/event-stream 을 보냄.
+     * <p>SSE endpoint 에 Accept: application/json 을 명시해 보내면 Spring 의 응답 측 content
+     * negotiation 이 SSE 를 거부해 500 으로 떨어집니다. 핸들러에서 막을 수 없습니다.
      */
     private static boolean acceptsEventStream(HttpServletRequest request) {
         if (request == null) return false;
@@ -199,15 +164,7 @@ public class GlobalExceptionHandler {
         return uri != null && uri.endsWith("/events");
     }
 
-    /**
-     * SSE 'error' event 직렬화.
-     * <pre>
-     *   event: error
-     *   data: {"code":"INVALID_INPUT_VALUE","message":"...","status":400, ...}
-     *
-     * </pre>
-     * 마지막 빈 줄은 SSE 프로토콜 상 event 종료 마커.
-     */
+    /** SSE error event 로 직렬화합니다. 끝의 빈 줄은 event 종료 마커라 빼면 안 됩니다. */
     private String toSseErrorEvent(ErrorResponse response) {
         String json;
         try {
@@ -293,15 +250,7 @@ public class GlobalExceptionHandler {
 
     // ─── BUSINESS / STATE ────────────────────────────────────────────────────────
 
-    /**
-     * Provisioning 도메인 전용 핸들러. {@link CustomException} 상속이므로 Spring 이 더 구체적인
-     * 본 핸들러를 선택. transient / permanent 여부를 응답 hint 에 명시하여 클라이언트가 재시도
-     * 정책을 결정할 수 있도록 함.
-     *
-     * <p>신규 provisioning 코드는 {@code TransientProvisioningFailure} / {@code PermanentProvisioningFailure}
-     * / {@code StateConflictException} / {@code PulumiExecutionException} 사용 권장.
-     * 기존 RuntimeException / IllegalStateException 직접 던지지 말 것.
-     */
+    /** transient / permanent 를 응답 hint 로 내보내 클라이언트가 재시도 여부를 정하게 합니다. */
     @ExceptionHandler(ProvisioningException.class)
     protected ResponseEntity<ErrorResponse> handleProvisioningException(final ProvisioningException e) {
         final ErrorCode errorCode = e.getErrorCode();
@@ -333,8 +282,8 @@ public class GlobalExceptionHandler {
         if (e.getField() != null) {
             response = ErrorResponse.of(
                     e.getErrorCode(), ErrorResponse.FieldError.of(e.getField(), e.getValue(), e.getReason()));
-            // CSP 원문은 provider 마다 표현이 달라 그대로 보면 무엇을 고쳐야 하는지 알 수 없다.
-            // 화면이 원문을 접어두고 할 일부터 보여줄 수 있게 분류 결과를 실어 보낸다.
+            // CSP 원문은 provider 마다 표현이 달라 그대로는 무엇을 고쳐야 할지 알 수 없습니다.
+            // 화면이 원문을 접어 두고 할 일부터 보여줄 수 있게 분류 결과를 함께 실어 보냅니다.
             response =
                     response.withHint(CredentialFailureKind.from(e.getReason()).hint());
         } else if (hasDetail) {
@@ -425,7 +374,7 @@ public class GlobalExceptionHandler {
     protected ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException e) {
         log.warn("Entity not found: {}", e.getMessage());
         final ErrorResponse response = ErrorResponse.of(ErrorCode.ENTITY_NOT_FOUND, e.getMessage());
-        // statusOf 로 통일한다. 하드코딩하면 ErrorCode 의 status 와 어긋나 body 만 다른 값을 갖는다.
+        // statusOf 로 통일합니다. 하드코딩하면 ErrorCode 의 status 와 어긋나 body 만 달라집니다.
         return new ResponseEntity<>(response, ErrorResponseFormatter.statusOf(ErrorCode.ENTITY_NOT_FOUND));
     }
 
