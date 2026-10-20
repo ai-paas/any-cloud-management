@@ -98,7 +98,7 @@ func (c *realClient) APIServerURL() string {
 }
 
 // ============================================================================
-// debugContainerName: 웹이 exec 대상으로 지정하는 이름과 같아야 한다.
+// debugContainerName: 웹이 exec 대상으로 지정하는 이름과 동일해야 함.
 const debugContainerName = "debug"
 
 // debugPodReadyTimeout: 호출자가 데드라인을 주지 않았을 때의 상한.
@@ -107,7 +107,7 @@ const debugPodReadyTimeout = 3 * time.Minute
 // Node debug pod
 // ============================================================================
 
-// kubectl 과 k9s 가 들어 있는 이미지. 노드에 이 도구들이 깔려 있으리라 기대할 수 없다.
+// kubectl 과 k9s 포함 이미지. 노드에 해당 도구 설치 여부는 보장 불가.
 const defaultToolsImage = "ghcr.io/ai-paas/ops-shell:latest"
 
 type NodeDebugPodOptions struct {
@@ -115,10 +115,10 @@ type NodeDebugPodOptions struct {
 	Namespace string // default "kube-system"
 	Image     string // default "registry.k8s.io/e2e-test-images/agnhost:2.40"
 	PodName   string // default "aipaas-node-debug-<ts>"
-	// ToolsShell: 호스트가 아니라 클러스터를 보는 셸. nsenter 없이 이미지를 그대로 실행하므로
-	// kubectl, k9s 가 이미지에서 온다. 노드에 그 도구들이 깔려 있으리라 기대할 수 없다.
+	// ToolsShell: 호스트가 아닌 클러스터 대상 셸. nsenter 없이 이미지를 직접 실행하므로
+	// kubectl, k9s 는 이미지 제공. 노드 설치 여부는 보장 불가.
 	ToolsShell bool
-	// ToolsShell 일 때 붙일 SA. 없으면 kubectl 이 모든 호출에서 forbidden 을 받는다.
+	// ToolsShell 용 SA. 부재 시 kubectl 의 모든 호출이 forbidden.
 	ServiceAccount string
 	// 생성된 debug pod 의 활성 기간 (cleanup 은 호출자/운영자 책임. TTL 만 정보 제공).
 	TTLSeconds int64
@@ -219,13 +219,13 @@ func (c *realClient) CreateNodeDebugPod(ctx context.Context, opts NodeDebugPodOp
 	}, nil
 }
 
-// waitDebugContainerRunning: 컨테이너가 뜰 때까지 기다린다.
+// waitDebugContainerRunning: 컨테이너 기동 대기.
 //
-// 이름만 돌려주면 호출자가 곧바로 exec 을 걸고 "container not found (debug)" 로 끝난다. 노드에
-// 이미지가 없으면 pull 에 1분 넘게 걸려 거의 매번 걸린다. 기다리는 상한은 ctx 가 정한다.
+// 이름만 반환하면 호출자가 즉시 exec 을 실행해 "container not found (debug)" 로 종료. 노드에
+// 이미지가 없으면 pull 에 1분 이상 소요돼 대부분 해당. 대기 상한은 ctx 가 결정.
 func (c *realClient) waitDebugContainerRunning(ctx context.Context, ns, name string) error {
-	// 호출자가 데드라인을 주지 않아도 영원히 붙잡지 않는다. 이미지 pull 이 이보다 오래 걸리면
-	// 기다려서 될 일이 아니다.
+	// 호출자 데드라인 부재 시에도 무한 대기 금지. 이미지 pull 이 이 값을 초과하면 대기로
+	// 해결 불가.
 	if _, ok := ctx.Deadline(); !ok {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, debugPodReadyTimeout)
@@ -244,7 +244,7 @@ func (c *realClient) waitDebugContainerRunning(ctx context.Context, ns, name str
 				if cs.State.Running != nil {
 					return nil
 				}
-				// ImagePullBackOff 처럼 기다려도 낫지 않는 상태는 그대로 알린다.
+				// ImagePullBackOff 등 대기로 해소되지 않는 상태는 즉시 통보.
 				if w := cs.State.Waiting; w != nil {
 					lastReason = w.Reason
 					if w.Reason == "ImagePullBackOff" || w.Reason == "ErrImagePull" ||

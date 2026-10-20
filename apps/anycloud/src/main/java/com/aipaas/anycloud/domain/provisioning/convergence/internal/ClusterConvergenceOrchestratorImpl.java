@@ -45,7 +45,7 @@ public class ClusterConvergenceOrchestratorImpl implements ClusterConvergenceOrc
             try {
                 driveOne(vmCluster);
             } catch (Exception e) {
-                // 한 클러스터의 실패가 나머지 조정을 멈추면 안 된다.
+                // 클러스터 하나의 실패로 나머지 조정 중단 금지.
                 log.warn("컴포넌트 조정 실패 cluster={}: {}", vmCluster.getClusterName(), e.toString());
             }
         }
@@ -73,7 +73,7 @@ public class ClusterConvergenceOrchestratorImpl implements ClusterConvergenceOrc
         if (next == current) {
             return;
         }
-        // raw setter 가 아니라 transitionTo: 상태 이력과 메트릭이 여기에 달려 있다.
+        // raw setter 대신 transitionTo 사용. 상태 이력과 메트릭이 이 경로에 연결.
         vmCluster.transitionTo(next, "convergence.reconcile");
         stampReadyAt(vmCluster, next);
         if (next == VmClusterStatus.READY) {
@@ -84,7 +84,7 @@ public class ClusterConvergenceOrchestratorImpl implements ClusterConvergenceOrc
         log.info("컴포넌트 조정으로 상태 변경 cluster={} {} -> {}", vmCluster.getClusterName(), current, next);
     }
 
-    /** 실패해도 상태 전이는 유효하다: 기록 정리가 조정을 막으면 안 된다. */
+    /** 실패 시에도 상태 전이는 유효. 기록 정리 실패로 조정 중단 금지. */
     private void closeActiveOperation(String clusterName) {
         try {
             operationService
@@ -96,11 +96,11 @@ public class ClusterConvergenceOrchestratorImpl implements ClusterConvergenceOrc
     }
 
     /**
-     * READY 최초 도달 시각을 남긴다.
+     * READY 최초 도달 시각 기록.
      *
-     * <p>VERIFY 안에서 수렴하면 markReady 가 채우지만, DEGRADED 를 거쳐 조정 루프가 올리는
-     * 경로는 채우지 않아 화면의 단계별 소요 시간에서 "완료" 구간이 비어 보였다. 오갈 때마다
-     * 갱신하면 최초 도달 시각을 잃으므로 비어 있을 때만 쓴다.
+     * <p>VERIFY 내부 수렴은 markReady 가 기록하나 DEGRADED 경유로 조정 루프가 전이하는 경로는
+     * 미기록이라 단계별 소요 시간의 완료 구간이 공백. 전이마다 갱신하면 최초 도달 시각이
+     * 유실되므로 값이 비어 있을 때만 기록.
      */
     static void stampReadyAt(VmClusterEntity vmCluster, VmClusterStatus next) {
         if (next == VmClusterStatus.READY && vmCluster.getReadyAt() == null) {
@@ -108,7 +108,7 @@ public class ClusterConvergenceOrchestratorImpl implements ClusterConvergenceOrc
         }
     }
 
-    /** {@code observe} 가 영속화한 상태를 읽는다: 다시 probe 하면 클러스터마다 SSH 가 두 번 열린다. */
+    /** {@code observe} 가 영속화한 상태 조회. 재probe 시 클러스터당 SSH 2회 연결. */
     private void repairUnsatisfied(VmClusterEntity vmCluster, List<ConvergenceSignal> signals) {
         if (evaluate(signals) != ConvergenceVerdict.UNSATISFIED) {
             return;
@@ -122,7 +122,7 @@ public class ClusterConvergenceOrchestratorImpl implements ClusterConvergenceOrc
         }
     }
 
-    /** 구성 요소 관측과 요청 addon 상태를 한 묶음으로. 어느 쪽 실패든 같은 무게로 본다. */
+    /** 구성 요소 관측과 요청 addon 상태를 단일 단위로 처리. 양쪽 실패를 동등하게 판정. */
     static List<ConvergenceSignal> collectSignals(
             ClusterComponentObserver observer, RequestedAddonInspector inspector, VmClusterEntity vmCluster) {
         List<ConvergenceSignal> signals = new java.util.ArrayList<>(observer.observe(vmCluster).stream()
@@ -132,7 +132,7 @@ public class ClusterConvergenceOrchestratorImpl implements ClusterConvergenceOrc
         return signals;
     }
 
-    /** 하나라도 UNSATISFIED 면 전체 판정이 UNSATISFIED 다. INCONCLUSIVE 는 그보다 뒤에 본다. */
+    /** UNSATISFIED 존재 시 전체 판정 UNSATISFIED. INCONCLUSIVE 는 후순위 판정. */
     static ConvergenceVerdict evaluate(List<ConvergenceSignal> signals) {
         boolean anyUnknown = false;
         for (ConvergenceSignal signal : signals) {

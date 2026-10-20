@@ -7,13 +7,13 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
- * RabbitMQ, webhook, SSE 같은 외부 발행을 트랜잭션 commit 이후로 미룹니다. rollback 되면 발행도
- * 일어나지 않아 DB 와 메시지가 어긋나지 않습니다.
+ * RabbitMQ, webhook, SSE 등 외부 발행을 트랜잭션 commit 이후로 지연. rollback 시 발행도
+ * 미실행이라 DB 와 메시지 상태 일치.
  *
- * <p>트랜잭션이 없으면 그 자리에서 발행합니다.
+ * <p>트랜잭션 부재 시 즉시 발행.
  *
- * <p>commit 과 발행 사이에 프로세스가 죽으면 메시지는 유실됩니다. 그것까지 막으려면 DB outbox
- * 테이블이 필요합니다.
+ * <p>commit 과 발행 사이 프로세스 종료 시 메시지 유실. 이 구간까지 보장하려면 DB outbox
+ * 테이블 필요.
  */
 @Slf4j
 @Component
@@ -27,7 +27,7 @@ public class AfterCommitPublisher {
      */
     public void publish(String description, Runnable action) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            // @Async 나 scheduled 처럼 트랜잭션이 없는 호출. 미룰 commit 이 없으니 바로 발행합니다.
+            // @Async, scheduled 등 트랜잭션 없는 호출. 대기할 commit 이 없어 즉시 발행.
             runSafely(description, action);
             return;
         }
@@ -55,8 +55,7 @@ public class AfterCommitPublisher {
         try {
             action.run();
         } catch (Exception e) {
-            // 비즈니스 흐름은 이미 commit 됐으므로 여기서 던지면 되돌릴 게 없습니다.
-            // 알림은 로그로 넘깁니다.
+            // 비즈니스 흐름은 commit 완료 상태라 예외 전파해도 롤백 대상 없음. 알림은 로그로 처리.
             log.warn("afterCommit publish failed ({}): {}", description, e.toString(), e);
         }
     }

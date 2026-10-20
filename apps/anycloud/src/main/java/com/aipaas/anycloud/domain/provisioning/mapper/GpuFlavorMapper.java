@@ -4,11 +4,11 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * {@code hasGpuNodes=true} 인데 instance type 을 주지 않으면 provider 별 기본 GPU 인스턴스를 넣습니다.
- * 운영자가 지정한 값이 있으면 건드리지 않습니다.
+ * {@code hasGpuNodes=true} 이고 instance type 미지정이면 provider 별 기본 GPU 인스턴스 주입.
+ * 운영자 지정 값이 있으면 유지.
  *
- * <p>매핑이 없는 provider 는 경고만 남기고 그대로 둡니다. 임의로 고르면 비싼 인스턴스가 조용히
- * 뜰 수 있어, 그때는 Pulumi 검증에서 걸리거나 운영자가 직접 지정하게 둡니다.
+ * <p>매핑이 없는 provider 는 경고만 기록하고 값 유지. 임의 선택 시 고비용 인스턴스가 무음으로
+ * 생성될 수 있어 Pulumi 검증 또는 운영자 직접 지정에 위임.
  */
 @Slf4j
 public final class GpuFlavorMapper {
@@ -21,7 +21,7 @@ public final class GpuFlavorMapper {
 
     public static final String CONFIG_KEY_WORKER_ACCELERATOR_COUNT = "workerAcceleratorCount";
 
-    /** NVIDIA GPU operator 요청 flag. GPU instance 만 띄우면 driver 가 없다. */
+    /** NVIDIA GPU operator 요청 flag. GPU instance 만 생성하면 driver 부재. */
     public static final String CONFIG_KEY_ENABLE_GPU_OPERATOR = "enableGpuOperator";
 
     private GpuFlavorMapper() {}
@@ -52,10 +52,10 @@ public final class GpuFlavorMapper {
                     CONFIG_KEY_WORKER_ACCELERATOR_COUNT, "1"));
 
     /**
-     * GPU alias 를 CSP 별 실제 instance type 으로 옮깁니다. 운영자가
-     * {@code workerInstanceType=gpu-small} 처럼 적으면 CSP 별 이름을 몰라도 됩니다.
+     * GPU alias 를 CSP 별 실제 instance type 으로 변환. {@code workerInstanceType=gpu-small} 형태
+     * 입력 시 CSP 별 이름 불필요.
      *
-     * <p>지원하지 않는 조합은 null 입니다. 그때는 instance type 을 직접 적어야 합니다.
+     * <p>미지원 조합은 null. 이 경우 instance type 직접 지정 필요.
      *
      * <pre>
      *               gpu-small (T4/L4: inference) | gpu-medium (A10/V100: mid) | gpu-large (A100: training) | gpu-h100 (H100: large training)
@@ -131,25 +131,24 @@ public final class GpuFlavorMapper {
      * hasGpuNodes=true 일 때 호출. provided config 에 workerInstanceType 이 없으면 provider default
      * 주입. 이미 있으면 변경 없음 (운영자 명시 우선).
      *
+     * <p>요청 키에는 {@code anycloud-k8s:} 접두 포함. 접두 없이 읽으면 운영자 명시 값을 인식하지
+     * 못해 덮어쓰고, 접두 없이 쓰면 동일 설정이 두 키로 분리.
+     *
      * @param provider CSP provider (aws/gcp/oci/alibaba 등: 소문자 권장이지만 대소문자 무관 처리)
      * @param config   Pulumi config (mutable copy 전달 권장. 본 메서드가 직접 mutate)
      * @return mutate 발생 여부. true 면 caller 가 log/audit.
-     */
-    /**
-     * 요청은 {@code anycloud-k8s:} 접두를 붙여 온다. 접두 없이 읽으면 운영자가 명시한 값을 못 보고
-     * 덮어쓰고, 접두 없이 쓰면 같은 설정이 두 키로 갈린다.
      */
     public static String nsKey(String key) {
         return "anycloud-k8s:" + key;
     }
 
-    /** 접두가 있든 없든 같은 값으로 읽는다. */
+    /** 접두 유무와 무관하게 동일 값으로 조회. */
     private static String read(Map<String, String> config, String key) {
         String value = config.get(nsKey(key));
         return value != null ? value : config.get(key);
     }
 
-    /** 읽을 때 찾은 자리에 쓴다. 접두 없는 값이 이미 있으면 그 자리를 유지한다. */
+    /** 조회 시 발견한 키에 기록. 접두 없는 키가 이미 있으면 해당 키 유지. */
     private static void write(Map<String, String> config, String key, String value) {
         if (config.containsKey(key)) {
             config.put(key, value);

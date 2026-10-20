@@ -25,7 +25,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 /**
- * VM 기반 클러스터 생성 이력과 상태를 추적하는 엔티티입니다.
+ * VM 기반 클러스터 생성 이력과 상태 추적 엔티티.
  */
 @Entity
 @Getter
@@ -86,18 +86,17 @@ public class VmClusterEntity implements Serializable {
     @Column(name = "active_request_key", length = 45, unique = true)
     private String activeRequestKey;
 
-    /** 살아있는 자격증명을 가리키는 참조. 자격증명이 지워지면 아무데도 닿지 않는 값이 된다. */
+    /** 유효한 자격증명 참조. 자격증명 삭제 시 참조 대상 소멸. */
     @Size(max = 36)
     @Column(name = "credential_id", length = 36)
     private String credentialId;
 
     /*
-     * 요청 당시 이름의 스냅샷. credential_id 와 같은 값을 두 번 저장한 것이 아니다.
-     * 하나는 참조고 이것은 기록이다.
+     * 요청 시점 이름의 스냅샷. credential_id 의 중복 저장이 아니라 참조와 기록의 분리.
      *
-     * 자격증명 이름이 바뀌어도 따라가지 않는다. 따라가면 "그때 무엇으로 만들었나" 를 잃는다.
-     * DELETED 후 request_config 는 비밀 때문에 통째로 지우므로, 삭제된 클러스터가 무엇으로
-     * 만들어졌는지는 이 컬럼에만 남는다.
+     * 자격증명 이름 변경 시 미추종. 추종하면 생성 시점 자격증명 정보 유실. DELETED 후
+     * request_config 는 비밀값 때문에 전체 삭제하므로, 삭제된 클러스터의 생성 자격증명은
+     * 이 컬럼에만 잔존.
      */
     @Size(max = 100)
     @Column(name = "credential_name", length = 100)
@@ -156,9 +155,9 @@ public class VmClusterEntity implements Serializable {
     private String lastProcessedWorkflowMessageId;
 
     /**
-     * 지금 이 클러스터를 처리 중인 워크플로 메시지. 처리 시작 시점에 조건부 UPDATE 로 잡고
-     * 끝나면 비운다. {@link #lastProcessedWorkflowMessageId} 는 처리가 끝난 뒤에야 기록돼
-     * 처리 도중 도착한 재전달을 막지 못한다.
+     * 해당 클러스터를 처리 중인 워크플로 메시지. 처리 시작 시점에 조건부 UPDATE 로 획득하고
+     * 종료 시 해제. {@link #lastProcessedWorkflowMessageId} 는 처리 완료 후 기록이라 처리
+     * 도중 도착한 재전달 차단 불가.
      */
     @Column(name = "processing_message_id", length = 36)
     private String processingMessageId;

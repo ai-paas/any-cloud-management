@@ -44,16 +44,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * agent policy snapshot 을 조회하고 바꾸는 admin endpoint 입니다.
+ * agent policy snapshot 조회, 변경 admin endpoint.
  *
- * <p>backend 는 정책을 DB 에 두지 않습니다. cluster 안의 ConfigMap
- * {@code aipaas-agent-allowlist} 가 단일 출처이고, 변경은 agent 에 push 해 ConfigMap 을 갱신하면
- * agent 의 watch 가 알아서 reload 합니다. DB 에는 audit 만 남습니다.
+ * <p>backend 는 정책을 DB 에 저장하지 않음. cluster 내 ConfigMap {@code aipaas-agent-allowlist}
+ * 가 단일 출처이며, 변경은 agent 에 push 해 ConfigMap 을 갱신하면 agent 의 watch 가 reload.
+ * DB 에는 audit 만 기록.
  *
- * <p>chart 의 ConfigMap 에는 {@code helm.sh/resource-policy: keep} 이 붙어 있습니다. 없으면 helm
- * upgrade 가 여기서 바꾼 정책을 덮어씁니다.
+ * <p>chart 의 ConfigMap 에는 {@code helm.sh/resource-policy: keep} 적용. 미적용 시 helm upgrade
+ * 가 변경된 정책을 덮어씀.
  *
- * <p>PUT 은 전체 교체라 필수 목록 셋이 다 있어야 하고, PATCH 는 null 필드를 현재 값으로 둡니다.
+ * <p>PUT 은 전체 교체이므로 필수 목록 3종 모두 필요. PATCH 는 null 필드를 현재 값으로 유지.
  */
 @Slf4j
 @RestController
@@ -311,8 +311,8 @@ public class AdminAgentPolicyController {
         PolicyDiff diff = diffCalculator.computeDiff(before, dryRun);
 
         /*
-         * 적용됐는지 되읽어 확인합니다. agent 가 OK 를 주면서 ConfigMap 을 바꾸지 않는 경우가
-         * 있어, 그때도 성공만 돌려주면 운영자는 정책이 바뀐 줄 압니다.
+         * 적용 여부 재조회 확인. agent 가 OK 응답 후에도 ConfigMap 을 변경하지 않는 경우가 있어,
+         * 성공만 반환하면 운영자가 정책 변경으로 오인.
          */
         String notApplied = verifyApplied(clusterName, req.allowedCommands());
 
@@ -396,10 +396,10 @@ public class AdminAgentPolicyController {
     }
 
     /**
-     * 되읽어서 요청한 명령이 실제로 들어갔는지 봅니다.
+     * 재조회로 요청 명령의 반영 여부 확인.
      *
-     * <p>조회 자체가 실패하면 통과시킵니다. 적용은 됐는데 조회만 막힌 상황을 실패로 만들지 않기
-     * 위해서입니다. 돌려주는 값은 사람이 읽을 사유이고 이상이 없으면 {@code null} 입니다.
+     * <p>조회 실패 시 통과 처리. 적용 성공 후 조회만 차단된 상황을 실패로 판정하지 않기 위함.
+     * 반환값은 사용자 표시용 사유이며 이상이 없으면 {@code null}.
      */
     private String verifyApplied(String clusterName, java.util.List<String> requestedCommands) {
         if (requestedCommands == null || requestedCommands.isEmpty()) {

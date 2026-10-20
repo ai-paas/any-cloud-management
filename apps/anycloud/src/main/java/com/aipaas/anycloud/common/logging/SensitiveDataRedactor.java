@@ -4,14 +4,13 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * CSP 자격증명과 IAM 식별자가 로그나 응답 본문으로 새지 않게 가립니다.
+ * CSP 자격증명과 IAM 식별자의 로그, 응답 본문 노출 차단.
  *
- * <p>마스킹 대상은 {@code docs/operations/credential-failure-policy.md} § 3 을 따릅니다. 패턴을
- * 추가하려면 정책 문서를 먼저 고치세요.
+ * <p>마스킹 대상은 {@code docs/operations/credential-failure-policy.md} § 3 기준. 패턴 추가 시
+ * 정책 문서 선행 수정.
  *
- * <p>마지막 4자는 남깁니다. 운영자가 어느 자격증명인지는 알아야 하기 때문입니다. 형식이 뚜렷한
- * 값만 가리므로 {@code project-name-12345} 같은 일반 식별자는 그대로 둡니다. 이미 가려진
- * 문자열을 다시 넣어도 결과가 같아야 합니다.
+ * <p>마지막 4자 보존. 운영자의 자격증명 식별에 필요. 형식이 명확한 값만 마스킹하므로
+ * {@code project-name-12345} 같은 일반 식별자는 유지. 마스킹된 문자열 재입력 시 결과 동일.
  */
 public final class SensitiveDataRedactor {
 
@@ -29,9 +28,9 @@ public final class SensitiveDataRedactor {
 
     private static final List<RedactRule> RULES = List.of(
             new RedactRule(Pattern.compile("(?i)\\b(?:AKIA|ASIA)[0-9A-Z]{16}\\b"), "AWS_KEY"),
-            // service, region 을 콜론까지 먹는 문자 클래스로 두면 ARN 이 아닌 긴 입력에서 역추적이
-            // 제곱으로 늡니다 (polynomial ReDoS). 두 칸을 콜론으로 끊어 분기를 없앱니다. region 은
-            // IAM ARN 처럼 비어 있을 수 있습니다.
+            // service, region 을 콜론까지 포함하는 문자 클래스로 두면 ARN 이 아닌 긴 입력에서
+            // 역추적 비용이 제곱 증가 (polynomial ReDoS). 두 구간을 콜론으로 분리해 분기 제거.
+            // region 은 IAM ARN 처럼 비어 있을 수 있음.
             new RedactRule(Pattern.compile("\\barn:aws:[^\\s\"':]+:[^\\s\"':]*:\\d{12}:[^\\s\"']+"), "AWS_ARN"),
             new RedactRule(Pattern.compile("(?<![0-9])\\d{12}(?![0-9])"), "AWS_ACCT"),
             new RedactRule(
@@ -39,18 +38,18 @@ public final class SensitiveDataRedactor {
             new RedactRule(Pattern.compile("\\b(?:[0-9a-f]{2}:){15}[0-9a-f]{2}\\b"), "OCI_FP"),
             new RedactRule(Pattern.compile("(?i)\\bocid1\\.[a-z]+\\.[a-z0-9._-]+"), "OCID"),
             new RedactRule(
-                    // BEGIN 과 PRIVATE KEY 사이는 " RSA ", " OPENSSH " 처럼 짧습니다. [^-]+ 로 열어
-                    // 두면 END 를 못 찾는 긴 입력에서 역추적이 제곱으로 늡니다. 본문도 같은 이유로
-                    // 상한을 둡니다. RSA 4096 PEM 이 3.2KB 라 16KB 면 실제 키는 모두 들어옵니다.
+                    // BEGIN 과 PRIVATE KEY 사이는 " RSA ", " OPENSSH " 수준으로 짧음. [^-]+ 로
+                    // 열어 두면 END 미발견 긴 입력에서 역추적 비용이 제곱 증가. 본문도 동일
+                    // 이유로 상한 설정. RSA 4096 PEM 이 3.2KB 이므로 16KB 면 실제 키 전체 수용.
                     Pattern.compile(
                             "-----BEGIN[A-Z ]{0,32}PRIVATE KEY-----[\\s\\S]{0,16384}?-----END[A-Z ]{0,32}PRIVATE KEY-----"),
                     "PRIVATE_KEY"));
 
     /**
-     * JSON 키 이름으로 값을 가립니다.
+     * JSON 키 이름 기준 값 마스킹.
      *
-     * <p>{@link #RULES} 는 값의 생김새만 봅니다. AWS 시크릿 키처럼 정해진 형식이 없는 값은 그대로
-     * 새어 나갑니다. 키 이름은 남겨 무엇이 가려졌는지 알 수 있게 합니다.
+     * <p>{@link #RULES} 는 값의 형식만 판정. AWS 시크릿 키처럼 고정 형식이 없는 값은 미차단.
+     * 키 이름은 보존해 마스킹 대상 식별 가능.
      */
     private static final Pattern SECRET_FIELD = Pattern.compile(
             "(?i)(\"[^\"]*(?:secret|password|passwd|pwd|token|private_key|privatekey|api_key|apikey)[^\"]*\"\\s*:\\s*)"

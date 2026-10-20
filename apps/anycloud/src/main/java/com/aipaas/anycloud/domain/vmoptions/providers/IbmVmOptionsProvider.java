@@ -48,12 +48,12 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
 
     private static final String API_KEY_ENV = "IBMCLOUD_API_KEY";
 
-    /** VPC API 는 날짜로 버전을 고정한다. 올리면 응답 필드가 바뀔 수 있어 코드와 함께 검토한다. */
+    /** VPC API 버전은 날짜로 고정. 상향 시 응답 필드 변경 가능하므로 코드와 함께 검토 필요. */
     private static final String API_VERSION = "2024-10-01";
 
     private static final String GENERATION = "2";
 
-    /** 리전 목록은 아무 리전 host 에서나 같은 답이 온다. 목록을 받기 전이라 하나를 고정해 쓴다. */
+    /** 리전 목록은 모든 리전 host 에서 동일 응답. 목록 조회 전이라 하나를 고정 사용. */
     private static final String DEFAULT_REGION = "jp-tok";
 
     /** 이미지가 1,200건을 넘어 전부 받으면 화면이 느려진다. 한 페이지 크기이자 페이징 상한. */
@@ -168,8 +168,8 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
                     }
                 }
             }
-            // next.href 는 응답 본문에서 온다. 이 URL 로 다시 요청할 때 IAM 토큰을 Bearer 로
-            // 붙이므로, host 를 확인하지 않으면 응답을 조작할 수 있는 상대에게 토큰을 넘긴다.
+            // next.href 는 응답 본문 유래. 이 URL 재요청 시 IAM 토큰을 Bearer 로 첨부하므로,
+            // host 미확인 시 응답 조작이 가능한 상대에게 토큰 전달.
             url = withVersion(
                     sameHostOrNull(body.next() == null ? null : body.next().href(), host));
         }
@@ -185,7 +185,7 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
     public List<String> listConfigOptions(String configKey, String region) {
         return switch (configKey) {
             case "providerSpec.zone" -> StringUtils.hasText(region) ? listZones(region) : List.of();
-                // 그룹 ID 는 콘솔을 열어 베껴 와야 하는 값이다. 계정에서 읽어 이름과 함께 준다.
+                // 그룹 ID 는 콘솔 확인이 필요한 값. 계정에서 조회해 이름과 함께 제공.
             case "providerSpec.resourceGroup" -> listResourceGroups().stream()
                     .map(com.aipaas.anycloud.domain.vmoptions.api.ConfigOption::value)
                     .toList();
@@ -209,7 +209,7 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
         return List.of();
     }
 
-    /** 리소스 그룹은 리전과 무관한 계정 단위 자원이라 VPC 가 아니라 resource controller 에 묻는다. */
+    /** 리소스 그룹은 리전 무관한 계정 단위 자원이라 VPC 대신 resource controller 에 조회. */
     private List<com.aipaas.anycloud.domain.vmoptions.api.ConfigOption> listResourceGroups() {
         String url = requireExpectedHost(
                 "https://" + RESOURCE_CONTROLLER_HOST + "/v2/resource_groups", RESOURCE_CONTROLLER_HOST);
@@ -333,8 +333,8 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * IBM 이 주는 {@code next.href} 에는 version 과 generation 이 빠져 있다. 그대로 다시 요청하면
-     * 400 이라 두 번째 페이지부터 조회가 끊긴다.
+     * IBM 이 반환하는 {@code next.href} 에는 version 과 generation 미포함. 그대로 재요청하면
+     * 400 응답이라 두 번째 페이지부터 조회 중단.
      */
     private String withVersion(String url) {
         if (!StringUtils.hasText(url) || url.contains("version=")) {
@@ -405,7 +405,7 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
             }
             return token;
         } catch (HttpClientErrorException e) {
-            // 응답 본문에는 키 일부가 그대로 담겨 오므로 상태 코드만 남긴다.
+            // 응답 본문에 키 일부가 포함되므로 상태 코드만 기록.
             throw new CustomException(
                     ErrorCode.RUNTIME_EXCEPTION,
                     "ibm",
