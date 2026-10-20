@@ -15,7 +15,6 @@ overkill.
 | **CacheConfig.helm.chartValues** | chart coord → values.yaml | 30m write | 1,000 (전 cache 합산) | TTL + LRU | Helm chart download 비용 절약 |
 | **CacheConfig.helm.chartReadme** | chart coord → README.md | 30m write | 1,000 (전 cache 합산) | TTL + LRU | Helm chart download 비용 절약 |
 | **BootstrapRateLimitFilter.counts** | client IP → 1분 누적 카운터 | 1m write | 10,000 | TTL + LRU | rate limit window — Caffeine 이 window 만료를 자동 처리 |
-| **AgentBootstrapKubeClient.cache** | cluster ID → KubernetesClient | 10m **access** | 50 | LRU + 미사용 idle | bootstrap-only K8s client — eviction 시 자동 close |
 | **CachedKindResolver.cache** | (cluster, GVK) → kind metadata | 30m write | 5,000 | TTL + LRU | K8s schema/CRD discovery 결과 — schema 거의 불변 |
 | **SimpleBindingFleetView.perCluster** | cluster → fleet view rows | 30s write (`fleetView.cacheTtl`) | 1,000 | TTL + LRU | RBAC fleet view — agent gRPC fan-out 대신 cache |
 | **AgentSessionRegistry.pendingByRequest** | request ID → PendingCommand | 5m write | 10,000 | TTL + LRU | in-flight gRPC command tracker — stuck agent OOM 방지 |
@@ -35,7 +34,7 @@ overkill.
 - **10,000**: hostile traffic 보호 (rate limit, in-flight). bounded scanner / stuck agent.
 
 ### Eviction 자원 release
-- `AgentBootstrapKubeClient` 의 K8s client 는 `RemovalListener` 가 `client.close()` 호출 — eviction 시 자동 정리. **다른 cache 의 value 가 close-able 자원이면 동일 패턴 필요**.
+cache 의 값이 닫아야 하는 자원이면 `RemovalListener` 에서 닫습니다. 지금은 해당하는 cache 가 없습니다.
 
 ## 3. recordStats + Micrometer
 

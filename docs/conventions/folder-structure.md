@@ -123,7 +123,6 @@ domain/cluster/
 ├── ClusterConnectivityService.java   # interface
 ├── ClusterFleetHealthService.java    # interface
 ├── NodeDebugPodService.java          # interface
-├── AgentBootstrapKubeClient.java     # interface
 ├── WebhookProperties.java            # 1개 properties — root 유지
 │
 ├── api/

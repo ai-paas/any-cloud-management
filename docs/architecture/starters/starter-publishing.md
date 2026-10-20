@@ -59,7 +59,7 @@ dependencies {
 | `cluster-agent` (선택)       | `ImpersonationContext` (default ThreadLocalImpersonationContext + WebMVC interceptor) |
 | `cluster-observability`     | `ClusterCatalog` (cluster 목록)                                          |
 | `cluster-backup`         | `BackupHistoryWriter` (default NoOp — production 권장 X)                |
-| `cluster-provisioning` (scaffold) | `ClusterProvisioningSink`, `PulumiCredentialProvider` (service migration 완료 시 활성화) |
+| `cluster-provisioning` | 호스트가 구현할 SPI 없음. `ProvisioningService` 를 주입해 쓰면 됩니다 |
 
 자세한 사항은 각 starter 의 design doc 을 참조합니다.
 - `docs/architecture/cluster-agent.md`

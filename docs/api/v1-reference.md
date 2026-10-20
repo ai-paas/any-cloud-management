@@ -255,7 +255,6 @@ GET 은 audit 대상이 아닙니다.
 `<controller-domain>.<methodName>` 형식. controller class 의 `Controller` / `V1` suffix 제거.
 - `ClusterController` → `cluster.createVmCluster`
 - `ClusterKubernetesController` → `clusterKubernetes.delete`
-- `ClusterKubeconfigImportController` → `clusterKubeconfigImport.importKubeconfig`
 - `OperationController` → `operation.cancel`
 
 **principal**:

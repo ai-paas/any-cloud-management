@@ -8,20 +8,20 @@
 
 ## 주요 특징
 
-- **멀티 CSP 8종 지원**: AWS, GCP, Azure, Alibaba, OCI, DigitalOcean, OpenStack, Proxmox
-- **VM → kubeadm 자동화**: Pulumi(Go) 가 VM/네트워크/보안/IAM 생성 → Bootstrap Worker 가 kubeadm init/join, CNI/Ingress/GPU Operator 설치 → 등록까지 한 번에
+- **멀티 CSP 7종 지원**: AWS, GCP, Alibaba, OCI, OpenStack, Proxmox, IBM
+- **VM → kubeadm 자동화**: Pulumi YAML 프로그램이 VM, 네트워크, 보안그룹, IAM 을 만들고 Bootstrap Worker 가 kubeadm init/join 과 CNI, Ingress, GPU Operator 설치까지 이어서 수행합니다
 - **RabbitMQ 단계형 워크플로우**: `provision → bootstrap → verify → ready` (DLQ 포함), at-least-once 멱등성 가드 적용
 - **Self-hosted 친화**: state backend RustFS(S3 호환), secrets OpenBao(Vault 호환). 외부 SaaS 의존 없음
-- **운영용 기능**: Flyway 자동 마이그레이션, KubernetesClient 캐싱 (401/403 invalidate+retry), 도메인별 비동기 풀, 토큰 기반 인증 toggle
+- **운영용 기능**: Flyway 자동 마이그레이션, 도메인별 비동기 풀, 토큰 기반 인증 toggle
 - **관측성**: 모든 워크플로우 메시지의 PROCESSED / SKIPPED_* / FAILED 결과를 `workflow_message_log` 에 영속화
 
 ## 빠른 시작 (로컬)
 
 ```bash
-# 0. (한 번만) git pre-commit hook 등록 — Spotless / Buf lint 자동 검증
+# 0. (한 번만) git pre-commit hook 등록. Spotless, Buf lint 를 자동 검증합니다
 make hooks-install
 
-# 1. 첫 setup — .env 자동 생성 + random secret 주입 + dev stack 기동
+# 1. 첫 setup. .env 생성, random secret 주입, dev stack 기동까지 한 번에
 make bootstrap-dev          # ~3-5 min (cold), idempotent
 # 또는 수동:
 #   cp .env.sample .env  &&  편집
@@ -35,7 +35,7 @@ docker compose -f docker-compose.dev.yml exec openbao bao write -f transit/keys/
 # 3. Swagger UI
 open http://localhost:8888/docs
 
-# 4. (선택) PoC 테스트 콘솔 — 4 탭 단일 페이지 (운영 포털은 별도)
+# 4. (선택) PoC 테스트 콘솔. 4탭 단일 페이지이고 운영 포털은 따로 있습니다
 open http://localhost:8888/test-console/index.html
 ```
 
@@ -46,51 +46,29 @@ OpenBao 모드로 전환하려면 `PULUMI_SECRETS_PROVIDER=hashivault://openbao:
 
 ## 빌드 / 검증 방법
 
-| 명령 | 설명 | 소요 (cold / incremental) |
-|---|---|---|
-| `make backend-build` | Spring Boot 컴파일 | ~2 min / ~20 s |
-| `make backend-test` | 전체 테스트 (unit + integration) | ~3-5 min / ~40 s |
-| `make test-unit` | 단위 테스트만 (Testcontainers 미가동) | ~30 s |
-| `make test-integration` | 통합 테스트만 (mariadb + rabbitmq) | ~3 min |
-| `make test-coverage` | jacoco HTML 리포트 생성 + 자동 open | ~5 min |
-| `make format` | `spotlessApply` — Palantir Java Format | ~5 s |
-| `make format-check` | `spotlessCheck` — CI 동일 | ~5 s |
-| `make proto-lint` | `buf lint` | ~2 s |
-| `make all-build` | backend + pulumi + agent | ~5 min |
+| 명령 | 설명 |
+|---|---|
+| `make backend-build` | Spring Boot 컴파일 |
+| `make backend-test` | 전체 테스트 (unit + integration) |
+| `make test-unit` | 단위 테스트만. Testcontainers 를 띄우지 않습니다 |
+| `make test-integration` | 통합 테스트만. mariadb, rabbitmq 가 필요합니다 |
+| `make test-coverage` | jacoco HTML 리포트 생성 후 자동으로 엽니다 |
+| `make format` | `spotlessApply` (Palantir Java Format) |
+| `make format-check` | `spotlessCheck`. CI 와 같은 검사입니다 |
+| `make proto-lint` | `buf lint` |
+| `make all-build` | backend, pulumi, agent 전체 |
 
-## API 목록
+## API
 
-모든 endpoint 는 `/v1/` prefix. 전체 표는 [`docs/api/v1-reference.md`](./docs/api/v1-reference.md) 참고.
+모든 endpoint 는 `/v1/` prefix 입니다. 전체 목록은 [`docs/api/v1-reference.md`](./docs/api/v1-reference.md) 에 있고, 실행 중인 서버에서는 `/docs` (Swagger UI) 로 볼 수 있습니다.
 
-| 도메인 | 경로 | 비고 |
-|---|---|---|
-| Providers (카탈로그) | `GET /v1/providers/{provider}/{regions, specs, images}` | 8 CSP 메타 실시간 조회 + Caffeine 30m cache |
-| CSP Credential | `*/v1/credentials` | MANUAL(AES-GCM 암호화) / ENV (env 참조) |
-| Cluster Preflight | `POST /v1/cluster-validations` | 생성 전 config/credential/name 검증 |
-| Cluster (통합) | `*/v1/clusters` | VM 생성 + 외부 등록 (body source 분기), 202 LRO |
-| Kubeconfig Import | `POST /v1/clusters:importKubeconfig?validate=&strict=` | 파일 업로드 → 자동 파싱 → 등록 + 연결성 검증 |
-| K8s Resources | `*/v1/clusters/{c}/namespaces/{ns}/{kind}/{name}` | 통합 controller — cluster-scoped 도 동일 path 패턴 |
-| Helm Releases | `*/v1/clusters/{c}/helm-releases/{r}` | install / upgrade / rollback / uninstall (LRO) |
-| Helm Repos & Charts | `*/v1/helm-repos/{repoName}/charts/{chartName}` | repo CRUD + chart catalog |
-| Operations (LRO) | `*/v1/operations/{operationId}` + `/events` (SSE) | 모든 비동기 작업의 상태를 여기서 확인 |
-| Audit Logs | `GET /v1/audit-logs` | 자동 기록된 mutation 감사 로그 |
-| Workflow (admin) | `GET /v1/workflow/queues` | RabbitMQ queue + DLQ 메시지 검색 |
+응답 envelope 는 성공이 `{success, status, message, data, meta?, links?}`, 에러가 `{code, status, message, errors[]}` 입니다. 비동기 작업은 202 와 함께 Operation 자원을 돌려주고 `Location` 헤더에 `/v1/operations/{id}` 가 담깁니다.
 
-응답 envelope: 성공은 `{success, status, message, data, meta?, links?}`, 에러는 `{code, status, message, errors[]}`.
+### 운영 토글
 
-### 운영 토글 (push 후 환경별 override)
+환경별로 덮어쓰는 property 와 Caffeine cache, ShedLock 표는 [`v1-reference.md`](./docs/api/v1-reference.md#운영-properties) 에 있습니다.
 
-| Property | Default | 효과 |
-|---|---|---|
-| `anycloud.audit.enabled` | true | M5: mutation 자동 audit log |
-| `anycloud.idempotency.enabled` | true | M5: 24h Idempotency-Key cache |
-| `anycloud.workflow.dlq-listener.enabled` | true | M8: DLQ 자동 consume + alert metric |
-| `anycloud.http.insecure-tls` | false | C1: DEV ONLY — TLS 검증 우회 |
-| `anycloud.helm.operation-timeout` | 5m | M7: helm install/upgrade/rollback timeout |
-| `anycloud.cors.allowed-origins` | _(empty)_ | H6: production 명시 권장 |
-| `csp-credential.encryption-key` | _(empty)_ | C4: MANUAL credential 사용 시 필수, fail-fast |
-
-전체 property + Caffeine cache + ShedLock 표는 [`v1-reference.md` § 운영 properties](./docs/api/v1-reference.md#운영-properties-wave-1-4-신규).
+`csp-credential.encryption-key` 는 MANUAL 자격증명을 쓸 때 반드시 채워야 합니다. 비어 있으면 부팅이 실패합니다.
 
 ## 문서
 
@@ -104,21 +82,35 @@ OpenBao 모드로 전환하려면 `PULUMI_SECRETS_PROVIDER=hashivault://openbao:
 | [`docs/operations/`](./docs/operations/) | Quickstart, Day-2 운영, monitoring, E2E 체크리스트 |
 | [`docs/runbooks/`](./docs/runbooks/) | 트러블슈팅 / 운영 절차 (cluster-agent 6종) |
 
+## 릴리스
+
+`v*.*.*` 태그를 푸시하면 GitHub Actions 가 아래를 발행합니다.
+
+| 워크플로 | 산출물 |
+|---|---|
+| Publish Backend Image | `ghcr.io/ai-paas/anycloud-backend` (amd64, arm64) |
+| Publish Agent Images | cluster-agent, backup-agent |
+| Publish Ops Shell Image | 운영용 디버그 셸 |
+| Publish Starter Jars | starter 3종을 GHCR Maven 으로 |
+| Publish OpenAPI Spec | `openapi/{tag}/openapi.json` 을 gh-pages 로 |
+
+운영 배포는 `docker-compose.yml` 이 그 이미지를 받아 씁니다. `ANYCLOUD_BACKEND_IMAGE_TAG` 를 비우면 `latest` 입니다.
+
+```bash
+make prod-up
+```
+
 ## 구성
 
 | 디렉터리 / 파일 | 설명 |
 |---|---|
 | `apps/anycloud/` | Spring Boot 백엔드 (Java 21) |
 | `apps/agent/` | Cluster Agent (Go, in-cluster) |
-| `libs/cluster-agent-spring-boot-starter/` | **Layer 1** — gRPC reverse-tunnel, 인증, PodExec WebSocket |
-| `libs/cluster-agent-features-spring-boot-starter/` | **Layer 2 통합** — RBAC + Backup + Observability sub-feature |
-| `libs/cluster-provisioning-spring-boot-starter/` | 별도 — Pulumi **Java SDK** 기반 multi-CSP VM 인프라 orchestration. provider 별 `*Provisioner` |
+| `libs/cluster-agent-spring-boot-starter/` | **Layer 1**: gRPC reverse-tunnel, 인증, PodExec WebSocket |
+| `libs/cluster-agent-features-spring-boot-starter/` | **Layer 2**: RBAC, Backup, Observability 를 한 artifact 로 묶음 |
+| `libs/cluster-provisioning-spring-boot-starter/` | Pulumi 기반 multi-CSP VM 인프라 orchestration. provider 별 `*YamlEmitter` 가 Pulumi YAML 프로그램을 만듭니다 |
 | `infra/helm/` | Helm 차트, binary 번들 |
-| `infra/manifests/` | K8s manifest 예시 (gpu-observability, postgresql, kured) |
-| `infra/docker/` | Dockerfile entrypoints, 빌드 보조 자산 |
 | `libs/cluster-agent-spring-boot-starter/src/main/proto/` | 공유 protobuf 스키마 (Java + Go generate). 생성물은 gitignore |
 | `docker-compose.dev.yml` | MariaDB + RabbitMQ + ChartMuseum + RustFS + OpenBao + backend + worker 통합 dev compose (`make dev-up`) |
-| `docker-compose.yml` | GHCR image pull 만 — production-like (`make prod-up`) |
+| `docker-compose.yml` | GHCR 이미지만 받아 쓰는 운영 구성 (`make prod-up`) |
 | `Dockerfile.pulumi` | Pulumi CLI 포함 backend 이미지 |
-| `.bruno/` | API 통합 테스트 컬렉션 (Bruno) |
-| `.github/workflows/` | GitHub Actions CI |
