@@ -239,6 +239,6 @@ KindResolver 는 metadata (plural / namespaced) 만 결정합니다. 실제 LIST
 - `apps/anycloud/src/main/java/com/aipaas/anycloud/domain/kube/model/K8sKinds.java` (fallback)
 - `libs/cluster-agent-spring-boot-starter/src/main/java/io/aipaas/cluster/agent/runtime/KubeResourceService.java`
 - `libs/cluster-agent-spring-boot-starter/src/main/java/io/aipaas/cluster/agent/runtime/ResolvedResource.java`
-- `.bruno/Admin/6. Kind Cache Flush (single cluster).bru`
-- `.bruno/Admin/7. Kind Cache Flush (all clusters).bru`
+- `.bruno/Admin/06. Kind Cache Flush (single cluster).bru`
+- `.bruno/Admin/07. Kind Cache Flush (all clusters).bru`
 - `apps/anycloud/src/test/java/com/aipaas/anycloud/domain/kube/internal/CachedKindResolverTest.java`

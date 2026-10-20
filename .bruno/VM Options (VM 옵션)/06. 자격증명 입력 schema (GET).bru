@@ -1,0 +1,26 @@
+meta {
+  name: 06. 자격증명 입력 schema (GET)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/v1/providers/{{vm_options_provider}}/credential-schema
+  body: none
+  auth: none
+}
+
+docs {
+  자격증명 등록 폼이 그릴 필드 목록입니다. CSP 마다 요구하는 키가 달라 화면을 하드코딩하지 않고
+  이 응답으로 그립니다. group 이 같은 필드는 하나만 채우면 됩니다.
+}
+
+tests {
+  test("200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("필드 목록이 비어 있지 않다", function() {
+    expect(res.getBody().data.fields).to.be.an("array").that.is.not.empty;
+  });
+}

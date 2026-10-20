@@ -21,7 +21,7 @@ bru run "Helm Repository (헬름 저장소)" --env local
 bru run "Chart" --env local
 
 # 4. 단일 요청
-bru run "Cluster (클러스터)/2. Cluster Create (클러스터 생성).bru" --env local
+bru run "Cluster (클러스터)/02. Cluster Create (클러스터 생성).bru" --env local
 ```
 
 `bru run "<folder>"` 는 폴더 안의 모든 `.bru` 를 `meta.seq` 순서대로 실행.
@@ -206,7 +206,7 @@ bru run "Chart" --env local --reporter-json results.json
 bru run "Chart" --env local --reporter-junit junit.xml
 
 # 단일 요청
-bru run "Cluster (클러스터)/2. Cluster Create (클러스터 생성).bru" --env local
+bru run "Cluster (클러스터)/02. Cluster Create (클러스터 생성).bru" --env local
 
 # 환경 override (env file 의 값을 CLI 인자로 덮어쓰기)
 bru run "Cluster (클러스터)" --env local --env-var cluster_name=my-test-001
@@ -290,16 +290,16 @@ VM 프로비저닝은 CSP 마다 필요한 config 키가 달라 **provider 별 .
 
 ```bash
 # 1. credential 등록 (한 번만)
-bru run "VM Credentials (VM 자격증명)/4. AWS Credential Create (자격증명 생성).bru" \
+bru run "VM Credentials (VM 자격증명)/04. AWS Credential Create (자격증명 생성).bru" \
     --env local-aws-provisioning
 # 응답에서 id 받아 환경의 credential_id 에 채움 (자동 promote 됨)
 
 # 2. 사전 검토 (선택). credential, quota, 비용을 미리 봅니다
-bru run "VM Cluster (VM 클러스터)/3. VM Cluster Preflight (생성 사전 검토).bru" \
+bru run "VM Cluster (VM 클러스터)/03. VM Cluster Preflight (생성 사전 검토).bru" \
     --env local-aws-provisioning
 
 # 3. CSP 별 cluster 생성
-bru run "VM Cluster (VM 클러스터)/5. AWS Cluster Create (AWS 클러스터 생성).bru" \
+bru run "VM Cluster (VM 클러스터)/05. AWS Cluster Create (AWS 클러스터 생성).bru" \
     --env local-aws-provisioning
 ```
 

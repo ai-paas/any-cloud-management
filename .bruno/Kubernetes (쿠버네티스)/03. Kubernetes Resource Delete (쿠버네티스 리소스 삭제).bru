@@ -1,0 +1,37 @@
+meta {
+  name: 03. Kubernetes Resource Delete (쿠버네티스 리소스 삭제)
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/namespaces/{{namespace}}/{{resource_kind}}/{{resource_name}}
+  body: none
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+  User-Agent: bruno/3.3.0
+}
+
+vars:pre-request {
+  namespace: default
+  resource_kind: pods
+  resource_name: podinfo-778b865b7b-7vj9j
+}
+
+tests {
+  test("상태 코드 200 확인", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("성공 envelope 확인", function() {
+    const data = res.getBody();
+    expect(data.success).to.equal(true);
+    expect(data.status).to.equal(200);
+    expect(data.data.operation).to.equal("delete");
+    expect(data.data.resourceType).to.equal("kubernetesResource");
+  });
+}

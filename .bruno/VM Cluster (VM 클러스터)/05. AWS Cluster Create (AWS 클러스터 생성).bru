@@ -1,0 +1,83 @@
+meta {
+  name: 05. AWS Cluster Create (AWS 클러스터 생성)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/v1/vms
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+}
+
+body:json {
+  {
+    "vmGroupName": "{{provision_cluster_name}}",
+    "provider": "AWS",
+    "description": "AWS EC2 기반 Kubernetes 클러스터",
+    "environment": "{{provision_environment}}",
+    "region": "{{provision_region}}",
+    "credentialId": "{{credential_id}}",
+    "spec": {
+      "masterInstanceType": "{{master_vm_spec}}",
+      "workerInstanceType": "{{worker_vm_spec}}",
+      "workerCount": "{{worker_count}}",
+      "kubernetesVersion": "{{kubernetes_version}}",
+      "enableIngress": "{{enable_ingress}}",
+      "enableGpuOperator": "{{enable_gpu_operator}}",
+      "network": {
+        "vpcCidr": "{{vpc_cidr}}",
+        "podCidr": "{{pod_cidr}}",
+        "serviceCidr": "{{service_cidr}}"
+      }
+    }
+  }
+}
+
+script:post-response {
+  if (res.body && res.body.data && res.body.data.id) {
+    bru.setEnvVar('last_operation_id', res.body.data.id);
+  }
+}
+
+tests {
+  test("상태 코드 202", function() {
+    expect(res.getStatus()).to.equal(202);
+  });
+  test("Operation 응답", function() {
+    const body = res.getBody();
+    expect(body.data.type).to.equal("CREATE_CLUSTER");
+    expect(body.data.resourceType).to.equal("cluster");
+  });
+}
+
+docs {
+  ## AWS EC2 기반 cluster 생성
+
+  ### 사전 조건
+  - environment: `local-aws-provisioning`
+  - credential: AWS provider 로 등록된 credential id 가 `credential_id` env 에 있어야 함
+  - credential 생성: `VM Credentials/2b. AWS Credential Create` 먼저 실행
+
+  ### Required env vars (local-aws-provisioning.bru)
+  - `provision_provider: AWS`
+  - `provision_region`: e.g. `ap-northeast-2`, `us-east-1`
+  - `credential_id`: AWS credential UUID
+  - `master_vm_spec` / `worker_vm_spec`: e.g. `t3.large`, `m5.xlarge`
+  - 기타 K8s 공통: `worker_count`, `kubernetes_version`, `vpc_cidr`, `pod_cidr`, `service_cidr`,
+    `enable_ingress`, `enable_gpu_operator`
+
+  ### AWS 만의 config — **없음** (기본 K8s 공통 config 만 사용).
+  AMI 는 region default Ubuntu — override 하려면 `anycloud-k8s:osImage` 키 추가.
+
+  ### 실행
+  ```bash
+  bru run "VM Cluster (VM 클러스터)/05. AWS Cluster Create (AWS 클러스터 생성).bru" \
+      --env local-aws-provisioning
+  ```
+}
