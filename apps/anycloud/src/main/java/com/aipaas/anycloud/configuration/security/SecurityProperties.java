@@ -8,11 +8,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
- * 백엔드 자체 정적 토큰 인증 설정입니다. 운영에서는 gateway 가 인증을 맡으므로 기본값은 꺼짐이고,
- * gateway 우회 호출을 막거나 staging 에서 디버깅할 때 켭니다.
+ * 백엔드 자체 정적 토큰 인증 설정. 운영에서는 gateway 가 인증을 담당하므로 기본값 비활성.
+ * gateway 우회 호출 차단이나 staging 디버깅 시 활성화.
  *
- * <p>{@code scheme} 은 {@code header} 가 {@code Authorization} 일 때만 씁니다. 비워 두면 헤더 값을
- * raw 토큰으로 봅니다.
+ * <p>{@code scheme} 은 {@code header} 가 {@code Authorization} 인 경우에만 적용. 미지정 시
+ * 헤더 값을 raw 토큰으로 해석.
  */
 @Getter
 @Setter

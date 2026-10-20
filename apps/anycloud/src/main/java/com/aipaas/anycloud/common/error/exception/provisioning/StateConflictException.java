@@ -3,10 +3,10 @@ package com.aipaas.anycloud.common.error.exception.provisioning;
 import com.aipaas.anycloud.common.error.enums.ErrorCode;
 
 /**
- * 지금 상태로는 받을 수 없는 요청입니다. PROVISIONING 중인 cluster 에 다시 create, DELETED 에 scale
- * 같은 경우입니다. 409 로 나갑니다.
+ * 현재 상태에서 수용 불가한 요청. PROVISIONING 중인 cluster 의 재생성, DELETED 상태의 scale 등.
+ * 409 응답.
  *
- * <p>응답에 현재 상태를 실어 호출자가 언제 다시 시도할지 판단하게 합니다.
+ * <p>응답에 현재 상태를 포함해 호출자의 재시도 시점 판단에 사용.
  */
 public class StateConflictException extends ProvisioningException {
 

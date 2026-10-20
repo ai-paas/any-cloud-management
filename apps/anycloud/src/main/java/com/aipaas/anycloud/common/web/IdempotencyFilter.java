@@ -27,10 +27,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 
 /**
- * Idempotency-Key 헤더를 처리합니다 (Stripe 패턴).
+ * Idempotency-Key 헤더 처리 (Stripe 패턴).
  *
- * <p>24시간 안에 같은 key 가 다시 오면 첫 응답을 그대로 재현합니다. key 는 같은데 body 나 path 가
- * 다르면 409 입니다. {@code anycloud.idempotency.enabled=false} 로 끌 수 있습니다.
+ * <p>24시간 내 동일 key 재수신 시 첫 응답을 그대로 반환. key 는 동일하나 body 또는 path 가 다르면
+ * 409. {@code anycloud.idempotency.enabled=false} 로 비활성화 가능.
  */
 @Slf4j
 @Component
@@ -58,9 +58,9 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     private static final Set<String> APPLIES_TO = Set.of("POST", "PATCH");
     private static final java.time.Duration TTL = java.time.Duration.ofHours(24);
     /**
-     * 캐시할 응답 body 상한입니다. 넘으면 status 와 fingerprint 만 저장해 중복은 계속 걸러내되
-     * body 재현은 포기합니다. chart deploy 응답을 그대로 담으면 그만큼의 데이터가
-     * idempotency_record 에 24시간 동안 남습니다.
+     * 캐시 대상 응답 body 상한. 초과 시 status 와 fingerprint 만 저장해 중복 차단은 유지하고
+     * body 재현은 제외. chart deploy 응답을 전부 저장하면 해당 데이터가 idempotency_record 에
+     * 24시간 잔존.
      */
     private static final int MAX_CACHED_BODY_BYTES = 1_000_000;
 

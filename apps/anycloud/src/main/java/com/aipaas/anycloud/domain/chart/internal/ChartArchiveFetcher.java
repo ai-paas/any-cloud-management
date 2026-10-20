@@ -23,11 +23,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * Helm chart {@code .tgz} 에서 파일 하나를 JVM 안에서 바로 꺼냅니다. helm CLI 를 부르지 않아
- * 동시 호출이 프로세스 경합을 일으키지 않습니다.
+ * Helm chart {@code .tgz} 에서 파일 하나를 JVM 내부에서 직접 추출. helm CLI 미호출이므로
+ * 동시 호출 시 프로세스 경합 없음.
  *
- * <p>chart 아카이브는 항상 {@code <chartName>/} 디렉토리 하나로 묶여 있습니다. 호출자는
- * chartName 과 그 아래 경로만 주면 됩니다.
+ * <p>chart 아카이브는 항상 {@code <chartName>/} 단일 디렉터리 구조. 호출자는 chartName 과
+ * 하위 경로만 전달.
  */
 @Slf4j
 @Component

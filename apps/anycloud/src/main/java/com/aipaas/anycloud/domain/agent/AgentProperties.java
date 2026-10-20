@@ -3,12 +3,12 @@ package com.aipaas.anycloud.domain.agent;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * {@code agent.yaml} 의 {@code agent.*} 설정입니다. 중첩 record 가 yaml 구조와 그대로 대응합니다.
+ * {@code agent.yaml} 의 {@code agent.*} 설정. 중첩 record 가 yaml 구조와 1:1 대응.
  *
- * <p>개별 값을 {@code @Value} 로 흩어 주입하지 말고 이 record 를 주입해
- * {@code properties.helm().repoAlias()} 처럼 쓰세요.
+ * <p>개별 값의 {@code @Value} 분산 주입 대신 이 record 를 주입해
+ * {@code properties.helm().repoAlias()} 형태로 사용.
  *
- * <p>환경변수 기본값은 yaml 의 {@code ${ENV:default}} 로 둡니다. 여기서 처리하지 않습니다.
+ * <p>환경변수 기본값은 yaml 의 {@code ${ENV:default}} 에서 처리. 이 클래스는 대상 외.
  */
 @ConfigurationProperties("agent")
 public record AgentProperties(Grpc grpc, Manifest manifest, Helm helm, ApiManaged apiManaged) {

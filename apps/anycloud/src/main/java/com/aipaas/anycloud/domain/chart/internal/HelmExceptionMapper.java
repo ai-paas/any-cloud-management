@@ -6,12 +6,12 @@ import io.aipaas.cluster.agent.runtime.HelmRoutingException;
 import java.util.Locale;
 
 /**
- * agent 의 helm 실패를 {@link ErrorCode} 로 분류해 {@link CustomException} 으로 바꿉니다.
+ * agent 의 helm 실패를 {@link ErrorCode} 로 분류해 {@link CustomException} 으로 변환.
  *
- * <p>{@code HELM_INSTALL_FAILED} 하나가 두 갈래로 갈립니다. {@code locate chart},
- * {@code protocol handler}, {@code no such repository} 가 보이면 chart 를 못 찾은 것이라 호출자가
- * 고칠 수 있는 400 이고, 그 밖에는 K8s apply 나 hook 이 실패한 500 입니다. 둘을 섞으면 운영자가
- * 자기 입력을 의심해야 할지 cluster 를 봐야 할지 알 수 없습니다.
+ * <p>{@code HELM_INSTALL_FAILED} 는 두 갈래로 분기. {@code locate chart},
+ * {@code protocol handler}, {@code no such repository} 포함 시 chart 미검출이므로 호출자가
+ * 수정 가능한 400, 그 외에는 K8s apply 또는 hook 실패인 500. 혼용 시 운영자가 입력 문제와
+ * cluster 문제를 구분 불가.
  */
 public final class HelmExceptionMapper {
 

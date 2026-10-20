@@ -16,12 +16,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * {@code /v1/agent-bootstrap/**} 의 IP 별 분당 호출을 제한합니다. 인증 없이 열려 있는 CA bundle
- * 다운로드라 cache 를 우회하는 호출을 막을 층이 필요합니다. 초과하면 429 와 {@code Retry-After: 60}
- * 을 돌려줍니다.
+ * {@code /v1/agent-bootstrap/**} 의 IP 별 분당 호출 제한. 인증 없이 공개된 CA bundle 다운로드라
+ * cache 우회 호출을 차단할 계층 필요. 초과 시 429 와 {@code Retry-After: 60} 응답.
  *
- * <p>카운터가 instance 메모리에 있어 실제 상한은 replica 수를 곱한 값입니다. 클러스터 전체에
- * 정확한 상한을 걸려면 Redis 가 필요합니다.
+ * <p>카운터가 instance 메모리에 있어 실제 상한은 replica 수를 곱한 값. 클러스터 전역 정확한
+ * 상한에는 Redis 필요.
  */
 @Slf4j
 @Component

@@ -14,11 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * cluster-observability 의 {@link ClusterCapabilitiesSink} SPI 를 anycloud cluster 테이블 위에 구현.
  *
- * <p>{@link io.aipaas.cluster.agent.observability.stack.GpuCapabilityHeartbeatListener} 가 sink 호출 측
- * 에서 변경 감지 후에만 호출하지만, 이 구현도 추가 dirty check (DB 값 == 목표값 이면 skip) 로 race
- * 발생 시 redundant write 회피.
+ * <p>{@link io.aipaas.cluster.agent.observability.stack.GpuCapabilityHeartbeatListener} 가 호출
+ * 측에서 변경 감지 후에만 호출하나, 이 구현도 추가 dirty check (DB 값 == 목표값 이면 skip) 로
+ * race 상황의 중복 write 회피.
  *
- * <p>예외는 로그만 남기고 삼킵니다. listener 쪽 try/catch 와 합쳐 두 군데에서 막습니다.
+ * <p>예외는 로그만 기록하고 미전파. listener 측 try/catch 와 함께 2중 차단.
  */
 @Slf4j
 @Component
@@ -38,9 +38,9 @@ public class AnycloudClusterCapabilitiesSink implements ClusterCapabilitiesSink 
                 return;
             }
             /*
-             * heartbeat 의 gpu_node_count 는 드라이버가 올라오기 전까지 0 입니다. 그대로 쓰면
-             * GPU 로 만든 cluster 가 false 로 뒤집혀 화면에서 가속기 영역이 사라지고
-             * gpu-operator 자동 등록도 건너뜁니다. 요청이 GPU 였으면 내리지 않습니다.
+             * heartbeat 의 gpu_node_count 는 드라이버 기동 전까지 0. 그대로 사용하면 GPU 로
+             * 생성한 cluster 가 false 로 전환돼 화면의 가속기 영역이 사라지고 gpu-operator
+             * 자동 등록도 생략. 요청이 GPU 인 경우 하향 미적용.
              */
             if (!value && requestedGpuNodes(clusterName)) {
                 log.debug("setHasGpuNodes: cluster {} 는 GPU 요청이라 false 로 내리지 않는다", clusterName);

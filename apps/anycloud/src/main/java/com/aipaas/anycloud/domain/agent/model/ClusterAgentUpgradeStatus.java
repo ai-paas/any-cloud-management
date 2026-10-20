@@ -1,7 +1,7 @@
 package com.aipaas.anycloud.domain.agent.model;
 
 /**
- * agent upgrade 시도의 lifecycle 입니다.
+ * agent upgrade 시도의 lifecycle.
  *
  * <pre>
  *   IDLE
@@ -15,8 +15,8 @@ package com.aipaas.anycloud.domain.agent.model;
  *   IDLE (다음 upgrade 가능)        IDLE (재시도 또는 PAUSED 처리)
  * </pre>
  *
- * <p>replica 가 여럿이면 row 마다 status 가 같지 않습니다. orchestrator 는 첫 row 만 갱신하고
- * {@code agent_version} 은 각 row 의 heartbeat 가 따로 올립니다.
+ * <p>replica 가 여럿이면 row 별 status 상이. orchestrator 는 첫 row 만 갱신하고
+ * {@code agent_version} 은 각 row 의 heartbeat 가 개별 갱신.
  */
 public enum ClusterAgentUpgradeStatus {
     IDLE,

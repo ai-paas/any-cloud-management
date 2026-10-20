@@ -33,11 +33,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * fleet 전체 agent 를 wave 단위로 올리는 endpoint 입니다.
+ * fleet 전체 agent 를 wave 단위로 업그레이드하는 endpoint.
  *
- * <p>{@code POST /v1/fleet/upgrade} 는 run 을 등록만 하고 바로 응답합니다. 실제 진행은
- * {@link FleetUpgradeOrchestrator} 가 주기 작업으로 밀기 때문에, 호출이 성공해도 upgrade 가 끝난
- * 것은 아닙니다. 진행 상황은 {@code GET /v1/fleet/upgrade/runs} 로 봅니다.
+ * <p>{@code POST /v1/fleet/upgrade} 는 run 등록 후 즉시 응답. 실제 진행은
+ * {@link FleetUpgradeOrchestrator} 의 주기 작업이 담당하므로 호출 성공과 upgrade 완료는 별개.
+ * 진행 상황은 {@code GET /v1/fleet/upgrade/runs} 로 조회.
  */
 @RestController
 @RequestMapping("/v1")

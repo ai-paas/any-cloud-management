@@ -117,8 +117,8 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * @Validated 가 적용된 controller 의 path/query parameter 검증 실패 시 발생.
-     * @Valid @RequestBody 의 MethodArgumentNotValidException 과 달리 ConstraintViolationException 으로 던져진다.
+     * @Validated 적용 controller 의 path, query parameter 검증 실패.
+     * @Valid @RequestBody 의 MethodArgumentNotValidException 과 달리 ConstraintViolationException 발생.
      */
     @ExceptionHandler(ConstraintViolationException.class)
     protected ResponseEntity<?> handleConstraintViolationException(
@@ -154,7 +154,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
-    /** 필수 query parameter 누락. 핸들러가 없으면 최종 Exception 으로 떨어져 500 이 나간다. */
+    /** 필수 query parameter 누락. 핸들러 부재 시 최종 Exception 으로 전파돼 500 응답. */
     @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
     protected ResponseEntity<ErrorResponse> handleMissingServletRequestParameterException(
             org.springframework.web.bind.MissingServletRequestParameterException e) {

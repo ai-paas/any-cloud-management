@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Getter;
 import lombok.ToString;
 
-/** 에러 코드와 사용자에게 보일 메시지. HTTP status 도 여기서 정합니다. */
+/** 에러 코드와 사용자 표시 메시지. HTTP status 도 함께 정의. */
 @Getter
 @ToString
 @JsonFormat(shape = JsonFormat.Shape.OBJECT)
@@ -51,8 +51,8 @@ public enum ErrorCode {
     // 이 에러로 떨어진다. 운영자 점검 포인트: agent ACTIVE / cluster_agent 테이블 / heartbeat 신선도.
     AGENT_UNAVAILABLE(503, "Cluster agent 가 응답하지 않습니다. agent ACTIVE 상태 / heartbeat 확인 필요."),
 
-    // Fleet upgrade 전용 코드. DUPLICATE 나 ENTITY_NOT_FOUND 로 뭉치면 runbook 과 PromQL alert 이
-    // 어느 상황인지 구분하지 못한다.
+    // Fleet upgrade 전용 코드. DUPLICATE 나 ENTITY_NOT_FOUND 로 통합하면 runbook 과 PromQL
+    // alert 이 상황을 구분하지 못함.
     AGENT_NOT_ACTIVE(404, "ACTIVE 상태의 cluster agent 가 없습니다 — connectivity 복구 후 재시도."),
     UPGRADE_IN_PROGRESS(409, "이미 진행 중인 upgrade 가 있습니다. 완료/중단 후 재시도."),
 

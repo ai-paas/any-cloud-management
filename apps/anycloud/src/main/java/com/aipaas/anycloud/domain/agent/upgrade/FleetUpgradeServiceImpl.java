@@ -18,13 +18,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * fleet upgrade 의 현황 조회와 wave 지정입니다. 실제 진행은
- * {@link FleetUpgradeOrchestrator} 가 맡습니다.
+ * fleet upgrade 현황 조회와 wave 지정. 실제 진행은 {@link FleetUpgradeOrchestrator} 담당.
  *
- * <p>cluster 마다 upgrade_wave 를 CANARY, STAGING, GENERAL, PAUSED 중 하나로 둡니다. 새로 등록된
- * cluster 는 GENERAL 입니다. 문제가 있는 cluster 를 PAUSED 로 빼 두면 어느 wave 에도 끼지 않습니다.
+ * <p>cluster 별 upgrade_wave 는 CANARY, STAGING, GENERAL, PAUSED 중 하나. 신규 등록 cluster 는
+ * GENERAL. 문제가 있는 cluster 를 PAUSED 로 지정하면 모든 wave 에서 제외.
  *
- * <p>{@link #preview} 로 wave 분포와 agent_version 분포를 먼저 보고 계획을 세우세요.
+ * <p>{@link #preview} 로 wave 분포와 agent_version 분포 확인 후 계획 수립.
  */
 @Slf4j
 @Service
