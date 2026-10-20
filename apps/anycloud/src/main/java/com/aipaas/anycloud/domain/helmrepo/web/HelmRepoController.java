@@ -34,10 +34,7 @@ public class HelmRepoController {
     private final HelmRepoService helmRepoService;
 
     /**
-     * [HelmRepoController] 헬름 저장소 목록 조회 함수
-     *
-     * @return 헬름 저장소 전체 목록을 반환합니다.
-     *         <p>
+     * @return 헬름 저장소 전체 목록
      */
     @GetMapping("")
     @Operation(summary = "헬름 저장소 목록 조회", description = "헬름 저장소 전체 목록을 조회합니다.")
@@ -61,11 +58,8 @@ public class HelmRepoController {
     }
 
     /**
-     * [HelmRepoController] 헬름 저장소 단일 조회 함수
-     *
      * @param helmRepoName 헬름 저장소 이름
-     * @return 헬름 저장소 정보를 반환합니다.
-     *         <p>
+     * @return 헬름 저장소 정보
      */
     @GetMapping("/{repoName}")
     @Operation(summary = "헬름 저장소 조회", description = "헬름 저장소를 조회합니다.")
@@ -85,11 +79,8 @@ public class HelmRepoController {
     }
 
     /**
-     * [HelmRepoController] 헬름 저장소 생성 함수
-     *
      * @param cluster 헬름 저장소 생성 정보
-     * @return 헬름 저장소를 생성합니다.
-     *         <p>
+     * @return 생성된 헬름 저장소
      */
     @PostMapping("")
     @Operation(summary = "헬름 저장소 생성", description = "헬름 저장소를 생성합니다.")
@@ -139,11 +130,8 @@ public class HelmRepoController {
     }
 
     /**
-     * [HelmRepoController] 헬름 저장소 삭제 함수
-     *
      * @param clusterName 헬름 저장소 이름
-     * @return 헬름 저장소 삭제합니다.
-     *         <p>
+     * @return 삭제 결과
      */
     @DeleteMapping("/{repoName}")
     @Operation(summary = "헬름 저장소 정보 삭제", description = "헬름 저장소 정보를 삭제합니다.")

@@ -53,7 +53,7 @@ public class ClusterConnectivityServiceImpl implements ClusterConnectivityServic
                     clusterName);
             return true;
         }
-        // agent 가 유일한 경로입니다. backend 는 자격증명이 없어 직접 ping 할 수단이 없습니다.
+        // agent 가 유일한 경로. backend 는 자격증명 부재로 직접 ping 불가.
         log.info("Connection test failed (agent unhealthy): cluster={}, {}", clusterName, health.summary());
         return false;
     }
@@ -78,7 +78,7 @@ public class ClusterConnectivityServiceImpl implements ClusterConnectivityServic
             return;
         }
 
-        // agent 가 유일한 경로입니다. heartbeat 가 없으면 버전도 상태도 알 수 없습니다.
+        // agent 가 유일한 경로. heartbeat 부재 시 버전과 상태 확인 불가.
         log.warn("Cluster {} is not accessible: {}", clusterEntity.getId(), health.summary());
         clusterEntity.transitionStatus(ClusterStatus.INACTIVE, "health.fail");
         clusterEntity.setVersion("UNKNOWN");
@@ -103,8 +103,8 @@ public class ClusterConnectivityServiceImpl implements ClusterConnectivityServic
     }
 
     /**
-     * 주기 sweep 의 chunk 당 fan-out 수. 이 값이 KUBERNETES_EXECUTOR 의 max 8 을 크게 넘으면
-     * 큐가 차서 caller-runs 로 떨어지고, 호출 스레드가 직접 실행하느라 sweep 전체가 늦어진다.
+     * 주기 sweep 의 chunk 당 fan-out 수. KUBERNETES_EXECUTOR 의 max 8 을 크게 초과하면 큐 포화로
+     * caller-runs 전환, 호출 스레드의 직접 실행으로 sweep 전체 지연.
      */
     private static final int FAN_OUT_CHUNK_SIZE = 50;
 
@@ -130,8 +130,8 @@ public class ClusterConnectivityServiceImpl implements ClusterConnectivityServic
             for (ClusterEntity cluster : chunk.getContent()) {
                 chunkFutures.add(updateClusterVersionAndStatusAsync(cluster));
             }
-            // chunk 안의 모든 future 완료까지 대기: pool 가 full 이면 caller-runs backpressure 로 자연
-            // throttling. chunk 사이에 쉴 필요가 없습니다. 모든 thread 가 비는 시점에 다음 chunk 를 가져옵니다.
+            // chunk 내 전체 future 완료까지 대기. pool 포화 시 caller-runs backpressure 로 throttling.
+            // chunk 사이 대기 불필요. 전체 thread 가 비는 시점에 다음 chunk 진입.
             CompletableFuture.allOf(chunkFutures.toArray(new CompletableFuture[0]))
                     .join();
             allFutures.addAll(chunkFutures);

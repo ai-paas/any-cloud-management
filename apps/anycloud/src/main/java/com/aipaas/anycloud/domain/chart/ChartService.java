@@ -70,7 +70,7 @@ public interface ChartService {
     }
 
     /**
-     * 배포된 차트의 상태를 조회합니다.
+     * 배포된 차트 상태 조회.
      *
      * @param releaseName 릴리즈 이름
      * @param clusterName 클러스터 이름
@@ -80,17 +80,17 @@ public interface ChartService {
     ChartStatusResponse getChartStatus(String releaseName, String clusterName, String namespace);
 
     /**
-     * 설치할 때 넘긴 values 를 돌려준다 ({@code helm get values} 와 같다).
+     * 설치 시 전달한 values 반환 ({@code helm get values} 와 동일).
      *
-     * <p>agent 에 values 를 묻는 명령이 없어 helm 이 남긴 release secret 을 읽어 푼다.
+     * <p>agent 에 values 조회 명령이 없어 helm 이 기록한 release secret 을 읽어 복원.
      */
     String getReleaseValues(String clusterName, String namespace, String releaseName);
 
     /**
-     * 클러스터의 모든 Helm 릴리즈 목록을 조회합니다.
+     * 클러스터의 전체 Helm 릴리즈 목록 조회.
      *
      * @param clusterName 클러스터 이름
-     * @param namespace 네임스페이스 (선택사항, null일 경우 모든 네임스페이스)
+     * @param namespace 네임스페이스 (선택, null 이면 전체 네임스페이스)
      * @return 릴리즈 목록
      */
     ChartReleasesResponse getReleases(String clusterName, String namespace);
@@ -118,11 +118,11 @@ public interface ChartService {
             String clusterName, String releaseName, int revision, String namespace, boolean waitForReady);
 
     /**
-     * 클러스터의 helm 릴리즈 리소스 목록을 조회합니다.
-     * <p>
-     * 가벼운 ref (kind/apiVersion/namespace/name) 만 반환. full spec/status 가 필요하면
-     * 호출자가 ref 별로 별도 GET. agent-only path: fall-through
-     * (HelmReleaseScanner) 는 제거됨. agent session 없거나 호출 실패 시 503 AGENT_UNAVAILABLE.
+     * 클러스터의 helm 릴리즈 리소스 목록 조회.
+     *
+     * <p>ref (kind, apiVersion, namespace, name) 만 반환. full spec, status 가 필요하면 호출자가
+     * ref 별로 별도 GET. agent 전용 경로이며 fall-through (HelmReleaseScanner) 는 제거.
+     * agent session 부재나 호출 실패 시 503 AGENT_UNAVAILABLE.
      *
      * @param clusterName 클러스터 이름
      * @param namespace 네임스페이스

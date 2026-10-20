@@ -225,8 +225,6 @@ public class ClusterServiceImpl implements ClusterService {
     // validateBase64Pem / isBlank helpers 제거: body 에 PEM 자격 없음.
 
     /**
-     * [ClusterServiceImpl] 클러스터 업데이트 함수
-     *
      * @param clusterName 업데이트할 클러스터 이름
      * @param updateDto   업데이트할 클러스터 정보
      * @return 업데이트 결과
@@ -307,8 +305,6 @@ public class ClusterServiceImpl implements ClusterService {
     }
 
     /**
-     * [ClusterServiceImpl] 클러스터 연결 테스트 함수
-     *
      * @param clusterName 테스트할 클러스터 이름
      * @return 연결 테스트 결과
      */

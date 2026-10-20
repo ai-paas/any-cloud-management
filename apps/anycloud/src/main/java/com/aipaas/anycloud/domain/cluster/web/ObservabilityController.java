@@ -77,13 +77,13 @@ public class ObservabilityController {
     // ---- PromQL queries ----
 
     /**
-     * Prometheus {@code /api/v1/query} 를 그대로 중계합니다.
+     * Prometheus {@code /api/v1/query} 중계.
      *
-     * <p>응답은 {@code ApiSuccessResponse} 로 감싸지 않고 Prometheus 본문을 그대로 내보냅니다.
-     * 감싸면 기존 Prometheus 클라이언트가 붙지 못합니다.
+     * <p>응답은 {@code ApiSuccessResponse} 로 감싸지 않고 Prometheus 본문 그대로 전달. 감싸면
+     * 기존 Prometheus 클라이언트 연동 불가.
      *
-     * <p>param 은 {@code query} 를 쓰세요. {@code promql} 은 옛 호출을 위한 alias 이고,
-     * {@code timeoutSeconds} 는 {@code timeout="30s"} 로 대체됐습니다.
+     * <p>param 은 {@code query} 사용. {@code promql} 은 이전 호출 호환용 alias,
+     * {@code timeoutSeconds} 는 {@code timeout="30s"} 로 대체.
      */
     @GetMapping("/clusters/{clusterName}/metrics/query")
     @Operation(

@@ -30,7 +30,7 @@ public class OperationServiceImpl implements OperationService {
     private final ApplicationEventPublisher eventPublisher;
     private final com.aipaas.anycloud.domain.operation.mapper.OperationMapper operationMapper;
 
-    /** 한 자원에 동시 작업은 드물다. 그보다 깊이 쌓였다면 오래된 것은 시간 기반 정리가 걷어간다. */
+    /** 자원당 동시 작업은 소수. 초과 누적분 중 오래된 항목은 시간 기반 정리가 제거. */
     private static final int SUPERSEDE_SCAN_SIZE = 5;
 
     // lifecycle 메서드들 (start/markRunning/complete/fail/cancel) 은 REQUIRES_NEW 로
@@ -59,10 +59,10 @@ public class OperationServiceImpl implements OperationService {
     }
 
     /**
-     * 같은 자원에 새 작업이 뜨면 앞선 작업은 다시 진행될 수 없다. 남겨두면 자원은 READY 인데
-     * 화면은 중간 단계에 멈춰 있다. 시간 기반 정리로는 그 사이를 메우지 못한다.
+     * 동일 자원에 새 작업이 생성되면 이전 작업은 진행 불가. 유지 시 자원은 READY 인데 화면은
+     * 중간 단계에 정지. 시간 기반 정리로는 해당 구간 미처리.
      *
-     * <p>정리에 실패해도 새 작업은 시작한다. 기록 때문에 자원 생성을 막을 이유가 없다.
+     * <p>정리 실패 시에도 새 작업은 시작. 기록 문제로 자원 생성을 차단하지 않음.
      */
     private void supersedeActive(OperationType type, String resourceType, String resourceId) {
         try {
@@ -147,8 +147,8 @@ public class OperationServiceImpl implements OperationService {
     }
 
     /**
-     * 저장과 알림을 한 통로로 묶는다. 저장 지점이 여섯 곳이라 따로 두면 언젠가 하나를 빠뜨리고,
-     * 그 화면만 옛 상태로 남는다.
+     * 저장과 알림을 단일 경로로 통합. 저장 지점이 6곳이라 분리 시 누락이 발생하고 해당 화면만
+     * 이전 상태로 잔존.
      */
     private OperationEntity saveAndAnnounce(OperationEntity op) {
         OperationEntity saved = repository.save(op);

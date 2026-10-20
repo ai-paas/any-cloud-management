@@ -15,17 +15,16 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 /**
- * cluster 가 ACTIVE 로 바뀐 직후 agent ConfigMap 의 {@code helm_repositories} 를 backend 의
- * helm_repo 테이블 내용으로 맞춥니다.
+ * cluster 가 ACTIVE 로 전이한 직후 agent ConfigMap 의 {@code helm_repositories} 를 backend 의
+ * helm_repo 테이블 값으로 동기화.
  *
- * <p>{@code @Async} 로 돕니다. 실패해도 로그만 남기고 삼킵니다. agent 등록 경로를 막지 않기
- * 위해서입니다. 반영이 안 됐으면 운영자가 admin endpoint 로 다시 밀면 됩니다.
+ * <p>{@code @Async} 실행. 실패 시 로그만 기록하고 예외 미전파. agent 등록 경로 차단 방지 목적.
+ * 미반영 시 운영자가 admin endpoint 로 재실행.
  *
- * <p>{@code applyAgentConfig} 가 부분 갱신을 받지 않아 기존 목록도 같은 값으로 다시 씁니다.
+ * <p>{@code applyAgentConfig} 가 부분 갱신을 지원하지 않아 기존 목록도 동일 값으로 재기록.
  *
- * <p>이 호출 자체가 {@code APPLY_AGENT_CONFIG} RPC 입니다. agent 의 allowed_commands 에 그 명령이
- * 없으면 PERMISSION_DENIED 가 나고 역시 조용히 넘어갑니다. 그때는 kubectl 로 ConfigMap 을 직접
- * 고쳐야 합니다.
+ * <p>이 호출은 {@code APPLY_AGENT_CONFIG} RPC. agent 의 allowed_commands 에 해당 명령이 없으면
+ * PERMISSION_DENIED 응답 후 동일하게 무시. 이 경우 kubectl 로 ConfigMap 직접 수정 필요.
  */
 @Slf4j
 @Component

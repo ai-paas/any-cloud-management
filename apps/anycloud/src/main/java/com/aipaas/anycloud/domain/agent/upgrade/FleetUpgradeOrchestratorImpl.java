@@ -24,16 +24,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * fleet 전체 agent upgrade 를 wave 단위로 순서대로 진행합니다.
+ * fleet 전체 agent upgrade 를 wave 단위 순차 진행.
  *
- * <p>{@link #submit} 은 PLANNED row 만 만들고 끝납니다. 실제 진행은 15초 주기 {@link #drive} 가
- * 한 번에 한 단계씩 처리합니다. 한 wave 의 cluster 가 전부 SUCCEEDED 나 FAILED 가 돼야 다음 wave
- * 로 넘어가고, 그 wave 의 실패율이 {@code failureThreshold} 를 넘으면 run 전체를 중단합니다.
+ * <p>{@link #submit} 은 PLANNED row 생성까지만 수행. 실제 진행은 15초 주기 {@link #drive} 가
+ * 단계별로 처리. 한 wave 의 cluster 가 전부 SUCCEEDED 또는 FAILED 에 도달해야 다음 wave 진입,
+ * 해당 wave 실패율이 {@code failureThreshold} 초과 시 run 전체 중단.
  *
- * <p>cluster 마다 upgrade_wave 가 하나라 같은 cluster 가 두 wave 에 걸리지 않습니다.
+ * <p>cluster 당 upgrade_wave 는 하나라 동일 cluster 의 중복 wave 배정 없음.
  *
- * <p>{@link #drive} 에는 ShedLock 이 걸려 있습니다. 없으면 replica 수만큼 같은 wave 를 동시에
- * 밀어 concurrency 상한이 무의미해집니다.
+ * <p>{@link #drive} 에 ShedLock 적용. 미적용 시 replica 수만큼 동일 wave 를 동시 실행해
+ * concurrency 상한 무효화.
  */
 @Slf4j
 @Service
