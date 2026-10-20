@@ -11,8 +11,8 @@ import org.junit.jupiter.api.Test;
 /**
  * destroy 가 끝나면 그 이름의 DELETING 세대가 모두 닫혀야 한다.
  *
- * <p>같은 이름의 여러 세대를 DELETING 으로 바꿔놓고 destroy 는 최신 1건만 닫았다. 최신 행이 이미
- * DELETED 면 멱등 가드에 걸려 아무것도 하지 않아, 옛 행이 DELETING 에 영원히 남았다.
+ * <p>동일 이름의 여러 세대를 DELETING 으로 전이시킨 뒤 destroy 가 최신 1건만 종료 처리. 최신
+ * 행이 이미 DELETED 면 멱등 가드에 걸려 무동작이고, 이전 행이 DELETING 에 잔존.
  */
 class DestroyTargetsTest extends AbstractUnitTest {
 
@@ -39,7 +39,7 @@ class DestroyTargetsTest extends AbstractUnitTest {
 
     @Test
     void doesNotTouchRowsThatAreNotBeingDeleted() {
-        // READY 인 세대를 함께 닫으면 살아 있는 클러스터가 사라진다.
+        // READY 세대를 함께 종료 처리하면 유효 클러스터가 삭제됨.
         List<VmClusterEntity> rows = List.of(row("live", VmClusterStatus.READY), row("a", VmClusterStatus.DELETING));
 
         assertThat(VmClusterDeletionTargets.beingDeleted(rows))
@@ -55,8 +55,8 @@ class DestroyTargetsTest extends AbstractUnitTest {
 
     @Test
     void destroyMessageTargetsARowThatIsActuallyBeingDeleted() {
-        // 메시지가 최신 행을 가리키는데 그게 이미 DELETED 면 워크플로 가드가 건너뛴다.
-        // 그러면 DELETING 인 옛 행은 영영 닫히지 않는다.
+        // 메시지가 가리키는 최신 행이 이미 DELETED 면 워크플로 가드가 생략.
+        // 이 경우 DELETING 상태의 이전 행은 종료 처리되지 않음.
         List<VmClusterEntity> rows =
                 List.of(row("newest-done", VmClusterStatus.DELETED), row("stuck", VmClusterStatus.DELETING));
 

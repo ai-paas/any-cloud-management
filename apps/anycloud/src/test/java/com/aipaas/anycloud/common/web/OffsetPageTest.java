@@ -7,10 +7,10 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * 자르는 곳은 한 곳이어야 한다.
+ * 절단 지점은 한 곳으로 한정.
  *
- * <p>백엔드가 전량을 주고 중간 계층이 자르면 각 층이 서로 다른 페이지를 가정한다. 실제로
- * 게이트웨이가 기본 20건으로 잘라 화면이 21번째부터를 영영 보지 못했다.
+ * <p>백엔드가 전량을 반환하고 중간 계층이 자르면 계층별 페이지 기준이 분리. 게이트웨이가 기본
+ * 20건으로 절단해 화면에서 21번째 이후 항목이 노출되지 않은 사례 발생.
  */
 class OffsetPageTest extends AbstractUnitTest {
 
@@ -35,7 +35,7 @@ class OffsetPageTest extends AbstractUnitTest {
 
     @Test
     void askingBeyondTheEndGivesAnEmptyPage() {
-        // 마지막 페이지에서 지우면 그 페이지가 사라진다. 500 이 아니라 빈 페이지여야 한다.
+        // 마지막 페이지에서 항목 삭제 시 해당 페이지 소멸. 500 이 아닌 빈 페이지 반환 필요.
         OffsetPage<String> page = OffsetPage.of(TEN, 9, 3);
 
         assertThat(page.items()).isEmpty();
@@ -44,7 +44,7 @@ class OffsetPageTest extends AbstractUnitTest {
 
     @Test
     void withoutASizeEverythingComesBack() {
-        // 페이징을 안 쓰는 호출자가 남아 있다. 비우면 전부 준다.
+        // 페이징 미사용 호출자 잔존. 미지정 시 전체 반환.
         assertThat(OffsetPage.of(TEN, null, null).items()).hasSize(10);
         assertThat(OffsetPage.of(TEN, 2, null).items()).hasSize(10);
     }

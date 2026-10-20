@@ -10,10 +10,10 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 
 /**
- * 메시지를 즉시 ack 하면 크래시 때 되돌아올 것이 없다.
+ * 메시지 즉시 ack 구조에서는 크래시 시 재전달 대상 부재.
  *
- * <p>진행 중인 채로 멈춘 클러스터를 찾아 다시 밀어주는 것이 즉시 ack 의 안전망이다. 이게 없으면
- * 재전달 루프를 메시지 유실로 바꾼 것에 지나지 않는다.
+ * <p>진행 중 상태로 정지한 클러스터를 탐색해 재투입하는 것이 즉시 ack 의 보완 수단. 이 경로가
+ * 없으면 재전달 루프를 메시지 유실로 교체한 결과.
  */
 class StuckStepRulesTest extends AbstractUnitTest {
 
@@ -54,7 +54,7 @@ class StuckStepRulesTest extends AbstractUnitTest {
 
     @Test
     void settledClustersAreNeverPushed() {
-        // 끝난 것을 다시 밀면 멀쩡한 클러스터를 부트스트랩한다.
+        // 완료 항목을 재투입하면 정상 클러스터에 부트스트랩 재실행.
         for (VmClusterStatus s :
                 new VmClusterStatus[] {VmClusterStatus.READY, VmClusterStatus.FAILED, VmClusterStatus.DELETED}) {
             assertThat(StuckStepRules.needsRedrive(cluster(s, null, null), NOW, STALE_AFTER))
@@ -65,7 +65,7 @@ class StuckStepRulesTest extends AbstractUnitTest {
 
     @Test
     void theStepToPushMatchesTheStatus() {
-        // 상태와 다른 단계를 밀면 이미 지난 단계를 다시 돌린다.
+        // 상태와 다른 단계를 투입하면 완료 단계를 재실행.
         assertThat(StuckStepRules.stepFor(VmClusterStatus.PROVISIONING)).isEqualTo(VmClusterWorkflowStep.PROVISION);
         assertThat(StuckStepRules.stepFor(VmClusterStatus.BOOTSTRAPPING)).isEqualTo(VmClusterWorkflowStep.BOOTSTRAP);
         assertThat(StuckStepRules.stepFor(VmClusterStatus.VERIFYING)).isEqualTo(VmClusterWorkflowStep.VERIFY);
