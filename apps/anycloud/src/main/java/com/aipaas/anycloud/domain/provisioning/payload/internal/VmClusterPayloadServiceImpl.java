@@ -81,10 +81,10 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
     public String serializeRequestSnapshot(
             ProvisionClusterRequest cluster, ProvisioningRequest request, ResolvedCspCredential credential) {
         /*
-         * 기본값이 채워진 쪽을 본다. cluster.getConfig() 는 사용자가 보낸 원본이라
-         * applyDefaults 가 넣은 값이 없다. enableMonitoring 을 생략한 요청이 null 로 굳어
-         * 모니터링 애드온이 등록되지 않았다. 사용자는 체크박스를 켠 채로 만들었는데 화면이
-         * 비어 있고, 원인이 스냅샷이라는 사실은 드러나지 않는다.
+         * 기본값이 반영된 쪽을 참조. cluster.getConfig() 는 사용자 전송 원본이라 applyDefaults
+         * 주입 값 미포함. enableMonitoring 생략 요청이 null 로 고정돼 모니터링 애드온 미등록.
+         * 사용자는 체크박스를 활성화한 상태로 생성했으나 화면은 비어 있고 원인이 스냅샷임은
+         * 드러나지 않음.
          */
         Map<String, String> config =
                 request.getConfig() == null || request.getConfig().isEmpty()
@@ -121,8 +121,7 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
     public VmClusterListItemResponse buildListItemResponse(VmClusterEntity vmCluster) {
         Map<String, Object> outputMap = readJsonMap(vmCluster.getRawOutputs());
         VmClusterInternalRequestSnapshot requestSnapshot = readRequestSnapshot(vmCluster.getRequestConfig());
-        // 실제로 만들어진 노드가 기준이다. 아직 없으면 요청값으로 보여준다: 목록이 빈칸이면
-        // 규모를 가늠할 수 없다.
+        // 실제 생성된 노드가 기준. 미생성 상태면 요청값 표시. 목록이 비면 규모 확인 불가.
         VmClusterNodeRows.Summary nodes = VmClusterNodeRows.summarize(VmClusterNodeRows.of(objectMapper, vmCluster));
         boolean provisioned = nodes.masterCount() > 0;
 
@@ -222,7 +221,7 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
                 .build();
     }
 
-    /** 저장된 관측 결과만 읽는다. 조회 API 가 매 요청마다 SSH 를 열면 안 된다. */
+    /** 저장된 관측 결과만 조회. 조회 API 의 요청별 SSH 연결 금지. */
     private java.util.List<VmClusterComponentResponse> toComponents(VmClusterEntity vmCluster) {
         try {
             return componentRepository.findByVmClusterId(vmCluster.getId()).stream()
@@ -348,11 +347,10 @@ public class VmClusterPayloadServiceImpl implements VmClusterPayloadService {
         }
     }
 
-    /** Boolean flag 파싱: strict 검증은 {@code ProvisioningConfigRules.validateBooleanFlags} 에서 끝나므로 여기서는 trim+lowercase 만 적용 (defense-in-depth). 검증을 우회한 경로로 들어오면 "true" / "false" 외엔 모두 null 반환. */
     /**
-     * 원문은 그대로 두고 요약을 덧붙인다.
+     * 원문 유지 후 요약 추가.
      *
-     * <p>저장하지 않고 읽을 때 만든다: 분류 규칙을 고치면 예전 실패도 같이 읽히게 된다.
+     * <p>저장하지 않고 조회 시점에 생성. 분류 규칙 수정 시 이전 실패에도 소급 적용.
      */
     private String summaryOf(String raw) {
         ProvisioningFailureReason reason = ProvisioningFailureReason.from(raw);

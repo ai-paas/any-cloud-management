@@ -91,10 +91,10 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(AlibabaVmOptionsProvider.class);
 
     /**
-     * VSwitch 가 zone 단위라 zone 을 골라야 서브넷이 만들어진다.
+     * VSwitch 가 zone 단위이므로 zone 선택이 서브넷 생성 조건.
      *
-     * <p>zone 이름은 콘솔을 열어야 알 수 있고, 같은 리전이라도 zone 마다 쓸 수 있는 인스턴스
-     * 타입이 다르다. 없는 조합을 고르면 재고 없음으로 생성이 막힌다.
+     * <p>zone 이름은 콘솔 확인이 필요하고, 동일 리전에서도 zone 별 사용 가능 인스턴스 타입이 상이.
+     * 미제공 조합 선택 시 재고 없음으로 생성 차단.
      */
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsFallback")
@@ -217,7 +217,7 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
     /** DescribeAvailableResource 가 "팔고 있다" 고 답하는 값. */
     private static final String AVAILABLE_STATUS = "Available";
 
-    /** DescribeImages 의 상한. 기본 10 은 키워드 필터를 무의미하게 만든다. */
+    /** DescribeImages 상한. 기본값 10 에서는 키워드 필터가 동작하지 않음. */
     private static final int IMAGE_PAGE_SIZE = 100;
 
     @Override
@@ -315,8 +315,8 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
         if (!StringUtils.hasText(regionId)) {
             return "https://ecs.aliyuncs.com/";
         }
-        // region 이 host 에 들어간다. 검증 없이 넣으면 host 가 통째로 바뀌고,
-        // 쿼리스트링의 AccessKeyId 와 Signature 가 그대로 따라 나간다.
+        // region 이 host 에 포함. 미검증 입력 시 host 전체가 치환되고 쿼리스트링의
+        // AccessKeyId 와 Signature 도 그대로 전송.
         String region = requireValidRegionId(regionId);
         String host = "ecs." + region + ".aliyuncs.com";
         return requireExpectedHost("https://" + host + "/", host);
@@ -399,10 +399,10 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * 존마다 파는 인스턴스가 다르다.
+     * 존별 제공 인스턴스 상이.
      *
-     * <p>DescribeInstanceTypes 는 리전 전체 목록이라 {@code ecs.ga1.xlarge} 가 있다고 나오지만
-     * ap-northeast-2a 에는 없다. 그대로 만들면 403 InvalidResourceType.NotSupported 로 끝난다.
+     * <p>DescribeInstanceTypes 는 리전 전체 목록이라 {@code ecs.ga1.xlarge} 가 포함되나
+     * ap-northeast-2a 에는 미제공. 그대로 생성 시 403 InvalidResourceType.NotSupported.
      */
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "isInstanceTypeAvailableInZoneFallback")

@@ -42,7 +42,7 @@ public class ProxmoxVmOptionsProvider extends AbstractVmOptionsProvider {
         return describe(getProvider(), true, "PVE API 로 노드, datastore, 브리지를 조회합니다. 인스턴스 타입은 \"코어-메모리MiB\" 입니다.");
     }
 
-    /** Proxmox 는 하이퍼바이저라 리전이 없다. 배치할 노드가 그 자리를 대신한다. */
+    /** Proxmox 는 하이퍼바이저라 리전 개념 부재. 배치 노드가 리전 역할 대체. */
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "emptyRegionsFallback")
     public List<VmOptionRegion> listRegions() {
@@ -56,13 +56,13 @@ public class ProxmoxVmOptionsProvider extends AbstractVmOptionsProvider {
                 .toList();
     }
 
-    /** 카탈로그가 없다. 사용자가 "코어-메모리MiB" 를 직접 넣는다. */
+    /** 카탈로그 부재. 사용자가 "코어-메모리MiB" 직접 입력. */
     @Override
     public List<VmOptionSpec> listSpecs(String region, String keyword, boolean gpuOnly, int limit) {
         return List.of();
     }
 
-    /** 이미지도 URL 로 받는다. 목록을 흉내 내면 없는 선택지를 고르게 된다. */
+    /** 이미지도 URL 입력. 목록을 임의 구성하면 미제공 항목이 선택지에 포함. */
     @Override
     public List<VmOptionImage> listImages(String region, String keyword, String architecture, String owner, int limit) {
         return List.of();
@@ -74,7 +74,7 @@ public class ProxmoxVmOptionsProvider extends AbstractVmOptionsProvider {
         Map<String, String> env = currentCredentials();
         return switch (configKey) {
             case "providerSpec.nodeName" -> nodeNames();
-                // 디스크는 블록 스토리지, 내려받은 이미지는 import content 를 받는 디렉터리 스토리지로 간다.
+                // 디스크는 블록 스토리지, 수신 이미지는 import content 허용 디렉터리 스토리지에 배치.
             case "providerSpec.datastoreId" -> storages(env, region, "images");
             case "providerSpec.imageDatastoreId" -> storages(env, region, "import");
             case "providerSpec.networkBridge" -> bridges(env, region);
