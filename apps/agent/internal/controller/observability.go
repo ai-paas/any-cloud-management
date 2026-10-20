@@ -377,9 +377,9 @@ func discoverPrometheusURL(ctx context.Context, d *Dispatcher, ns string) string
 	}
 	promCacheMu.RUnlock()
 
-	// 2) 이름으로 먼저 본다. 우리 카탈로그가 설치하는 스택의 service 에는
-	// app.kubernetes.io/name 도 prometheus.io/scrape 도 붙지 않아 라벨로는 걸리지 않는다.
-	// 라벨 스캔이 앞에 있으면 흔한 경우마다 헛도는 LIST 를 먼저 낸다.
+	// 2) 이름 조회 우선. 카탈로그가 설치하는 스택의 service 에는 app.kubernetes.io/name 과
+	// prometheus.io/scrape 가 모두 없어 라벨 조회로 미검출. 라벨 스캔을 선행하면 일반적인
+	// 경우마다 불필요한 LIST 발생.
 	if url := tryFindPromServiceByName(ctx, d, ns, wellKnownPromService); url != "" {
 		cachePromURL(url)
 		return url
@@ -399,8 +399,8 @@ func discoverPrometheusURL(ctx context.Context, d *Dispatcher, ns string) string
 		return url
 	}
 
-	// 4) fallback. 못 찾았다는 사실도 기억한다. 아무것도 없는 클러스터에서 5분마다 같은
-	// 조회를 반복하면 모니터링 화면을 열 때마다 그만큼 기다린다.
+	// 4) fallback. 미검출 결과도 캐시. 대상이 없는 클러스터에서 5분마다 동일 조회를 반복하면
+	// 모니터링 화면 진입마다 대기 발생.
 	fallback := prometheusInClusterURL(ns)
 	cachePromURL(fallback)
 	return fallback
@@ -513,7 +513,7 @@ func httpGetJSON(ctx context.Context, urlStr string) ([]byte, int, error) {
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	// 1MB 상한. Prometheus 응답 전체를 메모리에 올리지 않는다.
+	// 1MB 상한. Prometheus 응답 전체의 메모리 적재 방지.
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return nil, resp.StatusCode, fmt.Errorf("read body: %w", err)

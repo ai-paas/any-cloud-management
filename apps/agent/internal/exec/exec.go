@@ -127,9 +127,9 @@ func (r *Runner) Run(ctx context.Context, cfg SessionConfig) error {
 
 	resizeQ := newResizeQueue(streamCtx)
 	/*
-	 * remotecommand 는 exec 을 시작할 때 큐에서 첫 크기를 읽는다. 비어 있으면 PTY 가 0x0 으로
-	 * 열리고, tcell 로 만든 TUI(k9s)는 그릴 영역이 없어 화면을 지운 뒤 아무것도 그리지 않는다.
-	 * 사용자가 나중에 보내는 resize 로는 복구되지 않는다.
+	 * remotecommand 는 exec 시작 시 큐에서 첫 크기를 조회. 비어 있으면 PTY 가 0x0 으로 열리고,
+	 * tcell 기반 TUI(k9s)는 렌더링 영역이 없어 화면을 지운 뒤 출력하지 않음. 이후 사용자
+	 * resize 로는 복구 불가.
 	 */
 	if cfg.Request.GetTty() {
 		resizeQ.push(initialTerminalSize(cfg.Request.GetInitialSize()))
@@ -194,7 +194,7 @@ func (r *Runner) Run(ctx context.Context, cfg SessionConfig) error {
 	return nil
 }
 
-// initialTerminalSize: 0 이면 80x24. 백엔드가 크기를 못 실어 보낸 예전 세션도 화면이 떠야 한다.
+// initialTerminalSize: 0 이면 80x24. 백엔드가 크기를 전달하지 않는 구버전 세션도 렌더링 필요.
 func initialTerminalSize(size *agentv1.TerminalSize) remotecommand.TerminalSize {
 	cols, rows := size.GetCols(), size.GetRows()
 	if cols == 0 {

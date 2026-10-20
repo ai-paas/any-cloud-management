@@ -20,13 +20,13 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class CapacityProbe {
 
-    /** 한 리전에서 자리를 찾느라 목록 전체를 두드리지 않는다. */
+    /** 리전 내 가용 자원 탐색 시 목록 전수 조회 미수행. */
     private static final int CANDIDATE_LIMIT = 8;
 
     private final CspCredentialService credentialService;
     private final OciVmOptionsProvider ociVmOptionsProvider;
 
-    /** 고른 타입과, 못 고른 이유. 둘 중 하나만 채워진다. */
+    /** 선택된 타입과 선택 실패 사유. 둘 중 하나만 설정. */
     public record SpecChoice(String specId, String blockedReason) {}
 
     /**
@@ -57,7 +57,7 @@ public class CapacityProbe {
                     return new SpecChoice(candidate, null);
                 }
             } catch (RuntimeException e) {
-                // 용량 조회가 막혀도 생성을 막을 이유는 없다. 목록의 첫 값으로 간다.
+                // 용량 조회 실패가 생성 차단 사유는 아님. 목록 첫 값 사용.
                 log.warn("OCI 용량 조회 실패 shape={}: {}", candidate, e.toString());
                 return new SpecChoice(candidates.get(0), null);
             }

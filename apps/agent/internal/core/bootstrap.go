@@ -59,8 +59,8 @@ type BootstrapResult struct {
 	ExpiresAt          string
 	ClusterStatus      agentv1.ClusterStatus
 	/*
-	 * identity 가 Secret 에 남았는지. false 면 이 파드는 메모리 token 으로만 돌고, 다음 재시작
-	 * 때 새 등록 토큰이 없으면 기동하지 못한다.
+	 * identity 의 Secret 저장 여부. false 면 해당 파드는 메모리 token 으로만 동작하고, 다음
+	 * 재시작 시 신규 등록 토큰이 없으면 기동 불가.
 	 */
 	IdentityPersisted bool
 }
@@ -113,9 +113,9 @@ func BootstrapIdentity(ctx context.Context, cfg BootstrapConfig, store IdentityS
 		}
 		if saveErr := store.Save(ctx, material); saveErr != nil {
 			/*
-			 * 지금은 메모리 token 으로 잘 돈다. 문제는 다음 재시작 때 드러나는데, 그때는 등록
-			 * 토큰(10분 TTL)이 이미 만료돼 있어 파드가 CrashLoop 으로 빠진다. 지금 눈에 띄지
-			 * 않으면 아무도 모르므로 error 로 올린다.
+			 * 현재는 메모리 token 으로 정상 동작. 문제는 다음 재시작 시점에 드러나며, 그때는
+			 * 등록 토큰(10분 TTL)이 만료돼 파드가 CrashLoop 진입. 현 시점에 노출되지 않으면
+			 * 검출 불가하므로 error 레벨로 기록.
 			 */
 			slog.Error("identity store Save failed — 다음 재시작 때 새 REGISTRATION_TOKEN 이 없으면 기동하지 못한다",
 				slog.String("error", saveErr.Error()),
@@ -202,8 +202,8 @@ func Run(ctx context.Context, cfg BootstrapConfig) (*BootstrapResult, error) {
 
 // RegistrationTokenExpired: JWT 의 exp 가 지났는지.
 //
-// 서명은 검증하지 않는다. 서버가 거부할 이유를 미리 알려 주려는 것이지 인증이 목적이 아니다.
-// 형식을 못 읽으면 만료로 단정하지 않는다: 멀쩡한 토큰을 만료라 부르면 진단이 더 꼬인다.
+// 서명 미검증. 서버 거부 사유의 사전 안내가 목적이며 인증은 대상 외.
+// 형식 파싱 실패 시 만료로 단정하지 않음. 유효 토큰을 만료로 판정하면 진단 혼선.
 func RegistrationTokenExpired(token string, now time.Time) bool {
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {

@@ -16,8 +16,8 @@ import org.springframework.util.StringUtils;
 public class VmOptionsSelectionValidator {
 
     /*
-     * 캐시가 걸린 쪽을 쓴다. QueryService 를 직접 부르면 preflight 마다 CSP API 를 200건씩
-     * 새로 훑는다: 생성 한 번에 수백 건이 나간다.
+     * 캐시 적용 경로 사용. QueryService 직접 호출 시 preflight 마다 CSP API 를 200건씩 재조회해
+     * 생성 1회당 수백 건 발생.
      */
     private final VmOptionsService vmOptionsService;
 
@@ -48,15 +48,15 @@ public class VmOptionsSelectionValidator {
                 provider, credentialId, region, config.get("anycloud-k8s:workerInstanceType"), "workerInstanceType");
 
         /*
-         * 이미지 식별자는 리전마다 다르고 주기적으로 갈린다. 없는 값을 그대로 보내면 CSP 마다
-         * 다른 방식으로 죽는다: IBM 은 pulumi-yaml 이 패닉해 Go 스택이 그대로 올라온다.
+         * 이미지 식별자는 리전별 상이, 주기적 교체. 존재하지 않는 값 전달 시 CSP 별로 다른
+         * 방식으로 실패. IBM 은 pulumi-yaml 패닉으로 Go 스택 노출.
          */
         validateImage(provider, credentialId, region, config.get("anycloud-k8s:osImage"), "osImage");
 
         /*
-         * 리전에 있다고 모든 존에 있는 것이 아니다. a2-highgpu-1g 는 asia-northeast3 에 있지만
-         * -a 존에는 없고, ecs.ga1.xlarge 는 ap-northeast-2a 에 없다. 리전 목록만 보고 통과시키면
-         * VPC 와 서브넷을 다 만든 뒤 인스턴스에서 403 으로 끝난다.
+         * 리전 제공 여부와 존별 제공 여부는 별개. a2-highgpu-1g 는 asia-northeast3 에 있으나
+         * -a 존에는 미제공, ecs.ga1.xlarge 는 ap-northeast-2a 에 미제공. 리전 목록만으로
+         * 통과시키면 VPC 와 서브넷 생성 후 인스턴스 단계에서 403.
          */
         String zone = config.get("anycloud-k8s:providerSpec.zone");
         validateZone(

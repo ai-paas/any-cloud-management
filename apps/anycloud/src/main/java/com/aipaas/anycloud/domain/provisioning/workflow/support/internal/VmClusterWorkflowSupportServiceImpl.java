@@ -143,15 +143,15 @@ public class VmClusterWorkflowSupportServiceImpl implements VmClusterWorkflowSup
         vmCluster.setLastSuccessfulStep(VmClusterWorkflowStep.DESTROY);
         vmCluster.setActiveRequestKey(null);
         vmCluster.setClusterRegistered(false);
-        // DESTROY 가 방금 cluster row 를 지웠다. 값을 남기면 flush 가 사라진 FK 를 다시 써서
-        // 1452 로 죽고, vm_cluster 는 DELETING 에 갇혀 같은 이름으로 재생성이 409 가 된다.
+        // DESTROY 가 cluster row 를 삭제한 직후. 값을 유지하면 flush 가 삭제된 FK 를 재참조해
+        // 1452 로 실패하고, vm_cluster 가 DELETING 에 고착돼 동일 이름 재생성이 409.
         vmCluster.setClusterId(null);
         vmCluster.setLastError(null);
         vmCluster.setDeletedAt(LocalDateTime.now());
-        // DELETED 후에도 row 는 audit history 로 보존되므로 sensitive 페이로드 (CSP credential / SSH private
-        // key / passphrase / kubeconfig 등) 는 정리. metadata (status/timestamps/cluster_name 등) 만 보존.
-        // credential_name 은 지우지 않는다: 여기 담긴 스냅샷까지 없애면 삭제된 클러스터가 무엇으로
-        // 만들어졌는지 알 길이 사라진다. 자격증명이 지워지면 credential_id 로도 되짚을 수 없다.
+        // DELETED 후에도 row 는 audit history 로 보존되므로 민감 페이로드 (CSP credential, SSH
+        // private key, passphrase, kubeconfig 등) 제거. metadata (status, timestamps,
+        // cluster_name 등) 만 보존. credential_name 은 유지. 이 스냅샷까지 제거하면 삭제된
+        // 클러스터의 생성 자격증명 확인 불가. 자격증명 삭제 시 credential_id 로도 추적 불가.
         vmCluster.setRequestConfig(null);
         vmCluster.setRawOutputs(null);
         vmCluster.setBootstrapLog(null);
@@ -276,9 +276,9 @@ public class VmClusterWorkflowSupportServiceImpl implements VmClusterWorkflowSup
     }
 
     // =================== Operation resource 통합 ===================
-    // ClusterFacadeImpl 이 cluster 작업 시작 시 Operation row 를 미리 만든다.
-    // 워크플로우 단계 핸들러는 그 row 를 진행 단계에 따라 갱신.
-    // 동시 op 가 있을 수 있으나 보통은 1 개: 가장 최근 active 1 개로 향한다(best-effort).
+    // ClusterFacadeImpl 이 cluster 작업 시작 시 Operation row 선행 생성.
+    // 워크플로 단계 핸들러가 해당 row 를 진행 단계에 따라 갱신.
+    // 동시 op 가능하나 대부분 1개. 최신 active 1개 대상 best-effort 처리.
 
     private static int percentForStep(VmClusterWorkflowStep step) {
         if (step == null) return 0;

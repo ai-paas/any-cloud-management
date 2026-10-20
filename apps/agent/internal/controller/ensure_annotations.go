@@ -1,12 +1,11 @@
 // ENSURE_AGENT_CONFIG_ANNOTATIONS 핸들러. ConfigMap 에 helm.sh/resource-policy: keep 이
-// 없으면 붙인다. chart 가 이 annotation 을 넣기 전에 만들어진 ConfigMap 을 메우기 위한 것이다.
+// 없으면 추가. chart 가 해당 annotation 을 도입하기 전에 생성된 ConfigMap 보완 목적.
 //
-// data 는 건드리지 않고 annotation 만 고친다. 이미 붙어 있으면 Update 를 아예 부르지 않고
-// already_present 로 답한다. backend 가 부팅마다 모든 cluster 에 호출해도 Get 한 번씩이라
-// K8s API 부하가 거의 없다.
+// data 는 변경하지 않고 annotation 만 수정. 이미 존재하면 Update 미호출, already_present 응답.
+// backend 가 부팅마다 전체 cluster 에 호출해도 cluster 당 Get 1회라 K8s API 부하 미미.
 //
-// error_code 는 apply_config.go 와 같다. CONFIGMAP_NOT_FOUND, FORBIDDEN, K8S_API_ERROR.
-// 재시도는 ResourceVersion 충돌일 때만 한다.
+// error_code 는 apply_config.go 와 동일. CONFIGMAP_NOT_FOUND, FORBIDDEN, K8S_API_ERROR.
+// 재시도는 ResourceVersion 충돌에만 적용.
 
 package controller
 

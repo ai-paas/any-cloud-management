@@ -1,10 +1,10 @@
 // Package k8s: agent 가 Kubernetes API 와 통신하는 thin abstraction.
 //
-// interface 로 분리한 이유는 셋이다.
-//  1. Dispatcher 가 client-go 구체 타입을 직접 쓰면 테스트에서 GetLogs 의 SubResource API 를
-//     fake clientset 으로 채울 수 없다.
-//  2. in-cluster 와 out-of-cluster 연결을 런타임에 바꾼다.
-//  3. allowlist 검사를 메서드 호출 앞뒤로 감싼다.
+// interface 분리 사유 3가지.
+//  1. Dispatcher 가 client-go 구체 타입을 직접 사용하면 테스트에서 GetLogs 의 SubResource API
+//     를 fake clientset 으로 대체 불가
+//  2. in-cluster 와 out-of-cluster 연결을 런타임에 전환
+//  3. allowlist 검사를 메서드 호출 전후로 래핑
 package k8s
 
 import (
@@ -242,16 +242,15 @@ type DeleteResourceOptions struct {
 	GracePeriodSeconds *int64
 }
 
-// ResolvedResource: Client.ResolveResource 결과. RESTMapper 가 입력 kind 문자열로부터
-// 정규화한 GVR + scope 정보. dispatcher 가 namespace allowlist / resource policy 검사 시 사용.
+// ResolvedResource: Client.ResolveResource 결과. RESTMapper 가 입력 kind 문자열에서 정규화한
+// GVR 과 scope 정보. dispatcher 의 namespace allowlist, resource policy 검사에 사용.
 //
 // Plural 은 lowercase plural resource name (예: "pods", "storageclasses", "customresourcedefinitions").
-// CRD 의 짧은 이름 (예: "vpa") 도 RESTMapper 가 인식 가능하면 plural 로 정규화됨.
+// CRD 의 short name (예: "vpa") 도 RESTMapper 가 인식하면 plural 로 정규화.
 //
-// Singular / Kind / ShortNames 는 RESOLVE_RESOURCE 명령에서만 필요한 추가 필드.
-// resolveKindToGVR 만으론 채울 수 없어 (RESTMapper 는 plural 만 노출) discovery 의
-// APIResource 와 매칭해서 best-effort 로 채운다. 매칭 실패 시 빈 값: caller (dispatcher)
-// 는 빈 값이어도 OK 응답을 만든다.
+// Singular, Kind, ShortNames 는 RESOLVE_RESOURCE 명령 전용 추가 필드. RESTMapper 가 plural 만
+// 노출해 resolveKindToGVR 로는 채울 수 없으므로 discovery 의 APIResource 와 매칭해 best-effort
+// 설정. 매칭 실패 시 빈 값이며, caller (dispatcher) 는 빈 값에도 OK 응답 구성.
 type ResolvedResource struct {
 	Plural     string   // lowercase plural resource name (RESTMapping.Resource.Resource)
 	Singular   string   // lowercase singular (예: "pod"). discovery match 실패 시 "".
