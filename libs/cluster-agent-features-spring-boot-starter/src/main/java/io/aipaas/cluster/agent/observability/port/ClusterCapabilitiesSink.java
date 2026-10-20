@@ -18,11 +18,11 @@ package io.aipaas.cluster.agent.observability.port;
  */
 public interface ClusterCapabilitiesSink {
 
-	/**
-	 * Cluster 의 GPU 노드 존재 여부 update.
-	 *
-	 * @param clusterName 대상 cluster
-	 * @param value       agent 가 감지한 최신 값 — gpu_node_count > 0 면 true
-	 */
-	void setHasGpuNodes(String clusterName, boolean value);
+    /**
+     * Cluster 의 GPU 노드 존재 여부 update.
+     *
+     * @param clusterName 대상 cluster
+     * @param value       agent 가 감지한 최신 값 — gpu_node_count > 0 면 true
+     */
+    void setHasGpuNodes(String clusterName, boolean value);
 }

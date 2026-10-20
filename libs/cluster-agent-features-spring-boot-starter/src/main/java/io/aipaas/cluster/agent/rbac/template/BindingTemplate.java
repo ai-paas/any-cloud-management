@@ -14,23 +14,26 @@ import java.util.List;
  *               {@code aipaas.io/addon=<addonId>} 매칭으로 일괄 cleanup 가능.
  */
 public record BindingTemplate(
-		String id,
-		LabelSelector forClusters,
-		OidcGroupSelector oidcGroupSelector,
-		List<TargetSubject> targetSubjects,
-		List<RoleRef> roleRefs,
-		String addonId) {
+        String id,
+        LabelSelector forClusters,
+        OidcGroupSelector oidcGroupSelector,
+        List<TargetSubject> targetSubjects,
+        List<RoleRef> roleRefs,
+        String addonId) {
 
-	public BindingTemplate {
-		if (forClusters == null) forClusters = new LabelSelector(null);
-		if (targetSubjects == null) targetSubjects = List.of();
-		if (roleRefs == null) roleRefs = List.of();
-	}
+    public BindingTemplate {
+        if (forClusters == null) forClusters = new LabelSelector(null);
+        if (targetSubjects == null) targetSubjects = List.of();
+        if (roleRefs == null) roleRefs = List.of();
+    }
 
-	/** 운영자 작성 catalog template (addon hook 외) 용 5-arg constructor. */
-	public BindingTemplate(String id, LabelSelector forClusters,
-			OidcGroupSelector oidcGroupSelector, List<TargetSubject> targetSubjects,
-			List<RoleRef> roleRefs) {
-		this(id, forClusters, oidcGroupSelector, targetSubjects, roleRefs, null);
-	}
+    /** 운영자 작성 catalog template (addon hook 외) 용 5-arg constructor. */
+    public BindingTemplate(
+            String id,
+            LabelSelector forClusters,
+            OidcGroupSelector oidcGroupSelector,
+            List<TargetSubject> targetSubjects,
+            List<RoleRef> roleRefs) {
+        this(id, forClusters, oidcGroupSelector, targetSubjects, roleRefs, null);
+    }
 }

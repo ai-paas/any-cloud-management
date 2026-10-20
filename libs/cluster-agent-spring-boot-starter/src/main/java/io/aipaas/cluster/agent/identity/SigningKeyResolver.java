@@ -21,10 +21,10 @@ package io.aipaas.cluster.agent.identity;
 @FunctionalInterface
 public interface SigningKeyResolver {
 
-	/**
-	 * 서명 키 bytes 반환. startup 시 1회만 호출.
-	 *
-	 * @return HMAC-SHA256 호환 키 (>= 32 bytes)
-	 */
-	byte[] resolveSigningKey();
+    /**
+     * 서명 키 bytes 반환. startup 시 1회만 호출.
+     *
+     * @return HMAC-SHA256 호환 키 (>= 32 bytes)
+     */
+    byte[] resolveSigningKey();
 }

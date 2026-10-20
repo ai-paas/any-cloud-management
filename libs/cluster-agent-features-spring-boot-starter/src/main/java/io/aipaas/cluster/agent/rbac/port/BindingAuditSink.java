@@ -13,5 +13,5 @@ import io.aipaas.cluster.agent.rbac.audit.BindingAuditEvent;
  */
 public interface BindingAuditSink {
 
-	void record(BindingAuditEvent event);
+    void record(BindingAuditEvent event);
 }

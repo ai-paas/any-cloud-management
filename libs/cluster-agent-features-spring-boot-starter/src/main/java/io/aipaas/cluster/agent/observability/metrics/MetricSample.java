@@ -11,12 +11,12 @@ import java.util.Map;
  */
 public record MetricSample(double value, Map<String, String> labels, Instant timestamp) {
 
-	public MetricSample {
-		labels = labels == null ? Map.of() : Map.copyOf(labels);
-	}
+    public MetricSample {
+        labels = labels == null ? Map.of() : Map.copyOf(labels);
+    }
 
-	/** vector 결과의 단일 sample 인 경우 label 값으로 group 식별. */
-	public String label(String key) {
-		return labels.get(key);
-	}
+    /** vector 결과의 단일 sample 인 경우 label 값으로 group 식별. */
+    public String label(String key) {
+        return labels.get(key);
+    }
 }

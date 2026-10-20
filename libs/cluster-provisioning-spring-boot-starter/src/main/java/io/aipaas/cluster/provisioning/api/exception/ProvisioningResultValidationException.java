@@ -17,18 +17,18 @@ import lombok.Getter;
 @Getter
 public class ProvisioningResultValidationException extends RuntimeException {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	private final Set<ConstraintViolation<ProvisioningResult>> violations;
+    private final Set<ConstraintViolation<ProvisioningResult>> violations;
 
-	public ProvisioningResultValidationException(Set<ConstraintViolation<ProvisioningResult>> violations) {
-		super("ProvisioningResult schema validation failed: " + summary(violations));
-		this.violations = violations;
-	}
+    public ProvisioningResultValidationException(Set<ConstraintViolation<ProvisioningResult>> violations) {
+        super("ProvisioningResult schema validation failed: " + summary(violations));
+        this.violations = violations;
+    }
 
-	private static String summary(Set<ConstraintViolation<ProvisioningResult>> violations) {
-		return violations.stream()
-				.map(v -> v.getPropertyPath() + " " + v.getMessage())
-				.collect(Collectors.joining("; "));
-	}
+    private static String summary(Set<ConstraintViolation<ProvisioningResult>> violations) {
+        return violations.stream()
+                .map(v -> v.getPropertyPath() + " " + v.getMessage())
+                .collect(Collectors.joining("; "));
+    }
 }

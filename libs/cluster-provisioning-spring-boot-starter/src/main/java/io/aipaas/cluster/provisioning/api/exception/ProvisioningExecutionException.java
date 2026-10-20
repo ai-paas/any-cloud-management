@@ -9,11 +9,11 @@ package io.aipaas.cluster.provisioning.api.exception;
  */
 public class ProvisioningExecutionException extends RuntimeException {
 
-	public ProvisioningExecutionException(String message) {
-		super(message);
-	}
+    public ProvisioningExecutionException(String message) {
+        super(message);
+    }
 
-	public ProvisioningExecutionException(String message, Throwable cause) {
-		super(message, cause);
-	}
+    public ProvisioningExecutionException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

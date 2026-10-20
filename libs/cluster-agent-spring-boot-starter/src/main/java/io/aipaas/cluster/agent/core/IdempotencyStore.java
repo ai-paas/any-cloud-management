@@ -13,12 +13,12 @@ import java.time.Duration;
  */
 public interface IdempotencyStore {
 
-	/**
-	 * Key 가 unused 면 lock 획득 + true 반환. 이미 lock 됐으면 false.
-	 *
-	 * @param key  멱등성 key (예: JWT jti claim).
-	 * @param ttl  최소 lock 유지 시간. 이 시간 이후 자동 expire 권장 (DB 부하 방지).
-	 * @return  새로 lock 획득 성공 여부.
-	 */
-	boolean tryLock(String key, Duration ttl);
+    /**
+     * Key 가 unused 면 lock 획득 + true 반환. 이미 lock 됐으면 false.
+     *
+     * @param key  멱등성 key (예: JWT jti claim).
+     * @param ttl  최소 lock 유지 시간. 이 시간 이후 자동 expire 권장 (DB 부하 방지).
+     * @return  새로 lock 획득 성공 여부.
+     */
+    boolean tryLock(String key, Duration ttl);
 }

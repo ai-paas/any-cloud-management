@@ -12,8 +12,4 @@ package io.aipaas.cluster.agent.observability.core;
  * @param isRange        true 면 query_range, false 면 instant query.
  * @param raw            Prometheus 응답의 JSON body 그대로. {@code {"status":"success","data":{...}}}.
  */
-public record PromQLResult(
-		String clusterName,
-		String prometheusUrl,
-		boolean isRange,
-		String raw) {}
+public record PromQLResult(String clusterName, String prometheusUrl, boolean isRange, String raw) {}

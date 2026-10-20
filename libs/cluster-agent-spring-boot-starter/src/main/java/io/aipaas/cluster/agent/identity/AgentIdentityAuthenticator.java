@@ -30,31 +30,35 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class AgentIdentityAuthenticator {
 
-	private final AgentIdentityStore identityStore;
-	private final Clock clock;
+    private final AgentIdentityStore identityStore;
+    private final Clock clock;
 
-	/**
-	 * Bearer identity_token → AgentIdentity. 실패 시 빈 Optional + log 만 (정보 leak 방지).
-	 *
-	 * @return 통과 시 유효한 {@link AgentIdentity}. 실패 시 빈 Optional + 자세한 reason 은 log.
-	 */
-	public Optional<AgentIdentity> authenticate(String identityToken) {
-		if (identityToken == null || identityToken.isBlank()) {
-			log.debug("Runtime auth rejected: empty token");
-			return Optional.empty();
-		}
-		String hash = TokenHasher.sha256Hex(identityToken);
-		Optional<AgentIdentity> found = identityStore.findByIdentityTokenHash(hash);
-		if (found.isEmpty()) {
-			log.debug("Runtime auth rejected: token hash not found");
-			return Optional.empty();
-		}
-		AgentIdentity agent = found.get();
-		if (!agent.isAuthValid(clock.instant())) {
-			log.warn("Runtime auth rejected: identity not valid cluster={} status={} revoked={} expires={}",
-					agent.clusterName(), agent.status(), agent.revokedAt(), agent.expiresAt());
-			return Optional.empty();
-		}
-		return Optional.of(agent);
-	}
+    /**
+     * Bearer identity_token → AgentIdentity. 실패 시 빈 Optional + log 만 (정보 leak 방지).
+     *
+     * @return 통과 시 유효한 {@link AgentIdentity}. 실패 시 빈 Optional + 자세한 reason 은 log.
+     */
+    public Optional<AgentIdentity> authenticate(String identityToken) {
+        if (identityToken == null || identityToken.isBlank()) {
+            log.debug("Runtime auth rejected: empty token");
+            return Optional.empty();
+        }
+        String hash = TokenHasher.sha256Hex(identityToken);
+        Optional<AgentIdentity> found = identityStore.findByIdentityTokenHash(hash);
+        if (found.isEmpty()) {
+            log.debug("Runtime auth rejected: token hash not found");
+            return Optional.empty();
+        }
+        AgentIdentity agent = found.get();
+        if (!agent.isAuthValid(clock.instant())) {
+            log.warn(
+                    "Runtime auth rejected: identity not valid cluster={} status={} revoked={} expires={}",
+                    agent.clusterName(),
+                    agent.status(),
+                    agent.revokedAt(),
+                    agent.expiresAt());
+            return Optional.empty();
+        }
+        return Optional.of(agent);
+    }
 }

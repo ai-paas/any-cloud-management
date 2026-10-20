@@ -10,16 +10,11 @@ package io.aipaas.cluster.agent.observability.metrics;
  *                     window 가 필요 없으면 placeholder 도 없음.
  * @param hasWindow    {@code promql} 안에 {@code {{window}}} placeholder 가 있는지.
  */
-public record StandardQuery(
-		String id,
-		String label,
-		String description,
-		String promql,
-		boolean hasWindow) {
+public record StandardQuery(String id, String label, String description, String promql, boolean hasWindow) {
 
-	/** placeholder 치환 — hasWindow=false 면 원본 그대로. */
-	public String render(String window) {
-		if (!hasWindow) return promql;
-		return promql.replace("{{window}}", window == null || window.isBlank() ? "5m" : window);
-	}
+    /** placeholder 치환 — hasWindow=false 면 원본 그대로. */
+    public String render(String window) {
+        if (!hasWindow) return promql;
+        return promql.replace("{{window}}", window == null || window.isBlank() ? "5m" : window);
+    }
 }

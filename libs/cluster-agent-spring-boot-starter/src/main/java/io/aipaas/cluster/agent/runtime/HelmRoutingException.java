@@ -6,11 +6,11 @@ package io.aipaas.cluster.agent.runtime;
  */
 public class HelmRoutingException extends RuntimeException {
 
-	public HelmRoutingException(String message) {
-		super(message);
-	}
+    public HelmRoutingException(String message) {
+        super(message);
+    }
 
-	public HelmRoutingException(String message, Throwable cause) {
-		super(message, cause);
-	}
+    public HelmRoutingException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

@@ -23,46 +23,41 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "cluster-agent")
 public record ClusterAgentProperties(Health health, Exec exec, Routing routing) {
 
-	public ClusterAgentProperties {
-		if (health == null) {
-			health = new Health(null);
-		}
-		if (exec == null) {
-			exec = new Exec(null, 0, null);
-		}
-		if (routing == null) {
-			routing = new Routing(true, 0);
-		}
-	}
+    public ClusterAgentProperties {
+        if (health == null) {
+            health = new Health(null);
+        }
+        if (exec == null) {
+            exec = new Exec(null, 0, null);
+        }
+        if (routing == null) {
+            routing = new Routing(true, 0);
+        }
+    }
 
-	/** Nested record 들도 자체 compact constructor 로 field-level default 처리 — host yaml 에
-	 * 일부 field 만 명시되어 binding 후 null/0 으로 들어오는 케이스 안전 회피. */
-	public record Health(Duration heartbeatStalenessThreshold) {
-		public Health {
-			if (heartbeatStalenessThreshold == null) {
-				heartbeatStalenessThreshold = Duration.ofSeconds(90);
-			}
-		}
-	}
+    /** Nested record 들도 자체 compact constructor 로 field-level default 처리 — host yaml 에
+     * 일부 field 만 명시되어 binding 후 null/0 으로 들어오는 케이스 안전 회피. */
+    public record Health(Duration heartbeatStalenessThreshold) {
+        public Health {
+            if (heartbeatStalenessThreshold == null) {
+                heartbeatStalenessThreshold = Duration.ofSeconds(90);
+            }
+        }
+    }
 
-	public record Exec(
-			Duration bindTimeout,
-			@Min(8192) int websocketBufferBytes,
-			String websocketPathPattern) {
-		public Exec {
-			if (bindTimeout == null) bindTimeout = Duration.ofSeconds(30);
-			if (websocketBufferBytes <= 0) websocketBufferBytes = 64 * 1024;
-			if (websocketPathPattern == null || websocketPathPattern.isBlank()) {
-				websocketPathPattern = "/v1/clusters/*/pods/*/*/exec";
-			}
-		}
-	}
+    public record Exec(Duration bindTimeout, @Min(8192) int websocketBufferBytes, String websocketPathPattern) {
+        public Exec {
+            if (bindTimeout == null) bindTimeout = Duration.ofSeconds(30);
+            if (websocketBufferBytes <= 0) websocketBufferBytes = 64 * 1024;
+            if (websocketPathPattern == null || websocketPathPattern.isBlank()) {
+                websocketPathPattern = "/v1/clusters/*/pods/*/*/exec";
+            }
+        }
+    }
 
-	public record Routing(
-			boolean enabled,
-			@Min(1) int commandTimeoutSeconds) {
-		public Routing {
-			if (commandTimeoutSeconds <= 0) commandTimeoutSeconds = 15;
-		}
-	}
+    public record Routing(boolean enabled, @Min(1) int commandTimeoutSeconds) {
+        public Routing {
+            if (commandTimeoutSeconds <= 0) commandTimeoutSeconds = 15;
+        }
+    }
 }

@@ -1,6 +1,6 @@
 package io.aipaas.cluster.agent.backup.node;
-import io.aipaas.cluster.agent.backup.port.BackupHistoryWriter;
 
+import io.aipaas.cluster.agent.backup.port.BackupHistoryWriter;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -16,23 +16,28 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NoOpBackupHistoryWriter implements BackupHistoryWriter {
 
-	@Override
-	public String start(BackupStartRequest request) {
-		log.debug("NoOpBackupHistoryWriter.start: cluster={} type={} (not persisted)",
-				request.clusterId(), request.backupType());
-		// id 는 caller 가 trace 에 매핑할 수 있게 stable 생성. UUID 사용 — host 가 자체 impl 시
-		// 다른 id scheme 도 OK.
-		return "noop-" + System.nanoTime();
-	}
+    @Override
+    public String start(BackupStartRequest request) {
+        log.debug(
+                "NoOpBackupHistoryWriter.start: cluster={} type={} (not persisted)",
+                request.clusterId(),
+                request.backupType());
+        // id 는 caller 가 trace 에 매핑할 수 있게 stable 생성. UUID 사용 — host 가 자체 impl 시
+        // 다른 id scheme 도 OK.
+        return "noop-" + System.nanoTime();
+    }
 
-	@Override
-	public void succeed(String historyId, BackupSuccessReport report) {
-		log.debug("NoOpBackupHistoryWriter.succeed: id={} size={} uri={} (not persisted)",
-				historyId, report.sizeBytes(), report.storageUri());
-	}
+    @Override
+    public void succeed(String historyId, BackupSuccessReport report) {
+        log.debug(
+                "NoOpBackupHistoryWriter.succeed: id={} size={} uri={} (not persisted)",
+                historyId,
+                report.sizeBytes(),
+                report.storageUri());
+    }
 
-	@Override
-	public void fail(String historyId, String error) {
-		log.debug("NoOpBackupHistoryWriter.fail: id={} error={} (not persisted)", historyId, error);
-	}
+    @Override
+    public void fail(String historyId, String error) {
+        log.debug("NoOpBackupHistoryWriter.fail: id={} error={} (not persisted)", historyId, error);
+    }
 }

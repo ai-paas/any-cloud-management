@@ -12,19 +12,19 @@ package io.aipaas.cluster.agent.observability.core;
  */
 public class ObservabilityException extends RuntimeException {
 
-	private final String errorCode;
+    private final String errorCode;
 
-	public ObservabilityException(String errorCode, String message) {
-		super(message);
-		this.errorCode = errorCode;
-	}
+    public ObservabilityException(String errorCode, String message) {
+        super(message);
+        this.errorCode = errorCode;
+    }
 
-	public ObservabilityException(String errorCode, String message, Throwable cause) {
-		super(message, cause);
-		this.errorCode = errorCode;
-	}
+    public ObservabilityException(String errorCode, String message, Throwable cause) {
+        super(message, cause);
+        this.errorCode = errorCode;
+    }
 
-	public String errorCode() {
-		return errorCode;
-	}
+    public String errorCode() {
+        return errorCode;
+    }
 }

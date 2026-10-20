@@ -15,18 +15,13 @@ package io.aipaas.cluster.agent.backup.node;
  * @param metadata   "etcd_version=3.5.10" / "file_count=42,uncompressed_size=3145728" 등
  */
 public record BackupResult(
-		String clusterName,
-		String nodeName,
-		byte[] payload,
-		long sizeBytes,
-		String sha256Hex,
-		String metadata) {
+        String clusterName, String nodeName, byte[] payload, long sizeBytes, String sha256Hex, String metadata) {
 
-	/** 짧은 toString — 큰 payload 가 log 에 dump 되는 사고 방지. */
-	@Override
-	public String toString() {
-		return "BackupResult{cluster=" + clusterName + ", node=" + nodeName
-				+ ", size=" + sizeBytes + ", sha256=" + sha256Hex
-				+ ", metadata='" + metadata + "'}";
-	}
+    /** 짧은 toString — 큰 payload 가 log 에 dump 되는 사고 방지. */
+    @Override
+    public String toString() {
+        return "BackupResult{cluster=" + clusterName + ", node=" + nodeName
+                + ", size=" + sizeBytes + ", sha256=" + sha256Hex
+                + ", metadata='" + metadata + "'}";
+    }
 }

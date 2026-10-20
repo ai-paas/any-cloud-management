@@ -29,60 +29,63 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class LogStreamSessionRegistry {
 
-	private final Map<String, LogStreamBridge> pendingBySession = new ConcurrentHashMap<>();
-	private final ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(1, r -> {
-		Thread t = new Thread(r, "logstream-session-expirer");
-		t.setDaemon(true);
-		return t;
-	});
+    private final Map<String, LogStreamBridge> pendingBySession = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(1, r -> {
+        Thread t = new Thread(r, "logstream-session-expirer");
+        t.setDaemon(true);
+        return t;
+    });
 
-	/**
-	 * 새 pending session. 호출자 (SSE controller) 가 bridge 에 callbacks set 후 agent 에 OpenLogStream push.
-	 */
-	public PendingLogStreamSession createPending(Duration expireAfter) {
-		String sessionId = UUID.randomUUID().toString();
-		LogStreamBridge bridge = new LogStreamBridge(sessionId);
-		pendingBySession.put(sessionId, bridge);
+    /**
+     * 새 pending session. 호출자 (SSE controller) 가 bridge 에 callbacks set 후 agent 에 OpenLogStream push.
+     */
+    public PendingLogStreamSession createPending(Duration expireAfter) {
+        String sessionId = UUID.randomUUID().toString();
+        LogStreamBridge bridge = new LogStreamBridge(sessionId);
+        pendingBySession.put(sessionId, bridge);
 
-		scheduler.schedule(() -> {
-			LogStreamBridge existing = pendingBySession.get(sessionId);
-			if (existing != null && !existing.isAgentBound()) {
-				pendingBySession.remove(sessionId);
-				existing.markFailed("timeout waiting for agent to open log stream");
-				log.warn("Log stream session {} expired (agent never connected)", sessionId);
-			}
-		}, expireAfter.toMillis(), TimeUnit.MILLISECONDS);
+        scheduler.schedule(
+                () -> {
+                    LogStreamBridge existing = pendingBySession.get(sessionId);
+                    if (existing != null && !existing.isAgentBound()) {
+                        pendingBySession.remove(sessionId);
+                        existing.markFailed("timeout waiting for agent to open log stream");
+                        log.warn("Log stream session {} expired (agent never connected)", sessionId);
+                    }
+                },
+                expireAfter.toMillis(),
+                TimeUnit.MILLISECONDS);
 
-		return new PendingLogStreamSession(sessionId, bridge);
-	}
+        return new PendingLogStreamSession(sessionId, bridge);
+    }
 
-	/** Agent stream 의 첫 packet 도착 시 호출. session_id 매칭되면 bridge 반환 + bind. */
-	public LogStreamBridge bindAgentStream(String sessionId,
-			io.grpc.stub.StreamObserver<io.aipaas.cluster.agent.v1.LogPacket> agentObserver) {
-		LogStreamBridge bridge = pendingBySession.remove(sessionId);
-		if (bridge == null) {
-			return null;
-		}
-		if (!bridge.bindAgent(agentObserver)) {
-			return null;
-		}
-		return bridge;
-	}
+    /** Agent stream 의 첫 packet 도착 시 호출. session_id 매칭되면 bridge 반환 + bind. */
+    public LogStreamBridge bindAgentStream(
+            String sessionId, io.grpc.stub.StreamObserver<io.aipaas.cluster.agent.v1.LogPacket> agentObserver) {
+        LogStreamBridge bridge = pendingBySession.remove(sessionId);
+        if (bridge == null) {
+            return null;
+        }
+        if (!bridge.bindAgent(agentObserver)) {
+            return null;
+        }
+        return bridge;
+    }
 
-	/** Safety net — agent error / disconnect 시 cleanup. 이미 제거됐으면 no-op. */
-	public void remove(String sessionId) {
-		pendingBySession.remove(sessionId);
-	}
+    /** Safety net — agent error / disconnect 시 cleanup. 이미 제거됐으면 no-op. */
+    public void remove(String sessionId) {
+        pendingBySession.remove(sessionId);
+    }
 
-	/** pending session 수 (모니터링/디버깅). */
-	public int pendingCount() {
-		return pendingBySession.size();
-	}
+    /** pending session 수 (모니터링/디버깅). */
+    public int pendingCount() {
+        return pendingBySession.size();
+    }
 
-	@PreDestroy
-	void shutdown() {
-		scheduler.shutdownNow();
-	}
+    @PreDestroy
+    void shutdown() {
+        scheduler.shutdownNow();
+    }
 
-	public record PendingLogStreamSession(String sessionId, LogStreamBridge bridge) {}
+    public record PendingLogStreamSession(String sessionId, LogStreamBridge bridge) {}
 }

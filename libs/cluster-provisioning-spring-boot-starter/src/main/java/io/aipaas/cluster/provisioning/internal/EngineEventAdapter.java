@@ -25,8 +25,13 @@ public class EngineEventAdapter {
     public void publish(String operationId, EngineEvent event) {
         try {
             ProvisionEvent provisionEvent = new ProvisionEvent(
-                    operationId, inferType(event), Instant.now(), null,
-                    extractMessage(event), extractSeverity(event), Map.of());
+                    operationId,
+                    inferType(event),
+                    Instant.now(),
+                    null,
+                    extractMessage(event),
+                    extractSeverity(event),
+                    Map.of());
             eventBus.publish(provisionEvent);
         } catch (Exception e) {
             log.debug("Failed to publish engine event: {}", e.getMessage());

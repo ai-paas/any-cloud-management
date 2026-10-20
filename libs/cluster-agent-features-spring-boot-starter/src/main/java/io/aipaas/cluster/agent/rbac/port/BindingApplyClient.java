@@ -20,14 +20,14 @@ import io.aipaas.cluster.agent.rbac.template.BindingTemplate;
  */
 public interface BindingApplyClient {
 
-	/** 단일 (template, group) 조합에 대한 K8s binding 생성 또는 갱신. */
-	ApplyResult apply(String clusterName, BindingTemplate template, String resolvedGroup, String actor);
+    /** 단일 (template, group) 조합에 대한 K8s binding 생성 또는 갱신. */
+    ApplyResult apply(String clusterName, BindingTemplate template, String resolvedGroup, String actor);
 
-	/** label selector {@code aipaas.io/template=<templateId>} 매칭되는 binding 일괄 삭제. */
-	void deleteByTemplate(String clusterName, String templateId, String actor);
+    /** label selector {@code aipaas.io/template=<templateId>} 매칭되는 binding 일괄 삭제. */
+    void deleteByTemplate(String clusterName, String templateId, String actor);
 
-	/** label selector {@code aipaas.io/addon=<addonName>} 매칭되는 binding 일괄 삭제. */
-	void deleteByAddon(String clusterName, String addonName, String actor);
+    /** label selector {@code aipaas.io/addon=<addonName>} 매칭되는 binding 일괄 삭제. */
+    void deleteByAddon(String clusterName, String addonName, String actor);
 
-	record ApplyResult(String k8sBindingName, String namespace) {}
+    record ApplyResult(String k8sBindingName, String namespace) {}
 }

@@ -17,24 +17,18 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties(prefix = "cluster-agent")
 public record AgentJwtProperties(Jwt jwt, Identity identity) {
 
-	public AgentJwtProperties {
-		if (jwt == null) {
-			jwt = new Jwt(null, "cluster-agent", "cluster-agent-registration", 600);
-		}
-		if (identity == null) {
-			identity = new Identity(365);
-		}
-	}
+    public AgentJwtProperties {
+        if (jwt == null) {
+            jwt = new Jwt(null, "cluster-agent", "cluster-agent-registration", 600);
+        }
+        if (identity == null) {
+            identity = new Identity(365);
+        }
+    }
 
-	public record Jwt(
-			/** HS256 서명 키 (>= 32 bytes). 비어 있으면 startup 시 임의 생성 (dev 만). prod 는 반드시 env. */
-			String secret,
-			@NotBlank String issuer,
-			@NotBlank String audience,
-			@Min(60) long ttlSeconds) {
-	}
+    public record Jwt(
+            /** HS256 서명 키 (>= 32 bytes). 비어 있으면 startup 시 임의 생성 (dev 만). prod 는 반드시 env. */
+            String secret, @NotBlank String issuer, @NotBlank String audience, @Min(60) long ttlSeconds) {}
 
-	public record Identity(
-			@Min(1) int ttlDays) {
-	}
+    public record Identity(@Min(1) int ttlDays) {}
 }

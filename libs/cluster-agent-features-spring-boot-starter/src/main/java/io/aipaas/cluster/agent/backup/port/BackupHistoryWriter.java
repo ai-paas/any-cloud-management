@@ -23,52 +23,50 @@ import java.util.Optional;
  */
 public interface BackupHistoryWriter {
 
-	/**
-	 * Backup 시작 기록. row id 반환 (host backend 가 결정 — UUID 권장).
-	 * 같은 cluster + backup_type 의 history 가 다수 row 로 누적되어도 OK (각자 별 id).
-	 */
-	String start(BackupStartRequest request);
+    /**
+     * Backup 시작 기록. row id 반환 (host backend 가 결정 — UUID 권장).
+     * 같은 cluster + backup_type 의 history 가 다수 row 로 누적되어도 OK (각자 별 id).
+     */
+    String start(BackupStartRequest request);
 
-	/** Backup 성공 기록. {@link #start} 가 반환한 id 로 같은 row 갱신. */
-	void succeed(String historyId, BackupSuccessReport report);
+    /** Backup 성공 기록. {@link #start} 가 반환한 id 로 같은 row 갱신. */
+    void succeed(String historyId, BackupSuccessReport report);
 
-	/** Backup 실패 기록. error 메시지 + completed_at 갱신. */
-	void fail(String historyId, String error);
+    /** Backup 실패 기록. error 메시지 + completed_at 갱신. */
+    void fail(String historyId, String error);
 
-	/** History id 로 조회 (admin / UI 용). 미구현이면 {@link Optional#empty()} 가능. */
-	default Optional<BackupRecord> findById(String historyId) {
-		return Optional.empty();
-	}
+    /** History id 로 조회 (admin / UI 용). 미구현이면 {@link Optional#empty()} 가능. */
+    default Optional<BackupRecord> findById(String historyId) {
+        return Optional.empty();
+    }
 
-	// ---- DTOs ----
+    // ---- DTOs ----
 
-	/** Backup 시작 요청 payload — start() 의 input. */
-	record BackupStartRequest(
-			String clusterId,
-			String backupType,           // ETCD / PKI / VELERO_FULL / VELERO_NAMESPACE / VELERO_SELECTOR
-			String veleroBackupName,     // VELERO_* 만 채움 — type=ETCD/PKI 는 null
-			String requestedBy) {        // impersonation user; system action 은 null
-	}
+    /** Backup 시작 요청 payload — start() 의 input. */
+    record BackupStartRequest(
+            String clusterId,
+            String backupType, // ETCD / PKI / VELERO_FULL / VELERO_NAMESPACE / VELERO_SELECTOR
+            String veleroBackupName, // VELERO_* 만 채움 — type=ETCD/PKI 는 null
+            String requestedBy) { // impersonation user; system action 은 null
+    }
 
-	/** Backup 성공 보고 — succeed() 의 input. */
-	record BackupSuccessReport(
-			long sizeBytes,
-			String storageUri,           // s3://... / file://... / velero-backup-store/...
-			Instant completedAt) {
-	}
+    /** Backup 성공 보고 — succeed() 의 input. */
+    record BackupSuccessReport(
+            long sizeBytes,
+            String storageUri, // s3://... / file://... / velero-backup-store/...
+            Instant completedAt) {}
 
-	/** History row 조회 결과 — findById() 의 output. */
-	record BackupRecord(
-			String id,
-			String clusterId,
-			String backupType,
-			String veleroBackupName,
-			String status,               // STARTED / SUCCEEDED / FAILED
-			Long sizeBytes,
-			String storageUri,
-			String requestedBy,
-			String error,
-			Instant startedAt,
-			Instant completedAt) {
-	}
+    /** History row 조회 결과 — findById() 의 output. */
+    record BackupRecord(
+            String id,
+            String clusterId,
+            String backupType,
+            String veleroBackupName,
+            String status, // STARTED / SUCCEEDED / FAILED
+            Long sizeBytes,
+            String storageUri,
+            String requestedBy,
+            String error,
+            Instant startedAt,
+            Instant completedAt) {}
 }

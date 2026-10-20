@@ -1,8 +1,8 @@
 package io.aipaas.cluster.agent.logstream;
 
-import io.aipaas.cluster.agent.v1.LogStreamRequest;
 import io.aipaas.cluster.agent.logstream.LogStreamSessionRegistry.PendingLogStreamSession;
 import io.aipaas.cluster.agent.runtime.AgentSessionRegistry;
+import io.aipaas.cluster.agent.v1.LogStreamRequest;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,44 +27,44 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class PodLogStreamService {
 
-	private static final Duration DEFAULT_BIND_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration DEFAULT_BIND_TIMEOUT = Duration.ofSeconds(30);
 
-	private final LogStreamSessionRegistry sessionRegistry;
-	private final AgentSessionRegistry agentSessionRegistry;
+    private final LogStreamSessionRegistry sessionRegistry;
+    private final AgentSessionRegistry agentSessionRegistry;
 
-	/** routing flag — false 면 항상 {@link #isActiveFor} = false. */
-	private final boolean enabled;
+    /** routing flag — false 면 항상 {@link #isActiveFor} = false. */
+    private final boolean enabled;
 
-	/**
-	 * 새 log stream 세션을 열고 bridge 반환. Caller 가 즉시 bridge 에 callbacks 등록 권장.
-	 *
-	 * @return bridge, 또는 agent active session 없으면 null.
-	 */
-	public LogStreamBridge openStream(String clusterName, LogStreamRequest request) {
-		if (!enabled) {
-			log.debug("openStream: routing disabled — caller fallback");
-			return null;
-		}
-		PendingLogStreamSession pending = sessionRegistry.createPending(DEFAULT_BIND_TIMEOUT);
-		// session_id 를 request 에 echo (agent 가 첫 LogPacket{Request} 로 다시 보냄).
-		LogStreamRequest enriched = LogStreamRequest.newBuilder(request)
-				.setSessionId(pending.sessionId())
-				.build();
-		boolean pushed = agentSessionRegistry.openLogStream(clusterName, pending.sessionId(), enriched);
-		if (!pushed) {
-			sessionRegistry.remove(pending.sessionId());
-			log.warn("openStream: no active agent session cluster={}", clusterName);
-			return null;
-		}
-		log.info("Log stream opened cluster={} session={}", clusterName, pending.sessionId());
-		return pending.bridge();
-	}
+    /**
+     * 새 log stream 세션을 열고 bridge 반환. Caller 가 즉시 bridge 에 callbacks 등록 권장.
+     *
+     * @return bridge, 또는 agent active session 없으면 null.
+     */
+    public LogStreamBridge openStream(String clusterName, LogStreamRequest request) {
+        if (!enabled) {
+            log.debug("openStream: routing disabled — caller fallback");
+            return null;
+        }
+        PendingLogStreamSession pending = sessionRegistry.createPending(DEFAULT_BIND_TIMEOUT);
+        // session_id 를 request 에 echo (agent 가 첫 LogPacket{Request} 로 다시 보냄).
+        LogStreamRequest enriched = LogStreamRequest.newBuilder(request)
+                .setSessionId(pending.sessionId())
+                .build();
+        boolean pushed = agentSessionRegistry.openLogStream(clusterName, pending.sessionId(), enriched);
+        if (!pushed) {
+            sessionRegistry.remove(pending.sessionId());
+            log.warn("openStream: no active agent session cluster={}", clusterName);
+            return null;
+        }
+        log.info("Log stream opened cluster={} session={}", clusterName, pending.sessionId());
+        return pending.bridge();
+    }
 
-	/** routing flag ON + active agent session 있으면 true. */
-	public boolean isActiveFor(String clusterName) {
-		if (!enabled) {
-			return false;
-		}
-		return agentSessionRegistry.find(clusterName).isPresent();
-	}
+    /** routing flag ON + active agent session 있으면 true. */
+    public boolean isActiveFor(String clusterName) {
+        if (!enabled) {
+            return false;
+        }
+        return agentSessionRegistry.find(clusterName).isPresent();
+    }
 }

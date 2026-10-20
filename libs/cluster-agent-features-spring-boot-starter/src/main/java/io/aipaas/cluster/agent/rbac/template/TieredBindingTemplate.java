@@ -11,34 +11,34 @@ import java.util.Map;
  * 단일 form 만 다룸.
  */
 public record TieredBindingTemplate(
-		String id,
-		OidcGroupSelector oidcGroupSelector,
-		List<TargetSubject> targetSubjects,
-		String tierLabel,
-		Map<String, List<RoleRef>> tiers) {
+        String id,
+        OidcGroupSelector oidcGroupSelector,
+        List<TargetSubject> targetSubjects,
+        String tierLabel,
+        Map<String, List<RoleRef>> tiers) {
 
-	public static final String DEFAULT_TIER_LABEL = "anycloud.io/tier";
+    public static final String DEFAULT_TIER_LABEL = "anycloud.io/tier";
 
-	public TieredBindingTemplate {
-		if (oidcGroupSelector == null) {
-			throw new IllegalArgumentException("oidcGroupSelector 필수");
-		}
-		if (tiers == null || tiers.isEmpty()) {
-			throw new IllegalArgumentException("tiers 가 최소 1개 entry 필요");
-		}
-		if (tierLabel == null || tierLabel.isBlank()) tierLabel = DEFAULT_TIER_LABEL;
-		if (targetSubjects == null) targetSubjects = List.of();
-	}
+    public TieredBindingTemplate {
+        if (oidcGroupSelector == null) {
+            throw new IllegalArgumentException("oidcGroupSelector 필수");
+        }
+        if (tiers == null || tiers.isEmpty()) {
+            throw new IllegalArgumentException("tiers 가 최소 1개 entry 필요");
+        }
+        if (tierLabel == null || tierLabel.isBlank()) tierLabel = DEFAULT_TIER_LABEL;
+        if (targetSubjects == null) targetSubjects = List.of();
+    }
 
-	/** tier 별 단일 BindingTemplate 으로 expand. id 는 {@code <id>@<tier>} 형식. */
-	public List<BindingTemplate> expand() {
-		return tiers.entrySet().stream()
-				.map(e -> new BindingTemplate(
-						id + "@" + e.getKey(),
-						new LabelSelector(Map.of(tierLabel, e.getKey())),
-						oidcGroupSelector,
-						targetSubjects,
-						e.getValue()))
-				.toList();
-	}
+    /** tier 별 단일 BindingTemplate 으로 expand. id 는 {@code <id>@<tier>} 형식. */
+    public List<BindingTemplate> expand() {
+        return tiers.entrySet().stream()
+                .map(e -> new BindingTemplate(
+                        id + "@" + e.getKey(),
+                        new LabelSelector(Map.of(tierLabel, e.getKey())),
+                        oidcGroupSelector,
+                        targetSubjects,
+                        e.getValue()))
+                .toList();
+    }
 }

@@ -33,112 +33,117 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class InMemoryAgentIdentityStore implements AgentIdentityStore {
 
-	/** identity_token_hash → AgentIdentity. hot path lookup. */
-	private final ConcurrentMap<String, AgentIdentity> byTokenHash = new ConcurrentHashMap<>();
+    /** identity_token_hash → AgentIdentity. hot path lookup. */
+    private final ConcurrentMap<String, AgentIdentity> byTokenHash = new ConcurrentHashMap<>();
 
-	/** agentId → AgentIdentity. status / lastSeen update 용. */
-	private final ConcurrentMap<String, AgentIdentity> byAgentId = new ConcurrentHashMap<>();
+    /** agentId → AgentIdentity. status / lastSeen update 용. */
+    private final ConcurrentMap<String, AgentIdentity> byAgentId = new ConcurrentHashMap<>();
 
-	public InMemoryAgentIdentityStore() {
-		log.info("InMemoryAgentIdentityStore active — dev/PoC default. "
-				+ "Register your own AgentIdentityStore @Bean for production (DB-backed).");
-	}
+    public InMemoryAgentIdentityStore() {
+        log.info("InMemoryAgentIdentityStore active — dev/PoC default. "
+                + "Register your own AgentIdentityStore @Bean for production (DB-backed).");
+    }
 
-	@Override
-	public Optional<AgentIdentity> findByIdentityTokenHash(String tokenHash) {
-		if (tokenHash == null) {
-			return Optional.empty();
-		}
-		return Optional.ofNullable(byTokenHash.get(tokenHash));
-	}
+    @Override
+    public Optional<AgentIdentity> findByIdentityTokenHash(String tokenHash) {
+        if (tokenHash == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(byTokenHash.get(tokenHash));
+    }
 
-	@Override
-	public List<AgentIdentity> findByClusterName(String clusterName) {
-		if (clusterName == null) {
-			return List.of();
-		}
-		List<AgentIdentity> out = new ArrayList<>();
-		for (AgentIdentity v : byAgentId.values()) {
-			if (clusterName.equals(v.clusterName())) {
-				out.add(v);
-			}
-		}
-		return out;
-	}
+    @Override
+    public List<AgentIdentity> findByClusterName(String clusterName) {
+        if (clusterName == null) {
+            return List.of();
+        }
+        List<AgentIdentity> out = new ArrayList<>();
+        for (AgentIdentity v : byAgentId.values()) {
+            if (clusterName.equals(v.clusterName())) {
+                out.add(v);
+            }
+        }
+        return out;
+    }
 
-	@Override
-	public AgentIdentity save(AgentIdentity identity) {
-		if (identity == null || identity.agentId() == null) {
-			throw new IllegalArgumentException("AgentIdentity.agentId must not be null");
-		}
-		// 같은 agent_id 의 이전 entry 의 token hash 삭제 — rotation / re-register 시 stale lookup 방지.
-		AgentIdentity previous = byAgentId.get(identity.agentId());
-		if (previous != null && previous.identityTokenHash() != null
-				&& !previous.identityTokenHash().equals(identity.identityTokenHash())) {
-			byTokenHash.remove(previous.identityTokenHash());
-		}
-		byAgentId.put(identity.agentId(), identity);
-		if (identity.identityTokenHash() != null) {
-			byTokenHash.put(identity.identityTokenHash(), identity);
-		}
-		return identity;
-	}
+    @Override
+    public AgentIdentity save(AgentIdentity identity) {
+        if (identity == null || identity.agentId() == null) {
+            throw new IllegalArgumentException("AgentIdentity.agentId must not be null");
+        }
+        // 같은 agent_id 의 이전 entry 의 token hash 삭제 — rotation / re-register 시 stale lookup 방지.
+        AgentIdentity previous = byAgentId.get(identity.agentId());
+        if (previous != null
+                && previous.identityTokenHash() != null
+                && !previous.identityTokenHash().equals(identity.identityTokenHash())) {
+            byTokenHash.remove(previous.identityTokenHash());
+        }
+        byAgentId.put(identity.agentId(), identity);
+        if (identity.identityTokenHash() != null) {
+            byTokenHash.put(identity.identityTokenHash(), identity);
+        }
+        return identity;
+    }
 
-	@Override
-	public boolean updateStatus(String agentId, AgentStatus status, String errorMessage) {
-		AgentIdentity cur = byAgentId.get(agentId);
-		if (cur == null) {
-			return false;
-		}
-		AgentIdentity updated = cur.withStatus(status, errorMessage);
-		byAgentId.put(agentId, updated);
-		if (updated.identityTokenHash() != null) {
-			byTokenHash.put(updated.identityTokenHash(), updated);
-		}
-		return true;
-	}
+    @Override
+    public boolean updateStatus(String agentId, AgentStatus status, String errorMessage) {
+        AgentIdentity cur = byAgentId.get(agentId);
+        if (cur == null) {
+            return false;
+        }
+        AgentIdentity updated = cur.withStatus(status, errorMessage);
+        byAgentId.put(agentId, updated);
+        if (updated.identityTokenHash() != null) {
+            byTokenHash.put(updated.identityTokenHash(), updated);
+        }
+        return true;
+    }
 
-	@Override
-	public AgentIdentity rotateToken(String agentId, String newIdentityTokenHash, Instant newExpiresAt) {
-		AgentIdentity cur = byAgentId.get(agentId);
-		if (cur == null) {
-			return null;
-		}
-		// 이전 token hash 삭제 후 새 hash 로 매핑.
-		if (cur.identityTokenHash() != null) {
-			byTokenHash.remove(cur.identityTokenHash());
-		}
-		AgentIdentity rotated = new AgentIdentity(
-				cur.agentId(), cur.clusterName(), cur.agentInstanceId(),
-				newIdentityTokenHash,
-				cur.status(), cur.lastSeenAt(), cur.lastK8sApiOkAt(),
-				newExpiresAt,
-				null,  // revoke 풀기 — rotation 으로 다시 살아남.
-				cur.lastError());
-		byAgentId.put(agentId, rotated);
-		byTokenHash.put(newIdentityTokenHash, rotated);
-		return rotated;
-	}
+    @Override
+    public AgentIdentity rotateToken(String agentId, String newIdentityTokenHash, Instant newExpiresAt) {
+        AgentIdentity cur = byAgentId.get(agentId);
+        if (cur == null) {
+            return null;
+        }
+        // 이전 token hash 삭제 후 새 hash 로 매핑.
+        if (cur.identityTokenHash() != null) {
+            byTokenHash.remove(cur.identityTokenHash());
+        }
+        AgentIdentity rotated = new AgentIdentity(
+                cur.agentId(),
+                cur.clusterName(),
+                cur.agentInstanceId(),
+                newIdentityTokenHash,
+                cur.status(),
+                cur.lastSeenAt(),
+                cur.lastK8sApiOkAt(),
+                newExpiresAt,
+                null, // revoke 풀기 — rotation 으로 다시 살아남.
+                cur.lastError());
+        byAgentId.put(agentId, rotated);
+        byTokenHash.put(newIdentityTokenHash, rotated);
+        return rotated;
+    }
 
-	@Override
-	public int updateLastSeen(String clusterName, Instant lastSeenAt, Instant lastK8sApiOkAt) {
-		int updated = 0;
-		for (AgentIdentity v : byAgentId.values()) {
-			if (!clusterName.equals(v.clusterName())) {
-				continue;
-			}
-			if (v.status() != AgentStatus.ACTIVE) {
-				continue;
-			}
-			AgentIdentity next = v.withLastSeen(
-					lastSeenAt != null ? lastSeenAt : v.lastSeenAt(),
-					lastK8sApiOkAt != null ? lastK8sApiOkAt : v.lastK8sApiOkAt());
-			byAgentId.put(v.agentId(), next);
-			if (next.identityTokenHash() != null) {
-				byTokenHash.put(next.identityTokenHash(), next);
-			}
-			updated++;
-		}
-		return updated;
-	}
+    @Override
+    public int updateLastSeen(String clusterName, Instant lastSeenAt, Instant lastK8sApiOkAt) {
+        int updated = 0;
+        for (AgentIdentity v : byAgentId.values()) {
+            if (!clusterName.equals(v.clusterName())) {
+                continue;
+            }
+            if (v.status() != AgentStatus.ACTIVE) {
+                continue;
+            }
+            AgentIdentity next = v.withLastSeen(
+                    lastSeenAt != null ? lastSeenAt : v.lastSeenAt(),
+                    lastK8sApiOkAt != null ? lastK8sApiOkAt : v.lastK8sApiOkAt());
+            byAgentId.put(v.agentId(), next);
+            if (next.identityTokenHash() != null) {
+                byTokenHash.put(next.identityTokenHash(), next);
+            }
+            updated++;
+        }
+        return updated;
+    }
 }

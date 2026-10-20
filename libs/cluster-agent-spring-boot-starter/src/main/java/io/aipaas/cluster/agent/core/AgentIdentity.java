@@ -26,47 +26,63 @@ import java.time.Instant;
  * @param lastError          최근 실패 메시지 (FAILED 상태일 때 진단용). null 가능.
  */
 public record AgentIdentity(
-		String agentId,
-		String clusterName,
-		String agentInstanceId,
-		String identityTokenHash,
-		AgentStatus status,
-		Instant lastSeenAt,
-		Instant lastK8sApiOkAt,
-		Instant expiresAt,
-		Instant revokedAt,
-		String lastError) {
+        String agentId,
+        String clusterName,
+        String agentInstanceId,
+        String identityTokenHash,
+        AgentStatus status,
+        Instant lastSeenAt,
+        Instant lastK8sApiOkAt,
+        Instant expiresAt,
+        Instant revokedAt,
+        String lastError) {
 
-	/**
-	 * Stream 인증에 사용 가능한 유효 신원인지 확인.
-	 * <ul>
-	 *   <li>revoke 되지 않았고</li>
-	 *   <li>아직 만료 안 됐고</li>
-	 *   <li>status 가 FAILED / REVOKED 아닌 경우</li>
-	 * </ul>
-	 */
-	public boolean isAuthValid(Instant now) {
-		if (revokedAt != null) {
-			return false;
-		}
-		if (expiresAt != null && expiresAt.isBefore(now)) {
-			return false;
-		}
-		return status != AgentStatus.FAILED && status != AgentStatus.REVOKED;
-	}
+    /**
+     * Stream 인증에 사용 가능한 유효 신원인지 확인.
+     * <ul>
+     *   <li>revoke 되지 않았고</li>
+     *   <li>아직 만료 안 됐고</li>
+     *   <li>status 가 FAILED / REVOKED 아닌 경우</li>
+     * </ul>
+     */
+    public boolean isAuthValid(Instant now) {
+        if (revokedAt != null) {
+            return false;
+        }
+        if (expiresAt != null && expiresAt.isBefore(now)) {
+            return false;
+        }
+        return status != AgentStatus.FAILED && status != AgentStatus.REVOKED;
+    }
 
-	/**
-	 * 새 상태로 교체한 복사본 생성. {@link AgentIdentityStore} 구현체에서 update-by-id 처리할 때 사용.
-	 */
-	public AgentIdentity withStatus(AgentStatus newStatus, String errorMessage) {
-		return new AgentIdentity(
-				agentId, clusterName, agentInstanceId, identityTokenHash,
-				newStatus, lastSeenAt, lastK8sApiOkAt, expiresAt, revokedAt, errorMessage);
-	}
+    /**
+     * 새 상태로 교체한 복사본 생성. {@link AgentIdentityStore} 구현체에서 update-by-id 처리할 때 사용.
+     */
+    public AgentIdentity withStatus(AgentStatus newStatus, String errorMessage) {
+        return new AgentIdentity(
+                agentId,
+                clusterName,
+                agentInstanceId,
+                identityTokenHash,
+                newStatus,
+                lastSeenAt,
+                lastK8sApiOkAt,
+                expiresAt,
+                revokedAt,
+                errorMessage);
+    }
 
-	public AgentIdentity withLastSeen(Instant lastSeen, Instant lastK8sApiOk) {
-		return new AgentIdentity(
-				agentId, clusterName, agentInstanceId, identityTokenHash,
-				status, lastSeen, lastK8sApiOk, expiresAt, revokedAt, lastError);
-	}
+    public AgentIdentity withLastSeen(Instant lastSeen, Instant lastK8sApiOk) {
+        return new AgentIdentity(
+                agentId,
+                clusterName,
+                agentInstanceId,
+                identityTokenHash,
+                status,
+                lastSeen,
+                lastK8sApiOk,
+                expiresAt,
+                revokedAt,
+                lastError);
+    }
 }

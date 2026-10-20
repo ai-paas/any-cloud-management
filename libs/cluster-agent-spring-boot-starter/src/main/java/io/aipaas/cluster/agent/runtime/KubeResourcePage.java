@@ -11,9 +11,4 @@ import com.fasterxml.jackson.databind.JsonNode;
  * </ul>
  */
 public record KubeResourcePage(
-		String clusterName,
-		String namespace,
-		String kind,
-		JsonNode items,
-		String continueToken,
-		int returnedCount) {}
+        String clusterName, String namespace, String kind, JsonNode items, String continueToken, int returnedCount) {}

@@ -25,14 +25,14 @@ import java.util.Optional;
  */
 public interface ImpersonationContext {
 
-	/**
-	 * 현재 호출 thread 의 identity (있으면). 빈 Optional 이면 starter 가 impersonation field 를
-	 * 채우지 않고 admin-equivalent 로 호출.
-	 */
-	Optional<ImpersonationIdentity> current();
+    /**
+     * 현재 호출 thread 의 identity (있으면). 빈 Optional 이면 starter 가 impersonation field 를
+     * 채우지 않고 admin-equivalent 로 호출.
+     */
+    Optional<ImpersonationIdentity> current();
 
-	/** 명시적 "이 호출은 impersonation 미사용" sentinel — current() == empty 와 동일 의미. */
-	static ImpersonationContext empty() {
-		return Optional::empty;
-	}
+    /** 명시적 "이 호출은 impersonation 미사용" sentinel — current() == empty 와 동일 의미. */
+    static ImpersonationContext empty() {
+        return Optional::empty;
+    }
 }

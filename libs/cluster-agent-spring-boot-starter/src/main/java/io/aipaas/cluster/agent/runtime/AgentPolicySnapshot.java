@@ -22,24 +22,19 @@ import java.util.List;
  * @param configMapResourceVersion 마지막 reload 한 ConfigMap 의 resourceVersion
  */
 public record AgentPolicySnapshot(
-		List<String> allowedNamespaces,
-		boolean allowAllNamespaces,
-		List<String> allowedCommands,
-		List<String> allowedCharts,
-		List<String> allowedExecNamespaces,
-		boolean allowAllExecNamespaces,
-		ResourcePolicy resourcePolicy,
-		Instant lastReloadAt,
-		String configMapResourceVersion) {
+        List<String> allowedNamespaces,
+        boolean allowAllNamespaces,
+        List<String> allowedCommands,
+        List<String> allowedCharts,
+        List<String> allowedExecNamespaces,
+        boolean allowAllExecNamespaces,
+        ResourcePolicy resourcePolicy,
+        Instant lastReloadAt,
+        String configMapResourceVersion) {
 
-	/** allow_all_discovered vs strict — 정책 적용 모드. mode 가 비면 nil policy (legacy). */
-	public record ResourcePolicy(
-			String mode,
-			List<ResourceRule> deny,
-			List<ResourceRule> allow) {
-	}
+    /** allow_all_discovered vs strict — 정책 적용 모드. mode 가 비면 nil policy (legacy). */
+    public record ResourcePolicy(String mode, List<ResourceRule> deny, List<ResourceRule> allow) {}
 
-	/** kind 또는 (kind, namespace) 페어. namespace 비면 모든 ns. */
-	public record ResourceRule(String kind, String namespace) {
-	}
+    /** kind 또는 (kind, namespace) 페어. namespace 비면 모든 ns. */
+    public record ResourceRule(String kind, String namespace) {}
 }

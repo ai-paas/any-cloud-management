@@ -17,43 +17,43 @@ import java.util.function.Supplier;
  */
 public class ThreadLocalImpersonationContext implements ImpersonationContext {
 
-	private static final ThreadLocal<ImpersonationIdentity> HOLDER = new ThreadLocal<>();
+    private static final ThreadLocal<ImpersonationIdentity> HOLDER = new ThreadLocal<>();
 
-	@Override
-	public Optional<ImpersonationIdentity> current() {
-		return Optional.ofNullable(HOLDER.get());
-	}
+    @Override
+    public Optional<ImpersonationIdentity> current() {
+        return Optional.ofNullable(HOLDER.get());
+    }
 
-	/** Request 진입 시 호출 — interceptor 의 preHandle 에서. */
-	public static void set(ImpersonationIdentity identity) {
-		HOLDER.set(identity);
-	}
+    /** Request 진입 시 호출 — interceptor 의 preHandle 에서. */
+    public static void set(ImpersonationIdentity identity) {
+        HOLDER.set(identity);
+    }
 
-	/** Request 종료 시 호출 — interceptor 의 afterCompletion 에서. ThreadLocal leak 방지 필수. */
-	public static void clear() {
-		HOLDER.remove();
-	}
+    /** Request 종료 시 호출 — interceptor 의 afterCompletion 에서. ThreadLocal leak 방지 필수. */
+    public static void clear() {
+        HOLDER.remove();
+    }
 
-	/**
-	 * 일시적 identity 컨텍스트 — finally 보장. async 경로에서 명시적으로 identity 를 끼울 때.
-	 * <pre>{@code
-	 * ThreadLocalImpersonationContext.withIdentity(alice, () -> {
-	 *     kubeResourceService.listResourcesPaginated(...);
-	 *     return null;
-	 * });
-	 * }</pre>
-	 */
-	public static <T> T withIdentity(ImpersonationIdentity identity, Supplier<T> action) {
-		ImpersonationIdentity previous = HOLDER.get();
-		HOLDER.set(identity);
-		try {
-			return action.get();
-		} finally {
-			if (previous == null) {
-				HOLDER.remove();
-			} else {
-				HOLDER.set(previous);
-			}
-		}
-	}
+    /**
+     * 일시적 identity 컨텍스트 — finally 보장. async 경로에서 명시적으로 identity 를 끼울 때.
+     * <pre>{@code
+     * ThreadLocalImpersonationContext.withIdentity(alice, () -> {
+     *     kubeResourceService.listResourcesPaginated(...);
+     *     return null;
+     * });
+     * }</pre>
+     */
+    public static <T> T withIdentity(ImpersonationIdentity identity, Supplier<T> action) {
+        ImpersonationIdentity previous = HOLDER.get();
+        HOLDER.set(identity);
+        try {
+            return action.get();
+        } finally {
+            if (previous == null) {
+                HOLDER.remove();
+            } else {
+                HOLDER.set(previous);
+            }
+        }
+    }
 }

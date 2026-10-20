@@ -13,29 +13,27 @@ import java.util.List;
  */
 public interface PkiBackupService {
 
-	/** 전체 /etc/kubernetes/pki 백업. */
-	default BackupResult backup(String clusterName) {
-		return backup(clusterName, PkiBackupOptions.full());
-	}
+    /** 전체 /etc/kubernetes/pki 백업. */
+    default BackupResult backup(String clusterName) {
+        return backup(clusterName, PkiBackupOptions.full());
+    }
 
-	BackupResult backup(String clusterName, PkiBackupOptions options);
+    BackupResult backup(String clusterName, PkiBackupOptions options);
 
-	/**
-	 * PKI backup 옵션.
-	 *
-	 * @param includePaths /etc/kubernetes/pki 기준 relative path 목록. 비어있으면 전체.
-	 *                     예: ["ca.crt", "ca.key", "sa.key", "sa.pub"] — root CA + SA 키만 백업.
-	 * @param chunkSize    streaming chunk size (bytes). 0 이면 1MB default.
-	 */
-	record PkiBackupOptions(
-			List<String> includePaths,
-			int chunkSize) {
-		public static PkiBackupOptions full() {
-			return new PkiBackupOptions(List.of(), 0);
-		}
+    /**
+     * PKI backup 옵션.
+     *
+     * @param includePaths /etc/kubernetes/pki 기준 relative path 목록. 비어있으면 전체.
+     *                     예: ["ca.crt", "ca.key", "sa.key", "sa.pub"] — root CA + SA 키만 백업.
+     * @param chunkSize    streaming chunk size (bytes). 0 이면 1MB default.
+     */
+    record PkiBackupOptions(List<String> includePaths, int chunkSize) {
+        public static PkiBackupOptions full() {
+            return new PkiBackupOptions(List.of(), 0);
+        }
 
-		public static PkiBackupOptions onlyCaAndSa() {
-			return new PkiBackupOptions(List.of("ca.crt", "ca.key", "sa.key", "sa.pub"), 0);
-		}
-	}
+        public static PkiBackupOptions onlyCaAndSa() {
+            return new PkiBackupOptions(List.of("ca.crt", "ca.key", "sa.key", "sa.pub"), 0);
+        }
+    }
 }

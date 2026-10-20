@@ -10,8 +10,4 @@ package io.aipaas.cluster.agent.backup.velero;
  * @param status      helm status — "deployed" / "failed" 등
  */
 public record VeleroInstallResult(
-		String clusterName,
-		String releaseName,
-		String namespace,
-		String chartVersion,
-		String status) {}
+        String clusterName, String releaseName, String namespace, String chartVersion, String status) {}

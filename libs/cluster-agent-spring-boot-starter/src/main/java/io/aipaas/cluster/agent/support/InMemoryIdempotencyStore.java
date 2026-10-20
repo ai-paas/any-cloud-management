@@ -31,45 +31,45 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class InMemoryIdempotencyStore implements IdempotencyStore {
 
-	/** key (JWT jti) → expiresAt. 만료된 entry 는 lazy cleanup. */
-	private final ConcurrentMap<String, Instant> entries = new ConcurrentHashMap<>();
+    /** key (JWT jti) → expiresAt. 만료된 entry 는 lazy cleanup. */
+    private final ConcurrentMap<String, Instant> entries = new ConcurrentHashMap<>();
 
-	public InMemoryIdempotencyStore() {
-		log.info("InMemoryIdempotencyStore active — dev/PoC default. "
-				+ "Register your own IdempotencyStore @Bean for production (DB-backed).");
-	}
+    public InMemoryIdempotencyStore() {
+        log.info("InMemoryIdempotencyStore active — dev/PoC default. "
+                + "Register your own IdempotencyStore @Bean for production (DB-backed).");
+    }
 
-	@Override
-	public boolean tryLock(String key, Duration ttl) {
-		if (key == null || ttl == null) {
-			return false;
-		}
-		Instant now = Instant.now();
-		Instant newExpiry = now.plus(ttl);
+    @Override
+    public boolean tryLock(String key, Duration ttl) {
+        if (key == null || ttl == null) {
+            return false;
+        }
+        Instant now = Instant.now();
+        Instant newExpiry = now.plus(ttl);
 
-		// putIfAbsent — atomic. 이미 있고 not expired 면 false, 없거나 expired 면 새로 set.
-		Instant existing = entries.putIfAbsent(key, newExpiry);
-		if (existing == null) {
-			maybeCleanup(now);
-			return true;
-		}
-		if (existing.isBefore(now)) {
-			// Expired — replace atomically.
-			if (entries.replace(key, existing, newExpiry)) {
-				return true;
-			}
-			// race — concurrent caller succeeded. treat as already locked.
-			return false;
-		}
-		return false;
-	}
+        // putIfAbsent — atomic. 이미 있고 not expired 면 false, 없거나 expired 면 새로 set.
+        Instant existing = entries.putIfAbsent(key, newExpiry);
+        if (existing == null) {
+            maybeCleanup(now);
+            return true;
+        }
+        if (existing.isBefore(now)) {
+            // Expired — replace atomically.
+            if (entries.replace(key, existing, newExpiry)) {
+                return true;
+            }
+            // race — concurrent caller succeeded. treat as already locked.
+            return false;
+        }
+        return false;
+    }
 
-	/** Lazy cleanup — 10번에 1번만 (CAS 부담 회피). 단순 random hash sampling. */
-	private void maybeCleanup(Instant now) {
-		// 단순 heuristic — 100 ms 단위로 한 번씩 정도.
-		if ((now.toEpochMilli() & 0x7F) != 0) {
-			return;
-		}
-		entries.entrySet().removeIf(e -> e.getValue().isBefore(now));
-	}
+    /** Lazy cleanup — 10번에 1번만 (CAS 부담 회피). 단순 random hash sampling. */
+    private void maybeCleanup(Instant now) {
+        // 단순 heuristic — 100 ms 단위로 한 번씩 정도.
+        if ((now.toEpochMilli() & 0x7F) != 0) {
+            return;
+        }
+        entries.entrySet().removeIf(e -> e.getValue().isBefore(now));
+    }
 }

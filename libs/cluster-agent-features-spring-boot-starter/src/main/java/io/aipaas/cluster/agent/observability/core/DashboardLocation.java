@@ -9,9 +9,4 @@ package io.aipaas.cluster.agent.observability.core;
  * @param port        포트 (Ingress 면 80, LB 면 service port).
  * @param exposure    "Ingress" | "LoadBalancer" — 추후 인증 게이트웨이 적용 기준.
  */
-public record DashboardLocation(
-		String clusterName,
-		String url,
-		String host,
-		int port,
-		String exposure) {}
+public record DashboardLocation(String clusterName, String url, String host, int port, String exposure) {}

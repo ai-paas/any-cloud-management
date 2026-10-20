@@ -17,11 +17,10 @@ import java.util.List;
  * @param shortNames kubectl short alias 목록 — 없으면 빈 list (never null)
  */
 public record ResourceKindInfo(
-		String plural,
-		String singular,
-		String kind,
-		String group,
-		String version,
-		boolean namespaced,
-		List<String> shortNames) {
-}
+        String plural,
+        String singular,
+        String kind,
+        String group,
+        String version,
+        boolean namespaced,
+        List<String> shortNames) {}

@@ -18,19 +18,19 @@ package io.aipaas.cluster.agent.backup.core;
  */
 public class BackupException extends RuntimeException {
 
-	private final String errorCode;
+    private final String errorCode;
 
-	public BackupException(String errorCode, String message) {
-		super(message);
-		this.errorCode = errorCode;
-	}
+    public BackupException(String errorCode, String message) {
+        super(message);
+        this.errorCode = errorCode;
+    }
 
-	public BackupException(String errorCode, String message, Throwable cause) {
-		super(message, cause);
-		this.errorCode = errorCode;
-	}
+    public BackupException(String errorCode, String message, Throwable cause) {
+        super(message, cause);
+        this.errorCode = errorCode;
+    }
 
-	public String errorCode() {
-		return errorCode;
-	}
+    public String errorCode() {
+        return errorCode;
+    }
 }
