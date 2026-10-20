@@ -299,7 +299,7 @@ graph LR
 | 영역 | 테스트 | 평가 |
 |---|---|---|
 | anycloud controller | ~20 files | 신규 admin endpoint 모두 cover |
-| anycloud service.cluster | 5+ files | cascade test 포함, ClusterServiceImpl 488 LOC |
+| anycloud domain.cluster | 5+ files | cascade test 포함 |
 | anycloud service.agent.auth | 3 신규 (revocation 11 / rotator 9 / crypto util 11) | **모두 cover** |
 | anycloud service.agent.upgrade | 1 (read service) | orchestrator 일부 cover (driveOne split 후 helper 별 분리) |
 | anycloud service.audit | (mock 통한 controller test) | `@Audited` aspect 자체 test 는 후속 |
