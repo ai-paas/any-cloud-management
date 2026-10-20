@@ -1,11 +1,10 @@
-// 60일짜리 identity_token 을 K8s Secret 에 보관한다. 메모리에만 두면 pod 가 재시작할 때마다
-// 다시 등록해야 한다.
+// 60일 identity_token 을 K8s Secret 에 보관. 메모리 보관 시 pod 재시작마다 재등록 필요.
 //
-// Secret 의 키 이름이 계약이다. data 에 identity_token, expires_at, cluster_id 가 들어간다.
-// metadata 에는 helm.sh/resource-policy: keep 을 붙여 helm upgrade 가 지우지 못하게 한다.
+// Secret 의 키 이름이 계약. data 에 identity_token, expires_at, cluster_id 포함.
+// metadata 에 helm.sh/resource-policy: keep 을 부여해 helm upgrade 의 삭제 차단.
 //
-// Load 와 Save 는 상태를 들고 있지 않다. 같은 프로세스에서 bootstrap 과 rotation goroutine 이
-// 함께 불러도 K8s 의 resourceVersion 이 순서를 잡아 준다.
+// Load 와 Save 는 무상태. 동일 프로세스에서 bootstrap 과 rotation goroutine 이 동시 호출해도
+// K8s 의 resourceVersion 이 순서 보장.
 
 package core
 

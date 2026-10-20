@@ -13,8 +13,8 @@ import (
 	"anycloud/agent/internal/k8s"
 )
 
-// 우리 카탈로그가 설치하는 kube-prometheus-stack 의 service 라벨: 실제 클러스터에서 그대로 옮겨왔다.
-// app.kubernetes.io/name 도 prometheus.io/scrape 도 없다.
+// 카탈로그가 설치하는 kube-prometheus-stack 의 service 라벨. 실제 클러스터 값 그대로.
+// app.kubernetes.io/name 과 prometheus.io/scrape 모두 부재.
 func stackService() corev1.Service {
 	return corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -33,7 +33,7 @@ func stackService() corev1.Service {
 	}
 }
 
-// 이름으로 찾을 때만 걸리는 fake: 라벨 셀렉터에는 아무것도 주지 않는다.
+// 이름 조회에만 반응하는 fake. 라벨 셀렉터에는 빈 결과 반환.
 func dispatcherFindingByName(t *testing.T, calls *[]k8s.ListResourcesOptions) *Dispatcher {
 	t.Helper()
 	m := &mockK8sClient{}
@@ -83,7 +83,7 @@ func TestDiscoverPrometheus_LooksUpTheWellKnownNameFirst(t *testing.T) {
 	}
 }
 
-// 직접 올린 prometheus 는 이름이 다르다. 이름으로 못 찾으면 라벨로 찾아야 한다.
+// 직접 설치한 prometheus 는 이름 상이. 이름 조회 실패 시 라벨 조회 필요.
 func TestDiscoverPrometheus_FallsBackToLabels(t *testing.T) {
 	resetPromCache()
 	custom := stackService()
@@ -106,7 +106,7 @@ func TestDiscoverPrometheus_FallsBackToLabels(t *testing.T) {
 	}
 }
 
-// 아무것도 없는 클러스터에서 매 5분마다 조회를 반복하면, 모니터링 화면을 열 때마다 기다린다.
+// 대상이 없는 클러스터에서 5분마다 조회를 반복하면 모니터링 화면 진입마다 대기 발생.
 func TestDiscoverPrometheus_RemembersEvenWhenNothingIsFound(t *testing.T) {
 	resetPromCache()
 	var calls int

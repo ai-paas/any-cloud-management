@@ -326,9 +326,8 @@ func parseInt64(s string, fallback int64) int64 {
 	return v
 }
 
-// parseBoundedInt 는 helm revision 처럼 작은 양수만 의미가 있는 파라미터를 읽는다.
-// int64 를 그냥 int 로 줄이면 32비트 빌드에서 값이 뒤집혀 음수 revision 이 helm 에
-// 그대로 넘어간다.
+// parseBoundedInt 는 helm revision 처럼 소수의 양수만 유효한 파라미터 파싱.
+// int64 를 int 로 축소하면 32비트 빌드에서 값이 반전돼 음수 revision 이 helm 에 전달.
 func parseBoundedInt(s string, fallback, limit int) int {
 	if s == "" {
 		return fallback
@@ -399,8 +398,8 @@ func splitSemver(s string) [3]int {
 	return out
 }
 
-// dispatcher 가 동기 핸들러라 values 가 크면 그 요청이 끝날 때까지 다음 명령을 받지 못한다.
-// 크기 검사는 backend 가 한다.
+// dispatcher 가 동기 핸들러이므로 values 가 크면 해당 요청 종료까지 다음 명령 수신 불가.
+// 크기 검사는 backend 담당.
 func jsonUnmarshal(raw string, out *map[string]interface{}) error {
 	return jsonStdUnmarshal([]byte(raw), out)
 }

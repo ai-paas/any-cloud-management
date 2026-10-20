@@ -8,13 +8,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * 응답을 {@code byte[]} 로 받아 UTF-8 로 직접 디코딩합니다.
+ * 응답을 {@code byte[]} 로 수신해 UTF-8 로 직접 디코딩.
  *
- * <p>{@code String.class} 로 받으면 {@code StringHttpMessageConverter} 가 Content-Type 의 charset
- * 을 보고, 없으면 ISO-8859-1 로 읽습니다. 한글과 em-dash 가 깨져 뒤따르는 SnakeYAML / Jackson 이
- * 파싱을 거부합니다.
+ * <p>{@code String.class} 수신 시 {@code StringHttpMessageConverter} 가 Content-Type 의 charset
+ * 을 참조하고, 부재 시 ISO-8859-1 로 해석. 한글과 긴 대시가 손상돼 후속 SnakeYAML, Jackson 이
+ * 파싱 거부.
  *
- * <p>charset 을 명시하지 않는 서버(ChartMuseum, 일부 OpenStack) 응답을 파싱할 때 쓰세요.
+ * <p>charset 미명시 서버(ChartMuseum, 일부 OpenStack) 응답 파싱에 사용.
  */
 public final class RestTemplateUtf8 {
 
@@ -23,9 +23,9 @@ public final class RestTemplateUtf8 {
     }
 
     /**
-     * GET 응답을 UTF-8 문자열로 돌려줍니다. status 확인은 호출자 책임입니다.
+     * GET 응답을 UTF-8 문자열로 반환. status 확인은 호출자 책임.
      *
-     * @return 디코딩된 body. body 가 null 이면 빈 문자열.
+     * @return 디코딩된 body. body 가 null 이면 빈 문자열
      */
     public static ResponseEntity<String> getAsUtf8String(RestTemplate restTemplate, String url, HttpHeaders headers) {
         ResponseEntity<byte[]> raw =

@@ -1,15 +1,15 @@
-// APPLY_AGENT_CONFIG 핸들러. backend 가 보낸 정책 snapshot 으로 agent 가 자기 ConfigMap 을
-// 고치고, config.Loader 의 watch 가 그 변경을 받아 메모리 정책을 교체한다. agent 재시작은 없다.
+// APPLY_AGENT_CONFIG 핸들러. backend 가 전송한 정책 snapshot 으로 agent 가 자체 ConfigMap 을
+// 수정하고, config.Loader 의 watch 가 변경을 감지해 메모리 정책 교체. agent 재시작 없음.
 //
-// 돌려주는 error_code 는 backend 가 분기에 쓰는 계약이다.
+// 반환하는 error_code 는 backend 분기 처리의 계약.
 //
-//	CONFIGMAP_NOT_FOUND  ConfigMap 이 없다
-//	FORBIDDEN            RBAC 이 거부했다
-//	INVALID_PAYLOAD      snapshot JSON 을 읽지 못했다
-//	K8S_API_ERROR        그 밖의 K8s API 실패
+//	CONFIGMAP_NOT_FOUND  ConfigMap 부재
+//	FORBIDDEN            RBAC 거부
+//	INVALID_PAYLOAD      snapshot JSON 파싱 실패
+//	K8S_API_ERROR        그 외 K8s API 실패
 //
-// 재시도는 ResourceVersion 충돌일 때만 한다. 다른 쪽이 동시에 고친 경우라 최신을 다시 받아
-// 합치면 된다. 나머지는 다시 해도 같은 결과다.
+// 재시도는 ResourceVersion 충돌에만 적용. 동시 수정 상황이므로 최신 값을 재조회해 병합.
+// 그 외 오류는 재시도해도 결과 동일.
 
 package controller
 
@@ -124,8 +124,8 @@ func (d *Dispatcher) applyAgentConfig(ctx context.Context, cmd *agentv1.CommandR
 	}
 
 	// ─── 2. ConfigMap data 빌드 ───────────────────────────────────────────────
-	// allowlist.go 의 parseYAMLList 가 읽는 형식은 "- value\n" 의 YAML list 다. 값에 콜론이나
-	// 선행 공백이 들어오면 YAML 구조가 깨지므로 quote 한다.
+	// allowlist.go 의 parseYAMLList 가 읽는 형식은 "- value\n" YAML list. 값에 콜론이나
+	// 선행 공백이 포함되면 YAML 구조가 깨지므로 quote 처리.
 	newData := map[string]string{
 		"allowed_charts":          yamlList(allowedCharts),
 		"allowed_namespaces":      yamlList(allowedNamespaces),

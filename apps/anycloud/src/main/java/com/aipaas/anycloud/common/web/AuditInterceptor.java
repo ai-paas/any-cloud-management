@@ -71,7 +71,7 @@ public class AuditInterceptor implements HandlerInterceptor {
         auditLogger.record(entry);
     }
 
-    /** Controller class 의 logical 도메인 이름. Suffix "Controller", "V1" 등을 제거하여 안정적인 action prefix 를 만든다. */
+    /** Controller class 의 logical 도메인 이름. "Controller", "V1" 등 suffix 제거로 안정적인 action prefix 구성. */
     static String inferAction(Object handler, HttpServletRequest request) {
         if (handler instanceof HandlerMethod hm) {
             String simple = hm.getBeanType().getSimpleName();
@@ -116,18 +116,18 @@ public class AuditInterceptor implements HandlerInterceptor {
     }
 
     /**
-     * URI 에서 리소스 식별자를 추정합니다. 휴리스틱이라 controller 가 더 정확히 알면 AuditLogger 를
-     * 직접 불러 덮어쓰세요.
+     * URI 에서 리소스 식별자 추정. 휴리스틱이므로 controller 가 정확한 값을 보유하면 AuditLogger
+     * 직접 호출로 덮어쓰기.
      *
-     * <p>{@code /clusters/importKubeconfig} 처럼 collection 에 거는 custom method 는 식별자가 없어
-     * null 을 돌려줍니다. {@code /operations/op-1/cancel} 의 {@code op-1} 과 구분하려면 action
-     * 앞 segment 가 collection 인지 봐야 합니다.
+     * <p>{@code /clusters/importKubeconfig} 처럼 collection 대상 custom method 는 식별자가 없어
+     * null 반환. {@code /operations/op-1/cancel} 의 {@code op-1} 과 구분하려면 action 앞 segment
+     * 의 collection 여부 판정 필요.
      */
     static String inferResourceId(HttpServletRequest request) {
         String uri = request.getRequestURI();
         if (uri == null || uri.isBlank()) return null;
 
-        // 옛 :verb 경로 방어. 모든 라우트가 colon-free 로 바뀌었지만 외부 호출이 남아 있을 수 있습니다.
+        // 이전 :verb 경로 방어. 전체 라우트가 colon-free 로 전환됐으나 외부 호출 잔존 가능.
         int colonIdx = uri.lastIndexOf(':');
         String mainPath = colonIdx >= 0 ? uri.substring(0, colonIdx) : uri;
 
