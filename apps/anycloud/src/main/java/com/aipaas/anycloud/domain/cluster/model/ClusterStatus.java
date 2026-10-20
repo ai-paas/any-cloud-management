@@ -6,18 +6,18 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 등록된 cluster 의 lifecycle status 입니다. 전이 규칙은 {@link #canTransitionTo} 가 단일 출처이고,
- * 아래 그림은 읽기용입니다.
+ * 등록된 cluster 의 lifecycle status. 전이 규칙의 단일 출처는 {@link #canTransitionTo} 이며
+ * 아래 다이어그램은 참고용.
  *
  * <pre>
  *  (없음) ──▶ AGENT_PENDING ──agent 등록──▶ ACTIVE ◄──heartbeat 회복──┐
  *         └─▶ UNKNOWN ──────health check──▶ ACTIVE ──heartbeat 끊김──┴─▶ INACTIVE
  * </pre>
  *
- * <p>운영 중 ACTIVE 와 INACTIVE 는 자주 오갑니다. agent 연결 상태를 그대로 반영하기 때문입니다.
+ * <p>운영 중 ACTIVE 와 INACTIVE 간 전이 빈번. agent 연결 상태를 그대로 반영.
  *
- * <p>{@code ClusterEntity.status} 는 String 컬럼입니다. 값을 넣을 때 {@link #name()} 을 쓰세요.
- * 임의 문자열이 들어가도 DB 가 막지 않습니다.
+ * <p>{@code ClusterEntity.status} 는 String 컬럼. 값 설정 시 {@link #name()} 사용. 임의 문자열
+ * 입력도 DB 가 차단하지 않음.
  */
 public enum ClusterStatus {
 

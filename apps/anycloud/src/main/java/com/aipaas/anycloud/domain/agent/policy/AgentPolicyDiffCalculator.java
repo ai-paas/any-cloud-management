@@ -20,17 +20,16 @@ import java.util.TreeSet;
 import org.springframework.stereotype.Service;
 
 /**
- * agent policy 의 diff 를 계산하고, 검증용 가상 snapshot 을 만들고, agent 로 보낼 param 을
- * 직렬화합니다.
+ * agent policy diff 계산, 검증용 가상 snapshot 생성, agent 전송 param 직렬화.
  */
 @Service
 public class AgentPolicyDiffCalculator {
 
-    /** resource_policy 직렬화용. document start 마커를 빼 agent 가 받는 문자열을 안정시킵니다. */
+    /** resource_policy 직렬화용. document start 마커 제외로 agent 수신 문자열 고정. */
     private static final ObjectMapper YAML_MAPPER =
             new ObjectMapper(new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
 
-    /** agent param 직렬화용. 목록을 JSON 배열 문자열로 만듭니다. */
+    /** agent param 직렬화용. 목록을 JSON 배열 문자열로 변환. */
     private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
     /** 두 snapshot 간 list 단위 diff. 각 list 의 추가/제거 항목 + resource_policy 변경 여부. */

@@ -16,15 +16,15 @@ import org.springframework.stereotype.Component;
 /**
  * Cluster Agent 의 Kubernetes manifest 를 단일 출처 (Helm chart) 로부터 동적 생성.
  *
- * <p>chart 는 {@code classpath:agent-chart/} 에 있습니다. Gradle 의
- * {@code copyAgentChartResources} 가 빌드 때 {@code apps/agent/deploy/helm/cluster-agent/} 를
- * 그대로 복사해 jar 에 넣습니다. chartmuseum 에 접근하지 못하는 환경에서도 설치합니다.
+ * <p>chart 위치는 {@code classpath:agent-chart/}. Gradle 의 {@code copyAgentChartResources} 가
+ * 빌드 시 {@code apps/agent/deploy/helm/cluster-agent/} 를 복사해 jar 에 포함. chartmuseum 접근이
+ * 불가한 환경에서도 설치 가능.
  *
- * <p>부팅 때 chart 를 임시 디렉토리로 한 번 풀고 Chart.yaml 이 있는지 봅니다. 없으면 부팅이
- * 실패합니다. 설치를 시도하는 시점이 아니라 지금 알아야 하기 때문입니다.
+ * <p>부팅 시 chart 를 임시 디렉터리에 1회 전개하고 Chart.yaml 존재 확인. 부재 시 부팅 실패.
+ * 설치 시점이 아닌 부팅 시점에 검출 목적.
  *
- * <p>렌더링은 {@code helm template} 에 맡깁니다. manifest 를 Java 문자열로 조립하면 chart 와
- * 두 벌이 되어 RBAC 같은 변경을 양쪽에 따로 반영해야 합니다.
+ * <p>렌더링은 {@code helm template} 위임. manifest 를 Java 문자열로 조립하면 chart 와 이중화돼
+ * RBAC 등의 변경을 양쪽에 각각 반영 필요.
  */
 @Slf4j
 @Component

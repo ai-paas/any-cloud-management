@@ -328,7 +328,7 @@ public class ChartServiceImpl implements ChartService {
                 .build();
     }
 
-    /** Helm release uninstall: agent 의 UNINSTALL_ADDON 이 KeepHistory / Wait 옵션을 그대로 받는다. */
+    /** Helm release uninstall. agent 의 UNINSTALL_ADDON 이 KeepHistory, Wait 옵션을 그대로 수신. */
     @Override
     public ChartStatusResponse uninstallRelease(
             String clusterName, String releaseName, String namespace, boolean keepHistory, boolean waitForReady) {
@@ -540,10 +540,10 @@ public class ChartServiceImpl implements ChartService {
     // Agent 의 helm op 실패 분류 / agent 가용성 가드는 ChartAgentInteractions (@Component) 가 담당.
 
     /**
-     * helm 은 release 를 {@code sh.helm.release.v1.<name>.v<revision>} secret 에 넣는다.
+     * helm 은 release 를 {@code sh.helm.release.v1.<name>.v<revision>} secret 에 저장.
      *
-     * <p>내용은 gzip 한 JSON 을 base64 로 감싼 것이고, k8s 가 secret data 를 한 번 더 base64 로
-     * 감싼다. 두 겹을 벗기고 {@code config} 를 꺼내면 설치할 때 넘긴 values 다.
+     * <p>내용은 gzip JSON 의 base64 인코딩이고, k8s 가 secret data 를 한 번 더 base64 인코딩.
+     * 2단계 디코딩 후 {@code config} 를 추출하면 설치 시 전달한 values.
      */
     @Override
     public String getReleaseValues(String clusterName, String namespace, String releaseName) {
@@ -570,7 +570,7 @@ public class ChartServiceImpl implements ChartService {
             com.fasterxml.jackson.databind.JsonNode config =
                     objectMapper.readTree(json).path("config");
             if (config.isMissingNode() || config.isNull() || config.isEmpty()) {
-                // 기본값만 쓴 릴리즈는 config 가 비어 있다. 오류가 아니다.
+                // 기본값만 사용한 릴리즈는 config 가 빈 값. 오류 아님.
                 return "";
             }
             return new org.yaml.snakeyaml.Yaml(yamlDumperOptions())

@@ -99,9 +99,9 @@ public class BeanConfig {
     }
 
     /**
-     * CSP API 전용 RestTemplate 입니다. timeout 을 기본 {@code restTemplate} 보다 짧게 잡습니다.
-     * 자격증명이 틀렸거나 CSP 가 응답하지 않으면 그 시간만큼 controller 응답이 늦어집니다.
-     * metadata 조회뿐이라 짧아도 충분합니다.
+     * CSP API 전용 RestTemplate. timeout 을 기본 {@code restTemplate} 보다 짧게 설정.
+     * 자격증명 오류나 CSP 무응답 시 해당 시간만큼 controller 응답 지연. metadata 조회 전용이라
+     * 짧은 timeout 으로 충분.
      */
     @Bean("cspRestTemplate")
     public RestTemplate cspRestTemplate(

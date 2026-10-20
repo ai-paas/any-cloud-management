@@ -8,14 +8,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
- * cluster 상태 변화를 외부 포털로 보내는 webhook 설정입니다. 포털이 주기적으로 조회하지 않아도
- * 상태를 받습니다.
+ * cluster 상태 변화를 외부 포털로 전송하는 webhook 설정. 포털의 주기 조회 없이 상태 수신.
  *
- * <p>{@code events} 가 비어 있으면 전부 보냅니다. 값은 {@code vm-cluster.ready},
- * {@code vm-cluster.failed}, {@code vm-cluster.blocked}, {@code vm-cluster.deleted} 입니다.
+ * <p>{@code events} 가 비면 전체 전송. 값은 {@code vm-cluster.ready},
+ * {@code vm-cluster.failed}, {@code vm-cluster.blocked}, {@code vm-cluster.deleted}.
  *
- * <p>{@code signing-secret} 을 주면 HMAC-SHA256 서명을 붙입니다. 비워 두면 수신 측이 발신자를
- * 확인할 수단이 없습니다.
+ * <p>{@code signing-secret} 지정 시 HMAC-SHA256 서명 첨부. 미지정 시 수신 측의 발신자 확인
+ * 수단 부재.
  */
 @Getter
 @Setter
