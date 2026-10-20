@@ -6,12 +6,13 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * service method 의 audit 자동화.
+ * 붙여 두면 {@link AuditAspect} 가 호출 전후를 audit_log 에 남깁니다. controller 가 아니라 service
+ * method 에 거는 이유는 scheduler 나 gRPC 핸들러처럼 HTTP 를 거치지 않는 호출도 잡기 위해서입니다.
  *
- * <p>본 annotation 을 service-method 에 부여하면 {@link AuditAspect} 가 method 호출 전후로 자동 기록.
- * 내부 callers (scheduler / gRPC 핸들러 등) 도 동일하게 capture — 우회 불가.
+ * <p>{@code resourceId} 와 {@code summary} 는 SpEL 입니다. 쓸 수 있는 건 method 의 파라미터 이름,
+ * 반환값 {@code #result}, 던져진 예외 {@code #exception} 입니다. 예외가 나면 {@code #result} 가,
+ * 성공하면 {@code #exception} 이 null 이므로 양쪽 다 쓰는 식이면 null 을 다뤄야 합니다.
  *
- * <p>Resource ID / summary 는 SpEL 로 method args / return value 참조. 예:
  * <pre>
  * &#64;Audited(action = "agentCert.revoke", resourceType = "clusterAgent",
  *          resourceId = "#clusterName",
@@ -19,15 +20,8 @@ import java.lang.annotation.Target;
  * public int revokeCluster(String clusterName, String reason) { ... }
  * </pre>
  *
- * <p>SpEL 컨텍스트:
- * <ul>
- *   <li>method 의 named parameters (e.g., {@code #clusterName}, {@code #reason})</li>
- *   <li>{@code #result} — method 반환값 (예외 시 null)</li>
- *   <li>{@code #exception} — Throwable (성공 시 null)</li>
- * </ul>
- *
- * <p>예외 발생 시: statusCode=500 으로 기록 + 예외 그대로 re-throw (audit 은 best-effort,
- * 비즈니스 로직 영향 X).
+ * <p>예외가 나면 statusCode 500 으로 기록하고 그대로 다시 던집니다. audit 실패가 비즈니스 로직을
+ * 막지 않습니다.
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)

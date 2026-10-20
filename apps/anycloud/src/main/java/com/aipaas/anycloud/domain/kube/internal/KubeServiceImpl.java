@@ -30,30 +30,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * <pre>
- * ClassName : KubeServiceImpl
- * Type : class
- * Description : 쿠버네티스 리소스 조회·삭제 day-2 서비스. 이후 모든 ops 는
- *               {@link KubeResourceService} (cluster agent) 로 routing — backend 는 K8s API
- *               클라이언트를 보유하지 않는다.
- * Related : KubeResourceService (starter)
- * </pre>
- */
-/**
- * KubeService 진입점. 책임 분리 — 같은 클래스 안에 다음 group 이 공존하며 향후 별도 service 로
- * 추출 가능:
+ * K8s 리소스 조회와 삭제입니다. 모든 호출이 {@link KubeResourceService} 를 통해 cluster-agent 로
+ * 나갑니다. backend 는 K8s 클라이언트를 들고 있지 않습니다.
  *
- * <ol>
- * <li>Day-2 ops routing — {@code kubeResourceService} (agent stream). 모든
- * list/get/delete 가
- * 이 path 만 사용.</li>
- * <li>Error classification + degraded metric — {@code degradedReasonCounter} +
- * private classifier
- * methods. 향후 {@code KubeErrorClassifier} 로 추출 가능.</li>
- * <li>Response sanitization — private {@code sanitize*} methods.
- * {@code service/kube/support/}
- * 의 helper 와 응집도 확보 위해 향후 이동 가능.</li>
- * </ol>
+ * <p>agent 호출 실패를 빈 결과로 돌려주지 않습니다. "조회 결과 없음" 과 구분되지 않아 200 으로
+ * 나가기 때문입니다. 분류는 아래 {@code *Fallback} 메서드가 맡습니다.
  */
 @Slf4j
 @Service("kubeServiceImpl")

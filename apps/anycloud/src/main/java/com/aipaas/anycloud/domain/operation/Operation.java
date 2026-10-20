@@ -7,14 +7,9 @@ import java.time.LocalDateTime;
 /**
  * Long-Running Operation 의 immutable 도메인 표현.
  *
- * <p>JPA / persistence 와 분리된 순수 자바 record. infrastructure 어노테이션 (@Entity, @Column 등) 을
- * 일절 참조하지 않는다 — 도메인 로직과 테스트는 이 타입만으로 동작 가능하다.
- *
- * <p>도메인 ↔ JPA 변환은 {@link com.aipaas.anycloud.domain.operation.mapper.OperationMapper} 가 단방향
- * boundary 에서 처리한다 (Hexagonal pattern 의 adapter 경계).
- *
- * <p>Step 2 pilot — 다른 entity (Cluster, VmCluster 등) 의 domain 추출은 동일한 패턴을 따르되
- * incremental 하게 진행. 자세한 로드맵: docs/architecture/design/domain-model-roadmap.md.
+ * <p>JPA 애너테이션을 쓰지 않는 순수 record 입니다. 도메인 로직과 테스트가 persistence 없이
+ * 돌아가야 하므로 여기에 {@code @Entity} 나 {@code @Column} 을 붙이지 마세요. JPA 와의 변환은
+ * {@link com.aipaas.anycloud.domain.operation.mapper.OperationMapper} 한 곳에서만 합니다.
  *
  * @param id            UUID. JPA insert 전에는 비어있을 수 있음 — start() 에서 채워짐.
  * @param type          Operation 종류 (CLUSTER_CREATE / VM_CLUSTER_DELETE 등).

@@ -6,21 +6,12 @@ import io.aipaas.cluster.agent.runtime.HelmRoutingException;
 import java.util.Locale;
 
 /**
- * Agent 의 helm op 실패 ({@link HelmRoutingException}) 를 의미 별 {@link ErrorCode} 로 분류해
- * {@link CustomException} 으로 변환.
+ * agent 의 helm 실패를 {@link ErrorCode} 로 분류해 {@link CustomException} 으로 바꿉니다.
  *
- * <p>Pattern matching 대상 (agent 의 error_code string):
- * <ul>
- *   <li>{@code CHART_NOT_ALLOWED} — ConfigMap 의 allowed_charts 에 chart 미등록</li>
- *   <li>{@code NAMESPACE_NOT_ALLOWED} — namespace 가 allowlist 에 없음</li>
- *   <li>{@code PERMISSION_DENIED} (그 외 generic) — 기타 정책 거부</li>
- *   <li>{@code HELM_INSTALL_FAILED} + chart 해상 단어 → HELM_CHART_RESOLUTION_FAILED (400)</li>
- *   <li>{@code HELM_INSTALL_FAILED} (그 외) → HELM_INSTALL_FAILED (500, agent 정상이고 install 실패)</li>
- *   <li>그 외 / "no active session" → AGENT_UNAVAILABLE (503)</li>
- * </ul>
- *
- * <p>{@code HELM_INSTALL_FAILED} 의 chart 해상 키워드 ({@code "locate chart"} / {@code "protocol handler"} /
- * {@code "no such repository"}) 가 보이면 caller-fixable 400, 그 외는 K8s apply / hook 실패 500.
+ * <p>{@code HELM_INSTALL_FAILED} 하나가 두 갈래로 갈립니다. {@code locate chart},
+ * {@code protocol handler}, {@code no such repository} 가 보이면 chart 를 못 찾은 것이라 호출자가
+ * 고칠 수 있는 400 이고, 그 밖에는 K8s apply 나 hook 이 실패한 500 입니다. 둘을 섞으면 운영자가
+ * 자기 입력을 의심해야 할지 cluster 를 봐야 할지 알 수 없습니다.
  */
 public final class HelmExceptionMapper {
 

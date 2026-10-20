@@ -9,21 +9,14 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 /**
- * Helm chart 의 values 에 backend 측 필수값을 자동 주입.
- * <p>
- * 대상 chart: {@code <repo>/cluster-agent}. 다른 chart 는 pass-through.
- * <p>
- * 자동 주입 항목 — 둘 다 사용자가 명시하면 그 값이 우선:
- * <ul>
- *   <li>{@code backend.grpcAddr} — 원천 {@code agent.grpc.public-endpoint}
- *       (env {@code ANYCLOUD_AGENT_GRPC_PUBLIC_ENDPOINT})</li>
- *   <li>{@code image.repository} / {@code image.tag} — 원천 {@code agent.manifest.image}
- *       (env {@code ANYCLOUD_AGENT_IMAGE}). 형식 {@code <repo>:<tag>}.
- *       registry:port 케이스는 last-colon-after-last-slash 규칙으로 안전 분리.</li>
- * </ul>
- * <p>
- * 적용 위치: ChartServiceImpl.deployChartFromYaml 의 최상단. JSON values 객체 /
- * valuesYaml 문자열 / multipart file 어느 경로로 들어와도 본 컴포넌트를 거침.
+ * {@code cluster-agent} chart 를 설치할 때 values 에 backend 주소와 image 를 채워 넣습니다.
+ * 빠뜨리면 agent 가 chart 기본값인 {@code host.docker.internal} 로 붙으려다 조용히 실패합니다.
+ * 다른 chart 는 그대로 통과시킵니다.
+ *
+ * <p>사용자가 직접 지정한 값이 있으면 덮어쓰지 않습니다.
+ *
+ * <p>image 는 {@code <repo>:<tag>} 로 가릅니다. {@code registry:5000/img:v1} 처럼 registry 에
+ * 포트가 붙는 경우가 있어 마지막 슬래시 뒤의 콜론만 구분자로 봅니다.
  */
 @Slf4j
 @Component

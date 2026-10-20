@@ -5,15 +5,7 @@ import io.aipaas.cluster.agent.runtime.ResolvedResource;
 import io.aipaas.cluster.agent.runtime.ResourceKindInfo;
 import java.util.List;
 
-/**
- * <pre>
- * ClassName : KubeService
- * Type : interface
- * Description : 쿠버네티스 관련된 함수를 정리한 인터페이스입니다. 이후 모든 day-2 op 는
- *               agent path 전용 — fall-through 없음.
- * Related : KubeServiceImpl
- * </pre>
- */
+/** K8s 리소스 조회와 삭제입니다. 모든 호출이 cluster-agent 를 거칩니다. */
 public interface KubeService {
 
     JsonNode getResources(String clusterName, String namespace, String kind);

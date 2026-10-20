@@ -3,39 +3,18 @@ package com.aipaas.anycloud.domain.kube;
 import io.aipaas.cluster.agent.runtime.ResolvedResource;
 
 /**
- * Cluster 의 K8s kind metadata (plural / namespaced / group / version) lookup.
+ * cluster 의 kind metadata(plural, namespaced 여부, group, version)를 agent 에 물어 캐시합니다.
+ * 목록을 코드에 박아 두면 CRD 가 추가될 때마다 손으로 맞춰야 하기 때문입니다.
  *
- * <p>hardcoded {@code K8sKinds.CLUSTER_SCOPED} set 의 drift 문제
- * (CRD 추가 시 수동 sync 필요) 를 해결하기 위해 도입. 내부적으로 agent 의
- * {@code RESOLVE_RESOURCE} RPC + Caffeine cache (TTL 30분) 사용.
+ * <p>캐시하는 건 kind 의 스키마뿐입니다. pod 나 deployment 의 실제 값은 캐시하지 않고 매번
+ * agent 를 거쳐 조회합니다. 화면에 보이는 데이터는 항상 최신입니다.
  *
- * <h2>캐시 대상 명확화</h2>
- * <ul>
- *   <li><strong>Cache 됨</strong>: kind metadata (schema) — namespaced 여부, plural, group, version.
- *       cluster 수명 동안 거의 불변 (CRD 신규 install 외에는 변경 없음).</li>
- *   <li><strong>Cache 안 됨</strong>: 실제 resource data (pods/deployments/... 값) — 매 호출
- *       agent → K8s API 직접 조회. 사용자 입장에서 모든 데이터는 항상 fresh.</li>
- * </ul>
+ * <p>캐시는 30분 TTL 로 만료되고, addon 설치 직후 {@link #invalidate(String)} 가 자동으로
+ * 불립니다. 새 CRD 가 그때 들어오기 때문입니다. 운영자는
+ * {@code POST /v1/admin/clusters/{c}/kind-cache/flush} 로 직접 비울 수 있습니다.
  *
- * <h2>호출 흐름</h2>
- * <pre>{@code
- * 1. KindResolver.resolve(cluster, "pods")
- *    ├─ cache hit → 즉시 ResolvedResource{namespaced=true, plural=pods}
- *    └─ cache miss → agent RESOLVE_RESOURCE → 결과 캐시 후 반환
- * 2. effectiveNamespace 결정 (namespaced 면 namespace 그대로, 아니면 null)
- * 3. kubeService.getResource(...) — fresh data, no cache
- * }</pre>
- *
- * <h2>Invalidation</h2>
- * <ul>
- *   <li>TTL 30분 자동 만료</li>
- *   <li>Addon install 직후 {@link #invalidate(String)} 자동 호출 (새 CRD 도입 시점)</li>
- *   <li>Admin endpoint {@code POST /v1/admin/clusters/{c}/kind-cache/flush}</li>
- * </ul>
- *
- * <h2>Fallback</h2>
- * agent unavailable / RESOLVE 실패 시 hardcoded {@code K8sKinds.CLUSTER_SCOPED} set 으로 best-effort
- * (namespaced=false 만 결정, plural/group/version 은 입력 그대로). defense-in-depth.
+ * <p>agent 가 닿지 않으면 코드에 있는 cluster-scoped 목록으로 namespaced 여부만 판단합니다.
+ * plural 과 group 은 입력값을 그대로 씁니다.
  */
 public interface KindResolver {
 
