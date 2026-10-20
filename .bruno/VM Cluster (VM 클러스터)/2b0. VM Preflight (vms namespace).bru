@@ -1,0 +1,50 @@
+meta {
+  name: 2b0. VM Preflight (vms namespace)
+  type: http
+  seq: 101
+}
+
+post {
+  url: {{baseUrl}}/v1/vms/preflight
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  User-Agent: bruno/3.3.0
+}
+
+body:json {
+  {
+    "vmGroupName": "{{provision_cluster_name}}",
+    "provider": "{{provision_provider}}",
+    "region": "{{provision_region}}",
+    "environment": "{{provision_environment}}",
+    "credentialId": "{{vm_credential_id}}",
+    "hasGpuNodes": false,
+    "spec": {
+      "workerCount": {{worker_count}},
+      "masterInstanceType": "{{master_vm_spec}}",
+      "workerInstanceType": "{{worker_vm_spec}}",
+      "kubernetesVersion": "{{kubernetes_version}}"
+    }
+  }
+}
+
+docs {
+  /v1/vms 네임스페이스의 사전 검증입니다. 2a 와 결과 모양은 같지만 요청 본문이 다릅니다.
+  2a 는 평평한 ProvisionClusterRequest 를, 이쪽은 spec 을 중첩한 VmCreateRequest 를 받습니다.
+
+  생성이 불가능해도 200 으로 답합니다. 가능 여부는 data.readyToProvision 을 보세요.
+}
+
+tests {
+  test("200 (생성 불가도 200)", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("readyToProvision 으로 판정한다", function() {
+    expect(res.getBody().data).to.have.property("readyToProvision");
+  });
+}
