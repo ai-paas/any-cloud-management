@@ -4,23 +4,22 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Pulumi 의 {@code --json} engine event 를 공통 모양으로 정리한 것입니다. Pulumi 쪽 schema 가
- * event 종류마다 달라 호출자가 매번 분기하지 않도록 필요한 필드만 뽑았습니다. 원본이 필요하면
- * {@code raw} 를 보세요.
+ * Pulumi 의 {@code --json} engine event 를 공통 형태로 정규화. Pulumi schema 가 event 종류별로
+ * 달라 호출자 분기를 줄이기 위해 필요한 필드만 추출. 원본은 {@code raw} 참조.
  *
  * <ul>
  *   <li>{@code type}: pulumi event 종류 ("diagnostic", "resOutputs", "summary" 등)</li>
  *   <li>{@code timestamp}: Pulumi 가 발행한 시각. 없으면 파싱한 시각</li>
  *   <li>{@code resourceUrn}: 관련 resource URN. 없으면 null</li>
  *   <li>{@code message}: diagnostic 메시지나 status 요약. 없으면 null</li>
- *   <li>{@code severity}: "info", "warning", "error". diagnosticEvent 에만 있습니다</li>
+ *   <li>{@code severity}: "info", "warning", "error". diagnosticEvent 전용</li>
  *   <li>{@code raw}: 원본 JSON</li>
  * </ul>
  *
- * <p>{@link ProvisionEventBus} 나 SSE 로 흘려보내기만 하고 저장하지 않습니다. 기록이 필요하면
- * 호스트가 받아서 직접 남겨야 합니다.
+ * <p>{@link ProvisionEventBus} 또는 SSE 로 전달만 하고 저장하지 않음. 기록이 필요하면 호스트가
+ * 수신해 직접 저장.
  *
- * @param operationId 이 event 를 일으킨 operation. null 이면 필터 없이 전체로 봅니다.
+ * @param operationId 이 event 를 발생시킨 operation. null 이면 필터 없이 전체 대상
  */
 public record ProvisionEvent(
         String operationId,

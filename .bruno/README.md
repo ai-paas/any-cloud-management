@@ -21,7 +21,7 @@ bru run "Helm Repository (헬름 저장소)" --env local
 bru run "Chart" --env local
 
 # 4. 단일 요청
-bru run "Cluster (클러스터)/2. Cluster Create (클러스터 생성).bru" --env local
+bru run "Cluster (클러스터)/02. Cluster Create (클러스터 생성).bru" --env local
 ```
 
 `bru run "<folder>"` 는 폴더 안의 모든 `.bru` 를 `meta.seq` 순서대로 실행.
@@ -76,22 +76,24 @@ VM 인프라 자원 라이프사이클은 `/v1/vms` 네임스페이스에 따로
 | 3 | Chart Values | `GET /v1/helm-repos/{repo}/charts/{chart}/values?version=` | - |
 | 4 | Chart README | `GET /v1/helm-repos/{repo}/charts/{chart}/readme?version=` | - |
 | 5 | Deploy (JSON values 객체, **권장**) | `POST /v1/clusters/{c}/helm-releases` | 202 + Operation |
-| 5a | Deploy (default values) | `POST /v1/clusters/{c}/helm-releases` body 에 values 생략 | 202 |
-| 5b | Deploy (multipart file 업로드) | `POST /v1/clusters/{c}/helm-releases` (multipart) | 202 |
-| 6 | Status | `GET /v1/clusters/{c}/helm-releases/{r}?namespace=` | - |
-| 7 | Releases List | `GET /v1/clusters/{c}/helm-releases?namespace=` | - |
-| 8 | Release Resources | `GET /v1/clusters/{c}/helm-releases/{r}/resources?namespace=` | - |
-| 9 | Uninstall | `DELETE /v1/clusters/{c}/helm-releases/{r}?namespace=...` | 202 |
-| 9b | Uninstall (history 보존 + wait) | `DELETE ...?keepHistory=true&wait=true` | 202 |
-| z93 | Upgrade | `PUT /v1/clusters/{c}/helm-releases/{r}` | 202 + Operation |
-| z94 | 적용된 values | `GET /v1/clusters/{c}/helm-releases/{r}/values` | 3번과 달리 배포본 기준 |
+| 6 | Deploy (default values) | `POST /v1/clusters/{c}/helm-releases` body 에 values 생략 | 202 |
+| 7 | Deploy (multipart file 업로드) | `POST /v1/clusters/{c}/helm-releases` (multipart) | 202 |
+| 8 | Status | `GET /v1/clusters/{c}/helm-releases/{r}?namespace=` | - |
+| 9 | Releases List | `GET /v1/clusters/{c}/helm-releases?namespace=` | - |
+| 10 | Release Resources | `GET /v1/clusters/{c}/helm-releases/{r}/resources?namespace=` | - |
+| 11 | Uninstall | `DELETE /v1/clusters/{c}/helm-releases/{r}?namespace=...` | 202 |
+| 12 | Uninstall (history 보존 + wait) | `DELETE ...?keepHistory=true&wait=true` | 202 |
+| 13 | Revisions | `GET /v1/clusters/{c}/helm-releases/{r}/revisions` | - |
+| 14 | Operations | `POST /v1/clusters/{c}/helm-releases/{r}/operations` | 202 |
+| 15 | Upgrade | `PUT /v1/clusters/{c}/helm-releases/{r}` | 202 + Operation |
+| 16 | 적용된 values | `GET /v1/clusters/{c}/helm-releases/{r}/values` | 3번과 달리 배포본 기준 |
 
 **플로우: 카탈로그 탐색 → 배포 → 정리**
 ```
 1 List → 2 Detail → 3 Values → 5 Deploy
    → (Operations/4 SSE 로 진행 추적)
-   → 6 Status → 7 Releases → 8 Resources
-   → 9 Uninstall
+   → 8 Status → 9 Releases → 10 Resources
+   → 11 Uninstall
 ```
 
 **기본 vars:** `repo_name: chart-museum-external`, `chart_name: ingress-nginx`,
@@ -110,7 +112,7 @@ VM 인프라 자원 라이프사이클은 `/v1/vms` 네임스페이스에 따로
 | 6 | PVs List | `GET /v1/clusters/{c}/namespaces/-/persistentvolumes` |
 | 7 | StorageClasses List | `GET /v1/clusters/{c}/namespaces/-/storageclasses` |
 | 8 | CRDs List | `GET /v1/clusters/{c}/namespaces/-/customresourcedefinitions` |
-| z95 | 전체 노드 목록 | `GET /v1/nodes` (cluster 를 가로질러 조회) |
+| 18 | 전체 노드 목록 | `GET /v1/nodes` (cluster 를 가로질러 조회) |
 
 cluster-scoped kind 도 같은 경로 패턴을 씁니다. namespace 자리에 `-` 를 넣어 구분하고, 서버는
 cluster-scoped kind 면 그 값을 무시합니다. `_all` 은 전체 namespace 조회입니다.
@@ -125,11 +127,18 @@ cluster-scoped kind 면 그 값을 무시합니다. `_all` 은 전체 namespace 
 
 | seq | 요청 | endpoint |
 |---|---|---|
-| 1 | NodeStatus | `GET /v1/clusters/{c}/node-metrics` |
-| 2 | resourceMonit | `GET /v1/clusters/{c}/resource-metrics/{type}/{key}` |
+| 1 | Prometheus Query | `GET /v1/clusters/{c}/metrics/query?query=` |
+| 2 | Prometheus Query Range | `GET /v1/clusters/{c}/metrics/query_range?query=&start=&end=&step=` |
+| 3 | promql-aggregate | `GET /v1/observability/aggregate?promql=` (전체 cluster 합산) |
+| 4 | 활성 알림 | `GET /v1/clusters/{c}/observability/alerts` |
+| 5 | Grafana 대시보드 URL | `GET /v1/clusters/{c}/observability/dashboard` |
+| 6 | Multi Query | `POST /v1/clusters/{c}/metrics/multi-query` (batch PromQL) |
+| 9–14 | 표준 쿼리 | `GET /v1/clusters/{c}/metrics/standard/{namespace-cpu, node-memory, top-cpu …}` |
+| 15–21 | 알림 규칙, silence | `GET/POST/DELETE /v1/clusters/{c}/observability/alert-{rules,silences}` |
 
-`type ∈ {pod, node, namespace, deployment}`, `key = namespace/name` (pod, deployment)
-또는 `name` (node, namespace).
+1, 2 는 Prometheus 응답을 그대로 중계합니다. `ApiSuccessResponse` 로 감싸지 않아 기존
+Prometheus 클라이언트를 그대로 붙일 수 있습니다. 9–14 는 자주 쓰는 PromQL 을 서버가 들고 있는
+것이라 쿼리를 외우지 않아도 됩니다.
 
 ### F. Operations (LRO 추적)
 
@@ -139,7 +148,7 @@ cluster-scoped kind 면 그 값을 무시합니다. `_all` 은 전체 namespace 
 | 2 | Get | `GET /v1/operations/{id}` | progress + state |
 | 3 | Cancel | `POST /v1/operations/{id}:cancel` | RUNNING/PENDING 만 가능 |
 | 4 | Events (SSE) | `GET /v1/operations/{id}/events` | 실시간 진행률 stream |
-| z90 | 자원 변경 SSE | `GET /v1/events` | 바뀌었다는 신호만. 값은 다시 조회해야 합니다 |
+| 5 | 자원 변경 SSE | `GET /v1/events` | 바뀌었다는 신호만. 값은 다시 조회해야 합니다 |
 
 **플로우: LRO 추적**
 ```
@@ -159,20 +168,20 @@ curl -N -H 'Accept: text/event-stream' \
 
 | 폴더 | 요청 | endpoint |
 |---|---|---|
-| VM Options | z92 | `GET /v1/providers/{p}/credential-schema` |
-| VM Options | z93 | `GET /v1/providers/provisioning-defaults` |
-| VM Credentials | 3b | `GET /v1/credentials/{id}/reveal` |
-| VM Credentials | 3c | `POST /v1/credentials/{id}/health/refresh` |
-| VM Credentials | 3d | `PATCH /v1/credentials/{id}` |
-| Admin | z99 | `POST /v1/fleet/upgrade` |
-| Admin | z100 | `POST /v1/fleet/upgrade/{runId}/abort` |
-| VM Cluster | 2b0 | `POST /v1/vms/preflight` |
+| VM Options | 6 | `GET /v1/providers/{p}/credential-schema` |
+| VM Options | 7 | `GET /v1/providers/provisioning-defaults` |
+| VM Credentials | 11 | `GET /v1/credentials/{id}/reveal` |
+| VM Credentials | 12 | `POST /v1/credentials/{id}/health/refresh` |
+| VM Credentials | 13 | `PATCH /v1/credentials/{id}` |
+| Admin | 20 | `POST /v1/fleet/upgrade` |
+| Admin | 22 | `POST /v1/fleet/upgrade/{runId}/abort` |
+| VM Cluster | 4 | `POST /v1/vms/preflight` |
 
-`z93` 은 CSP 별 생성 기본값과 준비 상태를 돌려줍니다. Proxmox 는 고정 IP 네 값(`nodeIps`,
+VM Options `7` 은 CSP 별 생성 기본값과 준비 상태를 돌려줍니다. Proxmox 는 고정 IP 네 값(`nodeIps`,
 `gateway`, `sshHost`, `sshPorts`)이 채워져 있어야 일괄 생성이 주소를 되묻지 않습니다.
 
-`2b0` 과 `2a` 는 결과 모양이 같지만 요청 본문이 다릅니다. `2a` 는 평평한 `ProvisionClusterRequest`,
-`2b0` 은 `spec` 을 중첩한 `VmCreateRequest` 를 받습니다.
+VM Cluster `4` 와 `3` 은 결과 모양이 같지만 요청 본문이 다릅니다. `3` 은 평평한
+`ProvisionClusterRequest`, `4` 는 `spec` 을 중첩한 `VmCreateRequest` 를 받습니다.
 
 ---
 
@@ -197,7 +206,7 @@ bru run "Chart" --env local --reporter-json results.json
 bru run "Chart" --env local --reporter-junit junit.xml
 
 # 단일 요청
-bru run "Cluster (클러스터)/2. Cluster Create (클러스터 생성).bru" --env local
+bru run "Cluster (클러스터)/02. Cluster Create (클러스터 생성).bru" --env local
 
 # 환경 override (env file 의 값을 CLI 인자로 덮어쓰기)
 bru run "Cluster (클러스터)" --env local --env-var cluster_name=my-test-001
@@ -274,34 +283,35 @@ Idempotency-Key: {{$randomUUID}}
 
 ### VM Cluster 트랙: CSP 별 quick-start
 
-VM 프로비저닝은 CSP 마다 필요한 config 키가 달라 **provider 별 .bru 가 따로 있습니다** (`2b` ~ `2m`).
+VM 프로비저닝은 CSP 마다 필요한 config 키가 달라 **provider 별 .bru 가 따로 있습니다**
+(VM Credentials `4`~`8`, VM Cluster `5`~`12`).
 `2. VM Cluster Create` 는 모든 키를 한 body 에 넣은 참고용이라, 실제로는 본인 CSP 에 맞는 파일을
 쓰세요.
 
 ```bash
 # 1. credential 등록 (한 번만)
-bru run "VM Credentials (VM 자격증명)/2b. AWS Credential Create.bru" \
+bru run "VM Credentials (VM 자격증명)/04. AWS Credential Create (자격증명 생성).bru" \
     --env local-aws-provisioning
 # 응답에서 id 받아 환경의 credential_id 에 채움 (자동 promote 됨)
 
 # 2. 사전 검토 (선택). credential, quota, 비용을 미리 봅니다
-bru run "VM Cluster (VM 클러스터)/2a. VM Cluster Preflight.bru" \
+bru run "VM Cluster (VM 클러스터)/03. VM Cluster Preflight (생성 사전 검토).bru" \
     --env local-aws-provisioning
 
 # 3. CSP 별 cluster 생성
-bru run "VM Cluster (VM 클러스터)/2b. AWS Cluster Create.bru" \
+bru run "VM Cluster (VM 클러스터)/05. AWS Cluster Create (AWS 클러스터 생성).bru" \
     --env local-aws-provisioning
 ```
 
 | Provider | 파일 | 추가 필수 config |
 |----------|------|------------------|
-| AWS | `2b. AWS Cluster Create` | (없음) |
-| GCP | `2c. GCP Cluster Create` | `gcp_project` |
-| Alibaba | `2e. Alibaba Cluster Create` | `alibaba_zone` |
-| OpenStack | `2f. OpenStack Cluster Create` | `openstack_image_name`, `openstack_flavor_name`, `openstack_external_network_id`, `openstack_floating_ip_pool` |
-| OCI | `2h. OCI Cluster Create` | `oci_compartment_id` |
-| Proxmox | `2k. Proxmox Cluster Create` | `proxmox_node_name` |
-| IBM | `2m. IBM Cluster Create` | `ibm_zone` |
+| AWS | `5. AWS Cluster Create` | (없음) |
+| GCP | `6. GCP Cluster Create` | `gcp_project` |
+| Alibaba | `7. Alibaba Cluster Create` | `alibaba_zone` |
+| OpenStack | `8. OpenStack Cluster Create` | `openstack_image_name`, `openstack_flavor_name`, `openstack_external_network_id`, `openstack_floating_ip_pool` |
+| OCI | `9. OCI Cluster Create` | `oci_compartment_id` |
+| Proxmox | `11. Proxmox Cluster Create` | `proxmox_node_name` |
+| IBM | `12. IBM Cluster Create` | `ibm_zone` |
 
 자세한 사용법: `.bruno/VM Cluster (VM 클러스터)/folder.bru` 의 docs 블록.
 
@@ -309,9 +319,9 @@ bru run "VM Cluster (VM 클러스터)/2b. AWS Cluster Create.bru" \
 
 | 증상 | 원인 / 해결 |
 |---|---|
-| `400 NO_BODY` | body 가 비었거나 JSON 파싱 실패. Bruno 의 `body:json` 블록 확인. 큰 values 는 `5b. multipart` 사용. |
+| `400 NO_BODY` | body 가 비었거나 JSON 파싱 실패. Bruno 의 `body:json` 블록 확인. 큰 values 는 Chart `7. multipart` 사용. |
 | `409 Conflict` (Idempotency) | 같은 `Idempotency-Key` 로 다른 body 재전송. 새 요청은 `{{$randomUUID}}` 라 자동 갱신되므로 보통 환경 변수에 고정값을 박은 경우. |
 | `404 cluster not found` (DELETE/GET) | `cluster_name` env 가 stale. `Cluster List` 한 번 돌리거나 default 갱신. |
-| `Failed to decrypt CSP credential payload` | 백엔드 AES key 변경됨. credential 재등록 필요 (`VM Credentials/2~2j`). |
+| `Failed to decrypt CSP credential payload` | 백엔드 AES key 변경됨. credential 재등록 필요 (`VM Credentials/2`~`8`). |
 | `Chart README ENTITY_NOT_FOUND` | 이전 버전 backend 의 stderr 오탐입니다. 백엔드를 최신으로 올리세요. |
 | SSE 응답이 끊김 | Bruno 표준 뷰는 SSE 부분만 표시. `curl -N` 으로 직접 확인. |

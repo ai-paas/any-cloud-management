@@ -69,7 +69,7 @@ class OciYamlEmitterTest {
     @Test
     @SuppressWarnings("unchecked")
     void userDataIsBase64Encoded() {
-        // OCI 는 평문 user-data 를 그대로 무시한다. cloud-init 이 아예 돌지 않는다.
+        // OCI 는 평문 user-data 무시. cloud-init 미실행.
         Map<String, Object> metadata = (Map<String, Object>) props("master").get("metadata");
 
         assertThat((Map<String, Object>) metadata.get("user_data")).containsKey("fn::toBase64");
@@ -77,7 +77,7 @@ class OciYamlEmitterTest {
 
     @Test
     void overwritesVcnDefaultRouteTableAndSecurityList() {
-        // 새로 만들면 서브넷이 기본 것을 물고 있어 규칙이 적용되지 않는다.
+        // 신규 생성 시 서브넷이 기본 리소스를 참조해 규칙 미적용.
         assertThat(props("routeTable")).containsEntry("manageDefaultResourceId", "${vcn.defaultRouteTableId}");
         assertThat(props("securityList")).containsEntry("manageDefaultResourceId", "${vcn.defaultSecurityListId}");
     }
@@ -85,7 +85,7 @@ class OciYamlEmitterTest {
     @Test
     @SuppressWarnings("unchecked")
     void securityListUsesProtocolNumbersIncludingIpip() {
-        // OCI security list 는 프로토콜 이름이 아니라 IANA 번호를 받는다.
+        // OCI security list 는 프로토콜 이름이 아닌 IANA 번호를 수신.
         List<Map<String, Object>> ingress =
                 (List<Map<String, Object>>) props("securityList").get("ingressSecurityRules");
 
@@ -145,7 +145,7 @@ class OciYamlEmitterTest {
     @Test
     @SuppressWarnings("unchecked")
     void flexShapeCarriesShapeConfig() {
-        // Flex 셰이프는 크기가 셰이프 이름에 없다. 빠지면 OCI 가 400 InvalidParameter 로 거부한다.
+        // Flex 셰이프는 셰이프 이름에 크기 미포함. 누락 시 OCI 가 400 InvalidParameter 거부.
         Map<String, Object> cfgMap =
                 (Map<String, Object>) propsOf(cfg(), "master").get("shapeConfig");
 
@@ -166,7 +166,7 @@ class OciYamlEmitterTest {
 
     @Test
     void fixedShapeOmitsShapeConfig() {
-        // 고정 셰이프에 shapeConfig 를 넣으면 OCI 가 거부한다.
+        // 고정 셰이프에 shapeConfig 지정 시 OCI 거부.
         Map<String, String> cfg = cfg();
         cfg.put("masterInstanceType", "VM.Standard2.2");
 
@@ -177,7 +177,7 @@ class OciYamlEmitterTest {
 
     @Test
     void malformedFlexSuffixFallsBackToDefaults() {
-        // 값이 깨졌다고 프로비저닝을 죽이면 사용자는 원인을 모른 채 실패만 본다.
+        // 값 손상을 이유로 프로비저닝을 중단하면 사용자가 원인 없이 실패만 확인.
         Map<String, String> cfg = cfg();
         cfg.put("masterInstanceType", "VM.Standard.E4.Flex:big:huge");
 

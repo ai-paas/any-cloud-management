@@ -1,0 +1,15 @@
+meta {
+  name: 19. agent 재설치 (POST)
+  type: http
+  seq: 19
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/clusters/{{cluster_name}}/agent/reinstall
+  body: none
+  auth: none
+}
+
+docs {
+  `POST /v1/admin/clusters/{clusterName}/agent/reinstall`
+}

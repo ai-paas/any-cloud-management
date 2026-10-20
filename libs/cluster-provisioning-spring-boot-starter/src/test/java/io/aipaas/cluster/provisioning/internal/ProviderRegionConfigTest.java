@@ -8,11 +8,11 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
- * 프로바이더 리전을 비워 두면 각 프로바이더가 자기 기본 리전으로 붙는다.
+ * 프로바이더 리전 미지정 시 각 프로바이더가 자체 기본 리전으로 접속.
  *
- * <p>IBM 은 {@code us-south} 라, 도쿄를 골라도 자원은 us-south 에 생기고 존은
- * {@code missing or invalid zone} 으로 거절된다. 실패 메시지가 존을 가리켜서 리전 선택이
- * 무시됐다는 사실이 드러나지 않는다.
+ * <p>IBM 기본값은 {@code us-south} 이므로 도쿄를 선택해도 자원은 us-south 에 생성되고 존은
+ * {@code missing or invalid zone} 거절. 실패 메시지가 존을 지목해 리전 선택 무시 사실이
+ * 드러나지 않음.
  */
 class ProviderRegionConfigTest {
 
@@ -38,7 +38,7 @@ class ProviderRegionConfigTest {
     @ParameterizedTest
     @ValueSource(strings = {"proxmox", "openstack", "digitalocean"})
     void providersWithoutAProviderLevelRegionReportNothing(String provider) {
-        // Proxmox 는 단일 하이퍼바이저라 리전이 없고, OpenStack 은 리소스마다 region 을 직접 받는다.
+        // Proxmox 는 단일 하이퍼바이저라 리전 부재. OpenStack 은 리소스별로 region 을 직접 수신.
         assertThat(CspCredentialPulumiConfigMapper.regionConfigKey(provider)).isNull();
     }
 

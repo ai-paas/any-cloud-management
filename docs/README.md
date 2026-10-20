@@ -57,16 +57,15 @@
 - [pulumi-multicloud-k8s-blueprint.md](./architecture/pulumi/pulumi-multicloud-k8s-blueprint.md) — 멀티 CSP VM Kubernetes 프로비저닝 청사진
 - [pulumi-runtime-with-gateway.md](./architecture/pulumi/pulumi-runtime-with-gateway.md) — Gateway + Spring + Pulumi 운영 구조 / RustFS + OpenBao
 - [pulumi-gpu-support.md](./architecture/pulumi/pulumi-gpu-support.md) — Pulumi GPU node + DCGM exporter
-- [pulumi-yaml-migration.md](./architecture/pulumi/pulumi-yaml-migration.md) — 타입 SDK(253MB)를 생성 YAML로 교체하는 설계
 
 ### Starter Modules ([starters/](./architecture/starters/))
 
 - [overview.md](./architecture/starters/overview.md) — Layer 모델 + DB-free 가정 + state 를 어느 쪽이 맡는지 정리한 표
 - [cluster-agent-starter.md](./architecture/starters/cluster-agent-starter.md) — **Layer 1** — Reverse-tunnel gRPC + PodExec WebSocket + Kube/Helm 서비스
 - [cluster-agent-features-starter.md](./architecture/starters/cluster-agent-features-starter.md) — **Layer 2 통합** — RBAC + Backup + Observability sub-feature 3개
-  - [cluster-agent-rbac-starter.md](./architecture/starters/cluster-agent-rbac-starter.md) — RBAC sub-feature (OIDC → ClusterRoleBinding)
-  - [cluster-agent-backup-starter.md](./architecture/starters/cluster-agent-backup-starter.md) — Backup sub-feature (Velero / etcd / PKI)
-  - [cluster-agent-observability-starter.md](./architecture/starters/cluster-agent-observability-starter.md) — Observability sub-feature (PromQL + alert + dashboard)
+  - [cluster-agent-rbac-feature.md](./architecture/starters/cluster-agent-rbac-feature.md) — RBAC sub-feature (OIDC → ClusterRoleBinding)
+  - [cluster-agent-backup-feature.md](./architecture/starters/cluster-agent-backup-feature.md) — Backup sub-feature (Velero / etcd / PKI)
+  - [cluster-agent-observability-feature.md](./architecture/starters/cluster-agent-observability-feature.md) — Observability sub-feature (PromQL + alert + dashboard)
 - [cluster-provisioning-starter.md](./architecture/starters/cluster-provisioning-starter.md) — **별도 lifecycle** (cluster-agent 의존 X) — Pulumi CLI 위임 multi-cloud provisioning
 - [starter-extension-guide.md](./architecture/starters/starter-extension-guide.md) — 도메인 특화 starter 확장 가이드
 - [starter-publishing.md](./architecture/starters/starter-publishing.md) — Maven 게시 절차

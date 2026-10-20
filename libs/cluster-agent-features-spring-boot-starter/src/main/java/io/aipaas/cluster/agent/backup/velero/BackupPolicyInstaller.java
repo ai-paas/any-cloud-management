@@ -15,7 +15,7 @@ public interface BackupPolicyInstaller {
      */
     BackupPolicyApplyResult install(String clusterName, String policyId, String namespace);
 
-    /** 카탈로그 전체 설치. 일부 실패해도 나머지 시도 — 결과 list 의 status 로 분기. */
+    /** 카탈로그 전체 설치. 일부 실패해도 나머지 시도: 결과 list 의 status 로 분기. */
     List<BackupPolicyApplyResult> installAll(String clusterName, String namespace);
 
     /** 단일 정책 제거 (Velero Schedule CR 삭제). */

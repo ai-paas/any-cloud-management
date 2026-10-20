@@ -39,7 +39,7 @@ class StandardOutputsTest {
 
     @Test
     void emitsExactlyTheContractKeys() {
-        // 이 목록이 stackOutputs() 의 계약이다. 하나라도 빠지면 anycloud 가 깨진다.
+        // 이 목록이 stackOutputs() 의 계약. 하나라도 누락되면 anycloud 동작 실패.
         assertThat(outputs().keySet())
                 .containsExactlyInAnyOrder(
                         "provider",
@@ -82,13 +82,13 @@ class StandardOutputsTest {
 
     @Test
     void publicIpComesFromFloatingIpResourceNotInstance() {
-        // OpenStack 은 floating IP 가 별도 리소스다. 인스턴스를 가리키면 값이 비어 나온다.
+        // OpenStack 의 floating IP 는 별도 리소스. 인스턴스 참조 시 빈 값 반환.
         assertThat(outputs().get("masterPublicIp")).isEqualTo("${fip-master.address}");
     }
 
     @Test
     void masterPublicDnsMirrorsPublicIp() {
-        // 현재 구현이 publicIp 를 그대로 넣는다. 계약 유지가 목적이므로 동작을 바꾸지 않는다.
+        // 현재 구현은 publicIp 를 그대로 사용. 계약 유지가 목적이므로 동작 변경 없음.
         Map<String, Object> out = outputs();
 
         assertThat(out.get("masterPublicDns")).isEqualTo(out.get("masterPublicIp"));
@@ -102,7 +102,7 @@ class StandardOutputsTest {
     @Test
     @SuppressWarnings("unchecked")
     void secretsAreWrapped() {
-        // 키와 ssh 명령이 평문으로 상태에 남으면 안 된다.
+        // 키와 ssh 명령의 평문 상태 저장 금지.
         Map<String, Object> out = outputs();
 
         for (String key : List.of("sshPrivateKeyPem", "masterSshCommand", "kubeconfigFetchCommand")) {
@@ -116,7 +116,7 @@ class StandardOutputsTest {
         assertThat(outputs().get("masterPublicIp")).isInstanceOf(String.class);
     }
 
-    /** {@code fn::toJSON} 안쪽의 배열. 직렬화는 Pulumi 가 실행 시점에 한다. */
+    /** {@code fn::toJSON} 내부 배열. 직렬화는 Pulumi 가 실행 시점에 수행. */
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> nodeEntries() {
         Map<String, Object> wrapper = (Map<String, Object>) outputs().get("nodes");
@@ -131,7 +131,7 @@ class StandardOutputsTest {
     @Test
     @SuppressWarnings("unchecked")
     void nodesFieldNamesMatchExistingContract() {
-        // AbstractKubeadmProvisioner.nodeEntry 와 같은 키여야 한다.
+        // AbstractKubeadmProvisioner.nodeEntry 와 동일 키 필요.
         assertThat(nodeEntries().get(0))
                 .containsKeys("role", "instanceId", "privateIp", "publicIp", "publicDns", "ssh");
     }
@@ -149,8 +149,8 @@ class StandardOutputsTest {
 
     @Test
     void everyOutputIsScalarOrKnownFunction() {
-        // WorkspaceStack.up 이 내부에서 부르는 getStackOutputs 는 배열/객체 output 을 만나면
-        // gson 단계에서 죽는다. YAML 경로도 SDK 를 거치므로 예외가 아니다.
+        // WorkspaceStack.up 이 내부 호출하는 getStackOutputs 는 배열, 객체 output 수신 시
+        // gson 단계에서 실패. YAML 경로도 SDK 를 경유하므로 동일 적용.
         outputs().forEach((key, value) -> {
             if (value == null) {
                 return; // gson 은 JSON null 을 그대로 받는다

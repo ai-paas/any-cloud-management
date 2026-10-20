@@ -8,11 +8,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Proxmox VE 노드 위에 VM 을 올린다.
+ * Proxmox VE 노드 위에 VM 생성.
  *
- * <p>다른 CSP 와 달리 VPC, 서브넷, 보안그룹을 만들지 않는다. Proxmox 는 하이퍼바이저라 네트워크가
- * 이미 존재하는 브리지이고, 방화벽은 노드 단위로 운영자가 관리한다. 그래서 vpcCidr 과 subnetCidrs 는
- * 이 emitter 에서 쓰이지 않는다.
+ * <p>다른 CSP 와 달리 VPC, 서브넷, 보안그룹 미생성. Proxmox 는 하이퍼바이저라 네트워크가 기존
+ * 브리지이고 방화벽은 노드 단위 운영자 관리. 따라서 vpcCidr 과 subnetCidrs 는 이 emitter 에서
+ * 미사용.
  */
 final class ProxmoxYamlEmitter implements ProviderYamlEmitter {
 
@@ -25,7 +25,7 @@ final class ProxmoxYamlEmitter implements ProviderYamlEmitter {
 
     private static final String ROOT_DISK_INTERFACE = "scsi0";
 
-    /** cloud-init 디스크는 IDE 에만 붙는다. scsi0 는 루트 디스크가 쓴다. */
+    /** cloud-init 디스크는 IDE 에만 연결 가능. scsi0 는 루트 디스크가 점유. */
     private static final String CLOUD_INIT_INTERFACE = "ide2";
 
     private static final int DEFAULT_CORES = 2;
@@ -48,17 +48,17 @@ final class ProxmoxYamlEmitter implements ProviderYamlEmitter {
         b.resource("sshKey", T_PRIVATE_KEY, Map.of("algorithm", "RSA", "rsaBits", 4096));
         emitImage(b, spec, px);
 
-        // nodeIps 순서 계약 — master 가 0, worker 가 1 부터다. 어긋나면 노드마다 남의 주소가 붙는다.
+        // nodeIps 순서 계약. master 가 0, worker 가 1부터. 불일치 시 노드에 다른 노드 주소 할당.
         StandardOutputs.NodeRef master = emitNode(b, spec, px, "master", 0);
         List<StandardOutputs.NodeRef> workers = new ArrayList<>();
         for (int i = 1; i <= spec.workerCount(); i++) {
             workers.add(emitNode(b, spec, px, "worker-" + i, i));
         }
-        // Proxmox 에는 VPC 가 없다. 계약상 vpcId 는 채워야 하므로 노드 이름을 넣는다.
+        // Proxmox 에는 VPC 부재. 계약상 vpcId 가 필수이므로 노드 이름으로 대체.
         return new StandardOutputs.NodeRefs("sshKey", "image", "nodeName", master, workers);
     }
 
-    /** cloud 이미지를 datastore 로 내려받는다. 노드마다 한 번이면 되므로 리소스 하나만 만든다. */
+    /** cloud 이미지를 datastore 로 수신. 노드당 1회면 충분하므로 리소스 1개만 생성. */
     private void emitImage(PulumiProgram.Builder b, ClusterSpec spec, ProviderSpec.Proxmox px) {
         b.resource(
                 "image",
@@ -89,9 +89,9 @@ final class ProxmoxYamlEmitter implements ProviderYamlEmitter {
         vm.put("cpu", Map.of("cores", cores(spec, node), "type", "host"));
         vm.put("memory", Map.of("dedicated", memoryMib(spec, node)));
         /*
-         * agent 를 켜면 provider 가 VM 생성을 끝내기 전에 agent 의 IP 보고를 기다린다. Ubuntu cloud
-         * 이미지에는 qemu-guest-agent 가 들어 있지 않고 user-data 로 설치할 수도 없어, 주소를 직접
-         * 지정한 경우에는 영영 오지 않는 응답을 기다리게 된다.
+         * agent 활성화 시 provider 가 VM 생성 완료 전에 agent 의 IP 보고를 대기. Ubuntu cloud
+         * 이미지에 qemu-guest-agent 가 없고 user-data 설치도 불가하므로, 주소를 직접 지정한
+         * 경우 도달하지 않는 응답을 무한 대기.
          */
         vm.put("agent", Map.of("enabled", !px.usesStaticAddressing()));
         vm.put("operatingSystem", Map.of("type", "l26"));
@@ -104,14 +104,13 @@ final class ProxmoxYamlEmitter implements ProviderYamlEmitter {
                         "size", rootDiskGb(spec))));
         vm.put("networkDevices", List.of(Map.of("bridge", px.networkBridge(), "model", "virtio")));
         /*
-         * fileId 기본값 cdrom 은 빈 CD-ROM 드라이브다. PVE 가 이것을 물리 장치 연결로 보고 / 의
-         * Sys.Console 을 요구해 VM 생성이 403 으로 거절된다. 넣을 매체가 없으므로 꽂지 않는다.
+         * fileId 기본값 cdrom 은 빈 CD-ROM 드라이브. PVE 가 이를 물리 장치 연결로 판정해 / 의
+         * Sys.Console 권한을 요구하고 VM 생성이 403 거절. 적재할 매체가 없으므로 미연결.
          */
         vm.put("cdrom", Map.of("fileId", "none"));
         /*
-         * 공개키는 API 로 들어간다. user-data 는 쓰지 않는다 — Proxmox API 가 snippets 업로드를
-         * 받지 않아, 전달하려면 PVE 호스트 SSH 접근 권한이 필요해진다. 패키지 설치는 부트스트랩이
-         * 노드 SSH 로 수행한다.
+         * 공개키는 API 로 주입. user-data 미사용. Proxmox API 가 snippets 업로드를 지원하지
+         * 않아 전달에 PVE 호스트 SSH 접근 권한이 필요. 패키지 설치는 부트스트랩이 노드 SSH 로 수행.
          */
         Map<String, Object> initialization = new LinkedHashMap<>();
         initialization.put("datastoreId", px.datastoreId());
@@ -141,7 +140,7 @@ final class ProxmoxYamlEmitter implements ProviderYamlEmitter {
         return new StandardOutputs.NodeRef(node, "id", node, "ipv4Addresses[0][0]", node, "ipv4Addresses[0][0]");
     }
 
-    /** 고정 주소가 없으면 DHCP 로 둔다 — 주소를 알 수 없어 부트스트랩은 못 붙지만 VM 은 뜬다. */
+    /** 고정 주소가 없으면 DHCP 로 둔다. 주소를 알 수 없어 부트스트랩은 못 붙지만 VM 은 뜬다. */
     private Map<String, Object> ipv4Config(ProviderSpec.Proxmox px, int index) {
         String nodeIp = px.nodeIpAt(index);
         if (nodeIp == null) {
@@ -156,7 +155,7 @@ final class ProxmoxYamlEmitter implements ProviderYamlEmitter {
         return ipv4;
     }
 
-    /** {@code "코어-메모리MiB"} 규약. Proxmox 는 인스턴스 타입이 없어 값을 직접 받는다. */
+    /** {@code "코어-메모리MiB"} 규약. Proxmox 는 인스턴스 타입이 없어 값을 직접 수신. */
     private int cores(ClusterSpec spec, String node) {
         return part(instanceType(spec, node), 0, DEFAULT_CORES);
     }
@@ -186,10 +185,10 @@ final class ProxmoxYamlEmitter implements ProviderYamlEmitter {
     }
 
     /**
-     * PVE 가 {@code import} content 로 받는 확장자는 {@code .ova .ovf .qcow2 .raw .vmdk} 뿐이다.
+     * PVE 가 {@code import} content 로 허용하는 확장자는 {@code .ova .ovf .qcow2 .raw .vmdk}.
      *
-     * <p>Ubuntu cloud 이미지는 {@code .img} 로 배포되지만 내용은 qcow2 다. URL 이름을 그대로 쓰면
-     * {@code invalid filename or wrong extension} 으로 400 이 난다.
+     * <p>Ubuntu cloud 이미지는 {@code .img} 로 배포되나 내용은 qcow2. URL 이름을 그대로 사용하면
+     * {@code invalid filename or wrong extension} 으로 400 응답.
      */
     private String imageFileName(ClusterSpec spec) {
         String url = imageUrl(spec);
@@ -213,10 +212,10 @@ final class ProxmoxYamlEmitter implements ProviderYamlEmitter {
     }
 
     /**
-     * 쉼표로 이은 값을 항목으로 나눈다.
+     * 쉼표로 구분한 값을 항목으로 분리.
      *
-     * <p>구분자 정규식에 {@code \s*} 를 두면 공백이 길어질수록 매칭 비용이 제곱으로 는다
-     * (polynomial ReDoS). 값이 외부 입력이라 고정 문자로 나누고 공백은 따로 제거한다.
+     * <p>구분자 정규식에 {@code \s*} 를 두면 공백 길이에 따라 매칭 비용이 제곱 증가
+     * (polynomial ReDoS). 값이 외부 입력이므로 고정 문자로 분리하고 공백은 별도 제거.
      */
     private static List<String> splitCsv(String value) {
         List<String> out = new ArrayList<>();
@@ -227,7 +226,7 @@ final class ProxmoxYamlEmitter implements ProviderYamlEmitter {
         return out;
     }
 
-    /** provider 전용 설정. 다른 CSP 의 spec 이 오면 assembler 가 provider 를 잘못 라우팅한 것이다. */
+    /** provider 전용 설정. 다른 CSP 의 spec 수신은 assembler 의 provider 라우팅 오류. */
     private static ProviderSpec.Proxmox proxmox(ClusterSpec spec) {
         if (spec.providerSpec() instanceof ProviderSpec.Proxmox p) return p;
         throw new IllegalStateException("Proxmox 설정이 없다: provider=" + spec.provider());

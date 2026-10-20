@@ -65,8 +65,8 @@ class ProxmoxYamlEmitterTest {
     @SuppressWarnings("unchecked")
     void createsNoSnippetFile() {
         /*
-         * Proxmox API 는 업로드 content type 으로 snippets 를 받지 않는다(pve-devel #2208). 다시 넣으면
-         * provider 가 PVE 호스트로 SSH 하게 되고, 자격증명이 하이퍼바이저 접근 권한까지 요구한다.
+         * Proxmox API 는 업로드 content type 으로 snippets 미지원(pve-devel #2208). 재도입 시
+         * provider 가 PVE 호스트로 SSH 하게 되고 자격증명이 하이퍼바이저 접근 권한까지 요구.
          */
         Map<String, Object> resources = (Map<String, Object>) doc(cfg()).get("resources");
 
@@ -77,7 +77,7 @@ class ProxmoxYamlEmitterTest {
 
     @Test
     void theImageGoesToTheDirectoryDatastore() {
-        // 블록 스토리지(local-lvm)는 import content 를 받지 않아 다운로드가 실패한다.
+        // 블록 스토리지(local-lvm)는 import content 미허용이라 다운로드 실패.
         assertThat(props("image")).containsEntry("datastoreId", "local").containsEntry("contentType", "import");
     }
 
@@ -93,7 +93,7 @@ class ProxmoxYamlEmitterTest {
     @Test
     @SuppressWarnings("unchecked")
     void rootDiskDeclaresInterface() {
-        // interface 는 필수다. 빠지면 preview 가 타입 불일치로 죽는다.
+        // interface 필수. 누락 시 preview 가 타입 불일치로 실패.
         List<Map<String, Object>> disks =
                 (List<Map<String, Object>>) props("master").get("disks");
 
@@ -113,7 +113,7 @@ class ProxmoxYamlEmitterTest {
     @Test
     @SuppressWarnings("unchecked")
     void injectsSshPublicKey() {
-        // 노드에 들어가는 유일한 경로다. 빠지면 VM 은 뜨지만 부트스트랩이 붙지 못한다.
+        // 노드 접근의 유일한 경로. 누락 시 VM 은 기동하나 부트스트랩 접속 불가.
         Map<String, Object> init = (Map<String, Object>) props("master").get("initialization");
         Map<String, Object> account = (Map<String, Object>) init.get("userAccount");
 
@@ -123,7 +123,7 @@ class ProxmoxYamlEmitterTest {
 
     @Test
     void qemuAgentIsEnabledWhenTheAddressMustBeDiscovered() {
-        // 꺼져 있으면 ipv4Addresses 가 빈 배열이라 masterPublicIp 가 비어 나온다.
+        // 비활성 상태면 ipv4Addresses 가 빈 배열이라 masterPublicIp 도 빈 값.
         assertThat(props("master")).containsEntry("agent", Map.of("enabled", true));
     }
 
@@ -153,7 +153,7 @@ class ProxmoxYamlEmitterTest {
 
     @Test
     void malformedInstanceTypeFallsBackToDefaults() {
-        // 값이 깨졌다고 프로비저닝을 죽이면 Defaults 가 손쓸 기회가 없다.
+        // 값 손상을 이유로 프로비저닝을 중단하면 Defaults 가 개입할 수 없음.
         Map<String, String> cfg = cfg();
         cfg.put("masterInstanceType", "large");
 
@@ -168,7 +168,7 @@ class ProxmoxYamlEmitterTest {
 
     @Test
     void nodeNameIsRequired() {
-        // Proxmox 는 클러스터라도 어느 노드에 올릴지 지정해야 한다.
+        // Proxmox 는 클러스터 구성에서도 배치 노드 지정 필요.
         Map<String, String> cfg = cfg();
         cfg.remove("providerSpec.nodeName");
 
@@ -188,7 +188,7 @@ class ProxmoxYamlEmitterTest {
     @Test
     @SuppressWarnings("unchecked")
     void everyProxmoxResourceDeclaresWhereToGetThePlugin() {
-        // 플러그인 캐시는 볼륨이라 이미지에 구운 것이 남지 않는다. 선언이 빠지면 매번 403 이다.
+        // 플러그인 캐시는 볼륨이라 이미지에 포함된 내용이 유지되지 않음. 선언 누락 시 매번 403.
         Map<String, Object> resources = (Map<String, Object>) doc(cfg()).get("resources");
 
         assertThat(resources.values())
@@ -206,8 +206,8 @@ class ProxmoxYamlEmitterTest {
     @Test
     void theDownloadedImageGetsAnExtensionPveAccepts() {
         /*
-         * import content 가 받는 확장자는 .ova .ovf .qcow2 .raw .vmdk 뿐이다. Ubuntu cloud 이미지는
-         * .img 로 배포되지만 내용은 qcow2 라, 이름을 그대로 쓰면 400 invalid filename 이 난다.
+         * import content 허용 확장자는 .ova .ovf .qcow2 .raw .vmdk. Ubuntu cloud 이미지는 .img
+         * 로 배포되나 내용은 qcow2 이므로, 이름을 그대로 사용하면 400 invalid filename 응답.
          */
         assertThat(props("image").get("fileName")).isEqualTo("demo-base.qcow2");
     }
@@ -229,8 +229,8 @@ class ProxmoxYamlEmitterTest {
     @Test
     void noCdromDriveIsAttached() {
         /*
-         * fileId 를 비우면 provider 가 기본값 cdrom 을 보내고, PVE 는 빈 CD-ROM 드라이브 연결에
-         * / 의 Sys.Console 을 요구한다. VM 생성이 403 으로 거절된다.
+         * fileId 미지정 시 provider 가 기본값 cdrom 을 전송하고, PVE 는 빈 CD-ROM 드라이브
+         * 연결에 / 의 Sys.Console 권한을 요구. VM 생성이 403 거절.
          */
         assertThat(props("master")).containsEntry("cdrom", Map.of("fileId", "none"));
     }
@@ -277,7 +277,7 @@ class ProxmoxYamlEmitterTest {
     @Test
     @SuppressWarnings("unchecked")
     void eachNodeGetsItsOwnAddressInOrder() {
-        // master 가 0, worker 가 1 부터다. 순서가 어긋나면 노드마다 남의 주소가 붙는다.
+        // master 가 0, worker 가 1부터. 순서 불일치 시 노드에 다른 노드 주소 할당.
         Map<String, Object> init = (Map<String, Object>) staticProps("worker-1").get("initialization");
         List<Map<String, Object>> ipConfigs = (List<Map<String, Object>>) init.get("ipConfigs");
 
@@ -306,7 +306,7 @@ class ProxmoxYamlEmitterTest {
     @Test
     @SuppressWarnings("unchecked")
     void theForwardedPortTravelsWithEachNode() {
-        // 공유기가 노드마다 다른 포트를 연다. 값이 없으면 부트스트랩이 22 로 붙어 실패한다.
+        // 공유기가 노드별로 다른 포트를 개방. 값 부재 시 부트스트랩이 22 로 접속해 실패.
         Map<String, Object> outputs = (Map<String, Object>) doc(staticCfg()).get("outputs");
 
         assertThat(new Yaml().dump(outputs.get("nodes")))
@@ -317,7 +317,7 @@ class ProxmoxYamlEmitterTest {
     @Test
     @SuppressWarnings("unchecked")
     void withoutStaticAddressesTheAgentIsStillTheSource() {
-        // 기존 동작을 바꾸지 않는다. 주소를 지정하지 않으면 예전대로 agent 에게 묻는다.
+        // 기존 동작 유지. 주소 미지정 시 기존과 동일하게 agent 에 조회.
         Map<String, Object> outputs = (Map<String, Object>) doc(cfg()).get("outputs");
 
         assertThat(outputs.get("masterPrivateIp")).isEqualTo("${master.ipv4Addresses[0][0]}");

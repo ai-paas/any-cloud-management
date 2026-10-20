@@ -14,8 +14,8 @@ import org.yaml.snakeyaml.Yaml;
 /**
  * IBM Cloud VPC YAML 프로그램 회귀 보호.
  *
- * <p>이미지 이름에는 빌드 번호가 붙고 주기적으로 갈린다. 기본값을 두지 않고 받는 이유는
- * {@link IbmYamlEmitter#imageName} 주석에 있다.
+ * <p>이미지 이름에는 빌드 번호가 포함되고 주기적으로 교체. 기본값 없이 수신하는 이유는
+ * {@link IbmYamlEmitter#imageName} 주석 참조.
  */
 class IbmYamlEmitterTest {
 
@@ -51,7 +51,7 @@ class IbmYamlEmitterTest {
     @Test
     @SuppressWarnings("unchecked")
     void declaresBridgedPackage() {
-        // 사전 컴파일된 플러그인이 없다. 선언이 빠지면 타입 해석이 pulumiverse 를 찾다 404 로 죽는다.
+        // 사전 컴파일된 플러그인 부재. 선언 누락 시 타입 해석이 pulumiverse 조회 중 404 실패.
         Map<String, Object> packages = (Map<String, Object>) doc(cfg()).get("packages");
 
         assertThat(packages).containsKey("ibm");
@@ -87,8 +87,8 @@ class IbmYamlEmitterTest {
     @SuppressWarnings("unchecked")
     void theRequestedVpcCidrBecomesAnAddressPrefix() {
         /*
-         * 기본값(auto)으로 두면 IBM 이 자기 대역으로 접두사를 만든다. 요청한 vpcCidr 은 그 안에
-         * 들어가지 않아 서브넷이 "CIDR does not fit in any of the address prefixes" 로 거절된다.
+         * 기본값(auto) 사용 시 IBM 이 자체 대역으로 접두사 생성. 요청한 vpcCidr 이 해당 범위에
+         * 포함되지 않아 서브넷이 "CIDR does not fit in any of the address prefixes" 로 거절.
          */
         Map<String, String> cfg = cfg();
         cfg.put("vpcCidr", "10.98.0.0/16");
@@ -105,7 +105,7 @@ class IbmYamlEmitterTest {
     @Test
     @SuppressWarnings("unchecked")
     void theSubnetWaitsForTheAddressPrefix() {
-        // 접두사보다 먼저 만들어지면 같은 이유로 거절된다.
+        // 접두사보다 선행 생성 시 동일 사유로 거절.
         Map<String, Object> resources = (Map<String, Object>) doc(cfg()).get("resources");
         Map<String, Object> options =
                 (Map<String, Object>) ((Map<String, Object>) resources.get("subnet")).get("options");
@@ -115,20 +115,20 @@ class IbmYamlEmitterTest {
 
     @Test
     void subnetNeedsZoneNotRegion() {
-        // region 만으로는 서브넷을 만들 수 없다. zone 은 계정마다 활성 목록이 달라 추측하지 않는다.
+        // region 만으로 서브넷 생성 불가. zone 은 계정별 활성 목록이 달라 추정하지 않음.
         assertThat(props("subnet")).containsEntry("zone", "jp-tok-1");
     }
 
     @Test
     void publicGatewayIsAttachedToSubnet() {
-        // 없으면 cloud-init 이 패키지 저장소에 닿지 못한다.
+        // 부재 시 cloud-init 의 패키지 저장소 접근 불가.
         assertThat(props("subnet")).containsEntry("publicGateway", "${gateway.id}");
     }
 
     @Test
     @SuppressWarnings("unchecked")
     void intraVpcRuleOmitsProtocol() {
-        // IBM 은 protocol 을 tcp/udp/icmp 로만 받는다. 생략이 all 이라 Calico IPIP 가 통과한다.
+        // IBM 은 protocol 을 tcp, udp, icmp 만 수용. 생략이 all 을 의미해 Calico IPIP 통과.
         Map<String, Object> intra = props("sg-intra");
 
         assertThat(intra).containsEntry("remote", "10.98.0.0/16").doesNotContainKeys("tcp", "udp", "icmp");
@@ -136,7 +136,7 @@ class IbmYamlEmitterTest {
 
     @Test
     void floatingIpTargetsTheNic() {
-        // IBM 은 인스턴스에 공인 IP 를 직접 붙이지 않는다.
+        // IBM 은 인스턴스에 공인 IP 직접 연결 불가.
         assertThat(props("fip-master")).containsEntry("target", "${master.primaryNetworkInterface.id}");
     }
 

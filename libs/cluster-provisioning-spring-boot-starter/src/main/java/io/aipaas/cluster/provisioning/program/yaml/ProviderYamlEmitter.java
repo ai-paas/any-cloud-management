@@ -9,9 +9,9 @@ interface ProviderYamlEmitter {
     String name();
 
     /**
-     * 리소스를 builder 에 추가하고, 출력 조립에 필요한 참조를 돌려준다.
+     * 리소스를 builder 에 추가하고 출력 조립용 참조 반환.
      *
-     * @throws IllegalStateException 필수 config 가 없으면 — preview 까지 가지 말고 즉시 실패한다
+     * @throws IllegalStateException 필수 config 부재. preview 도달 전 즉시 실패
      */
     StandardOutputs.NodeRefs emit(PulumiProgram.Builder builder, ClusterSpec spec);
 }

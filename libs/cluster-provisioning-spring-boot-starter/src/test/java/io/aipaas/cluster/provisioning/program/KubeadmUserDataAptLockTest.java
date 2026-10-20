@@ -10,10 +10,10 @@ import org.junit.jupiter.api.Test;
 /**
  * 부팅 직후 apt 락 경쟁.
  *
- * <p>클라우드 이미지는 첫 부팅에 unattended-upgrades 로 apt 를 돌린다. 락을 기다리지 않으면
- * {@code apt-get update} 가 즉시 "Could not get lock" 으로 죽고, {@code set -e} 가 스크립트 전체를
- * 중단시켜 containerd 와 kubelet 이 설치되지 않는다. VM 은 정상적으로 뜨기 때문에 부트스트랩이
- * 멈출 때까지 드러나지 않는다.
+ * <p>클라우드 이미지는 첫 부팅에 unattended-upgrades 로 apt 실행. 락 대기 없이 진행하면
+ * {@code apt-get update} 가 즉시 "Could not get lock" 으로 실패하고 {@code set -e} 가 스크립트
+ * 전체를 중단해 containerd 와 kubelet 미설치. VM 은 정상 기동하므로 부트스트랩 정지 시점까지
+ * 드러나지 않음.
  */
 class KubeadmUserDataAptLockTest {
 
@@ -47,7 +47,7 @@ class KubeadmUserDataAptLockTest {
     @Test
     void lockWaitCoversTheListsLock() {
         // DPkg::Lock::Timeout 은 dpkg 락만 덮는다. apt-get update 가 잡는 lists/lock 은 별도로
-        // 기다려야 한다 — 옵션만 믿었다가 worker 노드에서 그대로 실패했다.
+        // 기다려야 한다. 옵션만 믿었다가 worker 노드에서 그대로 실패했다.
         String script = KubeadmUserData.master(spec());
 
         assertThat(script)
@@ -64,7 +64,7 @@ class KubeadmUserDataAptLockTest {
 
     @Test
     void aptIsActuallyInvoked() {
-        // 위 검사들이 apt 호출이 하나도 없어 조용히 통과하는 것을 막는다.
+        // 위 검사들이 apt 호출 부재 상태로 무음 통과하는 것을 차단.
         assertThat(aptLines(KubeadmUserData.master(spec()))).hasSizeGreaterThanOrEqualTo(4);
     }
 }

@@ -89,5 +89,5 @@ catalogs:
 
 ## 참고
 
-- starter spec: [`starters/cluster-agent-rbac-starter.md`](../starters/cluster-agent-rbac-starter.md)
+- starter spec: [`starters/cluster-agent-rbac-feature.md`](../starters/cluster-agent-rbac-feature.md)
 - impersonation 인증 model: [`k8s-impersonation-auth.md`](./k8s-impersonation-auth.md)

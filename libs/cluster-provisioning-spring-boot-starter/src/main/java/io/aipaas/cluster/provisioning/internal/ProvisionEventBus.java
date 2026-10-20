@@ -14,7 +14,7 @@ public class ProvisionEventBus {
     private final Sinks.Many<ProvisionEvent> sink =
             Sinks.many().multicast().onBackpressureBuffer(BUFFER_CAPACITY, false);
 
-    /** Publish — slow subscriber 가 있으면 oldest 부터 drop. emit 실패는 log 만. */
+    /** Publish: slow subscriber 가 있으면 oldest 부터 drop. emit 실패는 log 만. */
     public void publish(ProvisionEvent event) {
         if (event == null) {
             return;
@@ -29,7 +29,7 @@ public class ProvisionEventBus {
         }
     }
 
-    /** Subscribe — multicast 이므로 여러 subscriber 가 같은 stream 을 받는다. */
+    /** Subscribe. multicast 이므로 여러 subscriber 가 동일 stream 수신. */
     public Flux<ProvisionEvent> asFlux() {
         return sink.asFlux();
     }

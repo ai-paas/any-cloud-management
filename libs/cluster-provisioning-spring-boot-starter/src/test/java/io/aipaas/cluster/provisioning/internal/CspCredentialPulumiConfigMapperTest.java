@@ -10,9 +10,9 @@ import org.junit.jupiter.api.Test;
 /**
  * OpenStack 매핑 회귀 보호.
  *
- * <p>authUrl / userName / password / tenantName 만 매핑하던 시절에는 Keystone v3 인증이
- * domain scope 누락으로 401 이었다. env 이름이 CSP_ENV_BLOCKLIST 로 제거되므로 provider 의
- * env 기본값도 대신 채워주지 못한다.
+ * <p>authUrl, userName, password, tenantName 만 매핑하던 구현에서는 Keystone v3 인증이
+ * domain scope 누락으로 401. env 이름이 CSP_ENV_BLOCKLIST 로 제거되므로 provider 의 env
+ * 기본값도 대체 불가.
  */
 class CspCredentialPulumiConfigMapperTest {
 
@@ -110,7 +110,7 @@ class CspCredentialPulumiConfigMapperTest {
 
     @Test
     void openstack_dropsUnparseableInsecure() {
-        // 인식 못 하는 값을 그대로 넘기면 Pulumi 가 stack 전체를 거부한다.
+        // 미인식 값을 그대로 전달하면 Pulumi 가 stack 전체 거부.
         Map<String, String> env = openrc();
         env.put("OS_INSECURE", "maybe");
 
@@ -131,8 +131,8 @@ class CspCredentialPulumiConfigMapperTest {
 
     @Test
     void openstack_passesEndpointOverridesAsJson() {
-        // 카탈로그가 광고하는 사설 주소로는 외부에서 못 닿는다 — override 없이는 provider 가
-        // "dial tcp 192.168.10.10:9292: network is unreachable" 로 실패한다.
+        // 카탈로그가 광고하는 사설 주소는 외부 접근 불가. override 부재 시 provider 가
+        // "dial tcp 192.168.10.10:9292: network is unreachable" 로 실패.
         Map<String, String> env = openrc();
         String overrides = "{\"image\":\"https://proxy.example.com:9292/v2/\"}";
         env.put("OS_ENDPOINT_OVERRIDES", overrides);
@@ -153,7 +153,7 @@ class CspCredentialPulumiConfigMapperTest {
 
     @Test
     void openstack_rejectsNonObjectEndpointOverrides() {
-        // JSON 이긴 하나 map 이 아니면 provider 가 stack 전체를 거부한다.
+        // JSON 이어도 map 이 아니면 provider 가 stack 전체 거부.
         Map<String, String> env = openrc();
         env.put("OS_ENDPOINT_OVERRIDES", "[\"https://proxy.example.com:9292\"]");
 
@@ -164,8 +164,8 @@ class CspCredentialPulumiConfigMapperTest {
 
     @Test
     void stripCspEnv_removesEveryOpenstackKeyTheMapperReads() {
-        // blocklist 가 새 키를 놓치면 Pulumi 하위 프로세스 env 로 자격증명이 새고,
-        // provider 가 config 대신 env 를 집어 값이 엇갈린다.
+        // blocklist 가 신규 키를 누락하면 Pulumi 하위 프로세스 env 로 자격증명이 노출되고,
+        // provider 가 config 대신 env 를 참조해 값 불일치.
         Map<String, String> env = openrc();
         env.put("OS_ENDPOINT_OVERRIDES", "{}");
         env.put("OS_INSECURE", "true");

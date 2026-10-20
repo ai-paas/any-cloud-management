@@ -6,8 +6,9 @@ import java.util.Map;
 /**
  * 정규화된 cluster spec.
  *
- * <p>{@link #from(Map)} 으로 raw spec 빌드 → {@link #normalize()} 로 provider 별 default 와 cross-cutting
- * 보정(masterCount odd 강제, rootDiskSizeGb≥50). control-plane HA 는 단일 master endpoint 기반이다.
+ * <p>{@link #from(Map)} 으로 raw spec 빌드 후 {@link #normalize()} 에서 provider 별 default 와
+ * cross-cutting 보정(masterCount 홀수 강제, rootDiskSizeGb≥50) 적용. control-plane HA 는 단일
+ * master endpoint 기반.
  */
 public record ClusterSpec(
         String provider,
@@ -41,7 +42,7 @@ public record ClusterSpec(
         return new Builder(this);
     }
 
-    /** OS image — provider 별 default 반환. {@link Defaults#resolvedOsImage} 위임. */
+    /** OS image: provider 별 default 반환. {@link Defaults#resolvedOsImage} 위임. */
     public String osImageOrDefault() {
         return Defaults.resolvedOsImage(this);
     }
@@ -81,13 +82,13 @@ public record ClusterSpec(
 
     private static final String CONFIG_NAMESPACE = "anycloud-k8s:";
 
-    /** namespace 접두가 있든 없든 같은 키로 읽는다. */
+    /** namespace 접두 유무와 무관하게 동일 키로 조회. */
     private static String mapStr(Map<String, String> cfg, String key) {
         String value = cfg.get(key);
         return value != null ? value : cfg.get(CONFIG_NAMESPACE + key);
     }
 
-    /** 잘못된 값에 예외를 던지면 Defaults 가 손쓸 기회 없이 프로비저닝이 죽는다. */
+    /** 잘못된 값에 예외를 전파하면 Defaults 개입 없이 프로비저닝 실패. */
     private static int mapInt(Map<String, String> cfg, String key) {
         String value = mapStr(cfg, key);
         if (value == null || value.isBlank()) {

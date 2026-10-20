@@ -1,0 +1,26 @@
+meta {
+  name: 16. release values 조회 (GET)
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/v1/clusters/{{cluster_name}}/helm-releases/{{release_name}}/values?namespace={{namespace}}
+  body: none
+  auth: none
+}
+
+params:query {
+  namespace: {{namespace}}
+}
+
+docs {
+  배포된 release 에 실제로 적용된 values 입니다 (helm get values). 3번 Chart Values 는 chart 가
+  들고 있는 기본값이라 다릅니다.
+}
+
+tests {
+  test("200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

@@ -17,7 +17,7 @@ class PulumiProgramTest {
 
     @Test
     void declaresYamlRuntime() {
-        // runtime 이 yaml 이어야 CLI 가 Pulumi.yaml 을 프로그램으로 해석한다.
+        // runtime 이 yaml 이어야 CLI 가 Pulumi.yaml 을 프로그램으로 해석.
         Map<String, Object> doc =
                 parse(PulumiProgram.builder("anycloud-k8s").build().toYaml());
 
@@ -27,7 +27,7 @@ class PulumiProgramTest {
 
     @Test
     void emptyProgramHasEmptyResources() {
-        // destroy 는 리소스 정의가 필요 없다. resources 키 자체가 없으면 CLI 가 거부한다.
+        // destroy 는 리소스 정의 불필요. 단 resources 키 자체가 없으면 CLI 거부.
         Map<String, Object> doc =
                 parse(PulumiProgram.builder("anycloud-k8s").build().toYaml());
 
@@ -52,7 +52,7 @@ class PulumiProgramTest {
 
     @Test
     void resourceOptionsAreEmittedOnlyWhenPresent() {
-        // 빈 options 를 내보내면 CLI 가 파싱은 하지만 diff 노이즈가 된다.
+        // 빈 options 출력 시 CLI 파싱은 통과하나 diff 노이즈 발생.
         String withOpts = PulumiProgram.builder("p")
                 .resource("a", "t", Map.of(), Map.of("dependsOn", List.of("${b}")))
                 .build()
@@ -66,7 +66,7 @@ class PulumiProgramTest {
 
     @Test
     void outputsArePreservedInDeclarationOrder() {
-        // 순서가 안정되면 두 스택의 Pulumi.yaml 을 diff 해서 차이를 바로 볼 수 있다.
+        // 순서가 고정되면 두 스택의 Pulumi.yaml 을 diff 로 비교 가능.
         String yaml = PulumiProgram.builder("p")
                 .output("provider", "openstack")
                 .output("clusterName", "demo")
@@ -92,7 +92,7 @@ class PulumiProgramTest {
     @Test
     @SuppressWarnings("unchecked")
     void specialCharactersSurviveRoundTrip() {
-        // user-data 는 개행, 따옴표, ${} 가 섞인다. 문자열 조립이었다면 여기서 깨진다.
+        // user-data 에는 개행, 따옴표, ${} 가 혼재. 문자열 조립 방식에서는 이 지점에서 손상.
         String userData = "#!/bin/bash\nset -euxo pipefail\necho \"hello ${NAME}\"\napt-get install -y 'a b'\n";
         String yaml = PulumiProgram.builder("p")
                 .resource("vm", "t", Map.of("userData", userData))

@@ -14,10 +14,10 @@ public final class KubeadmUserData {
     }
 
     /**
-     * cloud-init 을 거치지 않고 노드에서 직접 돌릴 때 쓴다.
+     * cloud-init 경유 없이 노드에서 직접 실행할 때 사용.
      *
-     * <p>Proxmox API 가 snippets 업로드를 받지 않아 user-data 를 전달할 방법이 없다. 같은 스크립트를
-     * SSH 로 실행하므로 설치 내용은 한 벌로 유지된다.
+     * <p>Proxmox API 가 snippets 업로드를 지원하지 않아 user-data 전달 수단 부재. 동일 스크립트를
+     * SSH 로 실행하므로 설치 내용은 단일 소스 유지.
      */
     public static String forRole(String kubernetesVersion, String role) {
         boolean master = "master".equalsIgnoreCase(role);
@@ -26,7 +26,7 @@ public final class KubeadmUserData {
     }
 
     private static String render(ClusterSpec spec, String role, boolean includeMasterPackages) {
-        // master 만 추가로 jq + openssl 설치 — kubeadm init 시 join token / cert hash 처리에 사용.
+        // master 만 추가로 jq + openssl 설치: kubeadm init 시 join token / cert hash 처리에 사용.
         String additionalPackages = includeMasterPackages ? " jq openssl" : "";
         String k8sVersion = spec.kubernetesVersion();
         // 두 번 사용 (apt-key 다운로드 URL + apt sources.list deb URL).

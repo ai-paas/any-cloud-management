@@ -9,11 +9,11 @@ import org.junit.jupiter.api.Test;
 /**
  * 이미지가 갖고 오는 기본 방화벽.
  *
- * <p>OCI 의 Ubuntu 이미지는 SSH 만 허용하고 나머지를 {@code REJECT} 하는 iptables 규칙을 담고 온다.
- * kube-apiserver 는 6443 을 열지만 노드 안에서 거부되어 워커가 영영 join 하지 못한다. VCN 보안
- * 목록이 이미 경계를 정하므로 노드 안에서 한 번 더 막을 이유가 없다.
+ * <p>OCI Ubuntu 이미지는 SSH 만 허용하고 나머지를 {@code REJECT} 하는 iptables 규칙을 포함.
+ * kube-apiserver 가 6443 을 개방해도 노드 내부에서 거부돼 워커 join 불가. VCN 보안 목록이
+ * 경계를 정의하므로 노드 내부 추가 차단 불필요.
  *
- * <p>규칙이 없는 이미지에서는 아무 일도 하지 않아 다른 CSP 에도 안전하다.
+ * <p>해당 규칙이 없는 이미지에서는 무동작이므로 다른 CSP 에도 안전.
  */
 class KubeadmUserDataFirewallTest {
 
@@ -50,7 +50,7 @@ class KubeadmUserDataFirewallTest {
 
     @Test
     void appliesToEveryProvider() {
-        // 이미지 기본 방화벽은 CSP 별 분기가 아니다. 규칙이 없으면 아무 일도 하지 않는다.
+        // 이미지 기본 방화벽은 CSP 별 분기 대상 아님. 규칙 부재 시 무동작.
         assertThat(KubeadmUserData.master(spec("aws"))).contains("iptables -C");
     }
 }

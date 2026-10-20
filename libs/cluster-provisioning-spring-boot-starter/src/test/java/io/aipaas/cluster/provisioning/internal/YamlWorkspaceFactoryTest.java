@@ -34,7 +34,7 @@ class YamlWorkspaceFactoryTest {
 
     @Test
     void eachCallGetsItsOwnDirectory() {
-        // 동시에 여러 스택이 돌 수 있다. 같은 디렉토리를 쓰면 서로 덮어쓴다.
+        // 다중 스택 동시 실행 가능. 동일 디렉터리 사용 시 상호 덮어쓰기.
         Path a = YamlWorkspaceFactory.create(program());
         Path b = YamlWorkspaceFactory.create(program());
         try {
@@ -56,7 +56,7 @@ class YamlWorkspaceFactoryTest {
 
     @Test
     void deleteIsIdempotent() {
-        // 예외 경로에서 두 번 불릴 수 있다. 정리 실패가 원래 예외를 덮으면 안 된다.
+        // 예외 경로에서 중복 호출 가능. 정리 실패가 원 예외를 덮으면 안 됨.
         Path workDir = YamlWorkspaceFactory.create(program());
         YamlWorkspaceFactory.delete(workDir);
 
@@ -70,7 +70,7 @@ class YamlWorkspaceFactoryTest {
 
     @Test
     void programContentIsWrittenVerbatim() throws IOException {
-        // user-data 처럼 특수문자가 섞인 값이 파일을 거치며 변형되면 안 된다.
+        // user-data 등 특수문자 포함 값의 파일 경유 변형 금지.
         PulumiProgram program = PulumiProgram.builder("p")
                 .resource("vm", "t", Map.of("userData", "#!/bin/bash\necho \"hi\"\n"))
                 .build();

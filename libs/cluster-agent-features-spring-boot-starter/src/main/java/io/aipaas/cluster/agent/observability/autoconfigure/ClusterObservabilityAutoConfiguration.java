@@ -21,7 +21,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 
-/** Observability starter auto-config — 활성 조건: 호스트가 {@link ClusterCatalog} 제공. 모든 bean override 가능. */
+/** Observability starter auto-config: 활성 조건: 호스트가 {@link ClusterCatalog} 제공. 모든 bean override 가능. */
 @AutoConfiguration
 @ConditionalOnClass(ObservabilityQueryService.class)
 @ConditionalOnBean(ClusterCatalog.class)
@@ -74,7 +74,7 @@ public class ClusterObservabilityAutoConfiguration {
         return new DashboardLocator(sessionRegistry, props.dashboard().timeout());
     }
 
-    // GPU dcgm-exporter 는 cluster_addon row (type=GPU_EXPORTER) 로 install — MonitoringAddonInstaller
+    // GPU dcgm-exporter 는 cluster_addon row (type=GPU_EXPORTER) 로 install: MonitoringAddonInstaller
     // 의 hasGpuNodes 분기가 자동 동반 row 생성.
 
     @Bean

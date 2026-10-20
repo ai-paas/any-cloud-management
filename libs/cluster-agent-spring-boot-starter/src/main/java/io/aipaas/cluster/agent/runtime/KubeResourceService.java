@@ -26,7 +26,7 @@ import lombok.extern.slf4j.Slf4j;
  * Day-2 K8s ops 를 agent gRPC stream 으로 routing 하는 starter-side facade.
  * <ul>
  *   <li>지원: getPodLogs / getResource / listResourcesPaginated / deleteResource / applyResource</li>
- *   <li>flag {@code cluster-agent.routing.enabled} — false 면 항상 {@link #isActiveFor} = false</li>
+ *   <li>flag {@code cluster-agent.routing.enabled}: false 면 항상 {@link #isActiveFor} = false</li>
  *   <li>session 없으면 isActiveFor=false → caller 가 실패 처리 결정</li>
  * </ul>
  * @see docs/architecture/k8s-access-paths.md
@@ -35,7 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class KubeResourceService {
 
-    /** APPLY_MANIFEST 만 일반 명령보다 timeout 큼 — 60s + 10s cushion. */
+    /** APPLY_MANIFEST 만 일반 명령보다 timeout 큼: 60s + 10s cushion. */
     private static final long APPLY_TIMEOUT_SECONDS = 60L + 10L;
 
     private final AgentSessionRegistry sessionRegistry;
@@ -52,7 +52,7 @@ public class KubeResourceService {
         return sessionRegistry.find(clusterName).isPresent();
     }
 
-    /** GET_LOG — kubectl logs 등가. */
+    /** GET_LOG: kubectl logs 등가. */
     public String getPodLogs(
             String clusterName,
             String namespace,
@@ -80,7 +80,7 @@ public class KubeResourceService {
         return logField.getStringValue();
     }
 
-    /** GET_RESOURCE — kubectl get -o json 등가. */
+    /** GET_RESOURCE: kubectl get -o json 등가. */
     public JsonNode getResource(String clusterName, String namespace, String kind, String name) {
         var future = commandRouter.getResource(clusterName, namespace == null ? "" : namespace, kind, name);
 
@@ -98,14 +98,14 @@ public class KubeResourceService {
         }
     }
 
-    /** LIST_RESOURCES (paginated) — kubectl get &lt;kind&gt; 등가. */
+    /** LIST_RESOURCES (paginated). kubectl get &lt;kind&gt; 등가. */
     public KubeResourcePage listResourcesPaginated(
             String clusterName, String namespace, String kind, int limit, String continueToken, String labelSelector) {
         return listResourcesPaginated(clusterName, namespace, kind, limit, continueToken, labelSelector, "");
     }
 
     /**
-     * LIST_RESOURCES with fieldSelector — Event 같이 involvedObject.* 로 필터링이 필요한 자원에 사용.
+     * LIST_RESOURCES with fieldSelector: Event 같이 involvedObject.* 로 필터링이 필요한 자원에 사용.
      * labelSelector 와 AND 조합 (둘 다 채우면 둘 다 적용).
      */
     public KubeResourcePage listResourcesPaginated(
@@ -155,7 +155,7 @@ public class KubeResourceService {
                 count);
     }
 
-    /** DELETE_RESOURCE — kubectl delete 등가. AllowList 검증은 agent. */
+    /** DELETE_RESOURCE: kubectl delete 등가. AllowList 검증은 agent. */
     public boolean deleteResource(String clusterName, String namespace, String kind, String name) {
         var future = commandRouter.deleteResource(clusterName, namespace == null ? "" : namespace, kind, name);
 
@@ -166,7 +166,7 @@ public class KubeResourceService {
         return deleted != null && deleted.getBoolValue();
     }
 
-    /** APPLY_MANIFEST — kubectl apply 등가. multi-doc YAML/JSON. 단일 자원이면 single, 멀티이면 array. */
+    /** APPLY_MANIFEST: kubectl apply 등가. multi-doc YAML/JSON. 단일 자원이면 single, 멀티이면 array. */
     public JsonNode applyResource(String clusterName, String namespace, String manifest) {
         return applyResource(clusterName, namespace, manifest, false);
     }
@@ -206,7 +206,7 @@ public class KubeResourceService {
         }
     }
 
-    /** LIST_RESOURCE_KINDS — cluster 의 discovery API 가 노출하는 모든 API resource (kind) enumerate. */
+    /** LIST_RESOURCE_KINDS: cluster 의 discovery API 가 노출하는 모든 API resource (kind) enumerate. */
     public List<ResourceKindInfo> listResourceKinds(String clusterName) {
         var future = commandRouter.listResourceKinds(clusterName);
         CommandResponse resp = await(future, "LIST_RESOURCE_KINDS", commandTimeoutSeconds + 5L);
@@ -245,7 +245,7 @@ public class KubeResourceService {
     }
 
     /**
-     * RESOLVE_RESOURCE — 입력 (단축이름/plural/PascalCase) → 정규화. 실패 시
+     * RESOLVE_RESOURCE: 입력 (단축이름/plural/PascalCase) → 정규화. 실패 시
      * {@link UnsupportedKindException} (suggestions 포함). 다른 모든 실패는 KubeRoutingException.
      */
     public ResolvedResource resolveResource(String clusterName, String input) {
@@ -291,7 +291,7 @@ public class KubeResourceService {
     }
 
     /**
-     * GET_AGENT_CONFIG — agent 의 현재 in-memory allowlist + resource_policy snapshot.
+     * GET_AGENT_CONFIG: agent 의 현재 in-memory allowlist + resource_policy snapshot.
      * ConfigMap edit 후 reload 검증 / UI 운영자 페이지 데이터 소스.
      */
     public AgentPolicySnapshot getAgentConfig(String clusterName) {
@@ -380,7 +380,7 @@ public class KubeResourceService {
     }
 
     /**
-     * ENSURE_AGENT_CONFIG_ANNOTATIONS — agent 의 ConfigMap 에 {@code helm.sh/resource-policy: keep} annotation 만 추가.
+     * ENSURE_AGENT_CONFIG_ANNOTATIONS: agent 의 ConfigMap 에 {@code helm.sh/resource-policy: keep} annotation 만 추가.
      *
      * @return 결과 record {@code (alreadyPresent, resourceVersion)}.
      */
@@ -398,7 +398,7 @@ public class KubeResourceService {
     public record EnsureAnnotationResult(boolean alreadyPresent, String resourceVersion) {}
 
     /**
-     * APPLY_AGENT_CONFIG — agent 의 ConfigMap 을 새 snapshot 으로 갱신.
+     * APPLY_AGENT_CONFIG: agent 의 ConfigMap 을 새 snapshot 으로 갱신.
      *
      * @return 적용된 ConfigMap 의 새 {@code resourceVersion}. caller (audit) 가 추적용으로 사용 가능.
      */
@@ -441,7 +441,7 @@ public class KubeResourceService {
 
     /**
      * Fleet-wide OidcGroupBinding sync overload. {@code oidcBindingsJson} 가 fleet-wide active
-     * binding 의 JSON array (backend canonical). null 이면 빈 array — agent 가 모든 binding 제거.
+     * binding 의 JSON array (backend canonical). null 이면 빈 array: agent 가 모든 binding 제거.
      */
     public String applyAgentConfig(
             String clusterName,

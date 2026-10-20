@@ -15,11 +15,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.yaml.snakeyaml.Yaml;
 
 /**
- * emitter 가 provider 무관하게 지켜야 하는 것들.
+ * provider 무관하게 emitter 가 지켜야 할 계약.
  *
- * <p>개별 emitter 테스트는 자기 자신만 본다. 그래서 6개 provider 에 있고 1개에만 없는 종류의 누락을
- * 잡지 못한다 — Proxmox 공개키 미주입이 그렇게 남아 있었다. 여기 있는 검사는 전 provider 를 한 번에
- * 돌아 새 CSP 를 추가할 때도 자동으로 걸린다.
+ * <p>개별 emitter 테스트는 자기 대상만 검증하므로 6개 provider 에 있고 1개에만 없는 누락을
+ * 검출하지 못함. Proxmox 공개키 미주입이 그 사례. 이 검사는 전체 provider 를 순회하므로 새 CSP
+ * 추가 시에도 자동 적용.
  */
 class ProviderContractTest {
 
@@ -42,15 +42,15 @@ class ProviderContractTest {
             "proxmox", Map.of("providerSpec.nodeName", "pve1"),
             "ibm", Map.of("providerSpec.zone", "jp-tok-1", "osImage", "ibm-ubuntu-24-04-4-minimal-amd64-7"));
 
-    /** Proxmox 는 하이퍼바이저라 네트워크를 만들지 않는다. 방화벽은 운영자가 노드에서 관리한다. */
+    /** Proxmox 는 하이퍼바이저라 네트워크 미생성. 방화벽은 운영자가 노드에서 관리. */
     private static final List<String> NO_FIREWALL = List.of("proxmox");
 
     /**
-     * 기본 SSH 사용자가 그 CSP 이미지에 실재해야 한다.
+     * 기본 SSH 사용자가 해당 CSP 이미지에 존재해야 함.
      *
-     * <p>Alibaba 의 Ubuntu 이미지에는 ubuntu 계정이 없고 키가 root 에 들어간다. 다른 CSP 값을
-     * 그대로 두면 인프라는 다 생기고 BOOTSTRAP 단계에서 publickey 거절로만 끝난다 — 만들어진
-     * 인스턴스가 과금되는 채로 남는다.
+     * <p>Alibaba Ubuntu 이미지에는 ubuntu 계정이 없고 키가 root 에 등록. 다른 CSP 값을 그대로
+     * 사용하면 인프라 생성은 완료되고 BOOTSTRAP 단계에서 publickey 거절로 종료. 생성된
+     * 인스턴스는 과금 상태로 잔존.
      */
     @ParameterizedTest
     @MethodSource("providers")
@@ -84,7 +84,7 @@ class ProviderContractTest {
 
     /**
      * 방화벽 리소스만 추린다. 전체 리소스를 보면 VPC 가 cidrBlock 으로 같은 문자열을 갖고 있어
-     * 규칙이 없어도 검사가 통과한다 — 실제로 그렇게 헛돌던 것을 변형 검증으로 잡았다.
+     * 규칙이 없어도 검사가 통과한다. 실제로 그렇게 헛돌던 것을 변형 검증으로 잡았다.
      */
     @SuppressWarnings("unchecked")
     private List<String> firewallEntries(String provider) {
@@ -93,7 +93,7 @@ class ProviderContractTest {
         resources.forEach((name, raw) -> {
             Map<String, Object> resource = (Map<String, Object>) raw;
             String type = String.valueOf(resource.get("type"));
-            // 이름이 provider 마다 다르다 — securityGroup, secGroup, firewall, securityList.
+            // 이름이 provider 마다 다르다. securityGroup, secGroup, firewall, securityList.
             String lower = type.toLowerCase(java.util.Locale.ROOT);
             if (lower.contains("secgroup")
                     || lower.contains("securitygroup")
@@ -106,7 +106,7 @@ class ProviderContractTest {
         return out;
     }
 
-    /** 중첩 구조가 provider 마다 달라 값 비교 대신 평탄화해서 본다. */
+    /** 중첩 구조가 provider 별로 달라 값 비교 대신 평탄화 후 검증. */
     private List<String> flatten(Object node) {
         List<String> out = new ArrayList<>();
         collect(node, out);
@@ -129,8 +129,8 @@ class ProviderContractTest {
     @ParameterizedTest
     @MethodSource("providers")
     void fulfillsStackOutputContract(String provider) {
-        // 이 키 목록이 ProvisioningService.stackOutputs() 의 계약이다. 하나라도 빠지면
-        // ProvisioningResultMapper, VmClusterNodeResolver 가 깨진다.
+        // 이 키 목록이 ProvisioningService.stackOutputs() 의 계약. 하나라도 누락되면
+        // ProvisioningResultMapper, VmClusterNodeResolver 동작 실패.
         @SuppressWarnings("unchecked")
         Map<String, Object> outputs = (Map<String, Object>) doc(provider).get("outputs");
 
@@ -155,7 +155,7 @@ class ProviderContractTest {
     @ParameterizedTest
     @MethodSource("providers")
     void outputsCarryNoUnresolvedReference(String provider) {
-        // ${x} 가 남으면 소비자가 IP 대신 문자열을 받는다.
+        // ${x} 잔존 시 소비자가 IP 대신 문자열 수신.
         @SuppressWarnings("unchecked")
         Map<String, Object> outputs = (Map<String, Object>) doc(provider).get("outputs");
 
@@ -211,12 +211,12 @@ class ProviderContractTest {
     }
 
     /**
-     * Calico 기본값 {@code ipipMode=Always} 가 노드 간 파드 트래픽을 IP protocol 4 로 감싼다. TCP/UDP 만
-     * 열면 노드는 Ready 인데 파드 통신만 죽는다.
+     * Calico 기본값 {@code ipipMode=Always} 는 노드 간 파드 트래픽을 IP protocol 4 로 캡슐화.
+     * TCP, UDP 만 개방하면 노드는 Ready 이나 파드 통신만 차단.
      *
-     * <p>표현이 provider 마다 달라 하나로 묶을 수 없다. IBM 은 필드를 생략해 all 을 뜻하므로 값 검사가
-     * 아니라 부재 검사다. 새 CSP 를 추가하면 여기 항목을 채워야 {@code everyProviderDeclaresIpipMarker}
-     * 가 통과한다.
+     * <p>표현이 provider 별로 달라 단일화 불가. IBM 은 필드 생략으로 all 을 표현하므로 값 검사가
+     * 아닌 부재 검사. 새 CSP 추가 시 이 항목을 채워야 {@code everyProviderDeclaresIpipMarker}
+     * 통과.
      */
     private static final Map<String, String> IPIP_MARKER = Map.of(
             "aws", "protocol=4",
@@ -249,7 +249,7 @@ class ProviderContractTest {
 
     @Test
     void everyProviderDeclaresIpipMarker() {
-        // emitter 를 추가하고 마커를 안 넣으면 IPIP 검사에서 조용히 빠진다.
+        // emitter 추가 후 마커를 누락하면 IPIP 검사 대상에서 무음 제외.
         List<String> needMarker = YamlEmitters.supported().stream()
                 .filter(p -> !NO_FIREWALL.contains(p))
                 .toList();
@@ -259,7 +259,7 @@ class ProviderContractTest {
 
     @Test
     void everyRegisteredProviderIsCovered() {
-        // emitter 를 추가하고 여기 config 를 안 넣으면 검사에서 조용히 빠진다.
+        // emitter 추가 후 이 config 를 누락하면 검사 대상에서 무음 제외.
         assertThat(PROVIDER_CONFIG.keySet()).containsExactlyInAnyOrderElementsOf(YamlEmitters.supported());
     }
 }

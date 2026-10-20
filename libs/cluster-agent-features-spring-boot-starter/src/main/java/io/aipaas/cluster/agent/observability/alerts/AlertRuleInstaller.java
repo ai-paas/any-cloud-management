@@ -30,7 +30,7 @@ public class AlertRuleInstaller {
     private final AgentSessionRegistry sessionRegistry;
     private final AlertRuleCatalog catalog;
 
-    /** null 이면 capability 필터 없이 전체 설치 — SPI 미구현 호스트 호환. */
+    /** null 이면 capability 필터 없이 전체 설치: SPI 미구현 호스트 호환. */
     private final ClusterCapabilities capabilities;
 
     public AlertRuleInstaller(AgentSessionRegistry sessionRegistry, AlertRuleCatalog catalog) {
@@ -67,7 +67,7 @@ public class AlertRuleInstaller {
     }
 
     /**
-     * 카탈로그 전체 설치. 일부 실패해도 나머지 시도 — 결과 list 에 status="applied"/"failed" 표시.
+     * 카탈로그 전체 설치. 일부 실패해도 나머지 시도: 결과 list 에 status="applied"/"failed" 표시.
      * 응답에 cluster-wide 실패가 1건 이상이면 caller 가 partial 으로 판단.
      */
     public List<AlertRuleApplyResult> installAll(
@@ -98,7 +98,7 @@ public class AlertRuleInstaller {
         return out;
     }
 
-    /** capability 가 필요한 rule-set 을 그 능력이 없는 cluster 에 설치하지 않는다. */
+    /** capability 가 필요한 rule-set 은 해당 능력이 없는 cluster 에 미설치. */
     private boolean supportedBy(String clusterName, AlertRuleSet rs) {
         String required = rs.requiredCapability();
         if (required == null || capabilities == null) {
@@ -110,7 +110,7 @@ public class AlertRuleInstaller {
         return true;
     }
 
-    /** 단일 rule-set 제거 — {@code PrometheusRule/anycloud-<id>} 삭제. */
+    /** 단일 rule-set 제거: {@code PrometheusRule/anycloud-<id>} 삭제. */
     public AlertRuleApplyResult uninstall(String clusterName, String ruleSetId, String namespace, Duration timeout) {
         String ns = blankOr(namespace, DEFAULT_NAMESPACE);
         String name = "anycloud-" + ruleSetId;

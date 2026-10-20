@@ -11,7 +11,7 @@ public final class Defaults {
 
     private static final String DEFAULT_ENVIRONMENT = "dev";
     private static final String DEFAULT_K8S_VERSION = "1.31";
-    // Calico 예제값 192.168.0.0/16 은 온프레미스 사설망과 겹쳐 파드 egress 가 끊긴다.
+    // Calico 예제값 192.168.0.0/16 은 온프레미스 사설망과 중복돼 파드 egress 차단.
     private static final String DEFAULT_POD_CIDR = "10.244.0.0/16";
     private static final String DEFAULT_SERVICE_CIDR = "10.96.0.0/12";
     private static final int DEFAULT_WORKER_COUNT = 2;
@@ -30,7 +30,7 @@ public final class Defaults {
             "azure",
                     new ProviderDefaults(
                             "anycloud-azure", "10.62.0.0/16", "Standard_D4s_v5", "Standard_D4s_v5", "ubuntu"),
-            // g6 는 서울에 없다 — 세대마다 제공 리전이 다르다. Ubuntu 이미지에 ubuntu 계정이 없어 키는 root 로 들어간다.
+            // g6 는 서울 미제공. 세대별 제공 리전 상이. Ubuntu 이미지에 ubuntu 계정이 없어 키는 root 에 등록.
             "alibaba",
                     new ProviderDefaults("anycloud-alibaba", "10.72.0.0/16", "ecs.g9i.large", "ecs.g9i.large", "root"),
             "openstack", new ProviderDefaults("anycloud-openstack", "10.90.0.0/24", null, null, "ubuntu"),
@@ -39,11 +39,11 @@ public final class Defaults {
                             "anycloud-oci", "10.86.0.0/16", "VM.Standard.E4.Flex", "VM.Standard.E4.Flex", "ubuntu"),
             "digitalocean",
                     new ProviderDefaults("anycloud-digitalocean", "10.88.0.0/16", "s-2vcpu-4gb", "s-2vcpu-4gb", "root"),
-            // Proxmox 는 인스턴스 타입이 없다. "코어-메모리MiB" 규약으로 받아 emitter 가 나눈다.
+            // Proxmox 는 인스턴스 타입 부재. "코어-메모리MiB" 규약으로 수신해 emitter 가 분리.
             "proxmox", new ProviderDefaults("anycloud-proxmox", "10.94.0.0/24", "2-4096", "2-4096", "ubuntu"),
             "ibm", new ProviderDefaults("anycloud-ibm", "10.98.0.0/16", "bx2-2x8", "bx2-2x8", "ubuntu"));
 
-    /** 홈랩 대역이 대부분 /24 다. 다르면 요청에서 지정한다. */
+    /** 홈랩 대역은 대부분 /24. 다른 경우 요청에서 지정. */
     private static final int DEFAULT_SUBNET_PREFIX = 24;
 
     /** 노드는 apt 저장소와 컨테이너 레지스트리로 나가야 한다. 사내 DNS 만 보면 부트스트랩이 멈춘다. */
@@ -89,7 +89,7 @@ public final class Defaults {
                 .build();
     }
 
-    /** CSP-specific 필드 (Azure RG / OpenStack image+flavor / AWS database) — table 으로 표현 어려운 case. */
+    /** CSP-specific 필드 (Azure RG / OpenStack image+flavor / AWS database). table 으로 표현 어려운 case. */
     private static void applyProviderSpecific(String canonical, ClusterSpec raw, ClusterSpec.Builder b) {
         switch (canonical) {
             case "aws" -> b.database(applyDbDefaults(raw.database(), "anycloud", "anycloud", "db.t4g.micro", 20));
@@ -114,7 +114,7 @@ public final class Defaults {
             case "ibm" -> {
                 ProviderSpec.Ibm ibm =
                         raw.providerSpec() instanceof ProviderSpec.Ibm i ? i : new ProviderSpec.Ibm(null, null);
-                // zone 은 region 에서 유도할 수 없다. 계정마다 활성 zone 이 달라 추측하면 생성이 실패한다.
+                // zone 은 region 에서 유도 불가. 계정별 활성 zone 이 달라 추정 시 생성 실패.
                 b.providerSpec(new ProviderSpec.Ibm(ibm.zone(), ibm.resourceGroup()));
             }
             case "proxmox" -> {

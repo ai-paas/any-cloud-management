@@ -30,11 +30,11 @@ class YamlProgramAssemblerTest {
 
     @Test
     void supportIsCaseInsensitiveAndClosed() {
-        // 어느 CSP 가 옮겨졌는지는 등록 목록이 정한다. 여기서 목록을 복제하면 옮길 때마다 깨진다.
+        // 전환된 CSP 판정은 등록 목록 기준. 이 지점에 목록을 복제하면 전환마다 수정 필요.
         assertThat(YamlEmitters.supports("openstack")).isTrue();
         assertThat(YamlEmitters.supports("OpenStack")).isTrue();
         assertThat(YamlEmitters.supports("nonesuch")).isFalse();
-        // canonical(null) 은 aws 로 떨어진다 — 여기서 null 을 검사하면 그 규칙을 중복으로 못박는다.
+        // canonical(null) 은 aws 로 처리. 이 지점의 null 검사는 해당 규칙을 중복 고정.
     }
 
     @Test
@@ -51,8 +51,8 @@ class YamlProgramAssemblerTest {
     @Test
     @SuppressWarnings("unchecked")
     void requestFieldsReachTheSpec() {
-        // provider/name/environment/region 은 config map 이 아니라 request 필드로 온다.
-        // applyConfig 와 같은 소스를 봐야 스택 config 와 프로그램이 어긋나지 않는다.
+        // provider, name, environment, region 은 config map 이 아닌 request 필드 유래.
+        // applyConfig 와 동일 소스를 참조해야 스택 config 와 프로그램이 일치.
         Map<String, Object> doc = new Yaml()
                 .load(YamlProgramAssembler.assemble(request("openstack")).toYaml());
         Map<String, Object> outputs = (Map<String, Object>) doc.get("outputs");
@@ -63,7 +63,7 @@ class YamlProgramAssemblerTest {
 
     @Test
     void unsupportedProviderIsRejected() {
-        // 아직 emitter 가 없는 CSP 로 YAML 경로에 들어오면 즉시 알린다.
+        // emitter 미구현 CSP 가 YAML 경로로 진입하면 즉시 통보.
         assertThatThrownBy(() -> YamlProgramAssembler.assemble(request("nonesuch")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("nonesuch");
@@ -72,7 +72,7 @@ class YamlProgramAssemblerTest {
     @Test
     @SuppressWarnings("unchecked")
     void emptyProgramNeedsNoResources() {
-        // outputs 조회와 destroy 는 리소스 정의가 필요 없다.
+        // outputs 조회와 destroy 는 리소스 정의 불필요.
         Map<String, Object> doc =
                 new Yaml().load(YamlProgramAssembler.emptyProgram().toYaml());
 

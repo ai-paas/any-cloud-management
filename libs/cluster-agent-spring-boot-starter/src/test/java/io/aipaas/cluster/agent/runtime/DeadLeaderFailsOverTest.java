@@ -13,13 +13,13 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 
 /**
- * 응답하지 않는 leader 는 leader 가 아니다.
+ * 무응답 leader 의 leader 자격 해제 검증.
  *
- * <p>agent 를 롤링 재시작하면 죽은 pod 의 stream 이 backend 에 그대로 남는다. leader 는 가장 오래된
- * stream 이라 새 pod 가 붙어도 명령은 계속 죽은 쪽으로 가고, 클러스터의 모든 기능이 20초 timeout 만
- * 반복한다. 실제로 그래서 재설치 직후 클러스터 전체가 먹통이 됐다.
+ * <p>agent 롤링 재시작 시 종료된 pod 의 stream 이 backend 에 잔존. leader 는 최고령 stream 이라
+ * 새 pod 연결 후에도 명령이 종료된 쪽으로 전달되고, 클러스터 전체 기능이 20초 timeout 만 반복.
+ * 재설치 직후 클러스터 전체 응답 불가로 이어짐.
  *
- * <p>TCP 가 끊겼다는 것을 알려면 keepalive 를 기다려야 하는데, 그 사이를 메우는 것은 응답 자체다.
+ * <p>TCP 종료 인지에는 keepalive 대기가 필요하며, 그 구간의 판정 근거는 응답 유무.
  */
 class DeadLeaderFailsOverTest {
 
@@ -41,7 +41,7 @@ class DeadLeaderFailsOverTest {
         public void onCompleted() {}
     }
 
-    /** 정리는 timeout 체인에서 일어난다 — 호출자의 future 가 끝난 시점과 같지 않다. */
+    /** 정리는 timeout 체인에서 일어난다. 호출자의 future 가 끝난 시점과 같지 않다. */
     private void awaitSessions(AgentSessionRegistry r, int expected) throws Exception {
         for (int i = 0; i < 100 && r.findAll("demo").size() != expected; i++) {
             Thread.sleep(20);
@@ -84,7 +84,7 @@ class DeadLeaderFailsOverTest {
     @Test
     void anEvictedStreamIsToldSoItCanReconnect() throws Exception {
         // 레지스트리에서만 빼면 agent 는 아직 붙어 있다고 믿는다. 끊은 줄 모르니 다시 연결하지도
-        // 않고, 그 클러스터는 pod 가 재시작될 때까지 영영 닿지 않는다 — 실제로 그렇게 죽었다.
+        // 않고, 그 클러스터는 pod 가 재시작될 때까지 영영 닿지 않는다. 실제로 그렇게 죽었다.
         AgentSessionRegistry r = new AgentSessionRegistry();
         RecordingObserver observer = new RecordingObserver();
         r.register("demo", "only", observer);
@@ -99,8 +99,8 @@ class DeadLeaderFailsOverTest {
 
     @Test
     void aStreamAnsweringDuringTheWaitSurvivesATimeout() throws Exception {
-        // 명령이 몰리면 응답이 시한을 넘겨 도착한다. 그 늦은 응답도 stream 이 살아 있다는 증거다 —
-        // 기다리는 동안 무언가 답했다면 끊지 않는다. 바쁠 때마다 끊기면 부하가 걸린 순간에 죽는다.
+        // 명령 집중 시 응답이 시한을 초과해 도착. 지연 응답도 stream 유지의 근거.
+        // 대기 구간에 응답이 있으면 연결 유지. 부하 시마다 끊으면 과부하 시점에 전체 실패.
         AgentSessionRegistry r = new AgentSessionRegistry();
         RecordingObserver observer = new RecordingObserver();
         AgentSession session = r.register("demo", "busy", observer);
@@ -109,7 +109,7 @@ class DeadLeaderFailsOverTest {
         String firstId = observer.sent.get(0).getRequestId();
         var second = r.sendCommand("demo", ControlMessage.newBuilder(), 1);
 
-        // 두 번째 명령을 기다리는 사이에 첫 번째 응답이 도착한다.
+        // 두 번째 명령 대기 구간에 첫 번째 응답 도착.
         r.completeResponse(firstId, ok());
         first.get(5, TimeUnit.SECONDS);
         second.handle((x, e) -> null).get(5, TimeUnit.SECONDS);

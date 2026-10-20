@@ -52,7 +52,7 @@ public class AutomationProvisioningService implements ProvisioningService {
 
     /**
      * Pulumi 호출은 5–30분 걸릴 수 있어 caller TX 를 점유하면 DB connection pool 고갈. NOT_SUPPORTED 로
-     * caller TX 와 분리 — 본 메서드 안에서 DB 접근 시 별도 connection 사용.
+     * caller TX 와 분리: 본 메서드 안에서 DB 접근 시 별도 connection 사용.
      */
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -128,8 +128,8 @@ public class AutomationProvisioningService implements ProvisioningService {
         Map<String, String> envVars = buildEnvVars(sanitized);
         LocalWorkspaceOptions workspaceOpts = buildWorkspaceOptions(envVars);
 
-        // outputs 조회는 program 실행이 불필요 — noop program. 단, LocalWorkspace 는 program 이 필요해
-        // null 불가 — empty Consumer 로 우회.
+        // outputs 조회는 program 실행이 불필요: noop program. 단, LocalWorkspace 는 program 이 필요해
+        // null 불가: empty Consumer 로 우회.
         Path[] workDir = new Path[1];
         try (WorkspaceStack stack = openStackWithoutProgram(stackName, workspaceOpts, workDir, false)) {
             return unwrapOutputs(stack.getOutputs());
@@ -194,7 +194,7 @@ public class AutomationProvisioningService implements ProvisioningService {
         Map<String, String> envVars = buildEnvVars(sanitized);
         LocalWorkspaceOptions workspaceOpts = buildWorkspaceOptions(envVars);
 
-        // removeStack 은 program 무관 — state 파일만 삭제. noop program 사용.
+        // removeStack 은 program 무관: state 파일만 삭제. noop program 사용.
         Path[] workDir = new Path[1];
         try (WorkspaceStack stack = openStackWithoutProgram(stackName, workspaceOpts, workDir, false)) {
             stack.workspace().removeStack(stackName);
@@ -250,7 +250,7 @@ public class AutomationProvisioningService implements ProvisioningService {
         if (config.getBackendUrl() != null && !config.getBackendUrl().isBlank()) {
             envVars.put("PULUMI_BACKEND_URL", config.getBackendUrl());
         }
-        // CSP 자격증명 (AWS_*/ARM_*/OS_* 등) 은 항상 strip — Pulumi binary 의 state backend 인증은
+        // CSP 자격증명 (AWS_*/ARM_*/OS_* 등) 은 항상 strip: Pulumi binary 의 state backend 인증은
         // config.getEnvironment() 의 backend-scoped 키 (예: RustFS 의 AWS_*) 를 사용필요.
         // CSP API 호출용 자격증명은 별도로 stack config (aws:accessKey 등) 로 전달.
         if (overrides != null) {
@@ -265,8 +265,8 @@ public class AutomationProvisioningService implements ProvisioningService {
             builder.secretsProvider(config.getSecretsProvider());
         }
         // Pulumi Java SDK 의 inline program 모드는 workDir 가 OS temp 에 자동 생성됨. infra/pulumi/
-        // 디렉토리 의존을 제거하므로 명시 workDir 지정 X — Pulumi 가 stack 별 격리된 temp workspace 사용.
-        // 단점: 동일 stackName 으로 동시 두 번 호출 시 race 가능 — 운영 caller (anycloud command service)
+        // 디렉토리 의존을 제거하므로 명시 workDir 지정 X: Pulumi 가 stack 별 격리된 temp workspace 사용.
+        // 단점: 동일 stackName 으로 동시 두 번 호출 시 race 가능: 운영 caller (anycloud command service)
         // 가 transitionTo()/state machine 으로 동시 실행 차단.
         return builder.build();
     }
@@ -275,7 +275,7 @@ public class AutomationProvisioningService implements ProvisioningService {
             throws AutomationException {
         Map<String, ConfigValue> allConfig = new LinkedHashMap<>();
 
-        // anycloud-k8s namespace — host 가 program 안에서 ctx.config().get(...) 으로 read.
+        // anycloud-k8s namespace: host 가 program 안에서 ctx.config().get(...) 으로 read.
         allConfig.put("anycloud-k8s:provider", new ConfigValue(valueOrDefault(request.getProvider(), "aws")));
         if (request.getClusterName() != null) {
             allConfig.put("anycloud-k8s:name", new ConfigValue(request.getClusterName()));
@@ -285,7 +285,7 @@ public class AutomationProvisioningService implements ProvisioningService {
             allConfig.put("anycloud-k8s:region", new ConfigValue(request.getRegion()));
         }
 
-        // request.config — caller 가 전달한 임의 key. secret 추정은 key 이름 기반 (defense-in-depth).
+        // request.config: caller 가 전달한 임의 key. secret 추정은 key 이름 기반 (defense-in-depth).
         for (Map.Entry<String, String> entry : request.configOrEmpty().entrySet()) {
             if (entry.getValue() == null || entry.getValue().isBlank()) {
                 continue;
@@ -293,7 +293,7 @@ public class AutomationProvisioningService implements ProvisioningService {
             allConfig.put(entry.getKey(), new ConfigValue(entry.getValue(), isSecretKey(entry.getKey())));
         }
 
-        // CSP 자격증명 — 표준 provider config key (aws:accessKey 등). 항상 secret.
+        // CSP 자격증명: 표준 provider config key (aws:accessKey 등). 항상 secret.
         for (Map.Entry<String, String> entry : cspStackConfig.entrySet()) {
             allConfig.put(entry.getKey(), new ConfigValue(entry.getValue(), true));
         }
@@ -304,10 +304,10 @@ public class AutomationProvisioningService implements ProvisioningService {
     }
 
     /**
-     * 프로바이더 리전이 자격증명에 없으면 요청 리전을 쓴다.
+     * 자격증명에 프로바이더 리전이 없으면 요청 리전 사용.
      *
-     * <p>비워 두면 프로바이더가 자기 기본 리전으로 붙는다. IBM 은 {@code us-south} 라, 도쿄를 골라도
-     * 자원은 us-south 에 생기고 존은 "invalid zone" 으로 거절된다 — 리전 선택이 조용히 무시된다.
+     * <p>미지정 시 프로바이더가 자체 기본 리전으로 접속. IBM 기본값은 {@code us-south} 이므로
+     * 도쿄를 선택해도 자원은 us-south 에 생성되고 존은 "invalid zone" 거절. 리전 선택이 무음 무시.
      */
     private void applyProviderRegion(Map<String, ConfigValue> allConfig, ProvisioningRequest request) {
         String region = request.getRegion();
@@ -330,8 +330,8 @@ public class AutomationProvisioningService implements ProvisioningService {
     }
 
     /**
-     * 리소스 정의가 필요 없는 경로(outputs 조회, destroy)용. 빈 YAML 프로그램이면 provider 를 몰라도
-     * 되고, YAML 로 만든 스택과 runtime 이 어긋나지도 않는다.
+     * 리소스 정의가 불필요한 경로(outputs 조회, destroy)용. 빈 YAML 프로그램은 provider 정보가
+     * 불필요하고 YAML 생성 스택과 runtime 도 일치.
      */
     private WorkspaceStack openStackWithoutProgram(
             String stackName, LocalWorkspaceOptions workspaceOpts, Path[] workDirHolder, boolean createIfMissing)

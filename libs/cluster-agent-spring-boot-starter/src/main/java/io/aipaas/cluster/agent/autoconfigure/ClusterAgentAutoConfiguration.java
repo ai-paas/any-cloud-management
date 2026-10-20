@@ -37,7 +37,7 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 import org.springframework.web.socket.server.standard.ServletServerContainerFactoryBean;
 
 /**
- * Cluster Agent starter auto-configuration — gRPC/runtime/terminal/identity bean wire.
+ * Cluster Agent starter auto-configuration: gRPC/runtime/terminal/identity bean wire.
  * <ul>
  *   <li>호스트 필수 bean: {@link AgentIdentityStore}, {@link IdempotencyStore}</li>
  *   <li>호스트 선택 bean: {@link AgentLifecycleListener} (multi-bean)</li>
@@ -69,7 +69,7 @@ public class ClusterAgentAutoConfiguration {
 
     /**
      * Zero-config default. JWT jti 의 1회 사용 강제 (in-memory). Production multi-instance 면
-     * DB-backed 권장 — 호스트 bean 등록 시 자동 우선.
+     * DB-backed 권장: 호스트 bean 등록 시 자동 우선.
      */
     @Bean
     @ConditionalOnMissingBean
@@ -154,7 +154,7 @@ public class ClusterAgentAutoConfiguration {
     }
 
     /**
-     * Default — property 기반 (config 의 cluster-agent.jwt.secret). 호스트가 DB-backed 등
+     * Default: property 기반 (config 의 cluster-agent.jwt.secret). 호스트가 DB-backed 등
      * 영구 저장 {@link SigningKeyResolver} bean 을 등록하면 자동으로 그쪽이 우선 (Conditional).
      */
     @Bean
@@ -245,7 +245,7 @@ public class ClusterAgentAutoConfiguration {
      *
      * <p>{@code cluster-agent.exec.enabled=false} 로 PodExec WebSocket 기능 자체를 끌 가능. PodExec
      * 안 쓰는 외부 consumer (gRPC API 만 사용) 가 ServletServerContainerFactoryBean 의 강제 생성을 피할 수
-     * 있도록. default true — 기존 동작 보존.
+     * 있도록. default true: 기존 동작 보존.
      */
     @AutoConfiguration
     @EnableWebSocket
@@ -275,7 +275,7 @@ public class ClusterAgentAutoConfiguration {
             ServletServerContainerFactoryBean container = new ServletServerContainerFactoryBean();
             container.setMaxTextMessageBufferSize(props.exec().websocketBufferBytes());
             container.setMaxBinaryMessageBufferSize(props.exec().websocketBufferBytes());
-            container.setMaxSessionIdleTimeout(0L); // 터미널 idle 무한 — kubectl exec 패턴.
+            container.setMaxSessionIdleTimeout(0L); // 터미널 idle 무한: kubectl exec 패턴.
             return container;
         }
     }

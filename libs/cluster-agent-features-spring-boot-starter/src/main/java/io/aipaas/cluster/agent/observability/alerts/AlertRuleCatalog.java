@@ -25,7 +25,7 @@ public class AlertRuleCatalog {
         this(CLASSPATH_PATTERN);
     }
 
-    /** 패턴 주입 — 테스트 용도 (별도 디렉토리에서 로드). */
+    /** 패턴 주입: 테스트 용도 (별도 디렉토리에서 로드). */
     AlertRuleCatalog(String classpathPattern) {
         this.byId = load(classpathPattern);
         log.info("AlertRuleCatalog loaded {} rule-set(s): {}", byId.size(), byId.keySet());
@@ -48,7 +48,7 @@ public class AlertRuleCatalog {
 
     // ----- internal -----
 
-    /** {@code metadata.labels.requires-capability} 값. 정규식으로 충분하다 — 라벨 한 줄이다. */
+    /** {@code metadata.labels.requires-capability} 값. 라벨 한 줄이라 정규식으로 충분. */
     private static String requiredCapability(String yaml) {
         java.util.regex.Matcher m = REQUIRES_CAPABILITY.matcher(yaml);
         return m.find() ? m.group(1) : null;
@@ -66,7 +66,7 @@ public class AlertRuleCatalog {
             throw new UncheckedIOException("failed to scan " + pattern, e);
         }
         Map<String, AlertRuleSet> out = new LinkedHashMap<>();
-        // 정렬 안정성 — id alphabetical 로 UI 표시.
+        // 정렬 안정성: id alphabetical 로 UI 표시.
         java.util.Arrays.sort(resources, java.util.Comparator.comparing(Resource::getFilename));
         for (Resource r : resources) {
             String filename = r.getFilename();
@@ -89,7 +89,7 @@ public class AlertRuleCatalog {
         return Collections.unmodifiableMap(out);
     }
 
-    /** YAML 의 {@code - alert:} prefix 개수로 alert rule 개수 추정 — full parser 회피. */
+    /** YAML 의 {@code - alert:} prefix 개수로 alert rule 개수 추정: full parser 회피. */
     private static int countRules(String yaml) {
         int count = 0;
         for (String line : yaml.split("\n")) {

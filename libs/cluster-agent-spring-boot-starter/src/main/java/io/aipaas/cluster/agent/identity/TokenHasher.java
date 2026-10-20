@@ -12,21 +12,21 @@ import java.security.NoSuchAlgorithmException;
  */
 public final class TokenHasher {
 
-	private TokenHasher() {}
+    private TokenHasher() {}
 
-	/** SHA-256 hex digest. lowercase 64 chars. */
-	public static String sha256Hex(String value) {
-		try {
-			MessageDigest md = MessageDigest.getInstance("SHA-256");
-			byte[] digest = md.digest(value.getBytes(StandardCharsets.UTF_8));
-			StringBuilder sb = new StringBuilder(digest.length * 2);
-			for (byte b : digest) {
-				sb.append(String.format("%02x", b));
-			}
-			return sb.toString();
-		} catch (NoSuchAlgorithmException e) {
-			// SHA-256 은 JDK 표준 — 절대 발생 안 함.
-			throw new IllegalStateException("SHA-256 unavailable", e);
-		}
-	}
+    /** SHA-256 hex digest. lowercase 64 chars. */
+    public static String sha256Hex(String value) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(value.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(digest.length * 2);
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            // SHA-256 은 JDK 표준: 절대 발생 안 함.
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
+    }
 }

@@ -10,7 +10,7 @@ public final class JoinTokens {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final HexFormat HEX = HexFormat.of();
 
-    /** 명시 입력으로도 거부할 known weak sentinel — 운영 실수 차단. */
+    /** 명시 입력으로도 거부할 known weak sentinel: 운영 실수 차단. */
     public static final Set<String> WEAK = Set.of("abcdef.0123456789abcdef", "00000.0000000000000000");
 
     private JoinTokens() {}

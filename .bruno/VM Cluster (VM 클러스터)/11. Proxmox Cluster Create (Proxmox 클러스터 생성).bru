@@ -1,0 +1,88 @@
+meta {
+  name: 11. Proxmox Cluster Create (Proxmox 클러스터 생성)
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/v1/vms
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+}
+
+body:json {
+  {
+    "vmGroupName": "{{provision_cluster_name}}",
+    "provider": "PROXMOX",
+    "description": "Proxmox VE 기반 Kubernetes 클러스터",
+    "environment": "{{provision_environment}}",
+    "region": "{{provision_region}}",
+    "credentialId": "{{credential_id}}",
+    "spec": {
+      "masterInstanceType": "{{master_vm_spec}}",
+      "workerInstanceType": "{{worker_vm_spec}}",
+      "workerCount": "{{worker_count}}",
+      "kubernetesVersion": "{{kubernetes_version}}",
+      "enableIngress": "{{enable_ingress}}",
+      "enableGpuOperator": "{{enable_gpu_operator}}",
+      "network": {
+        "podCidr": "{{pod_cidr}}",
+        "serviceCidr": "{{service_cidr}}"
+      }
+    },
+    "providerSpec": {
+      "nodeName": "{{proxmox_node_name}}",
+      "datastoreId": "{{proxmox_datastore_id}}",
+      "imageDatastoreId": "{{proxmox_image_datastore_id}}",
+      "networkBridge": "{{proxmox_network_bridge}}"
+    }
+  }
+}
+
+script:post-response {
+  if (res.body && res.body.data && res.body.data.id) {
+    bru.setEnvVar('last_operation_id', res.body.data.id);
+  }
+}
+
+tests {
+  test("상태 코드 202", function() {
+    expect(res.getStatus()).to.equal(202);
+  });
+}
+
+docs {
+  ## Proxmox VE 기반 cluster 생성
+
+  ### Required env vars (local-proxmox-provisioning.bru)
+  - `provision_provider: PROXMOX`
+  - `provision_region`: PVE 는 리전이 없어 노드 이름을 그대로 씁니다 (예: `proxmox`)
+  - `credential_id`: Proxmox credential UUID
+  - `master_vm_spec` / `worker_vm_spec`: `"코어-메모리MiB"` 형식 (예: `2-4096`).
+    PVE 는 인스턴스 타입 카탈로그가 없어 값을 직접 지정합니다
+
+  ### Proxmox 만의 config
+  - `anycloud-k8s:providerSpec.nodeName` (필수): VM 을 올릴 PVE 노드
+  - `anycloud-k8s:providerSpec.datastoreId` (필수): 디스크를 만들 블록 스토리지 (예: `local-lvm`)
+  - `anycloud-k8s:providerSpec.imageDatastoreId` (필수): cloud 이미지를 받을 디렉터리 스토리지
+    (예: `local`). `import` content type 을 허용해야 합니다
+  - `anycloud-k8s:providerSpec.networkBridge` (필수): VM 을 붙일 브리지 (보통 `vmbr0`)
+  - 옵션: `anycloud-k8s:osImage`: cloud 이미지 URL (미지정 시 Ubuntu 24.04 cloud image)
+
+  ### Proxmox 의 특수 사항
+  - VPC, 서브넷, 보안그룹을 만들지 않습니다. 네트워크는 기존 브리지이고 방화벽은 노드 단위 관리입니다
+  - cloud 이미지에 `qemu-guest-agent` 가 없어 DHCP 주소를 조회할 수 없습니다.
+    고정 IP 4개 값(`nodeIps`, `gateway`, `sshHost`, `sshPorts`)이 필요합니다
+  - datastore 이름은 설치 유형별로 다릅니다 (`local-lvm`, `local-zfs`)
+
+  ### 실행
+  ```bash
+  bru run "VM Cluster (VM 클러스터)/11. Proxmox Cluster Create (Proxmox 클러스터 생성).bru" \
+      --env local-proxmox-provisioning
+  ```
+}

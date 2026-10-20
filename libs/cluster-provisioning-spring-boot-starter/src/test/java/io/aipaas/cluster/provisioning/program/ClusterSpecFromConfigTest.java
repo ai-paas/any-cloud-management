@@ -52,7 +52,7 @@ class ClusterSpecFromConfigTest {
 
     @Test
     void malformedIntBecomesZeroNotException() {
-        // 잘못된 값에 예외를 던지면 Defaults 가 손쓸 기회 없이 프로비저닝이 죽는다.
+        // 잘못된 값에 예외를 전파하면 Defaults 개입 없이 프로비저닝 실패.
         Map<String, String> cfg = baseConfig();
         cfg.put("workerCount", "삼");
 
@@ -78,7 +78,7 @@ class ClusterSpecFromConfigTest {
 
     @Test
     void acceptsNamespacedKeys() {
-        // 호출자가 anycloud-k8s:workerCount 형태로 넘길 수 있다 — Pulumi config 원형 그대로.
+        // 호출자가 anycloud-k8s:workerCount 형태로 넘길 수 있다. Pulumi config 원형 그대로.
         Map<String, String> cfg = new HashMap<>();
         cfg.put("anycloud-k8s:provider", "openstack");
         cfg.put("anycloud-k8s:name", "demo");

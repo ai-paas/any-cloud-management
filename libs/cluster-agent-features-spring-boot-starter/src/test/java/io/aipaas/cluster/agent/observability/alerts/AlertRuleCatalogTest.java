@@ -55,7 +55,7 @@ class AlertRuleCatalogTest {
 
     @Test
     void gpuRuleSetDeclaresRequiredCapability() {
-        // GPU 규칙을 GPU 없는 cluster 에 깔면 절대 발화하지 않는 PrometheusRule 이 남는다.
+        // GPU 규칙을 GPU 없는 cluster 에 설치하면 발화하지 않는 PrometheusRule 잔존.
         AlertRuleCatalog catalog = new AlertRuleCatalog();
         assertThat(catalog.byId("gpu").orElseThrow().requiredCapability()).isEqualTo("gpu");
     }

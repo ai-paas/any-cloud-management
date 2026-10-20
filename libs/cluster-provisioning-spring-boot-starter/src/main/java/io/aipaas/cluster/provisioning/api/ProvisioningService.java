@@ -3,7 +3,7 @@ package io.aipaas.cluster.provisioning.api;
 import io.aipaas.cluster.provisioning.api.exception.ProvisioningResultValidationException;
 import java.util.Map;
 
-/** Pulumi 기반 cluster provisioning 오케스트레이션 — stack 준비 → config 적용 → up/preview/destroy. */
+/** Pulumi 기반 cluster provisioning 오케스트레이션: stack 준비 → config 적용 → up/preview/destroy. */
 public interface ProvisioningService {
 
     String buildStackName(ProvisioningRequest request);
@@ -11,7 +11,7 @@ public interface ProvisioningService {
     Map<String, Object> provision(ProvisioningRequest request);
 
     /**
-     * Cluster create 사전 미리보기 — {@code pulumi preview --json}. CSP 자원 생성 없음.
+     * Cluster create 사전 미리보기: {@code pulumi preview --json}. CSP 자원 생성 없음.
      * 신규 cluster 는 preview 용 stack 을 임시 생성 후 제거, 기존 stack 은 diff 만 반환.
      */
     ProvisioningPreview preview(ProvisioningRequest request);
@@ -31,14 +31,14 @@ public interface ProvisioningService {
     void destroy(String stackName, Map<String, String> environmentOverrides);
 
     /**
-     * Pulumi {@code refresh} 등가 — CSP API 호출로 stack state 와 실 인프라 비교, drift 를 state 에 반영.
+     * Pulumi {@code refresh} 등가: CSP API 호출로 stack state 와 실 인프라 비교, drift 를 state 에 반영.
      *
      * @param request 현재 cluster 의 ProvisioningRequest (program function 실행에 필요).
      */
     void refresh(ProvisioningRequest request);
 
     /**
-     * Stack state 파일 강제 제거 — CSP 자원은 정리 안 됨 (caller 책임). orphan state 정리용 admin 경로.
+     * Stack state 파일 강제 제거: CSP 자원은 정리 안 됨 (caller 책임). orphan state 정리용 admin 경로.
      * destroy 와 다름: destroy 는 CSP 자원 + state 모두, removeStack 은 state 만.
      *
      * @param stackName             stack 이름 (provision 시 buildStackName 으로 생성된 그것).

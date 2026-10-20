@@ -8,10 +8,10 @@ import io.aipaas.cluster.agent.v1.Heartbeat;
 /**
  * Cluster Agent 의 lifecycle 이벤트 훅 SPI.
  *
- * <p>호스트 애플리케이션이 본 인터페이스를 구현하면 starter 가 자동 호출. 여러 listener 등록 가능 — Spring
+ * <p>호스트 애플리케이션이 본 인터페이스를 구현하면 starter 가 자동 호출. 여러 listener 등록 가능: Spring
  * 이 모든 bean 을 수집해서 차례로 invoke.
  *
- * <p>모든 default 메서드는 no-op — 필요한 훅만 override 하면 됨. <b>예외 던지지 말 것</b> — listener
+ * <p>모든 default 메서드는 no-op: 필요한 훅만 override 하면 됨. <b>예외 던지지 말 것</b>: listener
  * 실패가 stream 자체를 끊으면 안 되므로 starter 측에서 try/catch 로 swallow.
  *
  * <p>대표 활용 예:

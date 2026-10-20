@@ -6,15 +6,15 @@ import java.util.Map;
 /**
  * provider 플러그인 버전 고정.
  *
- * <p>타입 SDK 는 jar 이 버전을 담아 자동으로 고정됐다. YAML 은 {@code aws:ec2/instance:Instance} 만
- * 쓰므로 캐시가 비면 그날의 latest 를 받는다. 환경마다 다른 버전이 뜨고, 며칠 뒤 재현되지 않는다.
+ * <p>타입 SDK 는 jar 이 버전을 포함해 자동 고정. YAML 은 {@code aws:ec2/instance:Instance} 만
+ * 사용하므로 캐시가 비면 해당 시점 latest 를 수신. 환경별로 다른 버전이 설치되고 재현 불가.
  *
- * <p>값의 출처는 {@code PULUMI_PLUGINS} 환경변수다. Dockerfile 이 같은 ARG 로 플러그인을 설치하므로
- * 설치본과 프로그램이 어긋나지 않는다.
+ * <p>값의 출처는 {@code PULUMI_PLUGINS} 환경변수. Dockerfile 이 동일 ARG 로 플러그인을 설치하므로
+ * 설치본과 프로그램 버전 일치.
  */
 public final class PluginVersions {
 
-    /** Dockerfile 의 {@code PULUMI_PLUGINS} 기본값과 같아야 한다. */
+    /** Dockerfile 의 {@code PULUMI_PLUGINS} 기본값과 동일 필요. */
     static final String DEFAULT =
             "aws:7.44.0 gcp:9.36.1 oci:4.22.0 openstack:5.5.1 proxmoxve:8.6.0 alicloud:3.108.0 tls:5.6.0";
 
@@ -22,10 +22,11 @@ public final class PluginVersions {
 
     /**
      * get.pulumi.com 에 없는 플러그인의 배포처. {@code Dockerfile.pulumi} 의
-     * {@code PULUMI_PLUGIN_SERVERS} 와 같은 값이다.
+     * {@code PULUMI_PLUGIN_SERVERS} 와 동일 값.
      *
-     * <p>플러그인 캐시는 볼륨이라 이미지에 구운 것이 남지 않는다. 선언이 없으면 런타임 자동 설치가
-     * 기본 주소로 가서 403 을 받고, 오류가 "플러그인을 설치하라"로만 나와 배포처 문제로 보이지 않는다.
+     * <p>플러그인 캐시는 볼륨이라 이미지 포함분이 유지되지 않음. 선언 부재 시 런타임 자동 설치가
+     * 기본 주소로 요청해 403 응답. 오류 메시지가 플러그인 설치 요구로만 표시돼 배포처 문제로
+     * 식별되지 않음.
      */
     private static final Map<String, String> DOWNLOAD_URLS =
             Map.of("proxmoxve", "github://api.github.com/muhlba91/pulumi-proxmoxve");
@@ -41,7 +42,7 @@ public final class PluginVersions {
         return parse(raw == null || raw.isBlank() ? DEFAULT : raw);
     }
 
-    /** {@code "aws:7.44.0 tls:5.6.0"} 형식. 값이 깨지면 고정이 조용히 풀리므로 즉시 실패한다. */
+    /** {@code "aws:7.44.0 tls:5.6.0"} 형식. 값 손상 시 버전 고정이 무음 해제되므로 즉시 실패. */
     static PluginVersions parse(String spec) {
         Map<String, String> map = new LinkedHashMap<>();
         for (String token : spec.trim().split("\\s+")) {
@@ -56,10 +57,10 @@ public final class PluginVersions {
     }
 
     /**
-     * 타입 토큰이 속한 패키지의 버전. 모르는 패키지면 {@code null} 이고 호출자가 고정을 생략한다.
+     * 타입 토큰이 속한 패키지의 버전. 미등록 패키지는 {@code null} 이며 호출자가 고정 생략.
      *
-     * <p>{@code azure-native:network:Subnet} 처럼 패키지 이름에 하이픈이 들어가고,
-     * {@code aws:ec2/instance:Instance} 처럼 경로가 섞인다. 첫 콜론 앞이 패키지다.
+     * <p>{@code azure-native:network:Subnet} 처럼 패키지 이름에 하이픈이 포함되고,
+     * {@code aws:ec2/instance:Instance} 처럼 경로가 혼재. 첫 콜론 앞이 패키지명.
      */
     String forType(String typeToken) {
         if (typeToken == null) return null;

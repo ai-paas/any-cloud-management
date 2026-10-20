@@ -8,40 +8,40 @@ public final class YamlRef {
 
     private YamlRef() {}
 
-    /** {@code ${resource}} — 리소스 자체 참조. */
+    /** {@code ${resource}}: 리소스 자체 참조. */
     public static String resource(String resource) {
         return "${" + resource + "}";
     }
 
-    /** {@code ${resource.property}} — 타입 SDK 의 {@code resource.property()} 등가. */
+    /** {@code ${resource.property}}: 타입 SDK 의 {@code resource.property()} 등가. */
     public static String of(String resource, String property) {
         return "${" + resource + "." + property + "}";
     }
 
     /**
-     * 보간을 문자열 안에 끼워 넣는다. {@code applyValue(ip -> "https://" + ip + ":6443")} 의 등가물.
+     * 보간을 문자열에 삽입. {@code applyValue(ip -> "https://" + ip + ":6443")} 의 등가물.
      *
-     * <p>{@code String.format} 을 쓰므로 template 의 리터럴 {@code %} 는 {@code %%} 로 적어야 한다.
+     * <p>{@code String.format} 사용이므로 template 의 리터럴 {@code %} 는 {@code %%} 로 표기.
      */
     public static String interpolate(String template, Object... args) {
         return String.format(template, args);
     }
 
-    /** 값을 base64 로 인코딩한다. OCI 는 user-data 를 base64 로만 받는다. */
+    /** 값을 base64 로 인코딩. OCI 는 user-data 를 base64 로만 수용. */
     public static Map<String, Object> toBase64(Object value) {
         Map<String, Object> wrapped = new LinkedHashMap<>(1);
         wrapped.put("fn::toBase64", value);
         return wrapped;
     }
 
-    /** 값을 JSON 문자열로 직렬화한다. */
+    /** 값을 JSON 문자열로 직렬화. */
     public static Map<String, Object> toJson(Object value) {
         Map<String, Object> wrapped = new LinkedHashMap<>(1);
         wrapped.put("fn::toJSON", value);
         return wrapped;
     }
 
-    /** {@code .asSecret()} 등가. 상태 파일과 stack output 양쪽에서 암호화된다. */
+    /** {@code .asSecret()} 등가. 상태 파일과 stack output 양쪽에서 암호화. */
     public static Map<String, Object> secret(Object value) {
         Map<String, Object> wrapped = new LinkedHashMap<>(1);
         wrapped.put("fn::secret", value);
@@ -51,7 +51,7 @@ public final class YamlRef {
     /**
      * provider function 호출. 타입 SDK 의 {@code XxxFunctions.getYyy(args)} 등가.
      *
-     * @param returnField null 이면 객체 전체, 값이 있으면 그 필드 하나만 받는다
+     * @param returnField null 이면 객체 전체, 값이 있으면 해당 필드만 수신
      */
     public static Map<String, Object> invoke(String function, Map<String, Object> arguments, String returnField) {
         Map<String, Object> body = new LinkedHashMap<>();

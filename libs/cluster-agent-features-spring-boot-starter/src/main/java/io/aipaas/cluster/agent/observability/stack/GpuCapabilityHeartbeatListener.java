@@ -23,12 +23,12 @@ public class GpuCapabilityHeartbeatListener implements AgentLifecycleListener {
         if (heartbeat == null || !heartbeat.hasHealth()) {
             return;
         }
-        // proto default 0 — agent 가 측정 못 했거나 GPU 없음 양쪽 모두 0. 안전한 boolean 매핑은 > 0.
+        // proto default 0: agent 가 측정 못 했거나 GPU 없음 양쪽 모두 0. 안전한 boolean 매핑은 > 0.
         boolean hasGpu = heartbeat.getHealth().getGpuNodeCount() > 0;
 
         Boolean prev = lastReported.get(clusterName);
         if (prev != null && prev.booleanValue() == hasGpu) {
-            // 동일 값 — sink 호출 skip (DB write 회피).
+            // 동일 값: sink 호출 skip (DB write 회피).
             return;
         }
 
@@ -37,7 +37,7 @@ public class GpuCapabilityHeartbeatListener implements AgentLifecycleListener {
             lastReported.put(clusterName, hasGpu);
             log.info("GPU capability updated cluster={} has_gpu_nodes={}", clusterName, hasGpu);
         } catch (Exception e) {
-            // sink 실패는 swallow — 다음 heartbeat 때 재시도됨 (prev 갱신 X).
+            // sink 실패는 swallow: 다음 heartbeat 때 재시도됨 (prev 갱신 X).
             log.warn("GPU capability sink failed cluster={} target={}: {}", clusterName, hasGpu, e.toString());
         }
     }

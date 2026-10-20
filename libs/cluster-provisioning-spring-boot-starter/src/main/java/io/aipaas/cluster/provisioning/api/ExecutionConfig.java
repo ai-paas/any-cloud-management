@@ -17,9 +17,9 @@ public interface ExecutionConfig {
     /** {@code stack init} 시 {@code --secrets-provider} 인자. null/blank 면 미전달. */
     String getSecretsProvider();
 
-    /** provisioning 활성 여부. false 면 provision/preview/destroy 가 즉시 거부된다. */
+    /** provisioning 활성 여부. false 면 provision, preview, destroy 즉시 거부. */
     boolean isEnabled();
 
-    /** stack 이름 prefix — {@code <prefix>-<provider>-<env>-<cluster>} 형식. */
+    /** stack 이름 prefix: {@code <prefix>-<provider>-<env>-<cluster>} 형식. */
     String getStackPrefix();
 }

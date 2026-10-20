@@ -10,7 +10,7 @@ class YamlRefTest {
 
     @Test
     void referenceUsesDollarBraceForm() {
-        // Pulumi YAML 은 ${resource.property} 로만 리소스를 참조한다.
+        // Pulumi YAML 은 ${resource.property} 형식으로만 리소스 참조.
         assertThat(YamlRef.of("net", "id")).isEqualTo("${net.id}");
     }
 
@@ -36,7 +36,7 @@ class YamlRefTest {
 
     @Test
     void secretAcceptsPlainStrings() {
-        // sshCommand 처럼 보간 문자열도 secret 이어야 한다 — 키 경로가 노출된다.
+        // sshCommand 등 보간 문자열도 secret 지정 필요. 미지정 시 키 경로 노출.
         assertThat(YamlRef.secret("ssh -i ./secrets/demo.pem ubuntu@1.2.3.4")).containsKey("fn::secret");
     }
 
@@ -55,7 +55,7 @@ class YamlRefTest {
     @Test
     @SuppressWarnings("unchecked")
     void invokeWithReturnFieldSelectsSingleValue() {
-        // return 을 주면 객체 전체가 아니라 한 필드만 받는다.
+        // return 지정 시 객체 전체가 아닌 단일 필드만 수신.
         Map<String, Object> invoke = YamlRef.invoke("openstack:images/getImage:getImage", Map.of("name", "u"), "id");
 
         assertThat(((Map<String, Object>) invoke.get("fn::invoke")).get("return"))

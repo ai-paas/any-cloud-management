@@ -48,22 +48,22 @@ public final class CspCredentialPulumiConfigMapper {
                         put(out, "openstack:password", env.get("OS_PASSWORD"));
                         put(out, "openstack:tenantName", firstOf(env, "OS_PROJECT_NAME", "OS_TENANT_NAME"));
                         put(out, "openstack:tenantId", firstOf(env, "OS_PROJECT_ID", "OS_TENANT_ID"));
-                        // Keystone v3 는 domain scope 없이 인증을 거부한다. openrc 가 NAME 과 ID 중
-                        // 어느 쪽을 내보낼지는 배포마다 달라 둘 다 받는다.
+                        // Keystone v3 는 domain scope 없이 인증 거부. openrc 의 NAME, ID 출력
+                        // 여부가 배포별로 달라 양쪽 모두 수용.
                         put(out, "openstack:userDomainName", env.get("OS_USER_DOMAIN_NAME"));
                         put(out, "openstack:userDomainId", env.get("OS_USER_DOMAIN_ID"));
                         put(out, "openstack:projectDomainName", env.get("OS_PROJECT_DOMAIN_NAME"));
                         put(out, "openstack:projectDomainId", env.get("OS_PROJECT_DOMAIN_ID"));
                         put(out, "openstack:domainName", env.get("OS_DOMAIN_NAME"));
                         put(out, "openstack:domainId", env.get("OS_DOMAIN_ID"));
-                        // region / insecure / endpointType 은 provider 가 env 에서도 읽지만 그 env 는
-                        // CSP_ENV_BLOCKLIST 로 제거되므로 config 로 넘기지 않으면 값이 사라진다.
+                        // region, insecure, endpointType 은 provider 가 env 에서도 읽으나 해당
+                        // env 는 CSP_ENV_BLOCKLIST 로 제거되므로 config 미전달 시 값 유실.
                         put(out, "openstack:region", env.get("OS_REGION_NAME"));
                         put(out, "openstack:endpointType", env.get("OS_INTERFACE"));
                         put(out, "openstack:cacertFile", env.get("OS_CACERT"));
                         putBool(out, "openstack:insecure", env.get("OS_INSECURE"));
-                        // 사설망 배포는 Keystone 카탈로그가 외부에서 못 닿는 주소를 광고한다.
-                        // override 없이는 "dial tcp 192.168.10.10:9292: network is unreachable".
+                        // 사설망 배포는 Keystone 카탈로그가 외부 접근 불가 주소를 광고.
+                        // override 부재 시 "dial tcp 192.168.10.10:9292: network is unreachable".
                         putJsonObject(out, "openstack:endpointOverrides", env.get("OS_ENDPOINT_OVERRIDES"));
                     },
             "oci",
@@ -93,10 +93,10 @@ public final class CspCredentialPulumiConfigMapper {
                     });
 
     /**
-     * PVE 가 토큰 생성 화면에서 따로 보여주는 두 값을 provider 가 받는 한 줄로 잇는다.
+     * PVE 토큰 생성 화면이 분리 표시하는 두 값을 provider 입력 형식의 한 줄로 결합.
      *
-     * <p>{@code user@realm!name=uuid} 형식이라 사용자가 직접 조립하면 오타가 검증을 통과해 버린다.
-     * 실패는 프로비저닝 첫 API 호출에서 401 로만 드러난다.
+     * <p>{@code user@realm!name=uuid} 형식이라 사용자가 직접 조립하면 오타가 검증을 통과.
+     * 실패는 프로비저닝 첫 API 호출의 401 로만 드러남.
      */
     private static String proxmoxApiToken(Map<String, String> env) {
         String id = env.get("PROXMOX_VE_API_TOKEN_ID");
@@ -106,10 +106,10 @@ public final class CspCredentialPulumiConfigMapper {
     }
 
     /**
-     * Provider 별 env var → Pulumi config key 변환. 알려진 mapping 만 추출 — unknown key 는 silent
+     * Provider 별 env var → Pulumi config key 변환. 알려진 mapping 만 추출: unknown key 는 silent
      * skip (안전 default). 모든 value 는 secret 으로 취급필요.
      *
-     * @param provider CSP 이름 (canonical — aws/gcp/azure/...)
+     * @param provider CSP 이름 (canonical: aws/gcp/azure/...)
      * @param env credential 의 env map (e.g. {AWS_ACCESS_KEY_ID=AKIA..., AWS_SECRET_ACCESS_KEY=...})
      * @return Pulumi config key → value (e.g. {aws:accessKey=AKIA..., aws:secretKey=...})
      */
@@ -168,7 +168,7 @@ public final class CspCredentialPulumiConfigMapper {
             "DIGITALOCEAN_ACCESS_TOKEN");
 
     /**
-     * CSP 자격증명 env 를 모두 제거 — caller 가 state backend (RustFS) 자격증명만 남긴 상태로
+     * CSP 자격증명 env 를 모두 제거: caller 가 state backend (RustFS) 자격증명만 남긴 상태로
      * Pulumi binary 에 전달하기 위함.
      */
     public static Map<String, String> stripCspEnv(Map<String, String> env) {
@@ -193,7 +193,7 @@ public final class CspCredentialPulumiConfigMapper {
         return null;
     }
 
-    /** boolean config 는 Pulumi 가 문자열로 파싱한다. 인식 못 하는 값은 넘기지 않는다. */
+    /** boolean config 는 Pulumi 가 문자열로 파싱. 미인식 값은 전달 제외. */
     private static void putBool(Map<String, String> out, String key, String value) {
         if (value == null || value.isBlank()) return;
         String normalized = value.trim().toLowerCase(java.util.Locale.ROOT);
@@ -202,12 +202,13 @@ public final class CspCredentialPulumiConfigMapper {
     }
 
     /**
-     * map 타입 provider config 는 JSON 문자열로 넘긴다 — Pulumi 가 읽을 때 파싱한다.
+     * map 타입 provider config 는 JSON 문자열로 전달. 파싱은 Pulumi 가 수행.
      *
-     * <p>깨진 값을 그대로 넘기면 provider 가 stack 전체를 거부하고, 그 시점 메시지로는 자격증명의
-     * 어느 항목이 문제인지 알 수 없다. 등록 시점에 거른다.
+     * <p>손상된 값을 그대로 전달하면 provider 가 stack 전체를 거부하고, 해당 시점 메시지로는
+     * 자격증명의 문제 항목 식별 불가. 등록 시점에 검증.
+     *
+     * <p>{@code [{"name":"pve1","address":"10.0.0.11"}]} 형태. 값 손상 시 SSH 목적지가 달라짐.
      */
-    /** {@code [{"name":"pve1","address":"10.0.0.11"}]} 형태. 값이 깨지면 SSH 가 엉뚱한 곳으로 간다. */
     private static void putJsonArray(Map<String, String> out, String key, String value) {
         if (value == null || value.isBlank()) return;
         String json = value.trim();
@@ -235,9 +236,9 @@ public final class CspCredentialPulumiConfigMapper {
     }
 
     /**
-     * 프로바이더가 리전을 받는 config 키. 리전 개념이 없는 프로바이더는 {@code null}.
+     * 프로바이더의 리전 config 키. 리전 개념이 없는 프로바이더는 {@code null}.
      *
-     * <p>Proxmox 는 단일 하이퍼바이저라 리전이 없고, OpenStack 은 리소스마다 region 을 직접 받는다.
+     * <p>Proxmox 는 단일 하이퍼바이저라 리전 부재. OpenStack 은 리소스별로 region 을 직접 수신.
      */
     public static String regionConfigKey(String provider) {
         if (provider == null) {

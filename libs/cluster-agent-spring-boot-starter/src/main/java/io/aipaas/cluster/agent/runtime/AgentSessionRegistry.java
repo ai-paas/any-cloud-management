@@ -23,14 +23,14 @@ import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 활성 agent runtime stream 의 in-memory registry — cluster_name → 활성 streams + 대기 command future.
+ * 활성 agent runtime stream 의 in-memory registry: cluster_name → 활성 streams + 대기 command future.
  * <ul>
  *   <li>Process-local: multi-replica backend 는 sticky session 또는 broker fan-out 필요</li>
  *   <li>HA: 같은 cluster 의 여러 agent stream 보존 (leader = 가장 오래된 stream)</li>
  *   <li>Command dispatch: request_id ↔ CompletableFuture 매핑, timeout 자동 처리</li>
  * </ul>
  *
- * <p>{@code pendingByRequest} 는 Caffeine bounded cache — stuck agent 시 OOM 방지.
+ * <p>{@code pendingByRequest} 는 Caffeine bounded cache: stuck agent 시 OOM 방지.
  * {@code sessionsByCluster} 의 빈 list cleanup 은 atomic 하게 처리.
  */
 @Slf4j
@@ -45,16 +45,16 @@ public class AgentSessionRegistry {
     private final Map<String, List<AgentSession>> sessionsByCluster = new ConcurrentHashMap<>();
 
     /**
-     * session → 마지막 응답 시각. timeout 이 "끊긴 연결" 인지 "느린 명령" 인지 가르는 유일한 신호다.
+     * session 별 마지막 응답 시각. timeout 이 연결 종료인지 느린 명령인지 판정하는 유일한 신호.
      *
-     * <p>죽은 pod 의 stream 은 TCP keepalive 가 걷어갈 때까지 남아 leader 자리를 차지한다.
+     * <p>종료된 pod 의 stream 은 TCP keepalive 가 정리할 때까지 잔존해 leader 자리를 점유.
      */
     private final Map<AgentSession, Long> lastResponseAt = new ConcurrentHashMap<>();
 
     /**
      * request_id → pending future. Cross-cluster (dispatch concurrent).
      *
-     * <p>Caffeine bounded cache 사용 — {@code maximumSize} + {@code expireAfterWrite}.
+     * <p>Caffeine bounded cache 사용: {@code maximumSize} + {@code expireAfterWrite}.
      * 만료된 entry 의 future 는 SessionClosedException 으로 fail (caller 가 timeout 인식).
      */
     private final Cache<String, PendingCommand> pendingByRequest = Caffeine.newBuilder()
@@ -64,7 +64,7 @@ public class AgentSessionRegistry {
                 if (cmd != null
                         && !cmd.future().isDone()
                         && (cause == RemovalCause.SIZE || cause == RemovalCause.EXPIRED)) {
-                    // Caller 의 orTimeout 이 보통 먼저 발화 — 여기 도달은 race 또는 cap hit.
+                    // Caller 의 orTimeout 이 보통 먼저 발화: 여기 도달은 race 또는 cap hit.
                     cmd.future()
                             .completeExceptionally(new SessionClosedException(
                                     "pending command evicted from registry (cause=" + cause + ")"));
@@ -73,7 +73,7 @@ public class AgentSessionRegistry {
             })
             .build();
 
-    /** Stream open 직후 호출 — HA replicas 보존. 같은 instance_id 재연결 시 stale stream 제거 후 추가. */
+    /** Stream open 직후 호출: HA replicas 보존. 같은 instance_id 재연결 시 stale stream 제거 후 추가. */
     public AgentSession register(
             String clusterName, String agentInstanceId, StreamObserver<ControlMessage> downstream) {
         AgentSession session = new AgentSession(clusterName, agentInstanceId, downstream, System.currentTimeMillis());
@@ -104,7 +104,7 @@ public class AgentSessionRegistry {
     }
 
     /**
-     * Stream 종료 — list 에서 제거. 만약 leader 였다면 다음 oldest 가 자동 leader 승격.
+     * Stream 종료: list 에서 제거. 만약 leader 였다면 다음 oldest 가 자동 leader 승격.
      *
      * <p>이 stream 의 pending command 들은 모두 cancel (다른 instance 로 retry 는 caller 책임).
      */
@@ -161,7 +161,7 @@ public class AgentSessionRegistry {
     }
 
     /**
-     * AAAA (Sprint 4 후속) — cluster 의 모든 active stream 을 강제 종료. revocation / forced
+     * AAAA (Sprint 4 후속). cluster 의 모든 active stream 을 강제 종료. revocation / forced
      * disconnect 시 운영자 호출. agent 가 즉시 PERMISSION_DENIED 받고 next reconnect 시도 시 인증 실패
      * (revoked_at 마킹 때문).
      *
@@ -196,7 +196,7 @@ public class AgentSessionRegistry {
     }
 
     public Collection<AgentSession> allActive() {
-        // 모든 cluster 의 leader 만 (호환 유지 — 기존 호출자는 cluster 당 1개 가정).
+        // 모든 cluster 의 leader 만 (호환 유지: 기존 호출자는 cluster 당 1개 가정).
         List<AgentSession> leaders = new ArrayList<>();
         for (List<AgentSession> list : sessionsByCluster.values()) {
             if (!list.isEmpty()) {
@@ -258,10 +258,10 @@ public class AgentSessionRegistry {
     }
 
     /**
-     * 명령이 시한을 넘겼고 그 사이 이 stream 이 아무 응답도 주지 않았으면 끊어진 것으로 본다.
+     * 명령이 시한을 초과하고 그 구간에 해당 stream 의 응답이 없으면 연결 종료로 판정.
      *
-     * <p>같은 stream 이 다른 명령에는 답하고 있다면 그저 느린 명령이다 — 무거운 작업마다 클러스터가
-     * 끊기면 안 되므로 그때는 남겨둔다.
+     * <p>동일 stream 이 다른 명령에 응답 중이면 느린 명령으로 판정. 대용량 작업마다 클러스터
+     * 연결이 끊기지 않도록 유지.
      */
     private void dropIfSilentSince(AgentSession session, long submittedAt) {
         Long answered = lastResponseAt.get(session);
@@ -272,8 +272,8 @@ public class AgentSessionRegistry {
                 "응답 없는 agent stream 을 내림 cluster={} instance={} — 다음 replica 로 넘긴다",
                 session.clusterId(),
                 session.agentInstanceId());
-        // 레지스트리에서만 빼면 agent 는 아직 붙어 있다고 믿는다. 끊은 줄 몰라 다시 연결하지도
-        // 않으므로, 그 클러스터는 pod 가 재시작될 때까지 닿지 않는다.
+        // 레지스트리에서만 제거하면 agent 는 연결 유지 상태로 인식. 종료를 인지하지 못해
+        // 재연결도 수행하지 않으므로 해당 클러스터는 pod 재시작 전까지 접근 불가.
         try {
             session.downstream()
                     .onError(io.grpc.Status.UNAVAILABLE
@@ -360,7 +360,7 @@ public class AgentSessionRegistry {
         }
     }
 
-    /** 외부에서 Agent 에 unsolicited (request_id 없음) AgentMessage 처리 — heartbeat / event 등. */
+    /** 외부에서 Agent 에 unsolicited (request_id 없음) AgentMessage 처리: heartbeat / event 등. */
     public void onUnsolicited(AgentSession session, AgentMessage msg) {
         session.touch();
     }

@@ -23,7 +23,7 @@ final class OciYamlEmitter implements ProviderYamlEmitter {
 
     private static final String F_GET_ADS = "oci:Identity/getAvailabilityDomains:getAvailabilityDomains";
 
-    /** IANA 프로토콜 번호. OCI security list 는 이름이 아니라 번호를 받는다. */
+    /** IANA 프로토콜 번호. OCI security list 는 이름이 아닌 번호를 수신. */
     private static final String PROTO_TCP = "6";
 
     private static final String PROTO_UDP = "17";
@@ -79,8 +79,8 @@ final class OciYamlEmitter implements ProviderYamlEmitter {
                         "enabled",
                         true));
 
-        // VCN 이 만든 기본 route table / security list 를 덮어쓴다. 별도로 만들면 서브넷이
-        // 여전히 기본 것을 물고 있어 규칙이 적용되지 않는다.
+        // VCN 이 생성한 기본 route table, security list 를 덮어씀. 별도 생성 시 서브넷이
+        // 기본 리소스를 계속 참조해 규칙 미적용.
         b.resource(
                 "routeTable",
                 T_ROUTE_TABLE,
@@ -157,7 +157,7 @@ final class OciYamlEmitter implements ProviderYamlEmitter {
                         "sourceType", "image",
                         "sourceId", requireImage(spec),
                         "bootVolumeSizeInGbs", String.valueOf(rootDiskGb(spec))));
-        // OCI 는 user-data 를 base64 로만 받는다. 평문을 넣으면 cloud-init 이 그대로 무시한다.
+        // OCI 는 user-data 를 base64 로만 수용. 평문 전달 시 cloud-init 이 무시.
         instance.put(
                 "metadata",
                 Map.of(
@@ -168,22 +168,22 @@ final class OciYamlEmitter implements ProviderYamlEmitter {
         return new StandardOutputs.NodeRef(node, "id", "privateIp", node, "publicIp");
     }
 
-    /** Flex 셰이프 기본 크기. OCI 에 계정 기본값이 없어 넣지 않으면 400 이다. */
+    /** Flex 셰이프 기본 크기. OCI 에 계정 기본값이 없어 미지정 시 400 응답. */
     private static final int DEFAULT_FLEX_OCPUS = 2;
 
     private static final int DEFAULT_FLEX_MEMORY_GB = 16;
 
     /**
-     * Flex 셰이프는 크기를 셰이프 이름이 아니라 {@code shapeConfig} 로 받는다. 크기를 담을 자리가
-     * ClusterSpec 에 없어 {@code VM.Standard.E4.Flex:4:32} 처럼 인스턴스 타입 뒤에 {@code :ocpus:memoryGb}
-     * 를 붙여 받는다. {@code :} 는 OCI 셰이프 이름에 쓰이지 않는다.
+     * Flex 셰이프는 크기를 셰이프 이름이 아닌 {@code shapeConfig} 로 수신. ClusterSpec 에 크기
+     * 필드가 없어 {@code VM.Standard.E4.Flex:4:32} 형태로 인스턴스 타입 뒤에
+     * {@code :ocpus:memoryGb} 를 덧붙여 수신. {@code :} 는 OCI 셰이프 이름에 미사용.
      */
     private static String shapeName(String rawShape) {
         int sep = rawShape == null ? -1 : rawShape.indexOf(':');
         return sep < 0 ? rawShape : rawShape.substring(0, sep);
     }
 
-    /** 고정 셰이프에 shapeConfig 를 넣으면 OCI 가 거부한다. Flex 일 때만 만든다. */
+    /** 고정 셰이프에 shapeConfig 지정 시 OCI 거부. Flex 인 경우에만 생성. */
     private static Map<String, Object> shapeConfig(String rawShape) {
         String name = shapeName(rawShape);
         if (name == null || !name.toLowerCase(Locale.ROOT).endsWith(".flex")) {
@@ -206,14 +206,14 @@ final class OciYamlEmitter implements ProviderYamlEmitter {
 
     /**
      * OCI 는 이미지 OCID 를 리전마다 따로 발급한다. 이름으로 찾는 안정된 필터가 없어 osImage 를
-     * 필수로 받는다 — 추측한 OCID 로 만들면 엉뚱한 이미지가 뜬다.
+     * 필수로 받는다. 추측한 OCID 로 만들면 엉뚱한 이미지가 뜬다.
      */
     private String requireImage(ClusterSpec spec) {
         requireConfig(spec.osImage(), "osImage (OCI image OCID)");
         return spec.osImage();
     }
 
-    /** dnsLabel 은 영숫자만 받고 15자를 넘지 못한다. */
+    /** dnsLabel 은 영숫자만 허용, 최대 15자. */
     private String dnsLabel(ClusterSpec spec) {
         String raw = spec.name().replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
         if (raw.isEmpty()) raw = "cluster";
@@ -235,7 +235,7 @@ final class OciYamlEmitter implements ProviderYamlEmitter {
         }
     }
 
-    /** provider 전용 설정. 다른 CSP 의 spec 이 오면 assembler 가 provider 를 잘못 라우팅한 것이다. */
+    /** provider 전용 설정. 다른 CSP 의 spec 수신은 assembler 의 provider 라우팅 오류. */
     private static ProviderSpec.Oci oci(ClusterSpec spec) {
         if (spec.providerSpec() instanceof ProviderSpec.Oci o) return o;
         throw new IllegalStateException("Oci 설정이 없다: provider=" + spec.provider());

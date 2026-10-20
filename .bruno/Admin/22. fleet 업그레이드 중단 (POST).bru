@@ -1,0 +1,36 @@
+meta {
+  name: 22. fleet 업그레이드 중단 (POST)
+  type: http
+  seq: 22
+}
+
+post {
+  url: {{baseUrl}}/v1/fleet/upgrade/{{fleet_upgrade_run_id}}/abort
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+  User-Agent: bruno/3.3.0
+}
+
+body:json {
+  {
+    "reason": "bruno 에서 수동 중단"
+  }
+}
+
+docs {
+  진행 중인 run 을 ABORTED 로 바꿉니다. 이미 트리거된 cluster 의 rolling update 는 K8s 가
+  계속 진행하므로, 되돌리려면 이전 image 로 다시 올려야 합니다.
+
+  run_id 는 z99 응답이 fleet_upgrade_run_id 로 넣어 둡니다.
+}
+
+tests {
+  test("200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

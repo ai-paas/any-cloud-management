@@ -16,17 +16,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Helm 작업을 agent gRPC stream 으로 넘기는 facade 입니다. {@link KubeResourceService} 와 같은
- * 패턴이고, 호스트는 이 service 만 부르면 됩니다.
+ * Helm 작업을 agent gRPC stream 으로 전달하는 facade. {@link KubeResourceService} 와 동일 패턴
+ * 이며 호스트는 이 service 만 호출.
  *
- * <p>실제 실행은 cluster 안의 agent 가 Helm SDK 로 합니다. 따라서 chart repository 는 backend 가
- * 아니라 cluster 에서 닿을 수 있어야 합니다.
+ * <p>실제 실행은 cluster 내 agent 가 Helm SDK 로 수행. 따라서 chart repository 는 backend 가
+ * 아닌 cluster 에서 접근 가능해야 함.
  *
- * <p>chart 이름, 버전 범위, namespace 는 agent 의 allowlist 가 검증합니다. 기본값은 전부 거부라
- * 호스트가 허용 목록을 넣기 전에는 아무것도 설치되지 않습니다.
+ * <p>chart 이름, 버전 범위, namespace 는 agent 의 allowlist 가 검증. 기본값이 전체 거부이므로
+ * 호스트가 허용 목록을 등록하기 전에는 설치 불가.
  *
- * <p>세션이 없으면 {@code isActiveFor} 가 false 입니다. 호출자가 그 상황을 어떻게 다룰지 정해야
- * 합니다.
+ * <p>세션 부재 시 {@code isActiveFor} 가 false. 해당 상황의 처리는 호출자 책임.
  *
  * @see KubeResourceService K8s 작업의 같은 패턴
  */
@@ -34,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class HelmReleaseService {
 
-    /** Helm install/uninstall 은 chart wait/hook 으로 분 단위 — 추가 cushion. */
+    /** Helm install/uninstall 은 chart wait/hook 으로 분 단위: 추가 cushion. */
     private static final long HELM_OPERATION_TIMEOUT_SECONDS = 300L + 15L;
 
     private final AgentSessionRegistry sessionRegistry;
@@ -52,15 +51,15 @@ public class HelmReleaseService {
     }
 
     /**
-     * INSTALL_ADDON — agent in-cluster Helm SDK 로 chart 설치.
+     * INSTALL_ADDON: agent in-cluster Helm SDK 로 chart 설치.
      * AllowList 의 chart rule + namespace + version range 통과 필수.
      *
      * <p>Chart 다운로드 경로 우선순위:
      * <ol>
-     *   <li>{@code chartTarballBase64} 명시 — backend 가 미리 fetch 해 push. agent 가 chartmuseum
+     *   <li>{@code chartTarballBase64} 명시: backend 가 미리 fetch 해 push. agent 가 chartmuseum
      *       도달 불가한 air-gapped / private 환경의 권장 경로.</li>
-     *   <li>{@code repoUrl} 명시 — agent 가 직접 다운로드 (URL 이 agent 에서 도달 가능해야).</li>
-     *   <li>둘 다 없음 — agent 의 {@code ~/.config/helm/repositories.yaml} alias 검색 (보통 실패).</li>
+     *   <li>{@code repoUrl} 명시: agent 가 직접 다운로드 (URL 이 agent 에서 도달 가능해야).</li>
+     *   <li>둘 다 없음. agent 의 {@code ~/.config/helm/repositories.yaml} alias 검색 (보통 실패).</li>
      * </ol>
      *
      * @param chartTarballBase64 backend 가 pre-fetch 한 chart {@code .tgz} 의 base64 인코딩 (선택).
@@ -94,10 +93,10 @@ public class HelmReleaseService {
     }
 
     /**
-     * UPGRADE_ADDON — 기존 release 를 새 chart version / values 로 업그레이드.
+     * UPGRADE_ADDON: 기존 release 를 새 chart version / values 로 업그레이드.
      *
      * <p>Install 과 동일 allowlist 검증 + release lock (agent 측). release 미존재 시
-     * {@code HELM_NOT_FOUND} error_code 로 회신 — caller 가 먼저 install 안내.
+     * {@code HELM_NOT_FOUND} error_code 로 회신: caller 가 먼저 install 안내.
      *
      * @param atomic      실패 시 자동 rollback. 운영자 권장 (production 안정성).
      * @param reuseValues 기존 release 의 values 보존 + 새 values merge.
@@ -137,7 +136,7 @@ public class HelmReleaseService {
     }
 
     /**
-     * UNINSTALL_ADDON — agent helm uninstall. namespace allowlist 통과 필수.
+     * UNINSTALL_ADDON: agent helm uninstall. namespace allowlist 통과 필수.
      *
      * @param keepHistory true 면 helm revision 이력 보존 ({@code --keep-history} 등가).
      * @param wait        true 면 모든 자원 삭제될 때까지 대기 ({@code --wait} 등가).
@@ -153,7 +152,7 @@ public class HelmReleaseService {
     }
 
     /**
-     * LIST_HELM_RELEASE_RESOURCES — release 가 만든 K8s 자원 enumerate.
+     * LIST_HELM_RELEASE_RESOURCES: release 가 만든 K8s 자원 enumerate.
      *
      * @return 자원 ref 목록 (kind, apiVersion, namespace, name).
      */
@@ -184,7 +183,7 @@ public class HelmReleaseService {
     public record HelmReleaseResource(String kind, String apiVersion, String namespace, String name) {}
 
     /**
-     * GET_HELM_RELEASE_STATUS — 단일 release 의 현재 status. backend 의 ChartServiceImpl.getChartStatus
+     * GET_HELM_RELEASE_STATUS: 단일 release 의 현재 status. backend 의 ChartServiceImpl.getChartStatus
      * 의 agent-side path.
      *
      * @return release 의 chart/version/revision/status. agent error_code=HELM_NOT_FOUND 면 throw.
@@ -197,7 +196,7 @@ public class HelmReleaseService {
     }
 
     /**
-     * GET_HELM_RELEASE_HISTORY — release 의 revision 이력. backend 의 ChartServiceImpl.getReleaseHistory
+     * GET_HELM_RELEASE_HISTORY: release 의 revision 이력. backend 의 ChartServiceImpl.getReleaseHistory
      * 의 agent-side path.
      *
      * @param max <= 0 이면 helm default (10).
@@ -231,7 +230,7 @@ public class HelmReleaseService {
     }
 
     /**
-     * ROLLBACK_HELM_RELEASE — release 를 지정 revision 으로 복원.
+     * ROLLBACK_HELM_RELEASE: release 를 지정 revision 으로 복원.
      *
      * @param revision 0 이면 helm 의 default (직전 성공 revision).
      * @return rollback 후 status (chart/version/revision/status).
@@ -293,7 +292,7 @@ public class HelmReleaseService {
     }
 
     /**
-     * LIST_HELM_RELEASES — agent helm list. namespace 가 빈 문자열 또는 "_all" 이면 모든 ns.
+     * LIST_HELM_RELEASES: agent helm list. namespace 가 빈 문자열 또는 "_all" 이면 모든 ns.
      * 응답은 release list 의 JSON 표현 (parse 책임은 caller).
      */
     public JsonNode listReleases(String clusterName, String namespace) {
@@ -320,7 +319,7 @@ public class HelmReleaseService {
     /* ---------- response shapes ---------- */
 
     /**
-     * agent 의 INSTALL_ADDON 응답 — dispatcher.installAddon 의 result struct 매핑.
+     * agent 의 INSTALL_ADDON 응답: dispatcher.installAddon 의 result struct 매핑.
      * (release / namespace / chart / version / revision / status)
      */
     public record InstalledRelease(

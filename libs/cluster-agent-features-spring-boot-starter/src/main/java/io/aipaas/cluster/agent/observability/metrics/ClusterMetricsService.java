@@ -7,7 +7,7 @@ import java.time.Duration;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 
-/** 고수준 Cluster metrics API — caller 가 PromQL 작성하지 않고 도메인 메서드 호출. */
+/** 고수준 Cluster metrics API: caller 가 PromQL 작성하지 않고 도메인 메서드 호출. */
 @RequiredArgsConstructor
 public class ClusterMetricsService {
 

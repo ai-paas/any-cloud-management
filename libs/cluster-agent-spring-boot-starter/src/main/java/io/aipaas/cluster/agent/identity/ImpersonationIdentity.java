@@ -23,37 +23,35 @@ import java.util.Objects;
  *
  * <p>Thread-safety: 불변 record. {@code List}/{@code Map} 은 생성 시점에 {@code copyOf} 로 사본 보관.
  */
-public record ImpersonationIdentity(
-		String user,
-		List<String> groups,
-		Map<String, List<String>> extras) {
+public record ImpersonationIdentity(String user, List<String> groups, Map<String, List<String>> extras) {
 
-	public ImpersonationIdentity {
-		Objects.requireNonNull(user, "user is required");
-		if (user.isBlank()) {
-			throw new IllegalArgumentException("user must not be blank — use ImpersonationContext.empty() for system identity");
-		}
-		// defensive copy + immutability — caller 의 List 변형이 holder 안 entry 까지 새지 않도록.
-		groups = groups == null ? List.of() : List.copyOf(groups);
-		if (extras == null || extras.isEmpty()) {
-			extras = Map.of();
-		} else {
-			// nested list 도 immutable copy.
-			java.util.LinkedHashMap<String, List<String>> copy = new java.util.LinkedHashMap<>();
-			for (Map.Entry<String, List<String>> e : extras.entrySet()) {
-				copy.put(e.getKey(), e.getValue() == null ? List.of() : List.copyOf(e.getValue()));
-			}
-			extras = Collections.unmodifiableMap(copy);
-		}
-	}
+    public ImpersonationIdentity {
+        Objects.requireNonNull(user, "user is required");
+        if (user.isBlank()) {
+            throw new IllegalArgumentException(
+                    "user must not be blank — use ImpersonationContext.empty() for system identity");
+        }
+        // defensive copy + immutability: caller 의 List 변형이 holder 안 entry 까지 새지 않도록.
+        groups = groups == null ? List.of() : List.copyOf(groups);
+        if (extras == null || extras.isEmpty()) {
+            extras = Map.of();
+        } else {
+            // nested list 도 immutable copy.
+            java.util.LinkedHashMap<String, List<String>> copy = new java.util.LinkedHashMap<>();
+            for (Map.Entry<String, List<String>> e : extras.entrySet()) {
+                copy.put(e.getKey(), e.getValue() == null ? List.of() : List.copyOf(e.getValue()));
+            }
+            extras = Collections.unmodifiableMap(copy);
+        }
+    }
 
-	/** user 만 명시 (groups / extras 없음) 의 ergonomic ctor. */
-	public static ImpersonationIdentity of(String user) {
-		return new ImpersonationIdentity(user, List.of(), Map.of());
-	}
+    /** user 만 명시 (groups / extras 없음) 의 ergonomic ctor. */
+    public static ImpersonationIdentity of(String user) {
+        return new ImpersonationIdentity(user, List.of(), Map.of());
+    }
 
-	/** user + groups (extras 없음). */
-	public static ImpersonationIdentity of(String user, List<String> groups) {
-		return new ImpersonationIdentity(user, groups, Map.of());
-	}
+    /** user + groups (extras 없음). */
+    public static ImpersonationIdentity of(String user, List<String> groups) {
+        return new ImpersonationIdentity(user, groups, Map.of());
+    }
 }

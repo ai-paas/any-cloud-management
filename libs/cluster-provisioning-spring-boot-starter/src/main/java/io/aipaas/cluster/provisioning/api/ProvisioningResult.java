@@ -30,27 +30,16 @@ import java.util.Map;
  * @param providerNative    provider 별 추가 필드의 자유 영역. 표준 키 외 raw 값을 모두 보존
  */
 public record ProvisioningResult(
+        @NotBlank String provider,
+        @NotBlank String clusterName,
+        @NotBlank String apiServerUrl,
 
-		@NotBlank String provider,
-
-		@NotBlank String clusterName,
-
-		@NotBlank String apiServerUrl,
-
-		// 사설망 only 환경은 빈 문자열 — NotBlank 제외
-		String masterPublicIp,
-
-		@NotBlank String masterPrivateIp,
-
-		@NotBlank String sshPrivateKeyPem,
-
-		@NotBlank String kubeconfigFetchCommand,
-
-		@NotNull List<Map<String, Object>> nodes,
-
-		String publicDns,
-
-		String dbEndpoint,
-
-		@NotNull Map<String, Object> providerNative) {
-}
+        // 사설망 only 환경은 빈 문자열: NotBlank 제외
+        String masterPublicIp,
+        @NotBlank String masterPrivateIp,
+        @NotBlank String sshPrivateKeyPem,
+        @NotBlank String kubeconfigFetchCommand,
+        @NotNull List<Map<String, Object>> nodes,
+        String publicDns,
+        String dbEndpoint,
+        @NotNull Map<String, Object> providerNative) {}
