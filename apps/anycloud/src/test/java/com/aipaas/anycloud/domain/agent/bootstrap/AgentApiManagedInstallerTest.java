@@ -72,6 +72,35 @@ class AgentApiManagedInstallerTest extends AbstractUnitTest {
     }
 
     @Test
+    void prepareBootstrap_helmCommandUsesConfiguredChartCoordinates() {
+        // chart 좌표 hardcoding 회귀 방지. 과거 oci://docker.io/aipaas 로 고정돼 publish 위치와
+        // 어긋난 명령이 등록 모달에 노출됨.
+        com.aipaas.anycloud.domain.agent.AgentProperties props =
+                new com.aipaas.anycloud.domain.agent.AgentProperties(null, null, null, null);
+        AgentApiManagedInstaller withProps = new AgentApiManagedInstaller(
+                bootstrapService,
+                chartRenderer,
+                kubeService,
+                new io.micrometer.core.instrument.simple.SimpleMeterRegistry(),
+                props,
+                org.mockito.Mockito.mock(com.aipaas.anycloud.domain.cluster.ClusterRepository.class));
+        ReflectionTestUtils.setField(withProps, "agentNamespace", "aipaas-system");
+        withProps.initMetrics();
+
+        IssuedToken token = new IssuedToken("eyJ.fake.jwt", "jti-uuid-2", Instant.parse("2026-05-12T16:00:00Z"), 600);
+        when(bootstrapService.issueRegistrationToken("demo-aws-01", "USER_MANAGED"))
+                .thenReturn(token);
+
+        String command = withProps.prepareBootstrap("demo-aws-01").helmInstallCommand();
+
+        assertThat(command)
+                .contains("oci://ghcr.io/ai-paas/charts/cluster-agent")
+                .contains("--version 0.1.0")
+                .contains("--namespace aipaas-system")
+                .doesNotContain("docker.io");
+    }
+
+    @Test
     void install_tokenIssueFails_doesNotCallApply() {
         when(bootstrapService.issueRegistrationToken(anyString(), anyString()))
                 .thenThrow(new AgentBootstrapService.ClusterNotRegisteredException("not found"));

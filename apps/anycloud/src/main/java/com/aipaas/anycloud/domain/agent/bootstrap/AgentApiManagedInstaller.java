@@ -164,14 +164,15 @@ public class AgentApiManagedInstaller {
     public BootstrapInfo prepareBootstrap(String clusterName) {
         IssuedToken issued = bootstrapService.issueRegistrationToken(clusterName, "USER_MANAGED");
         String backendEndpoint = agentProperties.grpc().publicEndpoint();
-        // docker hub / OCI image registry 의 helm chart: backend image 와 동일 패턴.
-        // 사용자가 BACKEND_DOCKER_USER / BACKEND_IMAGE_TAG override 한 경우 chart 도 같은 namespace.
+        AgentProperties.Helm helm = agentProperties.helm();
+        String namespace = agentProperties.manifest().namespace();
+        // chart 좌표는 agent.helm.* 설정 단일 출처. hardcoding 시 registry 이전마다 재빌드 필요.
         String helmInstallCommand = String.format(
-                "helm install cluster-agent \\\n" + "  --namespace aipaas-system --create-namespace \\\n"
+                "helm install cluster-agent \\\n" + "  --namespace %s --create-namespace \\\n"
                         + "  --set bootstrap.registrationToken=%s \\\n"
                         + "  --set backend.grpcAddr=%s \\\n"
-                        + "  oci://docker.io/aipaas/cluster-agent --version 0.1.0",
-                issued.token(), backendEndpoint);
+                        + "  %s --version %s",
+                namespace, issued.token(), backendEndpoint, helm.ociChartRef(), helm.chartVersion());
         String manifestUrl = "/v1/clusters/" + clusterName + "/agent-manifest.yaml";
         String kubectlApplyCommand = "curl -sS " + resolveBackendBaseUrl() + manifestUrl + " | kubectl apply -f -";
         return new BootstrapInfo(
