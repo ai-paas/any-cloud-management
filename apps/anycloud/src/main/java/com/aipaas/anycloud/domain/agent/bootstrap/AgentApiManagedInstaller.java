@@ -15,14 +15,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
- * backend 가 agent 를 직접 설치하는 {@code API_MANAGED} 모드입니다. 단기 JWT 를 발급하고
- * {@link AgentChartRenderer} 로 manifest 를 렌더한 뒤 {@link KubeService#applyResource} 로
- * 적용합니다.
+ * backend 가 agent 를 직접 설치하는 {@code API_MANAGED} 모드. 단기 JWT 발급,
+ * {@link AgentChartRenderer} 로 manifest 렌더, {@link KubeService#applyResource} 로 적용.
  *
- * <p>ClusterEntity 가 만들어진 뒤에 불러야 합니다. {@code applyResource} 가 cluster 를 찾지
- * 못합니다.
+ * <p>호출 전제: ClusterEntity 존재. 없으면 {@code applyResource} 가 cluster 를 찾지 못함.
  *
- * <p>실패하면 예외를 그대로 올립니다. cluster 를 FAILED 로 둘지 넘어갈지는 호출 측이 정합니다.
+ * <p>실패 시 예외를 그대로 전파. cluster 를 FAILED 로 전환할지는 호출 측 결정.
  */
 @Slf4j
 @Service
@@ -38,8 +36,8 @@ public class AgentApiManagedInstaller {
     private final com.aipaas.anycloud.domain.cluster.ClusterRepository clusterRepository;
 
     /**
-     * manifest 안에서 namespace 가 비어 있는 resource 에만 적용합니다.
-     * 지금 chart 는 모든 resource 에 namespace 를 명시합니다.
+     * manifest 의 namespace 미지정 resource 에만 적용. 현재 chart 는 모든 resource 에
+     * namespace 를 명시하므로 사용되지 않음.
      */
     @Value("${agent.manifest.namespace:aipaas-system}")
     private String agentNamespace;
@@ -109,11 +107,11 @@ public class AgentApiManagedInstaller {
     /**
      * agent gRPC 가 없을 때의 복구 안내.
      *
-     * <p>backend 는 cluster 자격증명을 보관하지 않아 agent 를 거치지 않고 apply 할 방법이 없습니다.
-     * 운영자가 자기 kubectl context 에서 돌릴 명령을 돌려줍니다.
+     * <p>backend 는 cluster 자격증명을 보관하지 않으므로 agent 를 거치지 않는 apply 경로가 없음.
+     * 운영자가 자신의 kubectl context 에서 실행할 명령을 반환.
      *
-     * <p>registration token 은 넣지 않습니다. 이 문자열은 에러 응답과 로그에 함께 남는데 token 은
-     * 그대로 등록에 쓸 수 있는 자격증명입니다. manifest endpoint 가 호출 때마다 새로 발급합니다.
+     * <p>registration token 미포함. 이 문자열은 에러 응답과 로그에 남고 token 은 그대로 등록에
+     * 사용 가능한 자격증명. manifest endpoint 가 호출마다 새로 발급.
      */
     private String manualInstallGuide(String clusterName) {
         return "Cluster agent 가 응답하지 않습니다. backend 는 cluster 자격증명을 보관하지 않아 대신 적용할 수 "

@@ -17,14 +17,7 @@ import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
-/**
- * <pre>
- * ClassName : ChartParser
- * Type : class
- * Description : YAML/JSON 파싱을 담당하는 유틸리티 클래스입니다.
- * Related : ChartServiceImpl
- * </pre>
- */
+/** Helm index.yaml 과 chart metadata 파싱. YAML 과 JSON 변환 helper 포함. */
 @Slf4j
 @Component
 public class ChartParser {
@@ -59,9 +52,6 @@ public class ChartParser {
         return jsonMapper.valueToTree(parsed);
     }
 
-    /**
-     * index.yaml 내용을 파싱하여 차트 목록을 생성합니다.
-     */
     public ChartListResponse parseIndexYaml(String repositoryName, String indexContent) {
         try {
             JsonNode rootNode = parseYamlToJsonNode(indexContent);
@@ -121,7 +111,7 @@ public class ChartParser {
     }
 
     /**
-     * index.yaml에서 특정 차트의 상세 정보를 파싱합니다.
+     * index.yaml 에서 특정 차트의 상세 정보 추출.
      *
      * @param repositoryName  Repository 이름
      * @param targetChartName 차트 이름
@@ -246,9 +236,6 @@ public class ChartParser {
     // agent 의 LIST_HELM_RELEASES / GET_HELM_RELEASE_STATUS / GET_HELM_RELEASE_HISTORY 가
     // 이미 구조화된 결과 (struct field) 를 반환하므로 raw CLI 출력 파싱이 불필요.
 
-    /**
-     * YAML 콘텐츠를 JSON으로 변환합니다.
-     */
     public String yamlToJson(String yamlContent) {
         try {
             JsonNode node = yamlMapper.readTree(yamlContent);
@@ -259,9 +246,6 @@ public class ChartParser {
         }
     }
 
-    /**
-     * JSON 콘텐츠를 YAML로 변환합니다.
-     */
     public String jsonToYaml(String jsonContent) {
         try {
             JsonNode node = jsonMapper.readTree(jsonContent);
@@ -272,9 +256,6 @@ public class ChartParser {
         }
     }
 
-    /**
-     * JSON 문자열이 유효한지 검증합니다.
-     */
     public boolean isValidJson(String jsonString) {
         try {
             jsonMapper.readTree(jsonString);
@@ -284,9 +265,6 @@ public class ChartParser {
         }
     }
 
-    /**
-     * YAML 문자열이 유효한지 검증합니다.
-     */
     public boolean isValidYaml(String yamlString) {
         try {
             yamlMapper.readTree(yamlString);

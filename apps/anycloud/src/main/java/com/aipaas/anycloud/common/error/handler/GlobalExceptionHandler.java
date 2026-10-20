@@ -36,14 +36,14 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
- * 예외를 ErrorCode 로 매핑합니다. 직렬화와 status 변환은 {@link ErrorResponseFormatter} 담당입니다.
+ * 예외를 ErrorCode 로 매핑. 직렬화와 status 변환은 {@link ErrorResponseFormatter} 담당.
  *
- * <p>핸들러는 아래 주석 구분선대로 VALIDATION, NOT FOUND, BUSINESS, EXTERNAL, SECURITY, FALLBACK
- * 순으로 둡니다. 같은 예외에 핸들러가 둘이면 Spring 이 더 구체적인 쪽을 고릅니다.
+ * <p>핸들러 배치 순서는 주석 구분선 기준으로 VALIDATION, NOT FOUND, BUSINESS, EXTERNAL,
+ * SECURITY, FALLBACK. 한 예외에 핸들러가 둘이면 Spring 이 더 구체적인 쪽을 선택.
  *
- * <p>provisioning 실패는 {@code TransientProvisioningFailure} 나
- * {@code PermanentProvisioningFailure} 로 던지세요. retry classifier 가 {@code isTransient()} 로
- * RabbitMQ DLQ 라우팅을 정하므로, RuntimeException 을 그대로 던지면 재시도되지 않습니다.
+ * <p>provisioning 실패는 {@code TransientProvisioningFailure} 또는
+ * {@code PermanentProvisioningFailure} 로 전달. retry classifier 가 {@code isTransient()} 로
+ * RabbitMQ DLQ 라우팅을 결정하므로, RuntimeException 전달 시 재시도 대상에서 제외.
  */
 @Slf4j
 @RestControllerAdvice
@@ -56,10 +56,10 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * body 가 비었거나 JSON 파싱이 실패했을 때입니다.
+     * body 누락 또는 JSON 파싱 실패.
      *
-     * <p>cause 의 raw message 는 사용자 입력을 그대로 담을 수 있어 로그에만 남기고, 응답에는 cause
-     * 클래스명만 내보냅니다.
+     * <p>cause 의 raw message 는 사용자 입력을 포함할 수 있어 로그에만 기록. 응답에는 cause
+     * 클래스명만 포함.
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     protected ResponseEntity<ErrorResponse> httpMessageNotReadableExceptionHandler(
@@ -207,7 +207,7 @@ public class GlobalExceptionHandler {
 
     // ─── BUSINESS / STATE ────────────────────────────────────────────────────────
 
-    /** transient / permanent 를 응답 hint 로 내보내 클라이언트가 재시도 여부를 정하게 합니다. */
+    /** transient 와 permanent 를 응답 hint 에 포함. 클라이언트의 재시도 판단 근거. */
     @ExceptionHandler(ProvisioningException.class)
     protected ResponseEntity<ErrorResponse> handleProvisioningException(final ProvisioningException e) {
         final ErrorCode errorCode = e.getErrorCode();
@@ -239,8 +239,8 @@ public class GlobalExceptionHandler {
         if (e.getField() != null) {
             response = ErrorResponse.of(
                     e.getErrorCode(), ErrorResponse.FieldError.of(e.getField(), e.getValue(), e.getReason()));
-            // CSP 원문은 provider 마다 표현이 달라 그대로는 무엇을 고쳐야 할지 알 수 없습니다.
-            // 화면이 원문을 접어 두고 할 일부터 보여줄 수 있게 분류 결과를 함께 실어 보냅니다.
+            // CSP 원문은 provider 마다 표현이 달라 조치 대상을 특정할 수 없음. 화면이 원문 대신
+            // 조치 항목을 먼저 노출할 수 있도록 분류 결과를 함께 전달.
             response =
                     response.withHint(CredentialFailureKind.from(e.getReason()).hint());
         } else if (hasDetail) {
@@ -284,7 +284,7 @@ public class GlobalExceptionHandler {
      *
      * <p>신규 코드는 의미 명확한
      * {@link com.aipaas.anycloud.common.error.exception.provisioning.StateConflictException}
-     * 사용 권장. 이 핸들러는 기존 IllegalStateException 을 받습니다.
+     * 사용 권장. 이 핸들러는 기존 IllegalStateException 수신용.
      */
     @ExceptionHandler(IllegalStateException.class)
     protected ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException e) {
@@ -309,7 +309,7 @@ public class GlobalExceptionHandler {
 
     /**
      * Controller 가 의도적으로 던진 status (503 graceful degradation 등) 를 그대로 전달.
-     * 이 핸들러가 없으면 generic Exception 핸들러가 잡아 500 으로 나갑니다. 진단 정보가 사라집니다.
+     * 이 핸들러 부재 시 generic Exception 핸들러가 500 으로 처리. 진단 정보 유실.
      */
     @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
     protected ResponseEntity<ErrorResponse> handleResponseStatusException(
@@ -331,7 +331,7 @@ public class GlobalExceptionHandler {
     protected ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException e) {
         log.warn("Entity not found: {}", e.getMessage());
         final ErrorResponse response = ErrorResponse.of(ErrorCode.ENTITY_NOT_FOUND, e.getMessage());
-        // statusOf 로 통일합니다. 하드코딩하면 ErrorCode 의 status 와 어긋나 body 만 달라집니다.
+        // statusOf 로 통일. 하드코딩 시 ErrorCode 의 status 와 body 의 status 가 불일치.
         return new ResponseEntity<>(response, ErrorResponseFormatter.statusOf(ErrorCode.ENTITY_NOT_FOUND));
     }
 
