@@ -21,14 +21,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 리전 조회로 자격증명을 확인한다.
+ * 리전 조회로 자격증명 검증.
  *
- * <p>등록만 하고 쓸 수 있는지는 프로비저닝을 걸어봐야 알았다. 리전 조회는 CSP API 를 실제로
- * 부르므로 그 자체가 검증이다. 비밀값을 내보내지 않으므로 새 노출면이 생기지 않는다.
+ * <p>등록만으로는 사용 가능 여부 확인 불가. 리전 조회는 CSP API 를 실제 호출하므로 그 자체가
+ * 검증. 비밀값 미전송이므로 노출면 증가 없음.
  *
- * <p>결과는 저장한다. 화면 상태로만 두면 새로고침하면 사라지고 사용자마다 각자 확인해야 한다.
- * 반대로 페이지를 열 때마다 전부 다시 확인하면 CSP 요청 제한에 걸리므로, 자동 갱신은 오래된
- * 것만 본다. 사용자가 직접 누른 확인은 캐시를 건너뛴다: 방금 키를 고쳤을 수 있다.
+ * <p>결과는 저장. 화면 상태로만 유지하면 새로고침 시 소실되고 사용자별 재확인 필요. 페이지
+ * 진입마다 전체 재확인하면 CSP 요청 제한에 도달하므로 자동 갱신 대상은 오래된 항목으로 한정.
+ * 사용자가 직접 실행한 확인은 캐시 우회.
  */
 @Slf4j
 @Service
@@ -36,7 +36,7 @@ public class CredentialHealthServiceImpl implements CredentialHealthService {
 
     private static final String HEALTHY = "HEALTHY";
     private static final String UNHEALTHY = "UNHEALTHY";
-    /** 확인할 방법이 없어 모른다. 실패와 구분해야 한다. 정상인 자격증명을 실패로 보이면 경고를 무시하게 된다. */
+    /** 확인 수단 부재 상태. 실패와 구분 필요. 정상 자격증명을 실패로 표시하면 경고 신뢰도 저하. */
     private static final String UNKNOWN = "UNKNOWN";
 
     private static final int DETAIL_MAX = 1000;
@@ -125,7 +125,7 @@ public class CredentialHealthServiceImpl implements CredentialHealthService {
         try {
             int regions = vmOptionsService.getRegions(provider, credentialId).size();
             if (regions == 0) {
-                // 호출은 성공했는데 아무것도 못 보는 자격증명은 쓸 수 없다.
+                // 호출은 성공하나 조회 결과가 없는 자격증명은 사용 불가.
                 return new CredentialHealth(
                         false,
                         CredentialFailureKind.PERMISSION_DENIED.name(),
@@ -155,11 +155,11 @@ public class CredentialHealthServiceImpl implements CredentialHealthService {
     }
 
     /**
-     * Proxmox 는 리전이 없어 리전 조회로 확인할 수 없다.
+     * Proxmox 는 리전 개념이 없어 리전 조회로 검증 불가.
      *
-     * <p>{@code getRegions} 로 내려가면 등록된 VM options provider 가 없어 예외로 끝나고, 정상인
-     * 자격증명도 "확인 불가" 로 보인다. {@code /version} 은 토큰을 실제로 검사하므로 그 호출이
-     * 곧 검증이다. 만료된 토큰까지 걸러진다.
+     * <p>{@code getRegions} 경로는 등록된 VM options provider 가 없어 예외로 종료되고 정상
+     * 자격증명도 확인 불가로 표시. {@code /version} 은 토큰을 실제 검사하므로 그 호출이 검증.
+     * 만료 토큰도 걸러짐.
      */
     private CredentialHealth probeProxmox(String credentialId) {
         try {
@@ -176,7 +176,7 @@ public class CredentialHealthServiceImpl implements CredentialHealthService {
                         0,
                         LocalDateTime.now());
             }
-            // 리전이 없는 프로바이더라 개수는 0 이다. 확인한 것은 토큰이 통한다는 사실이다.
+            // 리전 개념이 없는 프로바이더라 개수 0. 검증 대상은 토큰 유효성.
             return new CredentialHealth(true, null, null, null, 0, LocalDateTime.now());
         } catch (Exception e) {
             String raw = raw(e);
@@ -186,7 +186,7 @@ public class CredentialHealthServiceImpl implements CredentialHealthService {
         }
     }
 
-    /** 분류에 쓸 원문. CustomException 은 reason 에 CSP 응답이 들어 있다. */
+    /** 분류용 원문. CustomException 의 reason 에 CSP 응답 포함. */
     private String raw(Exception e) {
         if (e instanceof CustomException ce && ce.getReason() != null) {
             return ce.getReason();

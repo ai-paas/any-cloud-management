@@ -173,9 +173,9 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                             .description("VM 을 붙일 브리지. 외부와 통신하는 브리지를 고른다 (보통 vmbr0).")
                             .build(),
                     /*
-                     * 아래 넷은 defaultValue 가 비면 일괄 프로비저닝이 Proxmox 를 차단한다.
-                     * cloud 이미지에 qemu-guest-agent 가 없어 DHCP 주소를 알아낼 수 없고, 주소를
-                     * 모른 채 만들면 Pulumi 가 빈 목록을 색인하다 죽는다: VM 이 생긴 뒤에.
+                     * 아래 4개 키는 defaultValue 가 비면 일괄 프로비저닝에서 Proxmox 차단.
+                     * cloud 이미지에 qemu-guest-agent 가 없어 DHCP 주소 조회 불가. 주소 없이
+                     * 생성 시 VM 생성 후 Pulumi 가 빈 목록 색인으로 실패.
                      */
                     ProviderConfigKey.builder()
                             .key("anycloud-k8s:providerSpec.nodeIps")
@@ -239,7 +239,7 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                             .label("컴파트먼트")
                             .description("자원을 담을 칸. 테넌시 전체를 쓰려면 맨 위 항목을 고른다.")
                             .build(),
-                    // 이미지 OCID 는 리전마다 따로 발급돼 추측할 수 없다. emitter 도 preflight 도 요구한다.
+                    // 이미지 OCID 는 리전별 발급이라 추정 불가. emitter 와 preflight 모두 요구.
                     ProviderConfigKey.builder()
                             .key("anycloud-k8s:osImage")
                             .type("string")

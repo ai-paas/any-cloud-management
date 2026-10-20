@@ -120,8 +120,8 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
         List<VmOptionImage> images = new ArrayList<>();
         for (String imageProject : resolveImageProjects(owner)) {
             /*
-             * 최신순으로 받는다. 기본 정렬은 이름순이라 ubuntu-os-cloud 처럼 폐기 이미지가 많은
-             * 프로젝트는 첫 페이지가 통째로 폐기본이고, 여기서 다 걸러져 결과가 0 이 된다.
+             * 최신순 조회. 기본 정렬은 이름순이라 ubuntu-os-cloud 처럼 폐기 이미지가 많은
+             * 프로젝트는 첫 페이지 전체가 폐기본이고, 필터링 후 결과가 0 건이 됨.
              */
             List<GcpRecords.Image> items = listItems(
                     "https://compute.googleapis.com/compute/v1/projects/" + imageProject
@@ -225,8 +225,8 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(accessToken());
         /*
-         * URI 로 넘긴다. String 오버로드는 URI 템플릿으로 취급해 이미 인코딩된 값을 한 번 더
-         * 인코딩한다. orderBy 의 %20 이 %2520 이 되어 GCP 가 400 으로 거절한다.
+         * URI 타입으로 전달. String 오버로드는 URI 템플릿으로 취급해 인코딩된 값을 재인코딩.
+         * orderBy 의 %20 이 %2520 이 되어 GCP 가 400 으로 거절.
          */
         return restTemplate.exchange(java.net.URI.create(url), HttpMethod.GET, new HttpEntity<>(headers), String.class);
     }
@@ -244,8 +244,8 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * 서비스 계정 JSON 안에 project 가 이미 들어 있다. 사용자가 손으로 적으면 다른 값을 넣을 수
-     * 있고, 그러면 자격증명이 닿지 않는 프로젝트에 만들려다 실패한다.
+     * 서비스 계정 JSON 에 project 가 포함됨. 사용자가 직접 입력하면 다른 값이 들어가 자격증명
+     * 권한이 없는 프로젝트에 생성을 시도해 실패.
      */
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsFallback")
@@ -255,7 +255,7 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
                 String project = projectId();
                 yield StringUtils.hasText(project) ? List.of(project) : List.of();
             }
-                // 존은 리전이 정해져야 나온다. GPU 계열은 존마다 제공 여부가 달라 고를 수 있어야 한다.
+                // 존 목록은 리전 확정 후 조회 가능. GPU 계열은 존마다 제공 여부가 달라 선택 필요.
             case "providerSpec.zone" -> StringUtils.hasText(region) ? listZones(region) : List.of();
             default -> List.of();
         };
@@ -348,8 +348,8 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * emitter 는 {@code region-a} 에 띄운다. 리전 어느 존에든 있으면 통과시키면 안 된다.
-     * a2-highgpu-1g 는 asia-northeast3 에 있어도 -a 존에는 없다.
+     * emitter 가 생성하는 존은 {@code region-a}. 리전 내 임의 존에 존재하는 것만으로 통과시키면
+     * 안 됨. a2-highgpu-1g 는 asia-northeast3 에 있어도 -a 존에는 없음.
      */
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "isInstanceTypeAvailableInZoneFallback")
@@ -368,8 +368,8 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
                 return false;
             }
             /*
-             * 타입이 있어도 가속기가 그 존에 없으면 만들지 못한다. a2-highgpu-1g 는
-             * asia-northeast3-a 에 있지만 nvidia-tesla-a100 이 없어 생성이 거절된다.
+             * 타입이 존재해도 가속기가 해당 존에 없으면 생성 불가. a2-highgpu-1g 는
+             * asia-northeast3-a 에 있으나 nvidia-tesla-a100 이 없어 생성 거절.
              */
             String accelerator = requiredAccelerator(instanceType);
             if (accelerator == null) {
@@ -382,10 +382,10 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * 그 리전에서 이 GPU 를 쓸 수 있는 한도가 있는지.
+     * 해당 리전에서 GPU 사용 한도 보유 여부.
      *
-     * <p>가속기가 목록에 있어도 프로젝트 한도가 0 이면 만들지 못한다. GCP 가 "not supported
-     * in the zone with your configuration" 이라고 답하는 경우가 이것이다.
+     * <p>가속기가 목록에 있어도 프로젝트 한도가 0 이면 생성 불가. GCP 가 "not supported in the
+     * zone with your configuration" 으로 응답하는 경우가 여기 해당.
      */
     private boolean hasGpuQuota(String region, String accelerator) {
         String metric = quotaMetric(accelerator);
@@ -400,7 +400,7 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
                 return quota.path("limit").asDouble(0) > 0;
             }
         }
-        // 해당 지표가 없으면 판단하지 않는다.
+        // 해당 지표가 없으면 판단 보류.
         return true;
     }
 
@@ -417,8 +417,8 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
     /**
      * GPU 계열이 요구하는 가속기 이름 조각.
      *
-     * <p>a2, a3, g2 는 GPU 가 붙어야만 뜨는 계열이다. 모르는 계열은 {@code null} 이고 확인하지
-     * 않는다: 새 계열이 나올 때마다 정상 요청을 막을 이유는 없다.
+     * <p>a2, a3, g2 는 GPU 가 필수인 계열. 목록에 없는 계열은 {@code null} 을 반환해 확인을
+     * 건너뜀. 새 계열 출시 때마다 정상 요청이 차단되는 것을 피하기 위함.
      */
     private String requiredAccelerator(String instanceType) {
         String type = instanceType.toLowerCase(Locale.ROOT);
@@ -439,7 +439,7 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
 
     private boolean isInstanceTypeAvailableInZoneFallback(
             Map<String, String> credentials, String region, String zone, String instanceType, Throwable throwable) {
-        // 조회가 막히면 막지 않는다. 판단할 수 없다고 정상 요청을 거절할 이유는 없다.
+        // 조회 실패 시 통과 처리. 판단 불가를 거절 사유로 두지 않음.
         LOG.warn("GCP zone 가용성 확인 실패 type={} zone={}: {}", instanceType, zone, String.valueOf(throwable));
         return true;
     }

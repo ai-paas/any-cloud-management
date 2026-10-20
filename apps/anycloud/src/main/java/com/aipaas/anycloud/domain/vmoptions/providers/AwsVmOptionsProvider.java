@@ -220,8 +220,8 @@ public class AwsVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * DescribeRegions 는 어느 리전에서 불러도 같은 답을 준다. 자격증명에 리전이 있으면 그것을 쓰고,
-     * 없으면 기본 리전으로 부른다: 리전이 없다고 확인 자체를 못 하면 검증의 의미가 없다.
+     * DescribeRegions 는 호출 리전과 무관하게 동일한 응답. 자격증명에 리전이 있으면 사용하고
+     * 없으면 기본 리전으로 호출. 리전 미지정을 이유로 검증을 건너뛰지 않음.
      */
     private static final String DESCRIBE_REGIONS_DEFAULT_REGION = "us-east-1";
 
@@ -249,11 +249,11 @@ public class AwsVmOptionsProvider extends AbstractVmOptionsProvider {
      * 외부 deploy 환경에서는 default chain 으로 충분히 동작 (호스트 머신에 권한 부여).
      */
     /**
-     * 등록된 자격증명으로 실제 AWS 에 묻는다.
+     * 등록된 자격증명으로 AWS 에 직접 조회.
      *
      * <p>{@link #listRegions()} 의 {@code Region.regions()} 는 SDK 에 컴파일된 목록이라 AWS 를
-     * 호출조차 하지 않는다: 완전히 가짜인 키가 '정상'으로 나왔다. DescribeRegions 는 인증이
-     * 필요하고, 계정이 실제로 쓸 수 있는 리전만 돌려준다.
+     * 호출하지 않음. 유효하지 않은 키도 정상으로 판정됨. DescribeRegions 는 인증이 필요하고
+     * 계정이 사용 가능한 리전만 반환.
      */
     @Override
     public List<VmOptionRegion> listRegions(Map<String, String> credentials) {
@@ -263,7 +263,7 @@ public class AwsVmOptionsProvider extends AbstractVmOptionsProvider {
                             .provider(getProvider().getCanonicalName())
                             .id(region.regionName())
                             .name(region.regionName())
-                            // opt-in 리전은 활성화하지 않으면 못 쓴다. 목록에만 있으면 나중에 실패한다.
+                            // opt-in 리전은 활성화 전까지 사용 불가. 목록에만 있으면 생성 단계에서 실패.
                             .available(!"not-opted-in".equalsIgnoreCase(region.optInStatus()))
                             .build())
                     .sorted(Comparator.comparing(VmOptionRegion::getId))

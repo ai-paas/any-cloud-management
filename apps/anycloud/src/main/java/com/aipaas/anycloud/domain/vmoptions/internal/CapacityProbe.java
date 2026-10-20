@@ -10,10 +10,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * 고른 인스턴스 타입을 지금 그 리전에 띄울 수 있는지 확인한다.
+ * 선택한 인스턴스 타입의 리전 내 생성 가능 여부 확인.
  *
- * <p>대부분의 CSP 는 목록에 있으면 만들 수 있다. OCI 만 목록에 있어도 자리가 없을 수 있어
- * 따로 묻는다: 확인하지 않으면 VCN 과 서브넷을 다 만든 뒤 인스턴스에서 실패하고 롤백한다.
+ * <p>대부분의 CSP 는 목록에 있으면 생성 가능. OCI 는 목록에 있어도 용량이 없을 수 있어 별도
+ * 조회. 미확인 시 VCN 과 서브넷 생성 후 인스턴스 단계에서 실패하고 롤백.
  */
 @Slf4j
 @Component
@@ -30,8 +30,8 @@ public class CapacityProbe {
     public record SpecChoice(String specId, String blockedReason) {}
 
     /**
-     * @param filter 요청한 최소 사양. Flex shape 은 크기에 따라 가용 여부가 달라져 그대로 물어야
-     *     한다. 고정 크기로 물으면 있는 자리를 없다고 답한다
+     * @param filter 요청한 최소 사양. Flex shape 은 크기별로 가용 여부가 달라 요청값 그대로
+     *     조회 필요. 고정 크기로 조회하면 가용한 용량을 없음으로 응답
      */
     public SpecChoice firstWithCapacity(
             SupportedProvisioningProvider provider,
@@ -62,7 +62,7 @@ public class CapacityProbe {
                 return new SpecChoice(candidates.get(0), null);
             }
         }
-        // 어떤 타입을 어떤 크기로 물었는지 없으면 다음 행동이 보이지 않는다.
+        // 조회한 타입과 크기를 메시지에 포함. 없으면 운영자가 다음 조치를 판단할 수 없음.
         return new SpecChoice(
                 null,
                 region + " 에 자리가 없습니다. " + filter.minVcpu() + "vCPU "

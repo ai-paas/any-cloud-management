@@ -4,15 +4,15 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * 실패 원문을 사용자가 읽을 수 있는 한 줄로 바꿉니다.
+ * 실패 원문을 사용자가 읽을 수 있는 한 줄로 변환.
  *
- * <p>{@code lastError} 에는 Pulumi stdout 이 통째로 들어갑니다. 수백 줄 안에서
- * {@code Out of host capacity} 한 조각을 찾아내는 건 이 시스템을 만든 사람만 할 수 있습니다.
+ * <p>{@code lastError} 에는 Pulumi stdout 전체가 포함. 수백 줄에서
+ * {@code Out of host capacity} 를 찾으려면 시스템 내부 지식 필요.
  *
- * <p>원문은 지우지 않습니다. 분류에 없는 실패는 여전히 원문으로만 알 수 있습니다.
+ * <p>원문은 보존. 분류에 없는 실패는 원문으로만 확인 가능.
  */
 public enum ProvisioningFailureReason {
-    /** OCI 는 목록에 있어도 그 AD 에 자리가 없을 수 있습니다. 시점에 따라 바뀝니다. */
+    /** OCI 는 목록에 존재해도 해당 AD 에 용량 부족 가능. 시점에 따라 변동. */
     OUT_OF_CAPACITY(
             "선택한 리전에 지금 만들 수 있는 자리가 없습니다.",
             "다른 인스턴스 타입이나 리전을 고르거나, 잠시 뒤 다시 시도하세요.",
@@ -25,7 +25,7 @@ public enum ProvisioningFailureReason {
                     "does not have enough resources available",
                     "zone_resource_pool_exhausted")),
 
-    /** Alibaba 는 계정 확인이 끝나지 않으면 GPU 같은 특정 계열만 골라 막는다. */
+    /** Alibaba 는 계정 확인 미완료 시 GPU 등 특정 계열만 선택적으로 차단. */
     ACCOUNT_VERIFICATION_REQUIRED(
             "CSP 계정 확인이 끝나지 않아 거절됐습니다.",
             "CSP 콘솔에서 실명 확인과 결제 수단을 마친 뒤 다시 시도하세요.",
@@ -59,7 +59,7 @@ public enum ProvisioningFailureReason {
                     "401 unauthorized",
                     "403 forbidden")),
 
-    /** 이미지 ID 는 리전마다 다르고 주기적으로 갈린다. */
+    /** 이미지 ID 는 리전별 상이, 주기적 교체. */
     IMAGE_NOT_FOUND(
             "고른 OS 이미지를 찾을 수 없습니다.",
             "이미지 목록에서 다시 고르세요. 이미지 식별자는 리전마다 다르고 주기적으로 바뀝니다.",
@@ -68,7 +68,7 @@ public enum ProvisioningFailureReason {
                     "image not found",
                     "imagenotfound",
                     "invalidimagename",
-                    // IBM 은 없는 이미지를 찾으면 pulumi-yaml 이 패닉해 Go 스택이 그대로 올라온다.
+                    // IBM 은 존재하지 않는 이미지 조회 시 pulumi-yaml 패닉으로 Go 스택 노출.
                     "getisimage",
                     "registering variable [image]")),
 
@@ -83,7 +83,7 @@ public enum ProvisioningFailureReason {
                     "shape is not supported",
                     "notsupportedendpoint")),
 
-    /** 기본 계정이 CSP 마다 다릅니다. Alibaba 의 Ubuntu 이미지에는 ubuntu 계정이 없습니다. */
+    /** 기본 계정은 CSP 별 상이. Alibaba Ubuntu 이미지에는 ubuntu 계정 부재. */
     NODE_LOGIN_REJECTED(
             "노드에 접속하지 못했습니다.",
             "인스턴스는 만들어졌지만 SSH 가 거절됐습니다. 이미지의 기본 계정과 보안 그룹의 22번 포트를 확인하세요.",
@@ -99,7 +99,7 @@ public enum ProvisioningFailureReason {
             "생성 화면에서 필수 항목을 채운 뒤 다시 시도하세요.",
             List.of("missing required provisioning config", "required config")),
 
-    /** nova 는 스케줄에 실패해도 상태만 ERROR 로 준다. 사유는 CSP 콘솔에만 남는다. */
+    /** nova 는 스케줄 실패 시 상태만 ERROR 로 반환. 사유는 CSP 콘솔에만 기록. */
     NODE_CREATE_FAILED(
             "인스턴스가 오류 상태로 만들어졌습니다.",
             "CSP 콘솔에서 인스턴스 오류 사유를 확인하세요. flavor 를 받을 수 있는 호스트가 없을 때 흔합니다.",
@@ -129,10 +129,10 @@ public enum ProvisioningFailureReason {
     }
 
     /**
-     * 원문에서 아는 실패를 찾습니다.
+     * 원문에서 분류 가능한 실패 탐색.
      *
-     * <p>선언 순서가 곧 우선순위입니다. 용량 부족 메시지에 "capacity" 와 "quota" 가 함께 오는 CSP 가
-     * 있어 더 구체적인 쪽을 위에 둡니다. 모르는 실패는 {@code null} 이고 화면에는 원문이 나갑니다.
+     * <p>선언 순서가 우선순위. 용량 부족 메시지에 "capacity" 와 "quota" 가 함께 오는 CSP 가 있어
+     * 구체적인 항목을 선행 배치. 미분류 실패는 {@code null}, 화면에는 원문 출력.
      */
     public static ProvisioningFailureReason from(String raw) {
         if (raw == null || raw.isBlank()) {

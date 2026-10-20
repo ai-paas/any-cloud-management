@@ -27,8 +27,8 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
      * decrypted credential map 을 set → 그 안에서 no-cred 변형이 실행됨 → 그 변형이 사용하는
      * {@link #resolveCredential(String)} 가 본 map 을 보고 없으면 {@code System.getenv()} fallback.
      *
-     * <p>각 provider 는 credentials 를 파라미터로 받지 않습니다. 필요할 때
-     * {@code resolveCredential("KEY")} 를 호출합니다.
+     * <p>각 provider 는 credentials 를 파라미터로 받지 않고 필요 시
+     * {@code resolveCredential("KEY")} 호출.
      */
     private static final ThreadLocal<Map<String, String>> CREDENTIAL_CONTEXT = new ThreadLocal<>();
 
@@ -116,11 +116,11 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
     /**
      * 지금 요청에 실린 자격증명 전체.
      *
-     * <p>키를 하나씩 {@link #resolveCredential(String)} 로 꺼내 Map 을 다시 만들 필요가 없다.
-     * 자격증명 Map 을 통째로 받는 클라이언트({@code ProxmoxApiClient} 등) 에 그대로 넘긴다.
+     * <p>{@link #resolveCredential(String)} 로 키를 하나씩 꺼내 Map 을 재구성할 필요 없음.
+     * 자격증명 Map 전체를 받는 클라이언트({@code ProxmoxApiClient} 등) 에 그대로 전달.
      *
-     * <p>등록된 자격증명이 없으면 빈 Map: {@code System.getenv()} fallback 은 여기 없다.
-     * 키 단위 fallback 은 어떤 키가 필요한지 아는 쪽이 정한다.
+     * <p>등록된 자격증명이 없으면 빈 Map 반환. {@code System.getenv()} fallback 은 여기 없음.
+     * 키 단위 fallback 은 필요한 키를 아는 호출 측에서 처리.
      */
     protected static Map<String, String> currentCredentials() {
         Map<String, String> creds = CREDENTIAL_CONTEXT.get();
@@ -196,8 +196,8 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
             java.util.regex.Pattern.compile("^[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?$");
 
     /**
-     * region id 를 URL 에 넣기 전에 검증한다. blank 는 통과시킨다: 호출부가 blank 를
-     * "지정 안 함"으로 처리해 기본 endpoint 나 기본 region 으로 분기하기 때문이다.
+     * region id 를 URL 에 포함하기 전 형식 검증. blank 는 통과. 호출부가 blank 를 "미지정" 으로
+     * 처리해 기본 endpoint 또는 기본 region 으로 분기.
      *
      * @throws CustomException 형식에 맞지 않는 경우
      */
@@ -214,7 +214,7 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
     }
 
     /**
-     * URL path 에 끼워 넣을 식별자(GCP project id 등) 를 검증한다.
+     * URL path 에 포함할 식별자(GCP project id 등) 형식 검증.
      *
      * @throws CustomException 형식에 맞지 않는 경우
      */
@@ -232,10 +232,10 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
             java.util.regex.Pattern.compile("^ocid1\\.[a-z0-9]+\\.[a-z0-9]+\\.[a-z0-9-]*\\.[a-z0-9.-]{1,255}$");
 
     /**
-     * OCID 를 URL 에 넣기 전에 검증한다.
+     * OCID 를 URL 에 포함하기 전 형식 검증.
      *
-     * <p>OCID 는 자격증명과 providerSpec 에서 온다. 검증 없이 이어 붙이면 {@code ?} 나 {@code #}
-     * 로 query 를 끊어 다른 경로를 부르게 만들 수 있고, 그 요청에는 서명이 그대로 붙는다.
+     * <p>OCID 출처는 자격증명과 providerSpec. 검증 없이 연결하면 {@code ?} 또는 {@code #} 로
+     * query 를 끊어 다른 경로를 호출할 수 있고, 해당 요청에 서명이 그대로 포함됨.
      *
      * @throws CustomException 형식에 맞지 않는 경우
      */
@@ -250,7 +250,7 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
     }
 
     /**
-     * 조립한 URL 의 host 가 기대한 값과 정확히 일치하는지 확인한다.
+     * 조립한 URL 의 host 가 기대값과 정확히 일치하는지 확인.
      *
      * @throws CustomException host 가 기대한 값과 다른 경우
      */
@@ -268,10 +268,10 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
     }
 
     /**
-     * 응답 본문에서 받은 URL(pagination link 등) 이 기대한 host 인지 확인한다.
+     * 응답 본문의 URL(pagination link 등) 이 기대 host 인지 확인.
      *
-     * <p>이 URL 로 다시 요청할 때 access token 이 함께 붙으므로, host 를 확인하지 않으면
-     * 응답을 조작할 수 있는 상대에게 token 을 넘겨주는 경로가 된다.
+     * <p>이 URL 로 재요청할 때 access token 이 함께 전달되므로, host 미확인 시 응답을 조작할 수
+     * 있는 상대에게 token 이 노출됨.
      *
      * @return host 가 일치하면 {@code url}, 아니면 {@code null} (호출부가 페이징 중단)
      */

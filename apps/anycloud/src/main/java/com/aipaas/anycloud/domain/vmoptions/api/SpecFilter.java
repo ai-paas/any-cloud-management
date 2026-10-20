@@ -3,8 +3,8 @@ package com.aipaas.anycloud.domain.vmoptions.api;
 /**
  * 기본값을 고를 때 쓸 조건.
  *
- * <p>검증용으로 띄울 때 "GPU 로 한 대" 나 "조금 큰 것으로" 가 필요하다. 조건을 코드에 박아 두면
- * 그때마다 화면이 값을 손으로 맞춰야 한다.
+ * <p>검증용 생성에는 GPU 또는 상위 스펙 지정이 필요. 조건을 코드에 고정하면 화면에서 값을
+ * 직접 입력해야 함.
  */
 public record SpecFilter(int minVcpu, double minMemoryGb, boolean gpu) {
 

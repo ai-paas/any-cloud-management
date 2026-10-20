@@ -25,8 +25,8 @@ public interface VmOptionsProvider {
     /**
      * providerSpec 키 하나가 가질 수 있는 값 목록. 열거할 수 없는 키는 빈 목록.
      *
-     * <p>포탈은 이 값이 있으면 자유 입력 대신 선택 목록을 보여준다. CSP 마다 열거 가능한 키가
-     * 달라(IBM zone, Proxmox nodeName, Azure resourceGroup …) 키를 인자로 받는다.
+     * <p>포탈은 이 값이 있으면 자유 입력 대신 선택 목록을 표시. CSP 마다 열거 가능한 키가
+     * 달라(IBM zone, Proxmox nodeName 등) 키를 인자로 수신.
      *
      * @param configKey {@code anycloud-k8s:} 접두를 뗀 이름 (예: {@code providerSpec.zone})
      */
@@ -61,20 +61,20 @@ public interface VmOptionsProvider {
     }
 
     /**
-     * 값에 사람이 읽을 이름을 붙여 돌려준다.
+     * 값에 표시용 이름을 함께 반환.
      *
-     * <p>기본 구현은 값을 그대로 이름으로 쓴다: IBM zone 이나 Proxmox 노드처럼 식별자가 곧
-     * 이름인 경우가 대부분이다. OCI compartment 처럼 OCID 와 이름이 따로인 provider 만 재정의한다.
+     * <p>기본 구현은 값을 그대로 이름으로 사용. IBM zone 이나 Proxmox 노드는 식별자가 곧 이름.
+     * OCI compartment 처럼 OCID 와 이름이 분리된 provider 만 재정의 필요.
      */
     /**
-     * 그 존에 이 인스턴스 타입을 띄울 수 있는지.
+     * 해당 존에서 인스턴스 타입 생성 가능 여부.
      *
-     * <p>리전에 있다고 모든 존에 있는 것이 아니다. {@code a2-highgpu-1g} 는 asia-northeast3 에
-     * 있지만 -a 존에는 없다. 리전 목록만 보고 통과시키면 인프라를 만든 뒤 인스턴스에서 실패한다.
+     * <p>리전에 있어도 모든 존에 있는 것은 아님. {@code a2-highgpu-1g} 는 asia-northeast3 에
+     * 있으나 -a 존에는 없음. 리전 목록만으로 통과시키면 인프라 생성 후 인스턴스 단계에서 실패.
      *
-     * <p>모르면 {@code true} 다. 판단할 수 없다고 정상 요청을 막을 이유는 없다.
+     * <p>판단 불가 시 {@code true} 반환. 판단 불가를 거절 사유로 두지 않음.
      *
-     * @param zone 비우면 provider 가 기본 존을 정한다
+     * @param zone 비우면 provider 가 기본 존 결정
      */
     default boolean isInstanceTypeAvailableInZone(
             Map<String, String> credentials, String region, String zone, String instanceType) {

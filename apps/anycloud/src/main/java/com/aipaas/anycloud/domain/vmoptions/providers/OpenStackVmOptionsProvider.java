@@ -70,10 +70,10 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
     private static final int OPTION_LIMIT = 200;
 
     /**
-     * 같은 값을 한 화면에서 한쪽은 고르고 한쪽은 타이핑하게 두지 않는다.
+     * providerSpec 값도 카탈로그 조회로 제공.
      *
-     * <p>이미지와 플레이버는 이미 카탈로그 조회가 있는데 providerSpec 쪽은 자유 입력이었다.
-     * 이름을 손으로 적으면 오타가 프로비저닝 직전까지 드러나지 않는다.
+     * <p>이미지와 flavor 는 카탈로그 조회가 있으나 providerSpec 은 자유 입력이었음. 이름을 직접
+     * 입력하면 오타가 프로비저닝 단계까지 드러나지 않음.
      */
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsFallback")
@@ -90,14 +90,14 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
                     .distinct()
                     .toList();
                 /*
-                 * 라우터 게이트웨이와 floating IP 는 external 네트워크에만 붙는다. 내부망을 고르면
-                 * 라우터 생성이 거절되는데, 이름만 보고는 어느 쪽인지 알 수 없다.
+                 * 라우터 게이트웨이와 floating IP 는 external 네트워크에만 연결 가능. 내부망
+                 * 선택 시 라우터 생성 거절. 이름만으로는 external 여부 구분 불가.
                  */
             case "providerSpec.externalNetworkId" -> externalNetworks(region).stream()
                     .map(OpenStackRecords.Network::id)
                     .filter(StringUtils::hasText)
                     .toList();
-                // 풀 이름은 external 네트워크 이름과 같다. 두 값을 따로 찾아 적을 이유가 없다.
+                // 풀 이름은 external 네트워크 이름과 동일. 두 값을 따로 입력할 필요 없음.
             case "providerSpec.floatingIpPool" -> externalNetworks(region).stream()
                     .map(OpenStackRecords.Network::name)
                     .filter(StringUtils::hasText)
@@ -128,7 +128,7 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     private List<String> listConfigOptionsFallback(String configKey, String region, Throwable throwable) {
-        // 조회가 막혀도 자유 입력으로 남는다. 목록을 못 준다고 생성을 막을 이유는 없다.
+        // 조회 실패 시 자유 입력으로 유지. 목록 제공 실패가 생성 차단 사유는 아님.
         LOG.warn("OpenStack config options fallback: key={} cause={}", configKey, String.valueOf(throwable));
         return List.of();
     }
@@ -154,7 +154,7 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
         if (body.networks() == null) {
             return List.of();
         }
-        // 질의로 걸렀어도 배포에 따라 필터를 무시하는 경우가 있다. 받은 값을 다시 확인한다.
+        // 질의 필터를 무시하는 배포가 있어 응답 값을 다시 검사.
         return body.networks().stream()
                 .filter(network -> Boolean.TRUE.equals(network.external()))
                 .limit(OPTION_LIMIT)
@@ -299,8 +299,8 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * Glance 는 카탈로그가 버전 없는 base 를 주지만, Pulumi 쪽 endpointOverrides 는 {@code /v2/}
-     * 까지 있어야 동작한다. 같은 자격증명 값이 양쪽을 만족해야 해 여기서 중복을 흡수한다.
+     * Glance 카탈로그는 버전 없는 base 를 반환하나 Pulumi 의 endpointOverrides 는 {@code /v2/}
+     * 를 요구. 같은 자격증명 값이 양쪽을 만족해야 하므로 여기서 경로를 보정.
      */
     static String imagesUrl(String imageEndpoint) {
         String base =
@@ -338,11 +338,11 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * OS_INSECURE 일 때만 검증을 끈 client 를 쓴다.
+     * OS_INSECURE 지정 시에만 인증서 검증을 끈 client 사용.
      *
-     * <p>{@code cspRestTemplate} 은 모든 CSP 가 공유하는 singleton 이라 여기서 검증을 끄면 AWS /
-     * Azure 호출까지 함께 꺼진다. 사설 CA 로 띄운 OpenStack 은 흔해 자격증명 단위로만 허용한다.
-     * https 가 아니면 분기 자체가 의미 없어 공유 client 를 그대로 쓴다.
+     * <p>{@code cspRestTemplate} 은 모든 CSP 가 공유하는 singleton 이라 여기서 검증을 끄면 AWS,
+     * Azure 호출의 검증도 함께 해제됨. 사설 CA 를 쓰는 OpenStack 이 있어 자격증명 단위로만 허용.
+     * https 가 아니면 분기가 무의미하므로 공유 client 사용.
      */
     RestTemplate restTemplateFor(String url) {
         if (!insecureRequested() || url == null || !url.startsWith("https://")) {
@@ -376,8 +376,8 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
                     .build();
             var tlsStrategy = org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder.create()
                     .setSslContext(sslContext)
-                    // HttpClient 5.4+ 의 기본 정책 BUILTIN 은 JSSE 가 직접 검사해 아래 verifier 를
-                    // 무시한다. CLIENT 로 바꿔야 IP 로 접속하는 사설 인증서가 통과한다.
+                    // HttpClient 5.4+ 의 기본 정책 BUILTIN 은 JSSE 가 직접 검사해 아래 verifier
+                    // 를 무시. CLIENT 지정 시에만 IP 접속용 사설 인증서가 통과.
                     .setHostVerificationPolicy(org.apache.hc.client5.http.ssl.HostnameVerificationPolicy.CLIENT)
                     .setHostnameVerifier(org.apache.hc.client5.http.ssl.NoopHostnameVerifier.INSTANCE)
                     .buildClassic();
@@ -444,10 +444,10 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * flavor 이름으로 GPU 를 짚는다. 운영자가 이름을 정하므로 이것이 유일한 단서다.
+     * flavor 이름으로 GPU 판별. 이름은 운영자가 정하므로 다른 단서 없음.
      *
-     * <p>{@code novgpu} 처럼 "없다" 는 뜻을 담은 이름이 있다. 단순 포함으로 보면 GPU 없는
-     * flavor 가 GPU 로 잡혀, GPU 를 요청한 사람이 GPU 없는 노드를 받는다.
+     * <p>{@code novgpu} 처럼 부정형 이름이 존재. 부분 문자열만 보면 GPU 없는 flavor 를 GPU 로
+     * 판정해 GPU 요청에 GPU 없는 노드가 배정됨.
      */
     private int detectGpuCount(String flavorName) {
         if (!StringUtils.hasText(flavorName)) {

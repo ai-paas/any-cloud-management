@@ -138,7 +138,7 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
         return results;
     }
 
-    /** shapeConfigOptions 의 상한. 없으면 fallback (= 최소값) 을 그대로 쓴다. */
+    /** shapeConfigOptions 의 상한. 부재 시 fallback (= 최소값) 사용. */
     private static Integer maxFrom(com.fasterxml.jackson.databind.JsonNode options, String field, Integer fallback) {
         com.fasterxml.jackson.databind.JsonNode node = options.path(field);
         return node.isNumber() ? node.asInt() : fallback;
@@ -150,7 +150,7 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
         return node.isNumber() ? node.asDouble() : fallback;
     }
 
-    /** ListImages 한 번에 받을 개수. 기본 페이지는 키워드 필터를 무의미하게 만든다. */
+    /** ListImages 페이지 크기. 기본 페이지 크기로는 키워드 필터가 동작하지 않음. */
     private static final int IMAGE_PAGE_SIZE = 200;
 
     @Override
@@ -220,9 +220,9 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     /**
      * OCI 목록 응답을 typed record 리스트로 변환.
      *
-     * <p>껍데기가 두 가지다. availabilityDomains, shapes, images 는 최상위가 배열이고, 페이지네이션을
-     * 쓰는 엔드포인트만 {@code {"items":[...]}} 로 감싼다. 감싼 형태만 읽으면 배열 응답이 빈 목록이
-     * 되어 "자원이 없다" 로 잘못 보고된다.
+     * <p>응답 형태가 두 가지. availabilityDomains, shapes, images 는 최상위가 배열이고
+     * 페이지네이션 엔드포인트만 {@code {"items":[...]}} 로 감쌈. 감싼 형태만 처리하면 배열 응답이
+     * 빈 목록이 되어 자원 없음으로 잘못 보고됨.
      *
      * <p>{@link ObjectMapper#convertValue} 로 element 단위 deserialize: schema mismatch 가
      * Jackson 의 명시적 에러로 잡힘 (JsonNode silent miss 와 대조적).
@@ -243,9 +243,9 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * compartment OCID 는 콘솔을 열어 베껴 와야 하는 값이다. 계정에서 읽어 이름과 함께 보여 준다.
+     * compartment OCID 는 콘솔 확인이 필요한 값. 계정에서 조회해 이름과 함께 제공.
      *
-     * <p>테넌시 자체도 compartment 다: 루트에 바로 만드는 구성이 흔해 목록 맨 앞에 둔다.
+     * <p>테넌시 자체도 compartment. 루트에 직접 생성하는 구성이 많아 목록 선두에 배치.
      */
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsFallback")
@@ -255,7 +255,7 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
                 .toList();
     }
 
-    /** OCID 만 내려보내면 화면에 식별자가 그대로 뜬다. 이름을 함께 준다. */
+    /** OCID 만 전달하면 화면에 식별자가 그대로 노출. 이름 동반 전달. */
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsWithLabelsFallback")
     public List<com.aipaas.anycloud.domain.vmoptions.api.ConfigOption> listConfigOptionsWithLabels(
@@ -273,7 +273,7 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
         List<com.aipaas.anycloud.domain.vmoptions.api.ConfigOption> out = new java.util.ArrayList<>();
         out.add(new com.aipaas.anycloud.domain.vmoptions.api.ConfigOption(tenancy, "테넌시 루트"));
         for (OciRecords.Compartment compartment : listItems(exchange(url), OciRecords.Compartment.class)) {
-            // 삭제 중인 compartment 에 자원을 만들면 거절된다. 고를 수 있게 두면 안 된다.
+            // 삭제 중인 compartment 는 자원 생성이 거절되므로 선택지에서 제외.
             if (StringUtils.hasText(compartment.id()) && "ACTIVE".equalsIgnoreCase(compartment.lifecycleState())) {
                 out.add(new com.aipaas.anycloud.domain.vmoptions.api.ConfigOption(
                         compartment.id(),
@@ -284,7 +284,7 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     private List<String> listConfigOptionsFallback(String configKey, String region, Throwable throwable) {
-        // 조회가 막혀도 자유 입력으로 남는다. 목록을 못 준다고 생성을 막을 이유는 없다.
+        // 조회 실패 시 자유 입력으로 유지. 목록 제공 실패가 생성 차단 사유는 아님.
         LOG.warn("OCI config options fallback: key={} cause={}", configKey, String.valueOf(throwable));
         return List.of();
     }
@@ -295,7 +295,7 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
         return List.of();
     }
 
-    /** 선택 상자에 담을 최대 개수. compartment 가 수백 개인 테넌시가 있다. */
+    /** 선택 목록 최대 개수. compartment 수백 개 규모의 테넌시 존재. */
     private static final int OPTION_LIMIT = 200;
 
     private String firstAvailabilityDomain(String region) {
@@ -319,8 +319,8 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
         try {
             HttpHeaders headers = buildHeaders(url);
             /*
-             * URI 로 넘긴다. String 오버로드는 URI 템플릿으로 취급해 이미 인코딩된 값을 한 번 더
-             * 인코딩한다. operatingSystem 의 %20 이 %2520 이 되어 아무것도 걸리지 않는다.
+             * URI 타입으로 전달. String 오버로드는 URI 템플릿으로 취급해 인코딩된 값을 재인코딩.
+             * operatingSystem 의 %20 이 %2520 이 되어 결과가 0 건이 됨.
              */
             ResponseEntity<String> response = restTemplate.exchange(
                     java.net.URI.create(url), HttpMethod.GET, new HttpEntity<>(headers), String.class);
@@ -335,12 +335,12 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * 그 shape 를 지금 이 AD 에 띄울 수 있는지 묻는다.
+     * 해당 shape 를 생성할 수 있는 AD 조회.
      *
-     * <p>용량은 AD 단위로 수시로 바뀐다. 확인하지 않으면 VCN, 서브넷, 라우터를 다 만든 뒤
-     * 인스턴스 단계에서 {@code Out of host capacity} 로 끝나고 롤백한다.
+     * <p>용량은 AD 단위로 수시 변동. 미확인 시 VCN, 서브넷, 라우터 생성 후 인스턴스 단계에서
+     * {@code Out of host capacity} 로 실패하고 롤백.
      *
-     * @return 가용한 AD 이름. 어디에도 자리가 없으면 비어 있다
+     * @return 가용 AD 이름. 모든 AD 에 용량이 없으면 빈 값
      */
     public java.util.Optional<String> findAvailabilityDomainWithCapacity(
             Map<String, String> credentials, String region, String shape, int ocpus, int memoryGb) {
@@ -364,7 +364,7 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     private boolean hasCapacity(String region, String compartment, String ad, String shape, int ocpus, int memoryGb) {
         Map<String, Object> availability = new java.util.LinkedHashMap<>();
         availability.put("instanceShape", shape);
-        // 고정 shape 에 shapeConfig 를 주면 거절된다. Flex 계열만 코어와 메모리를 받는다.
+        // 고정 shape 에 shapeConfig 전달 시 거절. Flex 계열만 코어와 메모리 지정 가능.
         if (shape.endsWith(".Flex")) {
             availability.put("instanceShapeConfig", Map.of("ocpus", ocpus, "memoryInGBs", memoryGb));
         }
@@ -408,7 +408,7 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
         }
     }
 
-    /** POST 는 본문 해시까지 서명해야 한다. GET 서명에 본문 헤더만 더하면 401 로 거절된다. */
+    /** POST 는 본문 해시까지 서명 대상. GET 서명에 본문 헤더만 추가하면 401 거절. */
     private HttpHeaders buildPostHeaders(String url, String payload) {
         URI uri = URI.create(url);
         String date = ZonedDateTime.now(java.time.ZoneOffset.UTC)
@@ -534,8 +534,8 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
         }
     }
 
-    // region 이 host 에 들어간다. 검증 없이 넣으면 host 가 통째로 바뀌고,
-    // buildHeaders() 가 만든 요청 서명이 그대로 따라 나간다.
+    // region 이 host 에 포함. 미검증 입력 시 host 전체가 치환되고 buildHeaders() 의
+    // 요청 서명도 그대로 전송.
     private String identityBaseUrl(String region) {
         return ociBaseUrl("identity", region);
     }
@@ -545,9 +545,8 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /*
-     * 조립이 끝난 URL 을 다시 확인한다. base 만 검사하면 뒤에 이어 붙인 식별자가 host 를
-     * 바꾸지 못한다는 보장이 URL 조립 코드에만 남는다: 요청에는 서명이 붙으므로 목적지가
-     * 바뀌면 자격증명이 따라간다.
+     * 조립 완료된 URL 재검증. base 만 검사하면 뒤에 붙는 식별자가 host 를 바꾸지 못한다는
+     * 보장이 URL 조립 코드에만 존재. 요청에 서명이 포함되므로 목적지 변경 시 자격증명 유출.
      */
     private String requireOciHost(String url) {
         URI parsed;
@@ -561,8 +560,8 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "endpoint", host, "허용되지 않은 endpoint host 입니다");
         }
         /*
-         * host 를 상수로 다시 박아 돌려준다. 통과한 url 을 그대로 넘기면 검증한 문자열과
-         * 요청에 쓰는 문자열이 별개라, 사이에 한 줄만 끼어도 목적지가 갈린다.
+         * host 를 상수로 재지정해 반환. 통과한 url 을 그대로 전달하면 검증 대상 문자열과
+         * 요청 사용 문자열이 분리되어, 사이에 코드 한 줄만 추가돼도 목적지가 달라짐.
          */
         String rebuilt = "https://" + host + parsed.getRawPath()
                 + (parsed.getRawQuery() == null ? "" : "?" + parsed.getRawQuery());
@@ -599,8 +598,8 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     /**
      * 구독 리전 조회 URL.
      *
-     * <p>테넌시 하위 경로다. {@code /regionSubscriptions/{tenancyId}} 로 부르면 404
-     * NotAuthorizedOrNotFound 가 오는데, 메시지가 권한 문제처럼 읽혀 자격증명을 의심하게 만든다.
+     * <p>테넌시 하위 경로. {@code /regionSubscriptions/{tenancyId}} 호출 시 404
+     * NotAuthorizedOrNotFound 응답. 메시지가 권한 오류로 읽혀 자격증명 오진 유발.
      */
     private String regionSubscriptionsUrl(String region, String tenancyId) {
         return identityBaseUrl(region) + "/20160918/tenancies/" + tenancyId + "/regionSubscriptions";
@@ -713,8 +712,8 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
 
     @SuppressWarnings("unused")
     /**
-     * 목록이 Windows 로 먼저 채워져 Ubuntu 가 첫 페이지에 오지 않는다. 이름으로만 거르면 결과가
-     * 비어 "이 리전엔 Ubuntu 가 없다" 로 보인다: OCI 는 배포판을 operatingSystem 으로 준다.
+     * 목록 선두가 Windows 로 채워져 Ubuntu 가 첫 페이지에 미포함. 이름만으로 필터링하면 결과가
+     * 비어 리전에 Ubuntu 부재로 오인. OCI 는 배포판을 operatingSystem 으로 제공.
      */
     private String operatingSystemFor(String keyword) {
         return StringUtils.hasText(keyword)

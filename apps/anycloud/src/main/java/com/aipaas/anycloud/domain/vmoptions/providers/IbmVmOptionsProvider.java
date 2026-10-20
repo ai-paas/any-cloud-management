@@ -28,11 +28,11 @@ import org.springframework.web.client.RestTemplate;
 /**
  * IBM Cloud VPC 의 리전, 인스턴스 프로파일, 이미지 조회.
  *
- * <p>VPC API 는 리전마다 host 가 다르다({@code {region}.iaas.cloud.ibm.com}). 인증은 IAM 이 API 키를
- * 교환해 주는 단기 토큰으로 하며, 토큰 발급 host 는 리전과 무관하게 하나다.
+ * <p>VPC API host 는 리전별로 분리({@code {region}.iaas.cloud.ibm.com}). 인증은 IAM 이 API 키를
+ * 교환한 단기 토큰으로 수행하며, 토큰 발급 host 는 리전과 무관하게 단일.
  *
- * <p>프로비저닝이 요구하는 {@code providerSpec.zone} 은 리전이 아니라 존이다(예: {@code us-south-1}).
- * 존은 {@code VmOptionsProvider} 계약에 없어 provider config schema 가 따로 받는다.
+ * <p>프로비저닝이 요구하는 {@code providerSpec.zone} 은 리전이 아닌 존(예: {@code us-south-1}).
+ * 존은 {@code VmOptionsProvider} 계약에 없어 provider config schema 에서 처리.
  */
 @Component
 @RequiredArgsConstructor
@@ -177,8 +177,8 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * providerSpec.zone 은 리전이 아니라 존이다. 계정마다 활성 zone 이 달라
-     * {@code {region}-1} 로 넘겨짚으면 만들다 실패하므로 목록을 받아 고르게 한다.
+     * providerSpec.zone 은 리전이 아닌 존. 계정별 활성 zone 이 달라 {@code {region}-1} 로
+     * 추정하면 생성 단계에서 실패하므로 목록 조회 후 선택.
      */
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsFallback")
@@ -293,7 +293,7 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
         return VmOptionImage.builder()
                 .provider(getProvider().getCanonicalName())
                 .region(region)
-                // 프로비저닝은 이미지 이름으로 조회한다. OCID 처럼 불투명한 식별자가 아니다.
+                // 프로비저닝은 이미지 이름으로 조회. OCID 같은 불투명 식별자 미사용.
                 .id(image.name())
                 .name(image.name())
                 .osType(os == null ? null : os.family())
@@ -376,10 +376,10 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * API 키를 IAM 단기 토큰으로 바꾼다.
+     * API 키를 IAM 단기 토큰으로 교환.
      *
-     * <p>호출마다 새로 받는다. 토큰을 캐시하면 자격증명이 바뀌거나 회수됐을 때 만료까지 옛 권한으로
-     * 조회가 계속된다.
+     * <p>호출마다 재발급. 토큰 캐시 시 자격증명 변경이나 회수 후에도 만료 시점까지 이전 권한으로
+     * 조회 가능.
      */
     private String accessToken() {
         String apiKey = resolveCredential(API_KEY_ENV);

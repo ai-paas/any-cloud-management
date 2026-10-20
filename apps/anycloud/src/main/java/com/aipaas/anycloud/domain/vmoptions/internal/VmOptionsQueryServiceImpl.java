@@ -101,7 +101,7 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
      * 이미지는 조회 경로가 따로 있어 선택지가 비어 있었다. 필수인데 고를 값이 없어 사용자가
      * OCID 나 빌드 날짜가 붙은 ID 를 직접 받아 적어야 했다.
      *
-     * <p>{@code id} 를 쓴다: emitter 가 그대로 CSP 에 넘기는 값이다.
+     * <p>{@code id} 사용. emitter 가 CSP 에 그대로 전달하는 값.
      */
     private List<ConfigOption> osImageOptions(VmOptionsProvider provider, Map<String, String> creds, String region) {
         return provider.listImages(creds, region, UBUNTU_KEYWORD, null, null, OS_IMAGE_LIMIT).stream()
@@ -112,7 +112,7 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
                 .toList();
     }
 
-    /** 이미 허용값이 적힌 키는 그대로 둔다. 정적 제약을 조회 결과로 덮으면 안 된다. */
+    /** 허용값이 지정된 키는 유지. 정적 제약을 조회 결과로 덮어쓰기 금지. */
     private ProviderConfigKey withOptions(
             VmOptionsProvider vmOptionsProvider, Map<String, String> creds, ProviderConfigKey key, String region) {
         if (key.allowedValues() != null && !key.allowedValues().isEmpty()) {

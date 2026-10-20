@@ -115,7 +115,7 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     private List<String> listConfigOptionsFallback(String configKey, String region, Throwable throwable) {
-        // 조회가 막혀도 자유 입력으로 남는다. 목록을 못 준다고 생성을 막을 이유는 없다.
+        // 조회 실패 시 자유 입력으로 유지. 목록 제공 실패가 생성 차단 사유는 아님.
         LOG.warn("Alibaba config options fallback: key={} cause={}", configKey, String.valueOf(throwable));
         return List.of();
     }
@@ -167,10 +167,10 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * 리전에서 실제로 파는 타입 집합. 판단할 수 없으면 {@code null} 이고 그때는 거르지 않는다.
+     * 리전에서 판매 중인 타입 집합. 판단 불가 시 {@code null} 반환, 이 경우 필터링하지 않음.
      *
-     * <p>DescribeInstanceTypes 는 리전을 가리지 않고 전 세계 카탈로그를 준다. 서울에 없는 구형
-     * ga1, gn4 가 vCPU 순으로 앞에 서서, 목록 앞쪽만 보면 리전에 있는 gn7i 까지 닿지 못한다.
+     * <p>DescribeInstanceTypes 는 리전 구분 없이 전체 카탈로그를 반환. 서울에 없는 구형 ga1,
+     * gn4 가 vCPU 순으로 앞에 배치되어 목록 앞부분만 보면 리전에 있는 gn7i 에 도달하지 못함.
      */
     private Set<String> sellableTypes(String region) {
         try {
@@ -294,9 +294,9 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
         String url = endpoint + "?" + canonicalQuery(params);
         try {
             /*
-             * URI 로 넘긴다. String 오버로드는 URI 템플릿으로 취급해 이미 인코딩된 값을 한 번 더
-             * 인코딩한다. Timestamp 의 %3A 가 %253A 가 되어 "time stamp is not well formatted"
-             * 로 거절된다. 서명은 인코딩된 문자열로 계산했으므로 그대로 보내야 한다.
+             * URI 타입으로 전달. String 오버로드는 URI 템플릿으로 취급해 인코딩된 값을 재인코딩.
+             * Timestamp 의 %3A 가 %253A 가 되어 "time stamp is not well formatted" 로 거절됨.
+             * 서명은 인코딩된 문자열 기준으로 계산했으므로 원본 그대로 전송 필요.
              */
             ResponseEntity<String> response = restTemplate.exchange(
                     java.net.URI.create(url), HttpMethod.GET, new HttpEntity<>(new HttpHeaders()), String.class);
@@ -446,7 +446,7 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
                 }
                 for (AlibabaRecords.AvailableResourceResponse.SupportedResource supported :
                         resource.SupportedResources().SupportedResource()) {
-                    // Available 이 아닌 값은 재고가 없거나 판매하지 않는 것이다.
+                    // Available 이 아닌 상태는 재고 없음 또는 미판매.
                     if (instanceType.equalsIgnoreCase(supported.Value())
                             && AVAILABLE_STATUS.equalsIgnoreCase(supported.Status())) {
                         return true;
@@ -459,7 +459,7 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
 
     private boolean isInstanceTypeAvailableInZoneFallback(
             Map<String, String> credentials, String region, String zone, String instanceType, Throwable throwable) {
-        // 조회가 막히면 막지 않는다. 판단할 수 없다고 정상 요청을 거절할 이유는 없다.
+        // 조회 실패 시 통과 처리. 판단 불가를 거절 사유로 두지 않음.
         LOG.warn("Alibaba zone 가용성 확인 실패 type={} zone={}: {}", instanceType, zone, String.valueOf(throwable));
         return true;
     }

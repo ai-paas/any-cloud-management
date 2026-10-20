@@ -36,9 +36,9 @@ public class VmOptionsSelectionValidator {
     public void validateSelections(String provider, String credentialId, String region, Map<String, String> config) {
         if ("Proxmox".equalsIgnoreCase(provider)) {
             /*
-             * Proxmox 는 인스턴스 타입이 없다. "코어-메모리MiB" 를 사용자가 직접 정하므로 대조할
-             * 목록이 없다. 내려가 봐야 빈 목록을 받고 "조회 불가" 경고만 남으므로 여기서 끊는다.
-             * 노드, datastore, 브리지 존재 여부는 ProxmoxPreflightValidator 가 확인한다.
+             * Proxmox 는 인스턴스 타입 개념이 없음. "코어-메모리MiB" 를 사용자가 직접 지정하므로
+             * 대조할 목록이 없고, 진행해도 빈 목록과 "조회 불가" 경고만 남으므로 여기서 반환.
+             * 노드, datastore, 브리지 존재 여부는 ProxmoxPreflightValidator 가 확인.
              */
             return;
         }
@@ -142,16 +142,16 @@ public class VmOptionsSelectionValidator {
             return;
         }
         /*
-         * 키워드 검색은 이름으로만 걸린다. 화면이 고른 값은 식별자라, OCI 의 OCID 처럼 이름과
-         * 전혀 다른 값이면 자기 자신을 키워드로 찾다가 없는 이미지로 판정된다.
+         * 키워드 검색은 이름만 대상. 화면이 선택한 값은 식별자라 OCI 의 OCID 처럼 이름과 다른
+         * 형식이면 식별자를 키워드로 검색해 존재하지 않는 이미지로 판정됨.
          */
         if (containsImage(vmOptionsService.getImages(provider, credentialId, region, null, null, null, 200), value)) {
             return;
         }
         /*
-         * 키워드 조회가 비었다고 CSP 장애로 단정하면 없는 이미지가 그대로 통과한다. 조회 자체가
-         * 되는지 한 번 더 본다: 목록이 나오면 그 값이 없는 것이고, 목록도 비면 CSP 를 못 읽는
-         * 상황이라 여기서 막지 않는다.
+         * 키워드 조회 결과가 비었다는 이유로 CSP 장애로 단정하면 존재하지 않는 이미지가 통과함.
+         * 조회 가능 여부를 한 번 더 확인. 목록이 반환되면 해당 값이 없는 것이고, 목록도 비면
+         * CSP 조회 자체가 불가능한 상황이므로 차단하지 않음.
          */
         if (vmOptionsService
                 .getImages(provider, credentialId, region, null, null, null, 1)
