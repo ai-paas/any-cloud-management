@@ -13,8 +13,8 @@ import java.util.Optional;
  * <p><b>구현 시 유의사항</b>:
  * <ul>
  *   <li>모든 메서드는 thread-safe 가정. 동시 호출 가능.</li>
- *   <li>{@link #findByIdentityTokenHash(String)} 는 hot path — 매 stream 인증 시 호출. index 권장.</li>
- *   <li>{@link #updateLastSeen} 는 heartbeat (30s 주기) 마다 호출 — best-effort, 실패해도 stream 유지.</li>
+ *   <li>{@link #findByIdentityTokenHash(String)} 는 hot path: 매 stream 인증 시 호출. index 권장.</li>
+ *   <li>{@link #updateLastSeen} 는 heartbeat (30s 주기) 마다 호출: best-effort, 실패해도 stream 유지.</li>
  *   <li>{@link #save(AgentIdentity)} 는 upsert 의미 (agentId 기준). 신규/업데이트 모두 처리.</li>
  * </ul>
  */
@@ -59,7 +59,7 @@ public interface AgentIdentityStore {
     /**
      * Identity token rotation. 같은 agentId 의 token hash + expires_at 을 교체.
      *
-     * <p>caller 가 신규 token 의 hash + 새 expiresAt 을 계산 후 호출. atomic 으로 처리 (race —
+     * <p>caller 가 신규 token 의 hash + 새 expiresAt 을 계산 후 호출. atomic 으로 처리 (race.
      * concurrent rotation 호출 방지) 권장이지만 구현체 자유.
      *
      * @return update 된 행 (변경된 hash + expires 반영). agentId 미존재 시 {@link

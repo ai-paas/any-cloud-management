@@ -39,7 +39,7 @@ import org.springframework.core.io.Resource;
  *     roleRefs: [{ kind: ClusterRole, name: admin }]
  * </pre>
  *
- * <p>읽기 1회 + in-memory 저장 — runtime reload 미지원 (host 가 필요하면 별도 watcher SPI 으로 교체).
+ * <p>읽기 1회 + in-memory 저장: runtime reload 미지원 (host 가 필요하면 별도 watcher SPI 으로 교체).
  */
 @Slf4j
 public class ClasspathBindingTemplateCatalog implements BindingTemplateCatalog {

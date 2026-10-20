@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 표준 stack output 조립 — {@code AbstractKubeadmProvisioner.assembleOutputs} 의 YAML 등가물.
+ * 표준 stack output 조립: {@code AbstractKubeadmProvisioner.assembleOutputs} 의 YAML 등가물.
  *
  * <p>여기 키 목록이 {@code ProvisioningService.stackOutputs()} 의 계약이다. anycloud 의
  * {@code ProvisioningResultMapper}, {@code VmClusterNodeResolver},
@@ -21,7 +21,7 @@ public final class StandardOutputs {
     /**
      * 인스턴스 하나의 YAML 리소스 이름과 속성 경로.
      *
-     * <p>IP 가 리소스별로 따로인 이유 — OpenStack 은 floating IP 가, Azure 는 private IP 가 인스턴스가
+     * <p>IP 가 리소스별로 따로인 이유: OpenStack 은 floating IP 가, Azure 는 private IP 가 인스턴스가
      * 아니라 별도 리소스에 붙는다. 인스턴스를 가리키면 값이 비어 나온다.
      */
     public record NodeRef(
@@ -109,7 +109,7 @@ public final class StandardOutputs {
                 .output("masterPublicDns", masterPublicIp)
                 .output("apiServerUrl", "https://" + masterPublicIp + ":" + K8sConstants.PORT_KUBE_API_SERVER)
                 /*
-                 * 기본 사용자는 CSP 마다 다르다 — Alibaba 의 Ubuntu 이미지에는 ubuntu 계정이 없고
+                 * 기본 사용자는 CSP 마다 다르다. Alibaba 의 Ubuntu 이미지에는 ubuntu 계정이 없고
                  * 키가 root 에 들어간다. 백엔드가 전역 기본값으로 붙으면 그 CSP 만 조용히 막힌다.
                  */
                 .output("sshUser", spec.sshUser())
@@ -136,7 +136,7 @@ public final class StandardOutputs {
     }
 
     /**
-     * 배열 그대로 내보내면 안 된다 — {@code WorkspaceStack.up} 이 내부에서 호출하는
+     * 배열 그대로 내보내면 안 된다. {@code WorkspaceStack.up} 이 내부에서 호출하는
      * {@code getStackOutputs} 가 문자열을 기대해 gson 단계에서 죽는다. YAML 경로도 SDK 를 거친다.
      * 소비자({@code VmClusterNodeResolver})는 배열과 JSON 문자열을 모두 받는다.
      */

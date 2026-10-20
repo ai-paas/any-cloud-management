@@ -30,7 +30,7 @@ public final class Defaults {
             "azure",
                     new ProviderDefaults(
                             "anycloud-azure", "10.62.0.0/16", "Standard_D4s_v5", "Standard_D4s_v5", "ubuntu"),
-            // g6 는 서울에 없다 — 세대마다 제공 리전이 다르다. Ubuntu 이미지에 ubuntu 계정이 없어 키는 root 로 들어간다.
+            // g6 는 서울에 없다. 세대마다 제공 리전이 다르다. Ubuntu 이미지에 ubuntu 계정이 없어 키는 root 로 들어간다.
             "alibaba",
                     new ProviderDefaults("anycloud-alibaba", "10.72.0.0/16", "ecs.g9i.large", "ecs.g9i.large", "root"),
             "openstack", new ProviderDefaults("anycloud-openstack", "10.90.0.0/24", null, null, "ubuntu"),
@@ -89,7 +89,7 @@ public final class Defaults {
                 .build();
     }
 
-    /** CSP-specific 필드 (Azure RG / OpenStack image+flavor / AWS database) — table 으로 표현 어려운 case. */
+    /** CSP-specific 필드 (Azure RG / OpenStack image+flavor / AWS database). table 으로 표현 어려운 case. */
     private static void applyProviderSpecific(String canonical, ClusterSpec raw, ClusterSpec.Builder b) {
         switch (canonical) {
             case "aws" -> b.database(applyDbDefaults(raw.database(), "anycloud", "anycloud", "db.t4g.micro", 20));

@@ -49,7 +49,7 @@ public class VeleroScheduleServiceImpl implements VeleroScheduleService {
         if (req.paused()) {
             spec.put("paused", true);
         }
-        // Backup template — full Backup spec 을 그대로 임베드.
+        // Backup template: full Backup spec 을 그대로 임베드.
         Map<String, Object> tmpl = buildBackupTemplate(req.template());
         spec.put("template", tmpl);
         cr.put("spec", spec);
@@ -58,7 +58,7 @@ public class VeleroScheduleServiceImpl implements VeleroScheduleService {
 
     /** Backup CR 의 spec 부분만 추출 (Schedule.template 은 spec 형식). */
     private static Map<String, Object> buildBackupTemplate(VeleroBackupRequest req) {
-        // Backup CR 전체에서 spec 만 꺼냄 — 중복 코드 회피.
+        // Backup CR 전체에서 spec 만 꺼냄: 중복 코드 회피.
         Map<String, Object> backupCr =
                 VeleroBackupServiceImpl.buildBackupCr(req, req.namespace() == null ? "velero" : req.namespace());
         @SuppressWarnings("unchecked")

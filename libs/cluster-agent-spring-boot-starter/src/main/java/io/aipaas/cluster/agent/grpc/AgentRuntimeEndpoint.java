@@ -32,15 +32,15 @@ import net.devh.boot.grpc.server.service.GrpcService;
 import org.slf4j.MDC;
 
 /**
- * AgentRuntime 서비스 gRPC 핸들러 — agent ↔ backend bidi stream.
+ * AgentRuntime 서비스 gRPC 핸들러: agent ↔ backend bidi stream.
  *
  * <p><b>인증</b>: {@link AuthMetadataInterceptor} 가 metadata 의 Bearer agent_identity_token 을
  * io.grpc.Context 로 전달. 본 handler 가 첫 동작에서 {@link AgentIdentityAuthenticator} 로 검증.
  *
  * <p><b>3 개 RPC</b>:
  * <ul>
- *   <li>{@link #stream} — long-lived 명령/heartbeat/event bidi</li>
- *   <li>{@link #podExec} — 신규 PodExec bidi (별도 stream, session_id 로 WebSocket bridge 매칭)</li>
+ *   <li>{@link #stream}: long-lived 명령/heartbeat/event bidi</li>
+ *   <li>{@link #podExec}: 신규 PodExec bidi (별도 stream, session_id 로 WebSocket bridge 매칭)</li>
  * </ul>
  *
  * <p><b>흐름 (stream)</b>:
@@ -69,7 +69,7 @@ public class AgentRuntimeEndpoint extends AgentRuntimeGrpc.AgentRuntimeImplBase 
     private final LogStreamSessionRegistry logStreamSessionRegistry;
     private final List<AgentLifecycleListener> listeners;
     private final Clock clock;
-    /** mtls.5 — auth path 사용 비율 모니터링용. nullable — Micrometer 없는 환경 호환. */
+    /** mtls.5: auth path 사용 비율 모니터링용. nullable: Micrometer 없는 환경 호환. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private MeterRegistry meterRegistry;
 
@@ -86,14 +86,14 @@ public class AgentRuntimeEndpoint extends AgentRuntimeGrpc.AgentRuntimeImplBase 
     }
 
     /**
-     * mTLS Phase mtls.4 — {@code true} 면 bearer token 무시하고 cert subject + serial 만으로 인증.
+     * mTLS Phase mtls.4: {@code true} 면 bearer token 무시하고 cert subject + serial 만으로 인증.
      * 기본 false (mtls.2/3 path 유지). 모든 cluster 가 mTLS 전환 완료된 시점에 운영자가 enable.
      */
     @org.springframework.beans.factory.annotation.Value("${cluster-agent.mtls.cert-only-auth-enabled:false}")
     private boolean certOnlyAuth;
 
     /**
-     * 인증 결과 — agent identity + 어떤 경로 (bearer / cert) 로 인증됐는지. 로그 / metric 분기용.
+     * 인증 결과: agent identity + 어떤 경로 (bearer / cert) 로 인증됐는지. 로그 / metric 분기용.
      */
     private record AuthOutcome(Optional<AgentIdentity> identity, String path, String failReason) {}
 
@@ -189,7 +189,7 @@ public class AgentRuntimeEndpoint extends AgentRuntimeGrpc.AgentRuntimeImplBase 
     }
 
     /**
-     * Heartbeat 도착 시 identityStore 의 lastSeenAt + lastK8sApiOkAt 업데이트. Best-effort — DB 실패가
+     * Heartbeat 도착 시 identityStore 의 lastSeenAt + lastK8sApiOkAt 업데이트. Best-effort: DB 실패가
      * stream 끊지 않음.
      */
     private void updateAgentHeartbeat(String clusterName, Heartbeat heartbeat) {
@@ -208,7 +208,7 @@ public class AgentRuntimeEndpoint extends AgentRuntimeGrpc.AgentRuntimeImplBase 
         }
     }
 
-    /** Inbound observer — agent 가 보낸 AgentMessage 처리. */
+    /** Inbound observer: agent 가 보낸 AgentMessage 처리. */
     private class AgentObserver implements StreamObserver<AgentMessage> {
         private final AgentSession session;
 
@@ -269,7 +269,7 @@ public class AgentRuntimeEndpoint extends AgentRuntimeGrpc.AgentRuntimeImplBase 
         }
     }
 
-    /** Auth 실패 시 사용 — incoming message 모두 무시. */
+    /** Auth 실패 시 사용: incoming message 모두 무시. */
     private static class NoopAgentObserver implements StreamObserver<AgentMessage> {
         @Override
         public void onNext(AgentMessage value) {}

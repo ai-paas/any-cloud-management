@@ -23,7 +23,7 @@ final class AwsYamlEmitter implements ProviderYamlEmitter {
 
     private static final String F_GET_AMI = "aws:ec2/getAmi:getAmi";
 
-    /** Canonical, Inc. — Ubuntu 공식 AMI 소유자. */
+    /** Canonical, Inc.: Ubuntu 공식 AMI 소유자. */
     private static final String CANONICAL_OWNER = "099720109477";
 
     @Override
@@ -179,7 +179,7 @@ final class AwsYamlEmitter implements ProviderYamlEmitter {
         return spec.rootDiskSizeGb() > 0 ? spec.rootDiskSizeGb() : 50;
     }
 
-    /** subnetCidrs 가 비면 VPC 전체를 쓴다 — 단일 서브넷 구성에서 흔한 요청 형태다. */
+    /** subnetCidrs 가 비면 VPC 전체를 쓴다. 단일 서브넷 구성에서 흔한 요청 형태다. */
     private String firstSubnet(ClusterSpec spec) {
         List<String> cidrs = spec.subnetCidrs();
         return (cidrs == null || cidrs.isEmpty()) ? spec.vpcCidr() : cidrs.get(0);

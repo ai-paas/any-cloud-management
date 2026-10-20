@@ -48,7 +48,7 @@ final class ProxmoxYamlEmitter implements ProviderYamlEmitter {
         b.resource("sshKey", T_PRIVATE_KEY, Map.of("algorithm", "RSA", "rsaBits", 4096));
         emitImage(b, spec, px);
 
-        // nodeIps 순서 계약 — master 가 0, worker 가 1 부터다. 어긋나면 노드마다 남의 주소가 붙는다.
+        // nodeIps 순서 계약: master 가 0, worker 가 1 부터다. 어긋나면 노드마다 남의 주소가 붙는다.
         StandardOutputs.NodeRef master = emitNode(b, spec, px, "master", 0);
         List<StandardOutputs.NodeRef> workers = new ArrayList<>();
         for (int i = 1; i <= spec.workerCount(); i++) {
@@ -109,7 +109,7 @@ final class ProxmoxYamlEmitter implements ProviderYamlEmitter {
          */
         vm.put("cdrom", Map.of("fileId", "none"));
         /*
-         * 공개키는 API 로 들어간다. user-data 는 쓰지 않는다 — Proxmox API 가 snippets 업로드를
+         * 공개키는 API 로 들어간다. user-data 는 쓰지 않는다. Proxmox API 가 snippets 업로드를
          * 받지 않아, 전달하려면 PVE 호스트 SSH 접근 권한이 필요해진다. 패키지 설치는 부트스트랩이
          * 노드 SSH 로 수행한다.
          */
@@ -141,7 +141,7 @@ final class ProxmoxYamlEmitter implements ProviderYamlEmitter {
         return new StandardOutputs.NodeRef(node, "id", node, "ipv4Addresses[0][0]", node, "ipv4Addresses[0][0]");
     }
 
-    /** 고정 주소가 없으면 DHCP 로 둔다 — 주소를 알 수 없어 부트스트랩은 못 붙지만 VM 은 뜬다. */
+    /** 고정 주소가 없으면 DHCP 로 둔다. 주소를 알 수 없어 부트스트랩은 못 붙지만 VM 은 뜬다. */
     private Map<String, Object> ipv4Config(ProviderSpec.Proxmox px, int index) {
         String nodeIp = px.nodeIpAt(index);
         if (nodeIp == null) {

@@ -13,7 +13,7 @@ import java.util.Map;
  * @param excludedNamespaces 제외할 namespace.
  * @param includedResources  복구할 resource kind. 비어있으면 모두.
  * @param namespaceMapping   backup 의 ns → restore target ns. 예: {"prod": "prod-restore"}.
- * @param restorePVs         PV 복구 여부. true (기본) — backup 이 snapshotVolumes 면 의미 있음.
+ * @param restorePVs         PV 복구 여부. true (기본). backup 이 snapshotVolumes 면 의미 있음.
  */
 public record VeleroRestoreRequest(
         String name,

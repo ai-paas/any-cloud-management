@@ -32,7 +32,7 @@ import org.mockito.quality.Strictness;
 /**
  * Etcd / PKI backup service 의 dispatch + 응답 매핑 + 실패 매핑 회귀.
  *
- * <p>두 service 가 공용 {@link BackupDispatchSupport} 를 사용 — payload (binary_payload) 가 비면 실패로
+ * <p>두 service 가 공용 {@link BackupDispatchSupport} 를 사용: payload (binary_payload) 가 비면 실패로
  * 매핑, fields (size/sha256/metadata/node_name) 가 BackupResult 로 정확히 매핑되는지 한 번에 검증.
  */
 class EtcdAndPkiBackupServiceImplTest {
@@ -176,7 +176,7 @@ class EtcdAndPkiBackupServiceImplTest {
 
         Mockito.verify(registry).sendCommand(any(), captor.capture(), anyInt());
         Struct params = captor.getValue().build().getCommand().getParams();
-        // 빈 list 면 "" 전송 — agent 가 전체 백업 트리거.
+        // 빈 list 면 "" 전송: agent 가 전체 백업 트리거.
         assertThat(params.getFieldsOrThrow("include_paths").getStringValue()).isEmpty();
     }
 }

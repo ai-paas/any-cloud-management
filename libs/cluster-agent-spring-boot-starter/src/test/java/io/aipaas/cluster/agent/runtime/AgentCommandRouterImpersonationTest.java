@@ -106,7 +106,7 @@ class AgentCommandRouterImpersonationTest {
 
     @Test
     void send_nullContextProvider_legacyConstructor_noInjection() {
-        // 구식 생성자 (test convenience) — provider 자체가 없어도 NPE 없이 동작.
+        // 구식 생성자 (test convenience). provider 자체가 없어도 NPE 없이 동작.
         var router = new AgentCommandRouter(sessionRegistry);
 
         router.listResources("c1", "default", "Pod", 50, "", "").join();

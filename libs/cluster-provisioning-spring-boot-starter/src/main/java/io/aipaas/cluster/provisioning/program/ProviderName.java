@@ -1,7 +1,7 @@
 package io.aipaas.cluster.provisioning.program;
 
 /**
- * Provider 이름 정규화 — caller 가 "AWS", "aws", "AmazonWebServices" 등으로 입력해도 단일 canonical
+ * Provider 이름 정규화: caller 가 "AWS", "aws", "AmazonWebServices" 등으로 입력해도 단일 canonical
  * 토큰 ("aws") 으로 환원.
  */
 public final class ProviderName {

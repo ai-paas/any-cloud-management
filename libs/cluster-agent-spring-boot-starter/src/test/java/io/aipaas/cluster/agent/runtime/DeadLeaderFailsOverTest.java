@@ -41,7 +41,7 @@ class DeadLeaderFailsOverTest {
         public void onCompleted() {}
     }
 
-    /** 정리는 timeout 체인에서 일어난다 — 호출자의 future 가 끝난 시점과 같지 않다. */
+    /** 정리는 timeout 체인에서 일어난다. 호출자의 future 가 끝난 시점과 같지 않다. */
     private void awaitSessions(AgentSessionRegistry r, int expected) throws Exception {
         for (int i = 0; i < 100 && r.findAll("demo").size() != expected; i++) {
             Thread.sleep(20);
@@ -84,7 +84,7 @@ class DeadLeaderFailsOverTest {
     @Test
     void anEvictedStreamIsToldSoItCanReconnect() throws Exception {
         // 레지스트리에서만 빼면 agent 는 아직 붙어 있다고 믿는다. 끊은 줄 모르니 다시 연결하지도
-        // 않고, 그 클러스터는 pod 가 재시작될 때까지 영영 닿지 않는다 — 실제로 그렇게 죽었다.
+        // 않고, 그 클러스터는 pod 가 재시작될 때까지 영영 닿지 않는다. 실제로 그렇게 죽었다.
         AgentSessionRegistry r = new AgentSessionRegistry();
         RecordingObserver observer = new RecordingObserver();
         r.register("demo", "only", observer);
@@ -99,7 +99,7 @@ class DeadLeaderFailsOverTest {
 
     @Test
     void aStreamAnsweringDuringTheWaitSurvivesATimeout() throws Exception {
-        // 명령이 몰리면 응답이 시한을 넘겨 도착한다. 그 늦은 응답도 stream 이 살아 있다는 증거다 —
+        // 명령이 몰리면 응답이 시한을 넘겨 도착한다. 그 늦은 응답도 stream 이 살아 있다는 증거다.
         // 기다리는 동안 무언가 답했다면 끊지 않는다. 바쁠 때마다 끊기면 부하가 걸린 순간에 죽는다.
         AgentSessionRegistry r = new AgentSessionRegistry();
         RecordingObserver observer = new RecordingObserver();

@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
  */
 class AgentSessionRegistryTest {
 
-    /** Recording observer — backend → agent 로 보낸 ControlMessage 들을 수집. */
+    /** Recording observer: backend → agent 로 보낸 ControlMessage 들을 수집. */
     private static class RecordingObserver implements StreamObserver<ControlMessage> {
         final List<ControlMessage> sent = new ArrayList<>();
         boolean completed = false;
@@ -170,7 +170,7 @@ class AgentSessionRegistryTest {
     @Test
     void completeResponse_unknownRequestId_dropped() {
         AgentSessionRegistry r = new AgentSessionRegistry();
-        // 아무 stream 도 없어도 silently drop — 로그만.
+        // 아무 stream 도 없어도 silently drop: 로그만.
         r.completeResponse("ghost-request", CommandResponse.getDefaultInstance());
     }
 
@@ -218,7 +218,7 @@ class AgentSessionRegistryTest {
 
     @Test
     void concurrentSendCommand_safeForManyThreads() throws Exception {
-        // 동시에 100개 명령 dispatch — onNext 가 thread-safe 하다는 가정 검증.
+        // 동시에 100개 명령 dispatch: onNext 가 thread-safe 하다는 가정 검증.
         AgentSessionRegistry r = new AgentSessionRegistry();
         RecordingObserver obs = new RecordingObserver();
         r.register("demo-aws-01", "instance-1", obs);

@@ -18,7 +18,7 @@ import org.yaml.snakeyaml.Yaml;
  * emitter 가 provider 무관하게 지켜야 하는 것들.
  *
  * <p>개별 emitter 테스트는 자기 자신만 본다. 그래서 6개 provider 에 있고 1개에만 없는 종류의 누락을
- * 잡지 못한다 — Proxmox 공개키 미주입이 그렇게 남아 있었다. 여기 있는 검사는 전 provider 를 한 번에
+ * 잡지 못한다. Proxmox 공개키 미주입이 그렇게 남아 있었다. 여기 있는 검사는 전 provider 를 한 번에
  * 돌아 새 CSP 를 추가할 때도 자동으로 걸린다.
  */
 class ProviderContractTest {
@@ -49,7 +49,7 @@ class ProviderContractTest {
      * 기본 SSH 사용자가 그 CSP 이미지에 실재해야 한다.
      *
      * <p>Alibaba 의 Ubuntu 이미지에는 ubuntu 계정이 없고 키가 root 에 들어간다. 다른 CSP 값을
-     * 그대로 두면 인프라는 다 생기고 BOOTSTRAP 단계에서 publickey 거절로만 끝난다 — 만들어진
+     * 그대로 두면 인프라는 다 생기고 BOOTSTRAP 단계에서 publickey 거절로만 끝난다. 만들어진
      * 인스턴스가 과금되는 채로 남는다.
      */
     @ParameterizedTest
@@ -84,7 +84,7 @@ class ProviderContractTest {
 
     /**
      * 방화벽 리소스만 추린다. 전체 리소스를 보면 VPC 가 cidrBlock 으로 같은 문자열을 갖고 있어
-     * 규칙이 없어도 검사가 통과한다 — 실제로 그렇게 헛돌던 것을 변형 검증으로 잡았다.
+     * 규칙이 없어도 검사가 통과한다. 실제로 그렇게 헛돌던 것을 변형 검증으로 잡았다.
      */
     @SuppressWarnings("unchecked")
     private List<String> firewallEntries(String provider) {
@@ -93,7 +93,7 @@ class ProviderContractTest {
         resources.forEach((name, raw) -> {
             Map<String, Object> resource = (Map<String, Object>) raw;
             String type = String.valueOf(resource.get("type"));
-            // 이름이 provider 마다 다르다 — securityGroup, secGroup, firewall, securityList.
+            // 이름이 provider 마다 다르다. securityGroup, secGroup, firewall, securityList.
             String lower = type.toLowerCase(java.util.Locale.ROOT);
             if (lower.contains("secgroup")
                     || lower.contains("securitygroup")

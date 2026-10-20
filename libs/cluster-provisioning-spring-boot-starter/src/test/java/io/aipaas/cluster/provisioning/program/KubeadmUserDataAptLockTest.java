@@ -47,7 +47,7 @@ class KubeadmUserDataAptLockTest {
     @Test
     void lockWaitCoversTheListsLock() {
         // DPkg::Lock::Timeout 은 dpkg 락만 덮는다. apt-get update 가 잡는 lists/lock 은 별도로
-        // 기다려야 한다 — 옵션만 믿었다가 worker 노드에서 그대로 실패했다.
+        // 기다려야 한다. 옵션만 믿었다가 worker 노드에서 그대로 실패했다.
         String script = KubeadmUserData.master(spec());
 
         assertThat(script)

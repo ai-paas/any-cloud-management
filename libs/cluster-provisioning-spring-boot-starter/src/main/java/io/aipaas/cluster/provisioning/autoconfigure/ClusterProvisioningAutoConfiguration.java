@@ -38,7 +38,7 @@ public class ClusterProvisioningAutoConfiguration {
     }
 
     /**
-     * Pulumi 실행 config 포트 default — {@link ProvisioningProperties} 의 {@code pulumi.*} 값 매핑.
+     * Pulumi 실행 config 포트 default: {@link ProvisioningProperties} 의 {@code pulumi.*} 값 매핑.
      * host 가 자체 {@link ExecutionConfig} bean 을 등록하면 override.
      */
     @Bean
@@ -79,7 +79,7 @@ public class ClusterProvisioningAutoConfiguration {
     }
 
     /**
-     * {@link io.aipaas.cluster.provisioning.api.ProvisioningService} default impl —
+     * {@link io.aipaas.cluster.provisioning.api.ProvisioningService} default impl.
      * Pulumi Automation Java SDK 기반 in-JVM 구현.
      */
     @Bean

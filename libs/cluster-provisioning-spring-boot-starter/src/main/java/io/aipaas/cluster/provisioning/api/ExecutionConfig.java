@@ -20,6 +20,6 @@ public interface ExecutionConfig {
     /** provisioning 활성 여부. false 면 provision/preview/destroy 가 즉시 거부된다. */
     boolean isEnabled();
 
-    /** stack 이름 prefix — {@code <prefix>-<provider>-<env>-<cluster>} 형식. */
+    /** stack 이름 prefix: {@code <prefix>-<provider>-<env>-<cluster>} 형식. */
     String getStackPrefix();
 }

@@ -36,7 +36,7 @@ class YamlRefTest {
 
     @Test
     void secretAcceptsPlainStrings() {
-        // sshCommand 처럼 보간 문자열도 secret 이어야 한다 — 키 경로가 노출된다.
+        // sshCommand 처럼 보간 문자열도 secret 이어야 한다. 키 경로가 노출된다.
         assertThat(YamlRef.secret("ssh -i ./secrets/demo.pem ubuntu@1.2.3.4")).containsKey("fn::secret");
     }
 

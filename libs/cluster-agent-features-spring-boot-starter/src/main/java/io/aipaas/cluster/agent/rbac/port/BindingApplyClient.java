@@ -15,7 +15,7 @@ import io.aipaas.cluster.agent.rbac.template.BindingTemplate;
  *   <li>{@code aipaas.io/oidc-group = <resolvedGroup>}</li>
  * </ul>
  *
- * <p>{@code resolvedGroup} 은 {@code template.oidcGroupSelector.matchExact} 의 단일 entry —
+ * <p>{@code resolvedGroup} 은 {@code template.oidcGroupSelector.matchExact} 의 단일 entry.
  * caller (addon hook / 운영자 UI) 가 selector 항목 별로 호출.
  */
 public interface BindingApplyClient {

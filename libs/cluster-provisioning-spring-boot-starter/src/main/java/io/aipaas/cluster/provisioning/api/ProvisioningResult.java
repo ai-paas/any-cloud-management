@@ -34,7 +34,7 @@ public record ProvisioningResult(
         @NotBlank String clusterName,
         @NotBlank String apiServerUrl,
 
-        // 사설망 only 환경은 빈 문자열 — NotBlank 제외
+        // 사설망 only 환경은 빈 문자열: NotBlank 제외
         String masterPublicIp,
         @NotBlank String masterPrivateIp,
         @NotBlank String sshPrivateKeyPem,

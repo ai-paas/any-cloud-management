@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * SSE controller ↔ gRPC StreamPodLogs bridge 의 세션 매핑소.
  *
- * <p>패턴 — {@link io.aipaas.cluster.agent.terminal.ExecSessionRegistry} 와 동일:
+ * <p>패턴: {@link io.aipaas.cluster.agent.terminal.ExecSessionRegistry} 와 동일:
  * <ol>
  *   <li>SSE controller 가 {@link #createPending(Duration)} 호출 → session_id + bridge 발급</li>
  *   <li>SSE controller 가 bridge 에 callbacks 등록 후 {@link
@@ -21,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
  *   <li>Agent 가 새 StreamPodLogs bidi 호출 + 첫 LogPacket{Request, session_id} 송신</li>
  *   <li>Backend StreamPodLogs gRPC handler 가 session_id 로 pending bridge lookup →
  *       {@link #bindAgentStream(String, io.grpc.stub.StreamObserver)} 으로 attach</li>
- *   <li>이후 양방향 — agent → bridge → SSE callbacks (chunk), SSE cancel → bridge → agent stream close</li>
+ *   <li>이후 양방향: agent → bridge → SSE callbacks (chunk), SSE cancel → bridge → agent stream close</li>
  * </ol>
  *
  * <p>Pending 이 일정 시간 안에 bound 되지 않으면 expire → SSE 에 실패 통지. 기본 30 초.
@@ -72,7 +72,7 @@ public class LogStreamSessionRegistry {
         return bridge;
     }
 
-    /** Safety net — agent error / disconnect 시 cleanup. 이미 제거됐으면 no-op. */
+    /** Safety net: agent error / disconnect 시 cleanup. 이미 제거됐으면 no-op. */
     public void remove(String sessionId) {
         pendingBySession.remove(sessionId);
     }

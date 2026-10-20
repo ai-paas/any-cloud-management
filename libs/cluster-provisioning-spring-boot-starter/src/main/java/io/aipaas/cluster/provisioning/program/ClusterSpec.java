@@ -41,7 +41,7 @@ public record ClusterSpec(
         return new Builder(this);
     }
 
-    /** OS image — provider 별 default 반환. {@link Defaults#resolvedOsImage} 위임. */
+    /** OS image: provider 별 default 반환. {@link Defaults#resolvedOsImage} 위임. */
     public String osImageOrDefault() {
         return Defaults.resolvedOsImage(this);
     }

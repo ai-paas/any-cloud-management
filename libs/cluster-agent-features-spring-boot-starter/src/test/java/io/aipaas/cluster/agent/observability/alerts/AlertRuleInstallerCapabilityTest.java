@@ -12,7 +12,7 @@ import org.mockito.Mockito;
 /**
  * capability 필터가 실제로 rule-set 을 걸러내는지 확인.
  *
- * <p>agent 세션이 없으므로 install 은 전부 실패로 끝난다 — 여기서 보는 것은 성공 여부가 아니라
+ * <p>agent 세션이 없으므로 install 은 전부 실패로 끝난다. 여기서 보는 것은 성공 여부가 아니라
  * "어떤 rule-set 이 시도 대상이 되었는가" 다.
  */
 class AlertRuleInstallerCapabilityTest {
@@ -21,7 +21,7 @@ class AlertRuleInstallerCapabilityTest {
     private final AlertRuleCatalog catalog = new AlertRuleCatalog();
 
     AlertRuleInstallerCapabilityTest() {
-        // agent 가 없는 상태를 재현 — install 은 NO_ACTIVE_AGENT 로 실패하고 installAll 이 이를
+        // agent 가 없는 상태를 재현: install 은 NO_ACTIVE_AGENT 로 실패하고 installAll 이 이를
         // 결과 항목으로 기록한다. 이 테스트가 보는 것은 성공 여부가 아니라 시도 대상 목록이다.
         Mockito.when(sessionRegistry.sendCommand(Mockito.anyString(), Mockito.any(), Mockito.anyInt()))
                 .thenThrow(new AgentSessionRegistry.NoActiveSessionException("no session in test"));

@@ -17,7 +17,7 @@ import java.time.Instant;
  * @param agentId            Backend 가 발급한 unique id (예: UUID). 같은 cluster 라도 instance 별 별도.
  * @param clusterName        대상 cluster 식별자 (host 가 정의한 이름, 예: "demo-aws-01").
  * @param agentInstanceId    HA 시나리오에서 같은 cluster 의 여러 agent pod 구분. Pod UID 권장.
- * @param identityTokenHash  SHA-256 hex hash. 평문 token 은 저장 X — agent 에게 1회만 발급 후 폐기.
+ * @param identityTokenHash  SHA-256 hex hash. 평문 token 은 저장 X: agent 에게 1회만 발급 후 폐기.
  * @param status             현재 lifecycle 상태.
  * @param lastSeenAt         마지막 stream 활동 시각 (heartbeat 포함). null 가능 (등록 직후).
  * @param lastK8sApiOkAt     Agent 측에서 K8s API 정상 통신 마지막 시각. null 가능.

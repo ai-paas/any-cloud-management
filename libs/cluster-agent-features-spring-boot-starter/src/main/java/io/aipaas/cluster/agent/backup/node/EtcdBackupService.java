@@ -7,7 +7,7 @@ public interface EtcdBackupService {
      * 기본 옵션으로 etcd snapshot 생성 (kubeadm 기본 endpoint + 기본 cert 경로).
      *
      * @param clusterName 대상 cluster
-     * @return BackupResult — caller 가 storage 에 올림
+     * @return BackupResult: caller 가 storage 에 올림
      */
     default BackupResult backup(String clusterName) {
         return backup(clusterName, EtcdBackupOptions.defaults());
@@ -21,7 +21,7 @@ public interface EtcdBackupService {
     BackupResult backup(String clusterName, EtcdBackupOptions options);
 
     /**
-     * etcd backup 옵션. 모든 필드 optional — 비어있으면 agent 측 default 사용.
+     * etcd backup 옵션. 모든 필드 optional: 비어있으면 agent 측 default 사용.
      *
      * @param endpoint       etcd URL (예: "https://10.0.0.1:2379"). null 이면 agent 가 https://127.0.0.1:2379.
      * @param caCertPath     CA cert path (서버 측). null 이면 kubeadm 기본 (/etc/kubernetes/pki/etcd/ca.crt).

@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * PromQL vector/scalar 응답의 1개 항목 — typed.
+ * PromQL vector/scalar 응답의 1개 항목: typed.
  * @param value     숫자 값 (parse 실패 시 {@code Double.NaN})
  * @param labels    metric labels (e.g. node/namespace/pod)
  * @param timestamp 측정 시각 (PromQL 응답의 [unix, value] 쌍 중 unix)

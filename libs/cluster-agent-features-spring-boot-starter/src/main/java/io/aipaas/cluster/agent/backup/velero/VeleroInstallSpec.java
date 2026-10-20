@@ -10,14 +10,14 @@ import java.util.Map;
  *
  * <p>지원 BSL (BackupStorageLocation) provider:
  * <ul>
- *   <li>{@code aws} — AWS S3 (region 필수)</li>
- *   <li>{@code gcp} — Google Cloud Storage (서비스 계정 JSON 필요)</li>
- *   <li>{@code azure} — Azure Blob (계정 키 + 컨테이너)</li>
- *   <li>{@code s3-compatible} — MinIO / Wasabi / R2 등 (s3Url + force path style)</li>
+ *   <li>{@code aws}: AWS S3 (region 필수)</li>
+ *   <li>{@code gcp}: Google Cloud Storage (서비스 계정 JSON 필요)</li>
+ *   <li>{@code azure}: Azure Blob (계정 키 + 컨테이너)</li>
+ *   <li>{@code s3-compatible}: MinIO / Wasabi / R2 등 (s3Url + force path style)</li>
  * </ul>
  *
  * <p>Note: VSL (VolumeSnapshotLocation) 도 같은 provider 로 자동 설정. CSI 환경에서는 VSL 대신
- * CSI snapshot 사용 (별도 plugin 불요) — 본 spec 의 {@code csiSnapshots=true} 로 활성.
+ * CSI snapshot 사용 (별도 plugin 불요). 본 spec 의 {@code csiSnapshots=true} 로 활성.
  */
 public record VeleroInstallSpec(
         String namespace,
@@ -33,7 +33,7 @@ public record VeleroInstallSpec(
         String s3Url,
         boolean s3ForcePathStyle,
 
-        // credentials — provider 별로 의미 다름:
+        // credentials: provider 별로 의미 다름:
         //   aws / s3-compatible: accessKey/secretKey 사용
         //   gcp: gcpServiceAccountJson 사용
         //   azure: azureStorageAccount + azureStorageAccessKey 사용

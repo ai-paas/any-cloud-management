@@ -27,7 +27,7 @@ public class VeleroBackupServiceImpl implements VeleroBackupService {
         return new VeleroCrResult(clusterName, "Backup", request.name(), ns, "Submitted");
     }
 
-    /** Velero Backup CR (velero.io/v1) 구성. 빈 필드는 omit — Velero default 적용. */
+    /** Velero Backup CR (velero.io/v1) 구성. 빈 필드는 omit: Velero default 적용. */
     static Map<String, Object> buildBackupCr(VeleroBackupRequest req, String namespace) {
         Map<String, Object> cr = new LinkedHashMap<>();
         cr.put("apiVersion", "velero.io/v1");

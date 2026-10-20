@@ -143,13 +143,13 @@ final class IbmYamlEmitter implements ProviderYamlEmitter {
         /*
          * 노드 간 파드 트래픽(Calico VXLAN, UDP 4789)과 kubelet, etcd 를 한 번에 연다.
          *
-         * IP-in-IP 는 이 규칙으로도 통하지 않는다 — IBM VPC 패브릭이 프로토콜 4 를 아예 전달하지
+         * IP-in-IP 는 이 규칙으로도 통하지 않는다. IBM VPC 패브릭이 프로토콜 4 를 아예 전달하지
          * 않아 보안그룹과 무관하게 버려진다. 그래서 부트스트랩이 VXLAN 을 쓴다.
          */
         b.resource("sg-intra", T_SECURITY_GROUP_RULE, rule("inbound", spec.vpcCidr(), null, 0, 0));
     }
 
-    /** {@code protocol} 이 null 이면 all — IBM 은 "all" 문자열 대신 필드 생략으로 표현한다. */
+    /** {@code protocol} 이 null 이면 all: IBM 은 "all" 문자열 대신 필드 생략으로 표현한다. */
     private Map<String, Object> rule(String direction, String remote, String protocol, int from, int to) {
         Map<String, Object> r = new LinkedHashMap<>();
         r.put("group", YamlRef.of("secgroup", "id"));

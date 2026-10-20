@@ -56,7 +56,7 @@ public class AgentHealthService {
     }
 
     /**
-     * Runtime tunable — 기본 90s 가 false-positive 발생 시 운영자가 즉시 늘려 잡을 수 있음.
+     * Runtime tunable: 기본 90s 가 false-positive 발생 시 운영자가 즉시 늘려 잡을 수 있음.
      * {@link Duration#isZero()} / {@link Duration#isNegative()} 는 거부 (모든 agent unhealthy 가 됨).
      *
      * @throws IllegalArgumentException null 또는 zero/negative
@@ -76,7 +76,7 @@ public class AgentHealthService {
             return ClusterHealth.noAgent(clusterName);
         }
 
-        // HA: 같은 cluster 여러 agent instance 가능 — last_seen_at 가장 최신을 primary 로 선택.
+        // HA: 같은 cluster 여러 agent instance 가능: last_seen_at 가장 최신을 primary 로 선택.
         AgentIdentity primary = agents.stream()
                 .max(Comparator.comparing(AgentIdentity::lastSeenAt, Comparator.nullsFirst(Comparator.naturalOrder())))
                 .orElse(agents.get(0));

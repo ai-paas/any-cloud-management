@@ -43,7 +43,7 @@ public class ObservabilityQueryService {
      * extraParams overload. Prometheus HTTP API 의 optional param 들을 raw passthrough (timeout,
      * limit, lookback_delta, stats). null 또는 빈 map 이면 기본 동작.
      *
-     * <p>caller (raw query endpoint) 가 frontend 가 보낸 query string 을 그대로 전달 — backend 가
+     * <p>caller (raw query endpoint) 가 frontend 가 보낸 query string 을 그대로 전달: backend 가
      * Prometheus param 의미를 알 필요 없음.
      */
     public PromQLResult queryInstant(
@@ -83,7 +83,7 @@ public class ObservabilityQueryService {
         return toPromQLResult(clusterName, resp);
     }
 
-    /** extraParams 의 non-empty entry 만 params 에 추가 — Prometheus 기본값과 충돌 회피. */
+    /** extraParams 의 non-empty entry 만 params 에 추가: Prometheus 기본값과 충돌 회피. */
     private static void appendExtras(Map<String, String> base, Map<String, String> extras) {
         if (extras == null) {
             return;
@@ -95,7 +95,7 @@ public class ObservabilityQueryService {
         }
     }
 
-    /** 카탈로그 fan-out PromQL instant — 실패 cluster 는 result map 에서 누락 (warn 로깅). */
+    /** 카탈로그 fan-out PromQL instant: 실패 cluster 는 result map 에서 누락 (warn 로깅). */
     public Map<String, PromQLResult> queryAll(String promql, Duration perClusterTimeout) {
         List<String> clusters = catalog.listClusterNames();
         Map<String, CompletableFuture<PromQLResult>> futures = new LinkedHashMap<>();
@@ -199,13 +199,13 @@ public class ObservabilityQueryService {
             }
             return resp;
         } catch (AgentSessionRegistry.NoActiveSessionException e) {
-            // defensive — 현재 sendCommand 는 failed-future 반환이지만 동기 throw 경로 보존.
+            // defensive: 현재 sendCommand 는 failed-future 반환이지만 동기 throw 경로 보존.
             throw new ObservabilityException("NO_ACTIVE_AGENT", "no active agent stream for cluster " + clusterName, e);
         } catch (TimeoutException e) {
             throw new ObservabilityException(
                     "TIMEOUT", "timeout waiting for agent response (cluster=" + clusterName + ")", e);
         } catch (ExecutionException e) {
-            // CompletableFuture wrap — cause 별 errorCode 매핑.
+            // CompletableFuture wrap: cause 별 errorCode 매핑.
             Throwable cause = e.getCause();
             if (cause instanceof AgentSessionRegistry.NoActiveSessionException) {
                 throw new ObservabilityException(

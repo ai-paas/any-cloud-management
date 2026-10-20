@@ -7,7 +7,7 @@ import java.util.List;
  *
  * <p>{@link TieredBindingTemplate} 의 expand 결과 또는 운영자가 직접 작성한 advanced form
  * (forClusters: matchLabels) 둘 다 본 type 으로 정규화됨. starter SPI 와 default impl 은 모두 본
- * record 만 다룬다 — tier 의 존재를 모름.
+ * record 만 다룬다. tier 의 존재를 모름.
  *
  * @param addonId addon 설치 hook 으로 자동 생성된 template 인 경우 addon id. null = 운영자가
  *               직접 작성한 catalog template. addon uninstall 시 label

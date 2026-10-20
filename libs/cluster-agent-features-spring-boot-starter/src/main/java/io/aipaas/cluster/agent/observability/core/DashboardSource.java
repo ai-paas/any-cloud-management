@@ -25,7 +25,7 @@ import java.util.List;
 public interface DashboardSource {
 
     /**
-     * 본 source 가 제공하는 dashboard 목록. 매 install 호출마다 평가 — 동적 변경 가능.
+     * 본 source 가 제공하는 dashboard 목록. 매 install 호출마다 평가: 동적 변경 가능.
      *
      * <p>빈 list 반환 OK. null 반환 시 starter 가 빈 list 로 treat.
      */

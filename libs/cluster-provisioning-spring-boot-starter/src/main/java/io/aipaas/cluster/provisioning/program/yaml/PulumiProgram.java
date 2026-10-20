@@ -109,7 +109,7 @@ public final class PulumiProgram {
             if (!variables.isEmpty()) {
                 doc.put("variables", variables);
             }
-            // 비어도 항상 넣는다 — resources 키가 없으면 CLI 가 프로그램으로 인정하지 않는다.
+            // 비어도 항상 넣는다. resources 키가 없으면 CLI 가 프로그램으로 인정하지 않는다.
             doc.put("resources", resources);
             if (!outputs.isEmpty()) {
                 doc.put("outputs", outputs);

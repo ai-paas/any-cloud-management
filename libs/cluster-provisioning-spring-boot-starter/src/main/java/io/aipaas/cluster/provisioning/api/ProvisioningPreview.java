@@ -7,7 +7,7 @@ import java.util.Map;
  * {@code pulumi preview --json} 의 구조화 결과.
  *
  * @param stackName          preview 대상 stack.
- * @param stackExistedBefore preview 전에 stack 이 이미 존재했는지 — false 면 preview 용으로
+ * @param stackExistedBefore preview 전에 stack 이 이미 존재했는지: false 면 preview 용으로
  *                           임시 생성 후 정리된 것 (신규 cluster 의 create 미리보기).
  * @param changeSummary      op → count (create / update / delete / same / replace ...).
  * @param steps              계획된 resource 단위 변경 목록.
@@ -24,7 +24,7 @@ public record ProvisioningPreview(
      */
     public record PlannedStep(String op, String type, String name) {}
 
-    /** same 외의 op 가 하나라도 있으면 true — drift / 변경 예정 판단용. */
+    /** same 외의 op 가 하나라도 있으면 true: drift / 변경 예정 판단용. */
     public boolean hasChanges() {
         return changeSummary != null
                 && changeSummary.entrySet().stream()

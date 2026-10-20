@@ -7,7 +7,7 @@ import java.util.Map;
  * CSP 전용 설정. 공통 {@link ClusterSpec} 은 provider 이름만 알고 내부는 모른다.
  *
  * <p>평면 접두 키(provider 무관하게 나열)는 잘못된 조합을 막지 못하고 provider 별 독립 진화도
- * 안 된다 — {@code provider=aws} 인데 openstack 필드를 채워도 통과한다. sealed 로 닫아 emitter 가
+ * 안 된다. {@code provider=aws} 인데 openstack 필드를 채워도 통과한다. sealed 로 닫아 emitter 가
  * 자기 타입만 받게 한다.
  *
  * <p>provider 전용 설정이 없는 CSP(AWS 등)는 {@code null} 이다.
@@ -18,7 +18,7 @@ public sealed interface ProviderSpec {
     String PREFIX = "providerSpec.";
 
     /**
-     * @param zone 비우면 {@code region-a}. 계열마다 제공 존이 달라 GPU 는 존을 골라야 한다 —
+     * @param zone 비우면 {@code region-a}. 계열마다 제공 존이 달라 GPU 는 존을 골라야 한다.
      *     a2-highgpu 는 리전에 있어도 -a 존에서는 만들지 못하는 경우가 있다
      */
     record Gcp(String project, String zone) implements ProviderSpec {}
@@ -31,7 +31,7 @@ public sealed interface ProviderSpec {
      * Alibaba Cloud ECS.
      *
      * @param zone VSwitch 가 zone 단위라 리전만으로는 서브넷을 만들 수 없다 (예: ap-northeast-2a).
-     *     계정과 인스턴스 타입마다 쓸 수 있는 zone 이 달라 리전에서 유도하지 않는다 — 자동으로
+     *     계정과 인스턴스 타입마다 쓸 수 있는 zone 이 달라 리전에서 유도하지 않는다. 자동으로
      *     고르면 재고 없음이 엉뚱한 오류로 나온다
      */
     record Alibaba(String zone) implements ProviderSpec {}
@@ -68,7 +68,7 @@ public sealed interface ProviderSpec {
             List<Integer> sshPorts)
             implements ProviderSpec {
 
-        /** 고정 주소를 쓰는지. 하나라도 있으면 전부 지정된 것으로 본다 — preflight 가 개수를 검증한다. */
+        /** 고정 주소를 쓰는지. 하나라도 있으면 전부 지정된 것으로 본다. preflight 가 개수를 검증한다. */
         public boolean usesStaticAddressing() {
             return nodeIps != null && !nodeIps.isEmpty();
         }
@@ -152,7 +152,7 @@ public sealed interface ProviderSpec {
                 .toList();
     }
 
-    /** 값이 깨지면 기본값으로 조용히 넘어가지 않는다 — 노드마다 다른 주소가 붙으면 찾기 어렵다. */
+    /** 값이 깨지면 기본값으로 조용히 넘어가지 않는다. 노드마다 다른 주소가 붙으면 찾기 어렵다. */
     private static Integer integerOrNull(String value) {
         if (value == null || value.isBlank()) return null;
         try {

@@ -165,7 +165,7 @@ final class OpenstackYamlEmitter implements ProviderYamlEmitter {
         b.resource(node, T_INSTANCE, instance);
 
         b.resource("fip-" + node, T_FLOATING_IP, Map.of("pool", os(spec).floatingIpPool(), "region", spec.region()));
-        // 스키마의 FloatingIpAssociate 는 portId 만 받는다 — instanceId 라는 속성은 없다.
+        // 스키마의 FloatingIpAssociate 는 portId 만 받는다. instanceId 라는 속성은 없다.
         b.resource(
                 "fipassoc-" + node,
                 T_FIP_ASSOCIATE,
@@ -197,7 +197,7 @@ final class OpenstackYamlEmitter implements ProviderYamlEmitter {
         return cidrs == null || cidrs.isEmpty() ? spec.vpcCidr() : cidrs.get(0);
     }
 
-    /** preview 까지 가지 말고 즉시 실패한다 — 원인이 스택 로그에 묻히면 진단이 오래 걸린다. */
+    /** preview 까지 가지 말고 즉시 실패한다. 원인이 스택 로그에 묻히면 진단이 오래 걸린다. */
     private static void requireConfig(String value, String key) {
         if (value == null || value.isBlank()) {
             throw new IllegalStateException(key + " is required for OpenStack provisioning");

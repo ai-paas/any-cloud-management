@@ -206,7 +206,7 @@ final class OciYamlEmitter implements ProviderYamlEmitter {
 
     /**
      * OCI 는 이미지 OCID 를 리전마다 따로 발급한다. 이름으로 찾는 안정된 필터가 없어 osImage 를
-     * 필수로 받는다 — 추측한 OCID 로 만들면 엉뚱한 이미지가 뜬다.
+     * 필수로 받는다. 추측한 OCID 로 만들면 엉뚱한 이미지가 뜬다.
      */
     private String requireImage(ClusterSpec spec) {
         requireConfig(spec.osImage(), "osImage (OCI image OCID)");

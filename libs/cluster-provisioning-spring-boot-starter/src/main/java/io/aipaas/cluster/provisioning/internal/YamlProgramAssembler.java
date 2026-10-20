@@ -22,7 +22,7 @@ public final class YamlProgramAssembler {
         return builder.build();
     }
 
-    /** destroy 용 — 리소스 정의 없이 스택만 선택하면 된다. */
+    /** destroy 용: 리소스 정의 없이 스택만 선택하면 된다. */
     public static PulumiProgram emptyProgram() {
         return PulumiProgram.builder(PROJECT_NAME).build();
     }

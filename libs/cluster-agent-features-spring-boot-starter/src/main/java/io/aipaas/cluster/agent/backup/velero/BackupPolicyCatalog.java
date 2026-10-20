@@ -81,7 +81,7 @@ public class BackupPolicyCatalog {
         return Collections.unmodifiableMap(out);
     }
 
-    /** 단순 line-grep — full YAML parser 회피 (분기 + 의존성 최소). */
+    /** 단순 line-grep: full YAML parser 회피 (분기 + 의존성 최소). */
     private static String extractField(String yaml, String prefix) {
         for (String line : yaml.split("\n")) {
             String t = line.trim();

@@ -5,7 +5,7 @@ import java.security.SecureRandom;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/** Default {@link SigningKeyResolver} — {@code cluster-agent.jwt.secret} config 값을 사용. */
+/** Default {@link SigningKeyResolver}: {@code cluster-agent.jwt.secret} config 값을 사용. */
 @Slf4j
 @RequiredArgsConstructor
 public class PropertySigningKeyResolver implements SigningKeyResolver {

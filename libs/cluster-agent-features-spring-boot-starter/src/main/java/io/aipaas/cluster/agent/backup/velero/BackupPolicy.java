@@ -6,8 +6,8 @@ package io.aipaas.cluster.agent.backup.velero;
  * @param id           파일명 (예: "daily-full-cluster")
  * @param displayName  UI 표시용 한글 라벨
  * @param description  본 정책이 다루는 영역 요약
- * @param schedule     cron expression (예: "0 2 * * *") — UI preview 용
- * @param ttl          backup 보존 기간 — UI preview 용 (예: "720h0m0s")
+ * @param schedule     cron expression (예: "0 2 * * *"). UI preview 용
+ * @param ttl          backup 보존 기간: UI preview 용 (예: "720h0m0s")
  * @param manifestYaml Velero Schedule CR YAML (placeholder 포함)
  */
 public record BackupPolicy(

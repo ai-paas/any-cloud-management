@@ -42,8 +42,8 @@ public class ClusterAgentBackupAutoConfiguration {
 
     // etcd / PKI backup.
     //
-    // timeout 은 etcd 의 size 에 비례 — 작은 cluster (~50MB snapshot) 는 1분, 큰 cluster 는 더 길게.
-    // 본 default 는 5분 — properties 의 cluster-backup.backup.* 으로 override 가능.
+    // timeout 은 etcd 의 size 에 비례: 작은 cluster (~50MB snapshot) 는 1분, 큰 cluster 는 더 길게.
+    // 본 default 는 5분: properties 의 cluster-backup.backup.* 으로 override 가능.
 
     /** etcd/PKI backup 끄려면 {@code cluster-backup.backup.enabled=false}. */
     @Bean
@@ -62,9 +62,9 @@ public class ClusterAgentBackupAutoConfiguration {
 
     // Velero installer + Backup/Restore/Schedule services.
     //
-    // VeleroInstaller 는 cluster-agent-starter 의 HelmReleaseService 를 그대로 활용 — 새 RPC 추가 없이
+    // VeleroInstaller 는 cluster-agent-starter 의 HelmReleaseService 를 그대로 활용: 새 RPC 추가 없이
     // 기존 INSTALL_ADDON 으로 velero 차트 설치. Backup/Restore/Schedule 은 APPLY_MANIFEST 로 Velero
-    // CR 생성. Velero controller 가 비동기 실행 — host 가 status polling.
+    // CR 생성. Velero controller 가 비동기 실행: host 가 status polling.
 
     /** Velero 안 쓰면 {@code cluster-backup.velero.enabled=false} 로 일괄 비활성. */
     @Bean

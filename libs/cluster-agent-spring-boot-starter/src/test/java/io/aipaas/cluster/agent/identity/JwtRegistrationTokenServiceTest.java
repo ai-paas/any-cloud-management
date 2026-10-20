@@ -23,7 +23,7 @@ import org.mockito.Mockito;
 import org.mockito.quality.Strictness;
 
 /**
- * registration_token JWT 발급/검증/JTI 1회 강제 회귀 보호 — IdempotencyStore SPI 사용.
+ * registration_token JWT 발급/검증/JTI 1회 강제 회귀 보호: IdempotencyStore SPI 사용.
  */
 class JwtRegistrationTokenServiceTest {
 

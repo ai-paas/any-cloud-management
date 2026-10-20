@@ -18,7 +18,7 @@ public record ProvisioningProperties(Pulumi pulumi) {
     public record Pulumi(
             String binaryPath, // null → PATH 의 pulumi 사용. 명시 시 절대 경로 (Docker 이미지 등).
             String projectDir, // null → caller working directory. infra/pulumi 등 명시 가능.
-            String stateBackendUrl, // s3://... — RustFS / S3. login 시 사용.
+            String stateBackendUrl, // s3://...: RustFS / S3. login 시 사용.
             Duration commandTimeout) { // pulumi up / preview 등의 timeout. default 30분.
 
         public Pulumi {

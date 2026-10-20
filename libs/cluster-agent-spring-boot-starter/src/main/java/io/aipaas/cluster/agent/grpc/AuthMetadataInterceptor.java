@@ -97,11 +97,11 @@ public class AuthMetadataInterceptor implements ServerInterceptor {
                 return null;
             }
             String cluster = cn.substring(CLUSTER_CN_PREFIX.length());
-            // Serial — BackendCa 가 hex 로 저장하므로 hex (lowercase) 로 정규화.
+            // Serial: BackendCa 가 hex 로 저장하므로 hex (lowercase) 로 정규화.
             String serial = leaf.getSerialNumber().toString(16).toLowerCase();
             return new CertPeer(cluster, serial);
         } catch (SSLPeerUnverifiedException e) {
-            // mTLS 미설정 또는 client 가 cert 안 보냄. 정상 — bearer 인증으로 fallback.
+            // mTLS 미설정 또는 client 가 cert 안 보냄. 정상: bearer 인증으로 fallback.
             return null;
         }
     }

@@ -24,7 +24,7 @@ class ProvisionEventBusTest {
 
         bus.publish(new ProvisionEvent("op-1", "diagnostic", Instant.now(), "urn:test", "msg", "info", Map.of()));
 
-        // Reactor multicast 가 즉시 emit — async timing OK without sleep.
+        // Reactor multicast 가 즉시 emit: async timing OK without sleep.
         assertThat(count.get()).isEqualTo(1);
     }
 
@@ -67,13 +67,13 @@ class ProvisionEventBusTest {
 
         bus.publish(new ProvisionEvent("op-post", "info", Instant.now(), null, null, null, Map.of()));
 
-        // buffer 에 op-pre 가 보존되어 있어 late subscriber 도 수신 — 총 2개.
+        // buffer 에 op-pre 가 보존되어 있어 late subscriber 도 수신: 총 2개.
         assertThat(late.get()).isEqualTo(2);
     }
 
     @Test
     void subscriber_filterByOperationId_isolatesEventStream() {
-        // Bus 자체는 fan-out — operation 별 격리는 subscriber 책임 (filter).
+        // Bus 자체는 fan-out: operation 별 격리는 subscriber 책임 (filter).
         ProvisionEventBus bus = new ProvisionEventBus();
         AtomicInteger op1Count = new AtomicInteger();
         AtomicInteger op2Count = new AtomicInteger();

@@ -5,7 +5,7 @@ package io.aipaas.cluster.agent.observability.core;
  *
  * <p>Agent 가 cluster 안 Prometheus 에서 받은 raw JSON 을 그대로 {@code raw} 필드에 담아 전송.
  * Caller (REST controller 등) 는 본 record 의 raw 를 Frontend 로 그대로 forward 하거나 별도 Jackson
- * 파싱이 가능 — 모든 PromQL 응답 형식 (matrix/vector/scalar/string) 호환.
+ * 파싱이 가능: 모든 PromQL 응답 형식 (matrix/vector/scalar/string) 호환.
  *
  * @param clusterName    쿼리 대상 cluster.
  * @param prometheusUrl  agent 가 사용한 Prometheus base URL (in-cluster DNS 또는 override).

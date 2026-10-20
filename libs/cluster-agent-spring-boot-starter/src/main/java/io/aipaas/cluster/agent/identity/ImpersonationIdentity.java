@@ -31,7 +31,7 @@ public record ImpersonationIdentity(String user, List<String> groups, Map<String
             throw new IllegalArgumentException(
                     "user must not be blank — use ImpersonationContext.empty() for system identity");
         }
-        // defensive copy + immutability — caller 의 List 변형이 holder 안 entry 까지 새지 않도록.
+        // defensive copy + immutability: caller 의 List 변형이 holder 안 entry 까지 새지 않도록.
         groups = groups == null ? List.of() : List.copyOf(groups);
         if (extras == null || extras.isEmpty()) {
             extras = Map.of();

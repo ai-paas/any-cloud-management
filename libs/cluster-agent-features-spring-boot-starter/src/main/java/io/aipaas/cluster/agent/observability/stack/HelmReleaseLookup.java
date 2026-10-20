@@ -20,12 +20,12 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * 특정 helm release 가 이미 설치되어 있는지 확인하는 helper.
  *
- * <p>Auto-installer 가 install 호출 전 본 check 로 멱등성 보장 — 이미 설치된 cluster 에 재시도 시
+ * <p>Auto-installer 가 install 호출 전 본 check 로 멱등성 보장: 이미 설치된 cluster 에 재시도 시
  * "release already exists" 에러로 stream 에 noise 발생하지 않음.
  *
  * <p>내부적으로 LIST_HELM_RELEASES 명령 dispatch + 응답 release 배열에서 (namespace, name) 매칭.
  *
- * <p>실패는 swallow — caller (auto-installer) 가 이 결과 못 받으면 false 로 treat 해서 install 시도.
+ * <p>실패는 swallow: caller (auto-installer) 가 이 결과 못 받으면 false 로 treat 해서 install 시도.
  * 그 결과가 진짜 에러면 install 측 에서 처리.
  */
 @Slf4j
@@ -83,7 +83,7 @@ public class HelmReleaseLookup {
             }
             return false;
         } catch (AgentSessionRegistry.NoActiveSessionException e) {
-            // 세션 없음 — caller 가 install 호출하면 동일 에러로 다시 보고하므로 본 helper 는 false.
+            // 세션 없음. caller 가 install 호출하면 동일 에러로 다시 보고하므로 본 helper 는 false.
             throw new ObservabilityException("NO_ACTIVE_AGENT", "no active agent stream for cluster " + clusterName, e);
         } catch (TimeoutException e) {
             log.warn("HelmReleaseLookup: timeout for cluster={}, treating as not-installed", clusterName);
@@ -108,7 +108,7 @@ public class HelmReleaseLookup {
         return v == null ? null : v.getStringValue();
     }
 
-    /** helm release status 중 "installed" 으로 간주할 status — deployed / superseded 는 OK. */
+    /** helm release status 중 "installed" 으로 간주할 status: deployed / superseded 는 OK. */
     private static boolean isHealthyStatus(String status) {
         if (status == null) {
             return false;

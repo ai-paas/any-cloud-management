@@ -8,12 +8,12 @@ public final class YamlRef {
 
     private YamlRef() {}
 
-    /** {@code ${resource}} — 리소스 자체 참조. */
+    /** {@code ${resource}}: 리소스 자체 참조. */
     public static String resource(String resource) {
         return "${" + resource + "}";
     }
 
-    /** {@code ${resource.property}} — 타입 SDK 의 {@code resource.property()} 등가. */
+    /** {@code ${resource.property}}: 타입 SDK 의 {@code resource.property()} 등가. */
     public static String of(String resource, String property) {
         return "${" + resource + "." + property + "}";
     }

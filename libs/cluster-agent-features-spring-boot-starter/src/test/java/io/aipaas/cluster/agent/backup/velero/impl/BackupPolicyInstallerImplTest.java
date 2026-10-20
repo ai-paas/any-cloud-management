@@ -29,7 +29,7 @@ import org.mockito.quality.Strictness;
 /**
  * BackupPolicyInstallerImpl 의 install / installAll / uninstall dispatch 회귀.
  *
- * <p>실제 catalog (3개 bundled policy) 위에서 mock registry 로 RPC 격리 — placeholder 치환된 manifest
+ * <p>실제 catalog (3개 bundled policy) 위에서 mock registry 로 RPC 격리: placeholder 치환된 manifest
  * 가 APPLY_MANIFEST 로, uninstall 이 DELETE_RESOURCE 로 dispatch 되는지 확인.
  */
 class BackupPolicyInstallerImplTest {
@@ -122,7 +122,7 @@ class BackupPolicyInstallerImplTest {
 
     @Test
     void installAll_iteratesCatalog_partialFailureCaptured() {
-        // 첫 번째 호출은 OK, 두 번째부터 실패 — installAll 은 각 결과를 모아 반환 (예외 swallow).
+        // 첫 번째 호출은 OK, 두 번째부터 실패: installAll 은 각 결과를 모아 반환 (예외 swallow).
         when(registry.sendCommand(any(), any(ControlMessage.Builder.class), anyInt()))
                 .thenReturn(CompletableFuture.completedFuture(CommandResponse.newBuilder()
                         .setStatus(Status.OK)

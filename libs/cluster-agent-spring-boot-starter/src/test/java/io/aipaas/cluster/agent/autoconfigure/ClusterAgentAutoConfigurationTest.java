@@ -31,7 +31,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
  *   <li>core / runtime / identity bean 자동 등록 (default in-memory store).</li>
  *   <li>host 가 자체 SPI impl 등록 시 ConditionalOnMissingBean override.</li>
  *   <li>ImpersonationContext default 가 ThreadLocalImpersonationContext.</li>
- *   <li>WebSocket sub-config (PodExec) 는 본 비-web 컨텍스트에선 미생성 — gRPC bean 만 검증.</li>
+ *   <li>WebSocket sub-config (PodExec) 는 본 비-web 컨텍스트에선 미생성: gRPC bean 만 검증.</li>
  * </ul>
  */
 class ClusterAgentAutoConfigurationTest {
@@ -87,7 +87,7 @@ class ClusterAgentAutoConfigurationTest {
 
     @Test
     void runtimeServicesWiredWithObjectMapper() {
-        // JacksonAutoConfiguration 이 ObjectMapper 자동 등록 — KubeResourceService / HelmReleaseService
+        // JacksonAutoConfiguration 이 ObjectMapper 자동 등록: KubeResourceService / HelmReleaseService
         // 가 본 mapper 를 inject 받는지 (bean 생성 자체로 검증).
         runner.run(ctx -> {
             assertThat(ctx).hasSingleBean(ObjectMapper.class);

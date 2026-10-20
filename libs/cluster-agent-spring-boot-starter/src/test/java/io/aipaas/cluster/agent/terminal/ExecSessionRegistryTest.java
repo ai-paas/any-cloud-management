@@ -62,7 +62,7 @@ class ExecSessionRegistryTest {
         PendingExecSession p = registry.createPending(Duration.ofSeconds(10));
         registry.bindAgentStream(p.sessionId(), new NoopObserver());
         ExecBridge second = registry.bindAgentStream(p.sessionId(), new NoopObserver());
-        assertThat(second).isNull(); // 중복 bind 거부 — replay 방어.
+        assertThat(second).isNull(); // 중복 bind 거부: replay 방어.
     }
 
     @Test

@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 /**
- * agent_identity_token 검증 시나리오 — 정상 / 미발견 / revoked / expired / FAILED / blank.
+ * agent_identity_token 검증 시나리오: 정상 / 미발견 / revoked / expired / FAILED / blank.
  */
 class AgentIdentityAuthenticatorTest {
 

@@ -29,7 +29,7 @@ import org.mockito.Mockito;
 import org.mockito.quality.Strictness;
 
 /**
- * ObservabilityQueryService — agent dispatch / 에러 매핑 / multi-cluster fan-out 회귀.
+ * ObservabilityQueryService: agent dispatch / 에러 매핑 / multi-cluster fan-out 회귀.
  *
  * <p>모든 테스트는 AgentSessionRegistry 를 mock 으로 주입. 실제 gRPC stream 없음.
  */
@@ -140,7 +140,7 @@ class ObservabilityQueryServiceTest {
 
         Map<String, PromQLResult> result = svc.queryAll("up", Duration.ofSeconds(2));
 
-        // c2 는 실패해서 결과 map 에서 제외됨 — partial result 패턴.
+        // c2 는 실패해서 결과 map 에서 제외됨. partial result 패턴.
         assertThat(result).containsKeys("c1", "c3");
         assertThat(result).doesNotContainKey("c2");
         assertThat(result.get("c1").raw()).contains("c1");

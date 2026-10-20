@@ -27,7 +27,7 @@ import org.mockito.quality.Strictness;
 /**
  * Backup/Restore/Schedule service 의 agent dispatch + error mapping 회귀.
  *
- * <p>VeleroCrApplier 가 모든 CR 의 APPLY_MANIFEST 를 routing — 본 테스트는 그 entrypoint 의 모든 happy
+ * <p>VeleroCrApplier 가 모든 CR 의 APPLY_MANIFEST 를 routing: 본 테스트는 그 entrypoint 의 모든 happy
  * path / 검증 / 실패 매핑을 한 번에 격리 검증. CR builder 의 map 형식은 {@link VeleroCrBuilderTest}.
  */
 class VeleroCrServicesDispatchTest {

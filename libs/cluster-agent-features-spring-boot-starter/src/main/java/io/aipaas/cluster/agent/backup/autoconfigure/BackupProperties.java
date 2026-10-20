@@ -34,7 +34,7 @@ public record BackupProperties(Node node, Velero velero) {
     /**
      * node-agent 가 수행하는 etcd / PKI raw 백업 설정.
      *
-     * @param chunkSize          gRPC server-streaming 의 chunk byte 크기. etcd snapshot 이 수 GB 까지 가능 — 4 MB chunk 권장.
+     * @param chunkSize          gRPC server-streaming 의 chunk byte 크기. etcd snapshot 이 수 GB 까지 가능: 4 MB chunk 권장.
      * @param encryptionEnabled  PKI 백업 시 host KEK 로 암호화할지. true 이면 host 가 BackupEncryptor SPI 구현 필요.
      */
     public record Node(int chunkSize, boolean encryptionEnabled) {}
@@ -42,7 +42,7 @@ public record BackupProperties(Node node, Velero velero) {
     /**
      * Velero 통합 설정.
      *
-     * @param autoInstall           cluster ACTIVE 시 자동 Velero 설치 여부. 기본 false — 사용자 명시 활성 권장 (storage credential 필요).
+     * @param autoInstall           cluster ACTIVE 시 자동 Velero 설치 여부. 기본 false: 사용자 명시 활성 권장 (storage credential 필요).
      * @param chartVersion          velero helm chart 버전.
      * @param namespace             Velero 가 동작할 cluster namespace.
      * @param defaultTtl            Backup CR 의 default TTL (만료 후 자동 삭제).

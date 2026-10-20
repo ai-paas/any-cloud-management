@@ -27,7 +27,7 @@ public final class YamlWorkspaceFactory {
 
     private YamlWorkspaceFactory() {}
 
-    /** 호출마다 새 디렉토리 — 동시에 여러 스택이 돌 때 서로 덮어쓰지 않도록. */
+    /** 호출마다 새 디렉토리: 동시에 여러 스택이 돌 때 서로 덮어쓰지 않도록. */
     public static Path create(PulumiProgram program) {
         try {
             Path workDir = Files.createTempDirectory("anycloud-pulumi-");

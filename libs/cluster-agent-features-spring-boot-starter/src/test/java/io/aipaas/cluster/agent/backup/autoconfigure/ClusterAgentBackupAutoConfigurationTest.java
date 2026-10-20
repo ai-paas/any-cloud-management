@@ -38,7 +38,7 @@ class ClusterAgentBackupAutoConfigurationTest {
             .withConfiguration(AutoConfigurations.of(ClusterAgentBackupAutoConfiguration.class));
 
     private ApplicationContextRunner withAgentInfra() {
-        // agent-starter 의 두 bean 만 mock 으로 주입 — 본 starter 의 @ConditionalOnBean(AgentSessionRegistry)
+        // agent-starter 의 두 bean 만 mock 으로 주입: 본 starter 의 @ConditionalOnBean(AgentSessionRegistry)
         // 와 Velero 의 HelmReleaseService 의존을 충족.
         return runner.withBean(AgentSessionRegistry.class, () -> mock(AgentSessionRegistry.class))
                 .withBean(HelmReleaseService.class, () -> mock(HelmReleaseService.class));

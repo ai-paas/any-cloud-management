@@ -12,16 +12,16 @@ import java.util.concurrent.ConcurrentMap;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * In-memory {@link AgentIdentityStore} — Spring Boot starter 의 zero-config default.
+ * In-memory {@link AgentIdentityStore}: Spring Boot starter 의 zero-config default.
  *
  * <p><b>용도</b>: dev / PoC / single-instance demo. K8s Secret 없이 starter 만 가져다
  * 빠르게 시도해볼 때.
  *
  * <p><b>제한</b>:
  * <ul>
- *   <li>Replication 불가 — 단일 JVM instance only.</li>
- *   <li>Restart 시 데이터 소실 — agent 가 모두 re-register 필요 (registration_token JWT 보유 가정).</li>
- *   <li>Concurrent 동시성은 보장 — ConcurrentHashMap.</li>
+ *   <li>Replication 불가: 단일 JVM instance only.</li>
+ *   <li>Restart 시 데이터 소실: agent 가 모두 re-register 필요 (registration_token JWT 보유 가정).</li>
+ *   <li>Concurrent 동시성은 보장: ConcurrentHashMap.</li>
  * </ul>
  *
  * <p><b>Production 권장</b>: DB-backed 구현 (JPA / MongoDB / DynamoDB / etc.). 호스트가 자체
@@ -71,7 +71,7 @@ public class InMemoryAgentIdentityStore implements AgentIdentityStore {
         if (identity == null || identity.agentId() == null) {
             throw new IllegalArgumentException("AgentIdentity.agentId must not be null");
         }
-        // 같은 agent_id 의 이전 entry 의 token hash 삭제 — rotation / re-register 시 stale lookup 방지.
+        // 같은 agent_id 의 이전 entry 의 token hash 삭제: rotation / re-register 시 stale lookup 방지.
         AgentIdentity previous = byAgentId.get(identity.agentId());
         if (previous != null
                 && previous.identityTokenHash() != null
@@ -118,7 +118,7 @@ public class InMemoryAgentIdentityStore implements AgentIdentityStore {
                 cur.lastSeenAt(),
                 cur.lastK8sApiOkAt(),
                 newExpiresAt,
-                null, // revoke 풀기 — rotation 으로 다시 살아남.
+                null, // revoke 풀기: rotation 으로 다시 살아남.
                 cur.lastError());
         byAgentId.put(agentId, rotated);
         byTokenHash.put(newIdentityTokenHash, rotated);

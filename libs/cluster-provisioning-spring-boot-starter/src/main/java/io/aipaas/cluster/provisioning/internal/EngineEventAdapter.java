@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
  * Pulumi Automation API 의 {@link EngineEvent} 를 starter 표준 {@link ProvisionEvent} 로 변환 후
  * {@link ProvisionEventBus} 로 publish. type/message/severity 추출 + bus 실패 swallow 책임.
  *
- * <p>provisioning lifecycle 안에서 onEvent callback 으로 호출 — publish 실패가 main flow 차단하지 않도록
+ * <p>provisioning lifecycle 안에서 onEvent callback 으로 호출: publish 실패가 main flow 차단하지 않도록
  * 모든 exception swallow.
  */
 @Slf4j

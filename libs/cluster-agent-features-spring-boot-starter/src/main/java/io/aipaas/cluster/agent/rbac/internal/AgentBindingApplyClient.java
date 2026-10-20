@@ -16,7 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Layer 1 의 {@link KubeResourceService} 를 사용해 cluster 안 ClusterRoleBinding / RoleBinding apply.
  *
- * <p>본 default 구현은 stateless — backend table 또는 자체 cache 없음.
+ * <p>본 default 구현은 stateless: backend table 또는 자체 cache 없음.
  */
 @Slf4j
 public class AgentBindingApplyClient implements BindingApplyClient {

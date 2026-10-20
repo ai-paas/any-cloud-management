@@ -41,7 +41,7 @@ public class SimpleBindingFleetView implements BindingFleetView, AgentLifecycleL
                 Caffeine.newBuilder().expireAfterWrite(ttl).maximumSize(1000).build();
     }
 
-    /** informer push event 또는 운영자 명시 호출 — 단일 cluster cache 무효화. */
+    /** informer push event 또는 운영자 명시 호출: 단일 cluster cache 무효화. */
     public void invalidate(String clusterName) {
         perCluster.invalidate(clusterName);
     }
@@ -51,12 +51,12 @@ public class SimpleBindingFleetView implements BindingFleetView, AgentLifecycleL
      *
      * <p>handled event types:
      * <ul>
-     *   <li>{@code rbac.binding.changed}    — 단일 binding ADD/UPDATE/DELETE</li>
-     *   <li>{@code rbac.binding.sync.start} — agent reconnect 후 full resync 시작</li>
-     *   <li>{@code rbac.binding.sync.end}   — full resync 완료</li>
+     *   <li>{@code rbac.binding.changed}: 단일 binding ADD/UPDATE/DELETE</li>
+     *   <li>{@code rbac.binding.sync.start}: agent reconnect 후 full resync 시작</li>
+     *   <li>{@code rbac.binding.sync.end}: full resync 완료</li>
      * </ul>
      *
-     * <p>모든 event 가 caching invalidate 트리거 — 다음 list() 호출이 fresh fetch.
+     * <p>모든 event 가 caching invalidate 트리거: 다음 list() 호출이 fresh fetch.
      */
     @Override
     public void onAgentEvent(String clusterName, AgentEvent event) {

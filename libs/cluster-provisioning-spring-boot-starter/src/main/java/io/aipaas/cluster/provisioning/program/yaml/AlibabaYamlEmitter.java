@@ -25,7 +25,7 @@ final class AlibabaYamlEmitter implements ProviderYamlEmitter {
     /** 클라우드 디스크. 최소 20GB 이며 ESSD 가 기본 선택지다. */
     private static final String SYSTEM_DISK_CATEGORY = "cloud_essd";
 
-    /** EIP 대역폭(Mbps). 문자열로 받는다 — 스키마가 string 이다. */
+    /** EIP 대역폭(Mbps). 문자열로 받는다. 스키마가 string 이다. */
     private static final String EIP_BANDWIDTH = "100";
 
     @Override
@@ -40,7 +40,7 @@ final class AlibabaYamlEmitter implements ProviderYamlEmitter {
         /*
          * 이미지 ID 에 빌드 날짜가 붙어 주기적으로 갈리고(..._alibase_20260828.vhd) 리전마다
          * 다르다. getImages 로 풀려 했으나 결과가 배열이라 인덱스 접근이 필요하고, pulumi-yaml
-         * 이 그 경로의 타입을 풀지 못해 타입 검사에서 panic 한다. OCI 와 같이 필수로 받는다 —
+         * 이 그 경로의 타입을 풀지 못해 타입 검사에서 panic 한다. OCI 와 같이 필수로 받는다.
          * 화면은 이미지 목록에서 고른 값을 그대로 보낸다.
          */
         requireConfig(spec.osImage(), "osImage");
@@ -105,7 +105,7 @@ final class AlibabaYamlEmitter implements ProviderYamlEmitter {
 
     /**
      * {@code portRange} 는 {@code "22/22"} 형식의 문자열이다. 프로토콜이 {@code all} 이면
-     * {@code "-1/-1"} 을 쓴다 — 숫자 범위를 주면 거절된다.
+     * {@code "-1/-1"} 을 쓴다. 숫자 범위를 주면 거절된다.
      */
     private Map<String, Object> ingress(String protocol, int from, int to) {
         Map<String, Object> rule = new LinkedHashMap<>();
@@ -136,7 +136,7 @@ final class AlibabaYamlEmitter implements ProviderYamlEmitter {
         b.resource(node, T_INSTANCE, instance);
 
         /*
-         * EIP 는 인스턴스와 따로 산다 — 인스턴스를 지워도 남아 계속 과금된다. 스택이 함께
+         * EIP 는 인스턴스와 따로 산다. 인스턴스를 지워도 남아 계속 과금된다. 스택이 함께
          * 관리하므로 destroy 에서 같이 사라진다.
          */
         String eip = node + "-eip";

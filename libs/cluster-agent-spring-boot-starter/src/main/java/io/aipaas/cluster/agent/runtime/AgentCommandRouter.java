@@ -21,24 +21,24 @@ import org.springframework.beans.factory.ObjectProvider;
 public class AgentCommandRouter {
 
     private static final int DEFAULT_TIMEOUT_SECONDS = 30;
-    /** APPLY_MANIFEST 는 server-side apply 가 webhook/admission 등으로 추가 시간 — 60s default. */
+    /** APPLY_MANIFEST 는 server-side apply 가 webhook/admission 등으로 추가 시간: 60s default. */
     private static final int APPLY_TIMEOUT_SECONDS = 60;
-    /** Helm install/uninstall 은 chart 의 wait/hook 으로 분 단위 가능 — 5분 default. */
+    /** Helm install/uninstall 은 chart 의 wait/hook 으로 분 단위 가능: 5분 default. */
     private static final int HELM_OPERATION_TIMEOUT_SECONDS = 300;
 
     private final AgentSessionRegistry sessionRegistry;
     /**
      * 모든 send() 가 ImpersonationContext.current() 를 읽어 CommandRequest 의 impersonate_* field 를
-     * 자동 주입. ObjectProvider 로 optional 처리 — 구식 backend (interceptor 미등록) 환경에서도 NPE 없이
+     * 자동 주입. ObjectProvider 로 optional 처리: 구식 backend (interceptor 미등록) 환경에서도 NPE 없이
      * 동작. holder 가 empty 면 빈 field 로 송신 → admin-equivalent 동작.
      *
      * <p>적용 범위: 본 router 를 통과하는 모든 CommandType. 즉 LIST_RESOURCES / GET_RESOURCE /
      * APPLY_MANIFEST / DELETE_RESOURCE / GET_LOG / RESOLVE_RESOURCE / INSTALL_ADDON 까지 동일.
-     * helm 명령에 impersonation 이 영향 없음 — agent 의 helm path 가 K8s rest.Config 를 사용 안함
+     * helm 명령에 impersonation 이 영향 없음. agent 의 helm path 가 K8s rest.Config 를 사용 안함
      * (별도 SDK 객체). agent (Go) 단의 dispatcher 가 K8s 호출 path 에서만 impersonate header 적용.
      *
      * <p>system action (RabbitMQ listener 의 INSTALL_ADDON, scheduled monitor) 은 caller thread 에
-     * holder 가 set 되지 않으므로 자연스럽게 admin-equivalent — 별도 분기 불필요.
+     * holder 가 set 되지 않으므로 자연스럽게 admin-equivalent: 별도 분기 불필요.
      */
     private final ObjectProvider<ImpersonationContext> impersonationContextProvider;
 
@@ -48,7 +48,7 @@ public class AgentCommandRouter {
         this.impersonationContextProvider = impersonationContextProvider;
     }
 
-    /** Test convenience — impersonation 비활성. */
+    /** Test convenience: impersonation 비활성. */
     public AgentCommandRouter(AgentSessionRegistry sessionRegistry) {
         this.sessionRegistry = sessionRegistry;
         this.impersonationContextProvider = null;
@@ -85,7 +85,7 @@ public class AgentCommandRouter {
         return send(clusterName, CommandType.GET_LOG, params, DEFAULT_TIMEOUT_SECONDS);
     }
 
-    /** DELETE_RESOURCE — kubectl delete 등가. cluster-scoped kind 면 namespace 무시. */
+    /** DELETE_RESOURCE: kubectl delete 등가. cluster-scoped kind 면 namespace 무시. */
     public CompletableFuture<CommandResponse> deleteResource(
             String clusterName, String namespace, String kind, String name) {
         Struct params = struct(Map.of(
@@ -95,7 +95,7 @@ public class AgentCommandRouter {
         return send(clusterName, CommandType.DELETE_RESOURCE, params, DEFAULT_TIMEOUT_SECONDS);
     }
 
-    /** GET_RESOURCE — kubectl get -o json 등가. 응답의 "resource" 필드에 JSON-encoded object. */
+    /** GET_RESOURCE: kubectl get -o json 등가. 응답의 "resource" 필드에 JSON-encoded object. */
     public CompletableFuture<CommandResponse> getResource(
             String clusterName, String namespace, String kind, String name) {
         Struct params = struct(Map.of(
@@ -105,13 +105,13 @@ public class AgentCommandRouter {
         return send(clusterName, CommandType.GET_RESOURCE, params, DEFAULT_TIMEOUT_SECONDS);
     }
 
-    /** LIST_RESOURCES — paginated K8s 자원 list. namespace 가 빈 문자열이면 all-namespaces. */
+    /** LIST_RESOURCES: paginated K8s 자원 list. namespace 가 빈 문자열이면 all-namespaces. */
     public CompletableFuture<CommandResponse> listResources(
             String clusterName, String namespace, String kind, int limit, String continueToken, String labelSelector) {
         return listResources(clusterName, namespace, kind, limit, continueToken, labelSelector, "");
     }
 
-    /** LIST_RESOURCES with fieldSelector — kubectl get … --field-selector=… 등가. Event 조회 등에 사용. */
+    /** LIST_RESOURCES with fieldSelector: kubectl get … --field-selector=… 등가. Event 조회 등에 사용. */
     public CompletableFuture<CommandResponse> listResources(
             String clusterName,
             String namespace,
@@ -130,7 +130,7 @@ public class AgentCommandRouter {
         return send(clusterName, CommandType.LIST_RESOURCES, params, DEFAULT_TIMEOUT_SECONDS);
     }
 
-    /** APPLY_MANIFEST — kubectl apply 등가. multi-doc YAML 또는 JSON manifest 적용. */
+    /** APPLY_MANIFEST: kubectl apply 등가. multi-doc YAML 또는 JSON manifest 적용. */
     public CompletableFuture<CommandResponse> applyManifest(
             String clusterName, String namespace, String manifest, boolean force) {
         return applyManifest(clusterName, namespace, manifest, force, false);
@@ -152,7 +152,7 @@ public class AgentCommandRouter {
     }
 
     /**
-     * INSTALL_ADDON — Helm install (agent 가 in-cluster Helm SDK 호출). AllowList 의
+     * INSTALL_ADDON: Helm install (agent 가 in-cluster Helm SDK 호출). AllowList 의
      * {@code allowed_charts} (repo/chart + version range) 와 {@code allowed_namespaces} 통과 필수.
      *
      * @param chart       "repo/name" 형식. agent dispatcher 가 split.
@@ -189,12 +189,12 @@ public class AgentCommandRouter {
     }
 
     /**
-     * UPGRADE_ADDON — agent 측 helm upgrade. install 과 동일 allowlist 검증 + release lock 공유.
+     * UPGRADE_ADDON: agent 측 helm upgrade. install 과 동일 allowlist 검증 + release lock 공유.
      *
      * @param atomic       실패 시 자동 rollback (helm CLI 의 --atomic).
      * @param reuseValues  기존 release 의 values 보존 + 새 values merge (helm CLI 의 --reuse-values).
      * @param resetValues  기존 values 모두 reset, chart default 만 사용 (helm CLI 의 --reset-values).
-     *                     reuseValues 와 mutually exclusive — resetValues 우선.
+     *                     reuseValues 와 mutually exclusive: resetValues 우선.
      * @param timeoutSec   timeout (초). 0 이면 agent default (600s).
      */
     public CompletableFuture<CommandResponse> upgradeAddon(
@@ -225,13 +225,13 @@ public class AgentCommandRouter {
             p.put("timeout", String.valueOf(timeoutSec));
         }
         Struct params = struct(p);
-        // Helm upgrade 는 install 보다 더 긴 시간 (DB migration hook 등) — service-level timeout 도
+        // Helm upgrade 는 install 보다 더 긴 시간 (DB migration hook 등). service-level timeout 도
         // HELM_OPERATION_TIMEOUT_SECONDS 사용.
         return send(clusterName, CommandType.UPGRADE_ADDON, params, HELM_OPERATION_TIMEOUT_SECONDS);
     }
 
     /**
-     * UNINSTALL_ADDON — agent 측 Helm uninstall. AllowList 의 namespace 검증만 적용.
+     * UNINSTALL_ADDON: agent 측 Helm uninstall. AllowList 의 namespace 검증만 적용.
      *
      * @param keepHistory CLI 의 {@code --keep-history} 등가. true 면 helm revision 이력 보존.
      * @param wait        CLI 의 {@code --wait} 등가. true 면 모든 자원 삭제될 때까지 대기.
@@ -250,14 +250,14 @@ public class AgentCommandRouter {
         return send(clusterName, CommandType.UNINSTALL_ADDON, params, HELM_OPERATION_TIMEOUT_SECONDS);
     }
 
-    /** LIST_HELM_RELEASES — agent 측 `helm list` 등가. namespace 가 "_all" 또는 빈 문자열이면 모든 ns. */
+    /** LIST_HELM_RELEASES: agent 측 `helm list` 등가. namespace 가 "_all" 또는 빈 문자열이면 모든 ns. */
     public CompletableFuture<CommandResponse> listHelmReleases(String clusterName, String namespace) {
         Struct params = struct(Map.of("namespace", namespace == null ? "" : namespace));
         return send(clusterName, CommandType.LIST_HELM_RELEASES, params, DEFAULT_TIMEOUT_SECONDS);
     }
 
     /**
-     * LIST_HELM_RELEASE_RESOURCES — release 의 K8s 자원 enumerate (Deployment/Service/Secret/PVC/…).
+     * LIST_HELM_RELEASE_RESOURCES: release 의 K8s 자원 enumerate (Deployment/Service/Secret/PVC/…).
      * backend 의 HelmReleaseScanner 의 agent-side 대체.
      */
     public CompletableFuture<CommandResponse> listHelmReleaseResources(
@@ -268,7 +268,7 @@ public class AgentCommandRouter {
         return send(clusterName, CommandType.LIST_HELM_RELEASE_RESOURCES, params, DEFAULT_TIMEOUT_SECONDS);
     }
 
-    /** GET_HELM_RELEASE_STATUS — 단일 release 의 현재 status (helm SDK action.NewStatus 등가). */
+    /** GET_HELM_RELEASE_STATUS: 단일 release 의 현재 status (helm SDK action.NewStatus 등가). */
     public CompletableFuture<CommandResponse> getHelmReleaseStatus(
             String clusterName, String namespace, String release) {
         Struct params = struct(Map.of(
@@ -278,7 +278,7 @@ public class AgentCommandRouter {
     }
 
     /**
-     * GET_HELM_RELEASE_HISTORY — release 의 revision 이력. {@code max} 가 0 이면 helm 기본(10).
+     * GET_HELM_RELEASE_HISTORY: release 의 revision 이력. {@code max} 가 0 이면 helm 기본(10).
      * 응답에 {@code revisions} list (각 {revision, updated, status, chart, app_version, description}).
      */
     public CompletableFuture<CommandResponse> getHelmReleaseHistory(
@@ -291,7 +291,7 @@ public class AgentCommandRouter {
     }
 
     /**
-     * ROLLBACK_HELM_RELEASE — release 를 지정 revision 으로 복원. {@code revision} 이 0 이면 helm
+     * ROLLBACK_HELM_RELEASE: release 를 지정 revision 으로 복원. {@code revision} 이 0 이면 helm
      * 의 default (직전 성공 revision). rollback 후 status 호출 결과를 응답에 같이 담음.
      */
     public CompletableFuture<CommandResponse> rollbackHelmRelease(
@@ -309,7 +309,7 @@ public class AgentCommandRouter {
     }
 
     /**
-     * LIST_RESOURCE_KINDS — agent 가 discovery API 로 enumerate 한 모든 kind. UI 의 "kind picker"
+     * LIST_RESOURCE_KINDS: agent 가 discovery API 로 enumerate 한 모든 kind. UI 의 "kind picker"
      * 데이터 소스. params 없음. 응답 result.data 에 {@code kinds: [{plural, singular, kind, group,
      * version, namespaced, short_names}, ...]}.
      */
@@ -319,7 +319,7 @@ public class AgentCommandRouter {
     }
 
     /**
-     * RESOLVE_RESOURCE — 사용자 입력 (short name / plural / Kind 등) 을 정규화. y 의 list 와 보완.
+     * RESOLVE_RESOURCE: 사용자 입력 (short name / plural / Kind 등) 을 정규화. y 의 list 와 보완.
      * params: {@code input}. 응답 OK: ResolvedResource fields. 실패 시 INVALID_PARAMS +
      * error_code=UNSUPPORTED_KIND + result.data.suggestions.
      */
@@ -329,7 +329,7 @@ public class AgentCommandRouter {
     }
 
     /**
-     * GET_AGENT_CONFIG — agent 의 현재 in-memory allowlist + resource_policy snapshot.
+     * GET_AGENT_CONFIG: agent 의 현재 in-memory allowlist + resource_policy snapshot.
      * UI 운영자 페이지가 적용된 policy 시각화 + ConfigMap edit 후 reload 검증용. params 없음.
      */
     public CompletableFuture<CommandResponse> getAgentConfig(String clusterName) {
@@ -338,8 +338,8 @@ public class AgentCommandRouter {
     }
 
     /**
-     * ENSURE_AGENT_CONFIG_ANNOTATIONS — agent 의 ConfigMap 에 {@code helm.sh/resource-policy: keep}
-     * annotation 만 추가 (data 미변경). 멱등 — 이미 있으면 no-op. Backend startup hook 에서 모든 ACTIVE
+     * ENSURE_AGENT_CONFIG_ANNOTATIONS: agent 의 ConfigMap 에 {@code helm.sh/resource-policy: keep}
+     * annotation 만 추가 (data 미변경). 멱등: 이미 있으면 no-op. Backend startup hook 에서 모든 ACTIVE
      * cluster 의 legacy ConfigMap 을 backfill 할 때 사용.
      */
     public CompletableFuture<CommandResponse> ensureAgentConfigAnnotations(String clusterName) {
@@ -348,17 +348,17 @@ public class AgentCommandRouter {
     }
 
     /**
-     * APPLY_AGENT_CONFIG — backend 가 새 allowlist + resource_policy snapshot 을 agent 의 ConfigMap
+     * APPLY_AGENT_CONFIG: backend 가 새 allowlist + resource_policy snapshot 을 agent 의 ConfigMap
      * ({@code aipaas-agent-allowlist}) 으로 push. agent 가 K8s API 로 update → 기존 ConfigMap watch 가
      * 자동 reload. backend 에는 DB 저장 안 함 (ConfigMap 이 단일 출처).
      *
-     * <p>4개 JSON array string + 1개 YAML string 파라미터 — agent dispatcher 가 parse 후 write.
+     * <p>4개 JSON array string + 1개 YAML string 파라미터: agent dispatcher 가 parse 후 write.
      *
      * @param allowedNamespacesJson      JSON array string. 예: {@code ["*"]} or {@code ["monitoring","app"]}
      * @param allowedCommandsJson        JSON array string
      * @param allowedChartsJson          JSON array string
-     * @param allowedExecNamespacesJson  JSON array string (옵션 — null 가능). null 이면 빈 array 로 전송.
-     * @param resourcePolicyYaml         resource_policy section 의 YAML 문자열 (옵션 — null 또는 blank 이면
+     * @param allowedExecNamespacesJson  JSON array string (옵션: null 가능). null 이면 빈 array 로 전송.
+     * @param resourcePolicyYaml         resource_policy section 의 YAML 문자열 (옵션: null 또는 blank 이면
      *                                   ConfigMap 의 resource_policy 키가 비어 있게 됨, legacy 동작)
      */
     public CompletableFuture<CommandResponse> applyAgentConfig(
@@ -381,7 +381,7 @@ public class AgentCommandRouter {
     /**
      * Hybrid helm-repo sync overload. {@code helmRepositoriesJson} 가
      * JSON array of objects: {@code [{"name":"...","url":"...","username":"...","password":"...",
-     * "ca_file":"...","insecure_skip_tls_verify":false}, ...]}. null 이면 빈 array — agent 측에서
+     * "ca_file":"...","insecure_skip_tls_verify":false}, ...]}. null 이면 빈 array: agent 측에서
      * "사용자가 명시적으로 비움" 으로 해석해 모든 등록 repo 를 unregister.
      *
      * <p>backend 의 helm_repo 테이블 변경 시 호출자 (PolicyService 등) 가 본 변경된 list 를 같이
@@ -411,7 +411,7 @@ public class AgentCommandRouter {
      * JSON array of objects: {@code [{"name":"...","spec":{...}}, ...]}. 형식은
      * operator 의 OidcGroupBindingSpec 와 1:1.
      *
-     * <p>null 이면 빈 array — agent 가 모든 등록 binding 을 제거 (operator 가 cleanup).
+     * <p>null 이면 빈 array: agent 가 모든 등록 binding 을 제거 (operator 가 cleanup).
      *
      * <p>backward compat: 새 agent 만 처리. 옛 agent 는 unknown param key 무시 (silent noop).
      */
@@ -436,7 +436,7 @@ public class AgentCommandRouter {
         return send(clusterName, CommandType.APPLY_AGENT_CONFIG, params, DEFAULT_TIMEOUT_SECONDS);
     }
 
-    /** Generic dispatch — 미래의 CommandType 추가 시 공통 사용. */
+    /** Generic dispatch: 미래의 CommandType 추가 시 공통 사용. */
     public CompletableFuture<CommandResponse> send(
             String clusterName, CommandType type, Struct params, int timeoutSeconds) {
         CommandRequest.Builder cmdBuilder =
@@ -472,7 +472,7 @@ public class AgentCommandRouter {
                 cmdBuilder.putImpersonateExtras(e.getKey(), eb.build());
             }
         }
-        // debug 만 — production log 노이즈 방지. id 자체는 audit log layer 에서 별도 기록.
+        // debug 만: production log 노이즈 방지. id 자체는 audit log layer 에서 별도 기록.
         log.debug(
                 "dispatch with impersonation cluster={} type={} user={} groups={}",
                 clusterName,

@@ -7,7 +7,7 @@ import java.util.Map;
  * 운영자 작성용 tiered template (default form). cluster tier 라벨 (default {@code anycloud.io/tier})
  * 기준으로 다른 권한 매핑.
  *
- * <p>{@link #expand()} 가 tier 별 단일 {@link BindingTemplate} N개로 정규화 — starter 내부는 항상
+ * <p>{@link #expand()} 가 tier 별 단일 {@link BindingTemplate} N개로 정규화: starter 내부는 항상
  * 단일 form 만 다룸.
  */
 public record TieredBindingTemplate(

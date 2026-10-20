@@ -24,8 +24,8 @@ import lombok.extern.slf4j.Slf4j;
  *
  * <p>현재 포함되는 dashboard:
  * <ul>
- *   <li>aipaas-cluster-overview — node/pod/namespace 핵심 메트릭 요약</li>
- *   <li>aipaas-gpu-overview — dcgm-exporter 기반 GPU 사용률 (GPU cluster 만)</li>
+ *   <li>aipaas-cluster-overview: node/pod/namespace 핵심 메트릭 요약</li>
+ *   <li>aipaas-gpu-overview: dcgm-exporter 기반 GPU 사용률 (GPU cluster 만)</li>
  * </ul>
  *
  * <p>호출 시점: {@link MonitoringAutoInstaller} 가 stack install 성공 직후. GPU dashboard 는
@@ -49,13 +49,13 @@ public class DefaultDashboardImporter {
         applyDashboardConfigMap(clusterName, "aipaas-cluster-overview", CLUSTER_OVERVIEW_JSON);
     }
 
-    /** GPU overview dashboard — dcgm-exporter 메트릭 기반. */
+    /** GPU overview dashboard: dcgm-exporter 메트릭 기반. */
     public void importGpuOverview(String clusterName) {
         applyDashboardConfigMap(clusterName, "aipaas-gpu-overview", GPU_OVERVIEW_JSON);
     }
 
     /**
-     * 사용자 정의 dashboard import — {@link io.aipaas.cluster.agent.observability.core.DashboardSource} 의
+     * 사용자 정의 dashboard import: {@link io.aipaas.cluster.agent.observability.core.DashboardSource} 의
      * Dashboard 1 개에 해당. caller (auto-installer) 가 source list 순회하며 호출.
      */
     public void importCustom(String clusterName, String name, String dashboardJson) {
@@ -114,7 +114,7 @@ public class DefaultDashboardImporter {
     }
 
     /**
-     * Grafana sidecar 자동 발견 형식 — ConfigMap with label grafana_dashboard=1, data 의 key 가
+     * Grafana sidecar 자동 발견 형식: ConfigMap with label grafana_dashboard=1, data 의 key 가
      * dashboard 파일명.
      */
     private static String buildConfigMapManifest(String name, String namespace, String dashboardJson) {
@@ -138,7 +138,7 @@ public class DefaultDashboardImporter {
     }
 
     // ============================================================================
-    // Embedded dashboard JSON. minimal — Grafana 가 import 시 fields 보완. 본 starter 가
+    // Embedded dashboard JSON. minimal: Grafana 가 import 시 fields 보완. 본 starter 가
     // 외부 dashboard repo 없이 zero-config 로 즉시 동작하도록 inline.
     // 운영 환경에서는 호스트 애플리케이션이 별도 ConfigMap apply 로 더 풍부한 dashboard 추가 가능.
     // ============================================================================

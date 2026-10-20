@@ -130,7 +130,7 @@ public class ExecBridge {
                 closed.set(true);
             }
             case REQUEST -> {
-                // 첫 패킷 — gRPC server impl 이 session_id 추출 후 본 handler 호출 전 처리. 무시.
+                // 첫 패킷: gRPC server impl 이 session_id 추출 후 본 handler 호출 전 처리. 무시.
             }
             default -> log.debug("exec bridge {}: unexpected packet {}", sessionId, pkt.getPayloadCase());
         }

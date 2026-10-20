@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * CR build 함수가 올바른 K8s CR 구조를 생성하는지 확인. APPLY_MANIFEST dispatch 는
- * AgentSessionRegistry mock 없이 검증 불가 — 본 test 는 CR map 생성 로직만 격리 테스트.
+ * AgentSessionRegistry mock 없이 검증 불가: 본 test 는 CR map 생성 로직만 격리 테스트.
  *
  * <p>각 build* 메서드는 package-private 으로 노출되어 있어 같은 package 의 test 가 직접 호출 가능.
  */

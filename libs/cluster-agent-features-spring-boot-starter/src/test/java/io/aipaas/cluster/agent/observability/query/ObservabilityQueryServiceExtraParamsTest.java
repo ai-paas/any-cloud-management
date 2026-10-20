@@ -26,7 +26,7 @@ import org.mockito.quality.Strictness;
 /**
  * M2 ObservabilityQueryService 의 extraParams passthrough 회귀.
  *
- * <p>raw query endpoint 가 frontend 의 query string 을 그대로 forward — Prometheus 의 timeout /
+ * <p>raw query endpoint 가 frontend 의 query string 을 그대로 forward: Prometheus 의 timeout /
  * limit / lookback_delta / stats 등 optional param 이 backend 를 거치며 누락 없이 agent param Struct
  * 에 채워지는지 격리 검증.
  */
@@ -78,10 +78,10 @@ class ObservabilityQueryServiceExtraParamsTest {
 
     @Test
     void queryInstant_blankExtraValueSkipped() {
-        // passthrough 는 non-blank 만 — Prometheus default 값 보존 의도.
+        // passthrough 는 non-blank 만: Prometheus default 값 보존 의도.
         Map<String, String> extras = new HashMap<>();
         extras.put("timeout", "10s");
-        extras.put("lookback_delta", "  "); // blank — skip.
+        extras.put("lookback_delta", "  "); // blank: skip.
 
         svc.queryInstant("c1", "up", null, Duration.ofSeconds(2), extras);
 
@@ -115,7 +115,7 @@ class ObservabilityQueryServiceExtraParamsTest {
 
     @Test
     void queryInstant_nullKeyInExtras_skipped() {
-        // LinkedHashMap 은 null 키 허용 — defensive check.
+        // LinkedHashMap 은 null 키 허용: defensive check.
         Map<String, String> extras = new HashMap<>();
         extras.put(null, "junk");
         extras.put("timeout", "5s");

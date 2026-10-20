@@ -10,7 +10,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * 생성된 Pulumi.yaml 을 파일로 떨궈 CLI 검증에 쓴다. 어서션이 없는 진단용 테스트 —
+ * 생성된 Pulumi.yaml 을 파일로 떨궈 CLI 검증에 쓴다. 어서션이 없는 진단용 테스트.
  * {@code ANYCLOUD_DUMP_YAML=<경로>} 를 줄 때만 동작한다.
  */
 class YamlProgramDumpTest {

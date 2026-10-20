@@ -3,14 +3,14 @@ package io.aipaas.cluster.agent.observability.metrics;
 import java.util.List;
 
 /**
- * Cluster Observability 표준 PromQL 쿼리 모음 — kube-prometheus-stack / node-exporter 의 metric
+ * Cluster Observability 표준 PromQL 쿼리 모음. kube-prometheus-stack / node-exporter 의 metric
  * 이름 기준. 호스트가 다른 stack 을 쓰면 별도 {@link io.aipaas.cluster.agent.observability.port.ClusterCatalog}
  * 와 함께 override 권장 (현재는 hardcoded).
  *
  * <p>각 query 는 두 방식으로 노출:
  * <ul>
- *   <li>도메인 헬퍼 메서드 ({@link #nodeCpuUsage(String)} 등) — 내부 호출용</li>
- *   <li>{@link #catalog()} — 모든 표준 query 의 id/label/promql/window 메타 (REST 노출용)</li>
+ *   <li>도메인 헬퍼 메서드 ({@link #nodeCpuUsage(String)} 등). 내부 호출용</li>
+ *   <li>{@link #catalog()}: 모든 표준 query 의 id/label/promql/window 메타 (REST 노출용)</li>
  * </ul>
  *
  * <p>모든 placeholder {@code {{window}}} 는 {@code rate(...[5m])} 같은 PromQL window 로 치환.
@@ -19,7 +19,7 @@ public final class StandardQueries {
 
     private StandardQueries() {}
 
-    // ----- 도메인 헬퍼 (window 가 인자 — 내부 호출) -----
+    // ----- 도메인 헬퍼 (window 가 인자: 내부 호출) -----
 
     /** Node 별 CPU 사용률 (0~1 비율, idle 제외). vector by node. */
     public static String nodeCpuUsage(String window) {
@@ -63,7 +63,7 @@ public final class StandardQueries {
 
     // ----- 카탈로그 (REST 노출용) -----
 
-    /** 표준 query 카탈로그 — 호스트가 그대로 클라이언트로 forward 하거나 편집 baseline 으로 사용. */
+    /** 표준 query 카탈로그: 호스트가 그대로 클라이언트로 forward 하거나 편집 baseline 으로 사용. */
     public static List<StandardQuery> catalog() {
         return CATALOG;
     }

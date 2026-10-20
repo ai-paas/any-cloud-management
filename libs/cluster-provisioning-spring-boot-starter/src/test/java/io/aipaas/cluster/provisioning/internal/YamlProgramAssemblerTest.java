@@ -34,7 +34,7 @@ class YamlProgramAssemblerTest {
         assertThat(YamlEmitters.supports("openstack")).isTrue();
         assertThat(YamlEmitters.supports("OpenStack")).isTrue();
         assertThat(YamlEmitters.supports("nonesuch")).isFalse();
-        // canonical(null) 은 aws 로 떨어진다 — 여기서 null 을 검사하면 그 규칙을 중복으로 못박는다.
+        // canonical(null) 은 aws 로 떨어진다. 여기서 null 을 검사하면 그 규칙을 중복으로 못박는다.
     }
 
     @Test

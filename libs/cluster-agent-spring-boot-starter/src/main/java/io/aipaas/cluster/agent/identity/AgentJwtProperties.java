@@ -10,7 +10,7 @@ import org.springframework.validation.annotation.Validated;
  *
  * <p>application.yaml 의 {@code cluster-agent.jwt.*} / {@code cluster-agent.identity.*} 매핑.
  *
- * <p>호환성을 위해 anycloud 는 별도로 {@code agent.jwt.*} prefix 도 사용 가능 — 본 starter 는
+ * <p>호환성을 위해 anycloud 는 별도로 {@code agent.jwt.*} prefix 도 사용 가능: 본 starter 는
  * {@code cluster-agent.*} 가 canonical, 다른 prefix 는 host application 에서 alias 로 처리.
  */
 @Validated

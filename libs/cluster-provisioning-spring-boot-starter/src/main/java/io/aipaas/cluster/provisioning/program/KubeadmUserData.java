@@ -26,7 +26,7 @@ public final class KubeadmUserData {
     }
 
     private static String render(ClusterSpec spec, String role, boolean includeMasterPackages) {
-        // master 만 추가로 jq + openssl 설치 — kubeadm init 시 join token / cert hash 처리에 사용.
+        // master 만 추가로 jq + openssl 설치: kubeadm init 시 join token / cert hash 처리에 사용.
         String additionalPackages = includeMasterPackages ? " jq openssl" : "";
         String k8sVersion = spec.kubernetesVersion();
         // 두 번 사용 (apt-key 다운로드 URL + apt sources.list deb URL).

@@ -19,9 +19,9 @@ import lombok.extern.slf4j.Slf4j;
  * </ul>
  *
  * <p>{@link io.aipaas.cluster.agent.terminal.ExecBridge} 와 동일 패턴. 차이점: log stream 은
- * stdin 방향 없음 — consumer → agent 흐름은 cancel signal 만.
+ * stdin 방향 없음. consumer → agent 흐름은 cancel signal 만.
  *
- * <p>Reactor / Flux 등 backend-side 도구는 의도적으로 미사용 — starter dep 가벼움 유지. 외부 backend 가
+ * <p>Reactor / Flux 등 backend-side 도구는 의도적으로 미사용: starter dep 가벼움 유지. 외부 backend 가
  * Callbacks 를 Reactor Sink 등에 bridge 책임.
  */
 @Slf4j
@@ -75,13 +75,13 @@ public class LogStreamBridge {
                 cb.onChunk(chunk.getData().toByteArray(), chunk.getStderr());
             }
             case REQUEST -> {
-                // 첫 packet — gRPC server impl 이 session_id 추출 후 본 handler 호출 전 처리. 무시.
+                // 첫 packet: gRPC server impl 이 session_id 추출 후 본 handler 호출 전 처리. 무시.
             }
             default -> log.debug("logstream bridge {}: unexpected packet {}", sessionId, pkt.getPayloadCase());
         }
     }
 
-    /** Agent stream 정상 종료 (K8s EOF) — completed. */
+    /** Agent stream 정상 종료 (K8s EOF). completed. */
     public void onAgentCompleted() {
         if (!closed.compareAndSet(false, true)) {
             return;
@@ -103,7 +103,7 @@ public class LogStreamBridge {
         }
     }
 
-    /** Pending session 이 timeout 으로 expire 됐을 때 호출 — agent 가 stream open 을 안 한 경우. */
+    /** Pending session 이 timeout 으로 expire 됐을 때 호출: agent 가 stream open 을 안 한 경우. */
     public void markFailed(String reason) {
         if (!closed.compareAndSet(false, true)) {
             return;

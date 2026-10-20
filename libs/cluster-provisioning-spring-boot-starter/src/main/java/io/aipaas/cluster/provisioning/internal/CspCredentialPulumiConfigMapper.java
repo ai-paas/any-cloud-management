@@ -106,10 +106,10 @@ public final class CspCredentialPulumiConfigMapper {
     }
 
     /**
-     * Provider 별 env var → Pulumi config key 변환. 알려진 mapping 만 추출 — unknown key 는 silent
+     * Provider 별 env var → Pulumi config key 변환. 알려진 mapping 만 추출: unknown key 는 silent
      * skip (안전 default). 모든 value 는 secret 으로 취급필요.
      *
-     * @param provider CSP 이름 (canonical — aws/gcp/azure/...)
+     * @param provider CSP 이름 (canonical: aws/gcp/azure/...)
      * @param env credential 의 env map (e.g. {AWS_ACCESS_KEY_ID=AKIA..., AWS_SECRET_ACCESS_KEY=...})
      * @return Pulumi config key → value (e.g. {aws:accessKey=AKIA..., aws:secretKey=...})
      */
@@ -168,7 +168,7 @@ public final class CspCredentialPulumiConfigMapper {
             "DIGITALOCEAN_ACCESS_TOKEN");
 
     /**
-     * CSP 자격증명 env 를 모두 제거 — caller 가 state backend (RustFS) 자격증명만 남긴 상태로
+     * CSP 자격증명 env 를 모두 제거: caller 가 state backend (RustFS) 자격증명만 남긴 상태로
      * Pulumi binary 에 전달하기 위함.
      */
     public static Map<String, String> stripCspEnv(Map<String, String> env) {
@@ -202,7 +202,7 @@ public final class CspCredentialPulumiConfigMapper {
     }
 
     /**
-     * map 타입 provider config 는 JSON 문자열로 넘긴다 — Pulumi 가 읽을 때 파싱한다.
+     * map 타입 provider config 는 JSON 문자열로 넘긴다. Pulumi 가 읽을 때 파싱한다.
      *
      * <p>깨진 값을 그대로 넘기면 provider 가 stack 전체를 거부하고, 그 시점 메시지로는 자격증명의
      * 어느 항목이 문제인지 알 수 없다. 등록 시점에 거른다.

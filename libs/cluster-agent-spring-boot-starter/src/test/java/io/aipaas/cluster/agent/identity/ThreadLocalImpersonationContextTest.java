@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 /**
  * {@link ThreadLocalImpersonationContext} 의 set/clear/withIdentity 회귀.
  *
- * <p>ThreadLocal leak 방지가 핵심 — 각 테스트 끝나면 명시적으로 clear() 호출 (afterEach).
+ * <p>ThreadLocal leak 방지가 핵심: 각 테스트 끝나면 명시적으로 clear() 호출 (afterEach).
  */
 class ThreadLocalImpersonationContextTest {
 

@@ -32,10 +32,10 @@ import org.springframework.web.socket.handler.AbstractWebSocketHandler;
  *
  * <p><b>Query params</b> (optional):
  * <ul>
- *   <li>{@code container} — 다중 container pod 의 특정 container. 비어있으면 첫 컨테이너.</li>
- *   <li>{@code command} — 실행할 명령. comma 분리 (예: {@code /bin/bash,-l}). default: {@code /bin/sh}.</li>
- *   <li>{@code tty} — {@code true}/{@code false}. default true (interactive shell).</li>
- *   <li>{@code cols} / {@code rows} — 초기 PTY 크기. default 80x24.</li>
+ *   <li>{@code container}: 다중 container pod 의 특정 container. 비어있으면 첫 컨테이너.</li>
+ *   <li>{@code command}: 실행할 명령. comma 분리 (예: {@code /bin/bash,-l}). default: {@code /bin/sh}.</li>
+ *   <li>{@code tty}: {@code true}/{@code false}. default true (interactive shell).</li>
+ *   <li>{@code cols} / {@code rows}: 초기 PTY 크기. default 80x24.</li>
  * </ul>
  *
  * <p><b>Wire protocol</b> (간단 / kubernetes-dashboard 호환):

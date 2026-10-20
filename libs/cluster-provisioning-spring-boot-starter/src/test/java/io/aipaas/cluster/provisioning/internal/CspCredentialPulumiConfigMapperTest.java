@@ -131,7 +131,7 @@ class CspCredentialPulumiConfigMapperTest {
 
     @Test
     void openstack_passesEndpointOverridesAsJson() {
-        // 카탈로그가 광고하는 사설 주소로는 외부에서 못 닿는다 — override 없이는 provider 가
+        // 카탈로그가 광고하는 사설 주소로는 외부에서 못 닿는다. override 없이는 provider 가
         // "dial tcp 192.168.10.10:9292: network is unreachable" 로 실패한다.
         Map<String, String> env = openrc();
         String overrides = "{\"image\":\"https://proxy.example.com:9292/v2/\"}";

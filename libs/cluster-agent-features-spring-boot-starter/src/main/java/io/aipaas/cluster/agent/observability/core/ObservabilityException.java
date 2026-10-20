@@ -5,9 +5,9 @@ package io.aipaas.cluster.agent.observability.core;
  *
  * <p>Caller (REST controller) 가 errorCode 로 분기:
  * <ul>
- *   <li>{@code NO_ACTIVE_AGENT} — cluster 가 카탈로그엔 있지만 agent stream 끊김</li>
- *   <li>{@code TIMEOUT}        — agent 응답 timeout</li>
- *   <li>{@code GRAFANA_NOT_EXPOSED}, {@code PROM_QUERY_FAILED} 등 — agent 가 보낸 raw code</li>
+ *   <li>{@code NO_ACTIVE_AGENT}: cluster 가 카탈로그엔 있지만 agent stream 끊김</li>
+ *   <li>{@code TIMEOUT}: agent 응답 timeout</li>
+ *   <li>{@code GRAFANA_NOT_EXPOSED}, {@code PROM_QUERY_FAILED} 등: agent 가 보낸 raw code</li>
  * </ul>
  */
 public class ObservabilityException extends RuntimeException {

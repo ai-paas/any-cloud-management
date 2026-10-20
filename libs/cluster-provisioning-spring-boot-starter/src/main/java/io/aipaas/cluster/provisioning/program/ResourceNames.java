@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
  * </ul>
  *
  * <p>Go {@code infra/pulumi/pkg/model/names.go} 등가물. Pulumi 가 깊은 호출에서 cryptic 에러를 내는 것보다
- * 본 sanitize 가 안전 — panic 대신 변환.
+ * 본 sanitize 가 안전: panic 대신 변환.
  */
 public final class ResourceNames {
 

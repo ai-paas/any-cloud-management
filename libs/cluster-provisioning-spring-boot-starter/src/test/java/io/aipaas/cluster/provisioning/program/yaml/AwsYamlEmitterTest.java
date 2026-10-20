@@ -99,7 +99,7 @@ class AwsYamlEmitterTest {
 
     @Test
     void securityGroupAllowsIpipForCalico() {
-        // TCP/UDP 만 열면 노드 간 파드 트래픽이 통째로 사라진다 — OpenStack 에서 실제로 겪었다.
+        // TCP/UDP 만 열면 노드 간 파드 트래픽이 통째로 사라진다. OpenStack 에서 실제로 겪었다.
         @SuppressWarnings("unchecked")
         var ingress = (java.util.List<Map<String, Object>>) props("secgroup").get("ingress");
 

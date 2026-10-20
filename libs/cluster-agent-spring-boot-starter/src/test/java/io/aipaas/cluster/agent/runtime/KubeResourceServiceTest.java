@@ -28,10 +28,10 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
- * KubeResourceService 회귀 — flag / session / 응답 status 의 다양한 조합 검증.
+ * KubeResourceService 회귀: flag / session / 응답 status 의 다양한 조합 검증.
  *
  * <p>STRICT_STUBS 를 쓴다. 느슨한 mock 에서는 production 이 부르는 것과 다른 오버로드를 stub 해도
- * 조용히 null 을 돌려주고 NPE 로만 드러난다 — listResources 에 fieldSelector 인자가 늘었을 때
+ * 조용히 null 을 돌려주고 NPE 로만 드러난다. listResources 에 fieldSelector 인자가 늘었을 때
  * 실제로 그렇게 깨졌다. strict 모드는 호출 시점에 PotentialStubbingProblem 으로 알린다.
  */
 @ExtendWith(MockitoExtension.class)

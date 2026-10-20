@@ -29,7 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 /**
  * {@link VeleroInstallerImpl} install path 회귀.
  *
- * <p>HelmReleaseService 를 mock 으로 주입 — VeleroInstallSpec → helm INSTALL_ADDON 호출 인자 변환 +
+ * <p>HelmReleaseService 를 mock 으로 주입: VeleroInstallSpec → helm INSTALL_ADDON 호출 인자 변환 +
  * 응답 매핑 + auto-install policies hook 의 dispatch 확인. 실제 K8s 호출 없음.
  */
 @ExtendWith(MockitoExtension.class)

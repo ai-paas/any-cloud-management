@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 /**
- * Cluster health 종합 응답 회귀 보호 — SPI 기반.
+ * Cluster health 종합 응답 회귀 보호: SPI 기반.
  */
 class AgentHealthServiceTest {
 

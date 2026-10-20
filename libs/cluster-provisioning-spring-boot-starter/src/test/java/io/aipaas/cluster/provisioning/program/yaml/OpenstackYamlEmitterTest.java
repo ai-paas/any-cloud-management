@@ -161,7 +161,7 @@ class OpenstackYamlEmitterTest {
     @SuppressWarnings("unchecked")
     void fullRangeRulesOmitPortRange() {
         // OpenStack 은 1-65535 를 "범위 없음" 으로 정규화한다. 명시하면 매 up 마다 replace 를
-        // 시도하고 delete 전에 create 해서 409 로 실패한다 — 두 번째 up 이 항상 깨진다.
+        // 시도하고 delete 전에 create 해서 409 로 실패한다. 두 번째 up 이 항상 깨진다.
         Map<String, Object> res = resourcesOf(spec(1));
 
         for (String id : List.of("sgrule-intra-tcp", "sgrule-intra-udp")) {

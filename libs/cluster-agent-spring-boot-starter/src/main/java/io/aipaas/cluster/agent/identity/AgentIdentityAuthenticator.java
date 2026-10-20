@@ -8,10 +8,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Runtime stream 인증 — Bearer agent_identity_token → AgentIdentity lookup + 유효성 검증.
+ * Runtime stream 인증: Bearer agent_identity_token → AgentIdentity lookup + 유효성 검증.
  *
  * <p>Cluster Agent runtime gRPC endpoint 가 stream open 시 한 번 호출. 통과 시 {@link AgentIdentity}
- * 반환 — 세션 레지스트리에 등록할 cluster_name 과 agent_instance_id 를 얻음.
+ * 반환: 세션 레지스트리에 등록할 cluster_name 과 agent_instance_id 를 얻음.
  *
  * <p>검증 항목 (모두 {@link AgentIdentity#isAuthValid}):
  * <ol>
@@ -21,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
  *   <li>status != FAILED / REVOKED</li>
  * </ol>
  *
- * <p>실패 사유는 log 로만 남기고 호출자에게는 빈 Optional 반환 — 외부에 구체 사유 노출 시 brute-force
+ * <p>실패 사유는 log 로만 남기고 호출자에게는 빈 Optional 반환: 외부에 구체 사유 노출 시 brute-force
  * 추측 정보 leak 우려.
  *
  * <p>mTLS 제거. cert subject / cert-only auth path 모두 폐기. Bearer 단일 path.

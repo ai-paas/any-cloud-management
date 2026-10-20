@@ -78,7 +78,7 @@ class ClusterSpecFromConfigTest {
 
     @Test
     void acceptsNamespacedKeys() {
-        // 호출자가 anycloud-k8s:workerCount 형태로 넘길 수 있다 — Pulumi config 원형 그대로.
+        // 호출자가 anycloud-k8s:workerCount 형태로 넘길 수 있다. Pulumi config 원형 그대로.
         Map<String, String> cfg = new HashMap<>();
         cfg.put("anycloud-k8s:provider", "openstack");
         cfg.put("anycloud-k8s:name", "demo");

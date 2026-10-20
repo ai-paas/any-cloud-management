@@ -54,7 +54,7 @@ public class JwtRegistrationTokenService {
     }
 
     /**
-     * Legacy 3-arg 생성자 — 기존 코드 / 테스트 호환. {@link PropertySigningKeyResolver} 로 wrap.
+     * Legacy 3-arg 생성자: 기존 코드 / 테스트 호환. {@link PropertySigningKeyResolver} 로 wrap.
      * 신규 코드는 4-arg 권장.
      */
     public JwtRegistrationTokenService(AgentJwtProperties properties, IdempotencyStore idempotencyStore, Clock clock) {
@@ -75,7 +75,7 @@ public class JwtRegistrationTokenService {
                 signingKeyResolver.getClass().getSimpleName());
     }
 
-    /** registration_token 발급 — 단기 (~10분, ttl-seconds 설정) JWT. */
+    /** registration_token 발급: 단기 (~10분, ttl-seconds 설정) JWT. */
     public IssuedToken issue(String clusterId, String installMode) {
         Instant now = clock.instant();
         Instant exp = now.plusSeconds(properties.jwt().ttlSeconds());
@@ -129,7 +129,7 @@ public class JwtRegistrationTokenService {
             throw new RegistrationTokenInvalidException("token missing required claims (cluster_id/jti)");
         }
 
-        // JTI 1회 사용 강제 — replay 공격 방어.
+        // JTI 1회 사용 강제: replay 공격 방어.
         Duration lockTtl = Duration.ofSeconds(properties.jwt().ttlSeconds() + 60);
         if (!idempotencyStore.tryLock("bootstrap:jti:" + jti, lockTtl)) {
             throw new RegistrationTokenInvalidException("registration_token already used (jti=" + jti + ")");
@@ -139,14 +139,14 @@ public class JwtRegistrationTokenService {
         return new RegistrationClaims(clusterId, installMode, jti, expiresAt, Map.copyOf(claims));
     }
 
-    /** 발급 결과 — token 자체는 1회만 사용 후 폐기. */
+    /** 발급 결과: token 자체는 1회만 사용 후 폐기. */
     public record IssuedToken(String token, String jti, Instant expiresAt, long ttlSeconds) {}
 
     /** verifyAndConsume 의 통과 후 보장된 claim 들. */
     public record RegistrationClaims(
             String clusterId, String installMode, String jti, Instant expiresAt, Map<String, Object> rawClaims) {}
 
-    /** registration_token 검증 실패 — REST 는 400/401 매핑, gRPC 는 PERMISSION_DENIED 매핑. */
+    /** registration_token 검증 실패: REST 는 400/401 매핑, gRPC 는 PERMISSION_DENIED 매핑. */
     public static class RegistrationTokenInvalidException extends RuntimeException {
         public RegistrationTokenInvalidException(String message) {
             super(message);

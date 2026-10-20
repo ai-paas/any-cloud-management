@@ -50,7 +50,7 @@ public class ExecSessionRegistry {
         ExecBridge bridge = new ExecBridge(sessionId);
         pendingBySession.put(sessionId, bridge);
 
-        // Expire 처리 — 시간 초과 시 pending 제거. 단 이미 bound 됐으면 noop.
+        // Expire 처리: 시간 초과 시 pending 제거. 단 이미 bound 됐으면 noop.
         scheduler.schedule(
                 () -> {
                     ExecBridge existing = pendingBySession.get(sessionId);
@@ -69,7 +69,7 @@ public class ExecSessionRegistry {
     /**
      * Agent 의 PodExec gRPC stream 이 첫 packet 으로 ExecRequest 를 보냈을 때 호출.
      *
-     * @return null 이면 session 이 unknown/expired — caller 가 stream 닫아야 함.
+     * @return null 이면 session 이 unknown/expired: caller 가 stream 닫아야 함.
      */
     public ExecBridge bindAgentStream(String sessionId, StreamObserver<ExecPacket> toAgent) {
         ExecBridge bridge = pendingBySession.get(sessionId);
@@ -77,7 +77,7 @@ public class ExecSessionRegistry {
             return null;
         }
         if (!bridge.bindAgent(toAgent)) {
-            // 이미 다른 stream 이 bound — duplicate / replay 공격 방어.
+            // 이미 다른 stream 이 bound: duplicate / replay 공격 방어.
             return null;
         }
         return bridge;

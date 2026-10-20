@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
  * BindingTemplate → K8s ClusterRoleBinding / RoleBinding manifest (YAML) 렌더.
  *
  * <p>label 규약: managed-by / template / oidc-group / addon (addon hook 에서 주입). 이름 규칙:
- * {@code aipaas-<templateId>-<sanitizedGroup>} — K8s DNS subdomain (RFC 1123) 호환.
+ * {@code aipaas-<templateId>-<sanitizedGroup>}: K8s DNS subdomain (RFC 1123) 호환.
  *
  * <p>{@code targetSubjects} 의 placeholder {@code $oidcGroup} 은 resolvedGroup 으로 치환.
  */
@@ -123,7 +123,7 @@ class BindingManifestRenderer {
     private static List<TargetSubject> resolveSubjects(BindingTemplate template, String resolvedGroup) {
         List<TargetSubject> subjects = template.targetSubjects();
         if (subjects == null || subjects.isEmpty()) {
-            // default — selector kind 기반 단일 subject
+            // default: selector kind 기반 단일 subject
             return List.of(new TargetSubject(
                     template.oidcGroupSelector().kind()
                                     == io.aipaas.cluster.agent.rbac.template.OidcGroupSelector.Kind.User

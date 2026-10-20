@@ -9,7 +9,7 @@ import java.time.Duration;
  * 다른 프로젝트는 in-memory ConcurrentHashMap + ScheduledExecutor 로 expire 처리해도 무방. 필요 시
  * starter 가 in-memory default 구현 제공.
  *
- * <p><b>의미론</b>: 같은 key 를 두 번째로 lock 시도하면 false 를 반환해야 함 — 즉 토큰 재사용 차단.
+ * <p><b>의미론</b>: 같은 key 를 두 번째로 lock 시도하면 false 를 반환해야 함. 즉 토큰 재사용 차단.
  */
 public interface IdempotencyStore {
 

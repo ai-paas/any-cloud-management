@@ -25,7 +25,7 @@ public final class TokenHasher {
             }
             return sb.toString();
         } catch (NoSuchAlgorithmException e) {
-            // SHA-256 은 JDK 표준 — 절대 발생 안 함.
+            // SHA-256 은 JDK 표준: 절대 발생 안 함.
             throw new IllegalStateException("SHA-256 unavailable", e);
         }
     }

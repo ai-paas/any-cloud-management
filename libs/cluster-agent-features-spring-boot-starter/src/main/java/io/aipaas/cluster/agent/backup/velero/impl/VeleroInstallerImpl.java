@@ -33,7 +33,7 @@ public class VeleroInstallerImpl implements VeleroInstaller {
 
     private final boolean autoInstallPolicies;
 
-    /** Legacy constructor — auto-install hook 없이 install only. 기존 test/host 호환. */
+    /** Legacy constructor: auto-install hook 없이 install only. 기존 test/host 호환. */
     public VeleroInstallerImpl(HelmReleaseService helmReleaseService) {
         this(helmReleaseService, null, false);
     }
@@ -80,7 +80,7 @@ public class VeleroInstallerImpl implements VeleroInstaller {
                     release,
                     CHART_NAME,
                     CHART_REPO_URL,
-                    null, // chartTarballBase64 — 사용 안 함
+                    null, // chartTarballBase64: 사용 안 함
                     chartVersion,
                     ns,
                     valuesJson,
@@ -91,7 +91,7 @@ public class VeleroInstallerImpl implements VeleroInstaller {
             throw new BackupException("VELERO_INSTALL_FAILED", "helm install velero failed: " + e.getMessage(), e);
         }
 
-        // Velero 설치 성공 시 자동 정책 install. 정책 install 실패는 helm install 자체의 성공을 무효화하지 않는다 —
+        // Velero 설치 성공 시 자동 정책 install. 정책 install 실패는 helm install 자체의 성공을 무효화하지 않는다.
         // warn log 후 진행. host 가 후속으로 수동 install 가능.
         if (autoInstallPolicies && policyInstaller != null) {
             try {
@@ -151,7 +151,7 @@ public class VeleroInstallerImpl implements VeleroInstaller {
         credentials.put("secretContents", secretContents);
         values.put("credentials", credentials);
 
-        // initContainers — provider 별 plugin.
+        // initContainers: provider 별 plugin.
         String pluginVer = orDefault(spec.pluginVersion(), "v1.10.0");
         Map<String, Object> plugin = new LinkedHashMap<>();
         plugin.put("name", "velero-plugin-for-" + pluginShortName(spec.provider()));
@@ -166,7 +166,7 @@ public class VeleroInstallerImpl implements VeleroInstaller {
             values.put("nodeAgent", nodeAgent);
         }
 
-        // user override merge — top-level keys overlay.
+        // user override merge: top-level keys overlay.
         if (spec.additionalValues() != null && !spec.additionalValues().isEmpty()) {
             for (Map.Entry<String, Object> e : spec.additionalValues().entrySet()) {
                 values.put(e.getKey(), e.getValue());
@@ -203,7 +203,7 @@ public class VeleroInstallerImpl implements VeleroInstaller {
                 cfg.put("s3Url", spec.s3Url() == null ? "" : spec.s3Url());
             }
             case "gcp" -> {
-                /* GCS 는 별도 config 없음 — credentials 만 */
+                /* GCS 는 별도 config 없음. credentials 만 */
             }
             case "azure" -> {
                 cfg.put("resourceGroup", ""); // host 가 additionalValues 로 명시 가능

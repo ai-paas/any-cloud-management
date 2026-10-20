@@ -71,7 +71,7 @@ public final class MetricsResultParser {
         return out;
     }
 
-    /** matrix 의 마지막 sample 만 추출 — instant 의도. range 전체가 필요하면 별도 path. */
+    /** matrix 의 마지막 sample 만 추출: instant 의도. range 전체가 필요하면 별도 path. */
     private static List<MetricSample> parseMatrixLastSample(JsonNode arr) {
         List<MetricSample> out = new ArrayList<>();
         if (!arr.isArray()) return out;

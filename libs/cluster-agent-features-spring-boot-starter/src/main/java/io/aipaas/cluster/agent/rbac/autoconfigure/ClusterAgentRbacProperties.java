@@ -31,7 +31,7 @@ public record ClusterAgentRbacProperties(Templates templates, FleetView fleetVie
         }
     }
 
-    /** label key 컨벤션 — 운영 환경마다 namespace 가 다를 수 있어 override 가능. */
+    /** label key 컨벤션: 운영 환경마다 namespace 가 다를 수 있어 override 가능. */
     public record Labels(String managedBy, String prefix) {
         public Labels {
             if (managedBy == null || managedBy.isBlank()) managedBy = "anycloud";

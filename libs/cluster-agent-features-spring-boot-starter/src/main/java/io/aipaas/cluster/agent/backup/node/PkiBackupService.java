@@ -24,7 +24,7 @@ public interface PkiBackupService {
      * PKI backup 옵션.
      *
      * @param includePaths /etc/kubernetes/pki 기준 relative path 목록. 비어있으면 전체.
-     *                     예: ["ca.crt", "ca.key", "sa.key", "sa.pub"] — root CA + SA 키만 백업.
+     *                     예: ["ca.crt", "ca.key", "sa.key", "sa.pub"]: root CA + SA 키만 백업.
      * @param chunkSize    streaming chunk size (bytes). 0 이면 1MB default.
      */
     record PkiBackupOptions(List<String> includePaths, int chunkSize) {

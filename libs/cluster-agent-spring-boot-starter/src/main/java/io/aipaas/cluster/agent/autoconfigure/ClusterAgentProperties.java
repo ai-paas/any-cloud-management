@@ -5,7 +5,7 @@ import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Cluster Agent starter 설정 — prefix {@code cluster-agent}.
+ * Cluster Agent starter 설정: prefix {@code cluster-agent}.
  *
  * <pre>{@code
  * cluster-agent:
@@ -35,7 +35,7 @@ public record ClusterAgentProperties(Health health, Exec exec, Routing routing) 
         }
     }
 
-    /** Nested record 들도 자체 compact constructor 로 field-level default 처리 — host yaml 에
+    /** Nested record 들도 자체 compact constructor 로 field-level default 처리: host yaml 에
      * 일부 field 만 명시되어 binding 후 null/0 으로 들어오는 케이스 안전 회피. */
     public record Health(Duration heartbeatStalenessThreshold) {
         public Health {

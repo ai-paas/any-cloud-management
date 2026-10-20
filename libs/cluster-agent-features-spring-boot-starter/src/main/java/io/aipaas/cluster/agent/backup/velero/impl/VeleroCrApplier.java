@@ -22,8 +22,8 @@ import org.yaml.snakeyaml.Yaml;
 /**
  * Velero CR (Backup/Restore/Schedule) 의 공용 dispatch.
  *
- * <p>Velero controller 가 CR watch 로 작업 trigger — starter 는 CR YAML 생성 + APPLY_MANIFEST 호출 만.
- * 결과는 비동기로 CR 의 status 필드에 반영 — caller 가 별도 GET_RESOURCE 로 polling.
+ * <p>Velero controller 가 CR watch 로 작업 trigger: starter 는 CR YAML 생성 + APPLY_MANIFEST 호출 만.
+ * 결과는 비동기로 CR 의 status 필드에 반영: caller 가 별도 GET_RESOURCE 로 polling.
  *
  * <p>YAML 직렬화 = SnakeYAML. JSON 으로도 APPLY_MANIFEST 가능하지만 YAML 이 K8s 표준이라 디버그 용이.
  */
@@ -41,7 +41,7 @@ class VeleroCrApplier {
      * @param clusterName 대상 cluster
      * @param namespace   CR namespace (보통 "velero")
      * @param cr          K8s CR 자료구조 (apiVersion / kind / metadata / spec / ...)
-     * @return 응답 result Struct (applied[] 등) — caller 가 필요하면 deserialize
+     * @return 응답 result Struct (applied[] 등). caller 가 필요하면 deserialize
      */
     Struct applyCr(String clusterName, String namespace, Map<String, Object> cr) {
         DumperOptions options = new DumperOptions();
