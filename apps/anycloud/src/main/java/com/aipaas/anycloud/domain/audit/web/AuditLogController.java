@@ -70,7 +70,7 @@ public class AuditLogController {
                 since, until, resourceType, resourceId, action, principal, PageRequest.of(page, limit));
         return new ResponseEntity<>(
                 ApiSuccessResponse.of(HttpStatus.OK.value(), "Audit logs loaded", PagedData.of(found.getContent()))
-                        // 총 건수를 모르면 화면이 마지막 페이지를 계산할 수 없다.
+                        // 총 건수 부재 시 화면의 마지막 페이지 계산 불가.
                         .withPagedMeta(limit, null, found.getTotalElements()),
                 new HttpHeaders(),
                 HttpStatus.OK);

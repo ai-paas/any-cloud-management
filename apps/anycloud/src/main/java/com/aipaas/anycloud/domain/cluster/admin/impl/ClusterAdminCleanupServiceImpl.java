@@ -14,8 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * #7: {@link AdminClusterCleanupController} 의 Repository 직접 호출 로직을 service 로 이전.
- * 컨트롤러는 라우팅만 하고 트랜잭션 경계와 도메인 로직은 이 클래스가 맡습니다.
+ * {@link AdminClusterCleanupController} 의 Repository 직접 호출 로직을 service 로 이전.
+ * 컨트롤러는 라우팅만 담당하고 트랜잭션 경계와 도메인 로직은 이 클래스가 담당.
  */
 @Slf4j
 @Service

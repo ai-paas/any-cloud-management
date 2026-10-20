@@ -44,11 +44,12 @@ public class CspCredentialCryptoServiceImpl implements CspCredentialCryptoServic
     }
 
     /**
-     * 부팅 시 한 번 검증. key 가 비어 있어도 ENV 설정한 운영자에게 명확히 fail-fast 시그널을 준다.
+     * 부팅 시 1회 검증. key 부재 시에도 ENV 를 설정한 운영자에게 fail-fast 신호 전달.
+     *
      * <ul>
-     *   <li>blank → warn (MANUAL credential 없이 ENV-only 운영도 가능하므로 abort 는 안 함)</li>
-     *   <li>{@value #MIN_KEY_LENGTH} 미만 → fail-fast (약한 key 로 운영 진입 차단)</li>
-     *   <li>sentinel default ("change-me" 등) → fail-fast</li>
+     *   <li>blank: warn. MANUAL credential 없이 ENV 전용 운영도 가능하므로 중단하지 않음</li>
+     *   <li>{@value #MIN_KEY_LENGTH} 미만: fail-fast. 취약한 key 의 운영 진입 차단</li>
+     *   <li>sentinel default ("change-me" 등): fail-fast</li>
      * </ul>
      */
     @PostConstruct

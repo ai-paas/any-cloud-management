@@ -5,7 +5,7 @@ import io.aipaas.cluster.agent.runtime.ResolvedResource;
 import io.aipaas.cluster.agent.runtime.ResourceKindInfo;
 import java.util.List;
 
-/** K8s 리소스 조회와 삭제입니다. 모든 호출이 cluster-agent 를 거칩니다. */
+/** K8s 리소스 조회와 삭제. 모든 호출은 cluster-agent 경유. */
 public interface KubeService {
 
     JsonNode getResources(String clusterName, String namespace, String kind);

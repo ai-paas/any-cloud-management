@@ -48,17 +48,17 @@ public record VmClusterSpec(
                 Boolean useSpot,
 
         /**
-         * OS image 를 지정합니다. 비워 두면 provider 기본값(대개 Ubuntu 22.04 LTS)입니다.
+         * OS image 지정. 미지정 시 provider 기본값 (대개 Ubuntu 24.04 LTS).
          *
          * <p>provider 별 형식:
          * <ul>
-         *   <li>AWS: AMI ID (예: "ami-xxxxxxxx") 또는 SSM parameter</li>
-         *   <li>Azure: Image URN (publisher:offer:sku:version, 예: "Canonical:0001-com-ubuntu-server-jammy:22_04-lts-gen2:latest")</li>
-         *   <li>GCP: Image family (예: "ubuntu-2204-lts") 또는 full image self-link</li>
+         *   <li>AWS: AMI ID (예: "ami-xxxxxxxx") 또는 AMI 이름</li>
+         *   <li>GCP: Image family (예: "ubuntu-2404-lts") 또는 full image self-link</li>
          *   <li>Alibaba: ImageId</li>
          *   <li>OCI: Image OCID</li>
          *   <li>OpenStack: Image name 또는 UUID</li>
-         *   <li>DigitalOcean: Image slug 또는 ID</li>
+         *   <li>Proxmox: cloud 이미지 URL</li>
+         *   <li>IBM: Image 이름</li>
          * </ul>
          */
         @Schema(

@@ -55,7 +55,7 @@ public record OperationResponse(
                 .state(e.getState() == null ? null : e.getState().name())
                 .progress(p)
                 .errorMessage(e.getErrorMessage())
-                // 요청 본문에 자격증명이 섞여 들어오면 작업 이력이 비밀 저장소가 된다.
+                // 요청 본문에 자격증명이 포함되면 작업 이력이 비밀값 저장소가 됨.
                 .request(SensitiveDataRedactor.redact(e.getRequestPayload()))
                 .startedAt(e.getStartedAt())
                 .endedAt(e.getEndedAt())

@@ -23,15 +23,14 @@ import org.yaml.snakeyaml.constructor.SafeConstructor;
 public class ChartParser {
 
     /**
-     * Jackson YAMLFactory 를 쓰지 않고 {@code org.yaml:snakeyaml} 을 직접 호출한다.
+     * Jackson YAMLFactory 대신 {@code org.yaml:snakeyaml} 직접 호출.
      *
-     * <p>plain ASCII YAML 도 "special characters at line 1, column 1" 으로 거절되는 regression 이
-     * 있었다 (ChartMuseum index.yaml). 원인으로 의심했던 {@code snakeyaml-engine} 은 fabric8 를
-     * 걷어내면서 classpath 에서 사라졌으므로, 이 우회가 아직 필요한지는 재확인이 필요하다.
-     */
-    /**
-     * 공개 저장소의 index.yaml 은 크다: prometheus-community 6.4MB, bitnami 는 더 크다.
-     * snakeyaml 기본 상한 3MiB 로는 거부되는데, 화면에는 차트가 없는 것처럼 보인다.
+     * <p>plain ASCII YAML 도 "special characters at line 1, column 1" 으로 거절되는 regression
+     * 발생 (ChartMuseum index.yaml). 원인으로 의심한 {@code snakeyaml-engine} 은 fabric8 제거
+     * 과정에서 classpath 에서 사라졌으므로 이 우회의 필요 여부는 재확인 대상.
+     *
+     * <p>공개 저장소의 index.yaml 은 대용량. prometheus-community 6.4MB, bitnami 는 그 이상.
+     * snakeyaml 기본 상한 3MiB 에서 거절되며 화면에는 차트 부재로 표시.
      */
     private static final int INDEX_CODE_POINT_LIMIT = 64 * 1024 * 1024;
 

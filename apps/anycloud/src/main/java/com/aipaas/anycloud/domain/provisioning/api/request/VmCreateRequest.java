@@ -54,8 +54,8 @@ public class VmCreateRequest {
     private ClusterSpecRequest spec;
 
     /**
-     * provider 별 설정. 스키마가 provider 마다 달라 서버가 키를 미리 알 수 없다. 필요한 키는
-     * {@code GET /v1/providers/{provider}/config-schema} 로 조회한다.
+     * provider 별 설정. 스키마가 provider 별로 달라 서버가 키를 사전 인지 불가. 필요한 키는
+     * {@code GET /v1/providers/{provider}/config-schema} 로 조회.
      */
     @Schema(
             description = "provider 전용 설정. provider 마다 스키마가 다르다",

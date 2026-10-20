@@ -7,28 +7,28 @@ import java.time.LocalDateTime;
 /**
  * Long-Running Operation 의 immutable 도메인 표현.
  *
- * <p>JPA 애너테이션을 쓰지 않는 순수 record 입니다. 도메인 로직과 테스트가 persistence 없이
- * 돌아가야 하므로 여기에 {@code @Entity} 나 {@code @Column} 을 붙이지 마세요. JPA 와의 변환은
- * {@link com.aipaas.anycloud.domain.operation.mapper.OperationMapper} 한 곳에서만 합니다.
+ * <p>JPA 애너테이션을 쓰지 않는 순수 record. 도메인 로직과 테스트가 persistence 없이 동작해야
+ * 하므로 {@code @Entity} 나 {@code @Column} 추가 금지. JPA 변환은
+ * {@link com.aipaas.anycloud.domain.operation.mapper.OperationMapper} 에서만 수행.
  *
- * @param id            UUID. JPA insert 전에는 비어있을 수 있음. start() 에서 채워짐.
- * @param type          Operation 종류 (CLUSTER_CREATE / VM_CLUSTER_DELETE 등).
- * @param resourceType  대상 리소스 타입 (예: "cluster", "vm-cluster").
- * @param resourceId    대상 리소스 식별자.
- * @param state         PENDING → RUNNING → SUCCEEDED | FAILED | CANCELLED.
- * @param currentStep   현재 진행 step 이름 (nullable, RUNNING 시 set).
- * @param stepIndex     0-based step index (nullable).
- * @param totalSteps    전체 step 수.
- * @param percent       0..100 진행률.
- * @param requestPayload  요청 JSON (audit / replay 용도).
- * @param resultPayload   완료 시 결과 JSON.
- * @param errorMessage    실패 시 메시지.
- * @param requestId       MDC request_id (cross-system trace).
- * @param principal       요청자 principal (audit).
- * @param startedAt       RUNNING 진입 시각.
- * @param endedAt         terminal state 진입 시각.
- * @param createdAt       row 생성 시각 (JPA 가 채움: domain create 경로는 null).
- * @param updatedAt       row 갱신 시각 (JPA 가 채움).
+ * @param id            UUID. JPA insert 전에는 빈 값 가능, start() 에서 설정
+ * @param type          Operation 종류 (CLUSTER_CREATE, VM_CLUSTER_DELETE 등)
+ * @param resourceType  대상 리소스 타입 (예: "cluster", "vm-cluster")
+ * @param resourceId    대상 리소스 식별자
+ * @param state         PENDING → RUNNING → SUCCEEDED | FAILED | CANCELLED
+ * @param currentStep   현재 진행 step 이름 (nullable, RUNNING 시 설정)
+ * @param stepIndex     0-based step index (nullable)
+ * @param totalSteps    전체 step 수
+ * @param percent       0..100 진행률
+ * @param requestPayload  요청 JSON (audit, replay 용도)
+ * @param resultPayload   완료 시 결과 JSON
+ * @param errorMessage    실패 시 메시지
+ * @param requestId       MDC request_id (cross-system trace)
+ * @param principal       요청자 principal (audit)
+ * @param startedAt       RUNNING 진입 시각
+ * @param endedAt         terminal state 진입 시각
+ * @param createdAt       row 생성 시각 (JPA 설정. domain create 경로는 null)
+ * @param updatedAt       row 갱신 시각 (JPA 설정)
  */
 public record Operation(
         String id,

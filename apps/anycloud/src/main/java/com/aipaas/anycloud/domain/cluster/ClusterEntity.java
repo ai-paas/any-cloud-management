@@ -30,8 +30,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "cluster")
-// K8s 접속 정보와 자격증명 컬럼은 없습니다. cluster-agent 가 cluster 안에서 모든 호출을 대신하므로
-// backend 는 admin 자격을 보관하지 않습니다. 권한의 출처는 agent 의 SA 입니다.
+// K8s 접속 정보와 자격증명 컬럼 없음. cluster-agent 가 cluster 내부에서 모든 호출을 수행하므로
+// backend 는 admin 자격 미보관. 권한 출처는 agent 의 SA.
 @JsonPropertyOrder({
     "id",
     "description",

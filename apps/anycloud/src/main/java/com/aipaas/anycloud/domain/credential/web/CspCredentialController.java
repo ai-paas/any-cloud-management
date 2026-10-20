@@ -93,8 +93,7 @@ public class CspCredentialController {
     public ResponseEntity<ApiSuccessResponse<CredentialHealth>> checkHealth(
             @Parameter(description = "자격증명 ID", example = "cred-001") @PathVariable String credentialId) {
         CspCredentialResponse credential = cspCredentialService.getCredential(credentialId);
-        // 확인 자체는 성공한 호출이다. 결과가 실패라고 HTTP 오류로 내보내면 화면이 배지 대신
-        // 오류 처리를 하게 된다.
+        // 확인 호출 자체는 성공. 결과가 실패라고 HTTP 오류로 응답하면 화면이 배지 대신 오류로 처리.
         return new ResponseEntity<>(
                 ApiSuccessResponse.of(
                         HttpStatus.OK.value(),

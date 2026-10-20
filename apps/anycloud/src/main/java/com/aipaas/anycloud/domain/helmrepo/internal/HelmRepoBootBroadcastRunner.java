@@ -39,7 +39,7 @@ public class HelmRepoBootBroadcastRunner {
         try {
             clusterPolicyBootstrapper.broadcastHelmRepoChange();
         } catch (Exception e) {
-            // @Async 호출은 바로 반환하므로 여기서 예외가 날 일은 드물다. 그래도 받아 둔다.
+            // @Async 호출은 즉시 반환하므로 이 지점의 예외 발생은 드묾. 방어 코드 유지.
             log.warn("HelmRepoBootBroadcastRunner: broadcast trigger failed: {}", e.toString());
         }
     }

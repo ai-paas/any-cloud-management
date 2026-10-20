@@ -35,7 +35,7 @@ public class VmClusterStateHistoryRecorder {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void record(VmClusterEntity entity, VmClusterStatus from, VmClusterStatus to, String reason) {
-        // 이력 저장보다 먼저 알린다. 저장은 best-effort 라 실패해도 화면은 최신이어야 한다.
+        // 이력 저장보다 알림 선행. 저장은 best-effort 이며 실패 시에도 화면은 최신 상태 유지.
         eventPublisher.publishEvent(new ResourceChangedEvent("vmCluster", entity.getClusterName()));
         try {
             boolean valid = from == null || from.canTransitionTo(to);
