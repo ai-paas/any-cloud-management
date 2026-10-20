@@ -30,7 +30,7 @@ class PluginVersionsTest {
 
     @Test
     void malformedSpecFailsFast() {
-        // 조용히 넘어가면 고정이 풀린 채로 배포된다.
+        // 무음 통과 시 버전 고정이 해제된 상태로 배포.
         assertThatThrownBy(() -> PluginVersions.parse("aws-7.44.0"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("name:version");
@@ -39,7 +39,7 @@ class PluginVersionsTest {
 
     @Test
     void defaultCoversEveryEmitterPackage() {
-        // Dockerfile 이 설치하는 목록과 어긋나면 런타임에 플러그인을 다시 받는다.
+        // Dockerfile 설치 목록과 불일치 시 런타임에 플러그인 재다운로드.
         Map<String, String> defaults =
                 PluginVersions.parse(PluginVersions.DEFAULT).asMap();
 
@@ -77,8 +77,8 @@ class PluginVersionsTest {
     @Test
     void thirdPartyPluginsCarryTheirDownloadUrl() {
         /*
-         * proxmoxve 는 get.pulumi.com 에 없다. 선언이 빠지면 런타임 자동 설치가 기본 주소로 가서
-         * 403 을 받고, 오류가 "플러그인을 설치하라"로만 나와 배포처 문제로 보이지 않는다.
+         * proxmoxve 는 get.pulumi.com 미등록. 선언 누락 시 런타임 자동 설치가 기본 주소로
+         * 요청해 403 응답. 오류 메시지가 플러그인 설치 요구로만 표시돼 배포처 문제로 식별 불가.
          */
         assertThat(PluginVersions.downloadUrlForType("proxmoxve:index/vmLegacy:VmLegacy"))
                 .isEqualTo("github://api.github.com/muhlba91/pulumi-proxmoxve");

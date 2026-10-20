@@ -76,13 +76,13 @@ class GcpYamlEmitterTest {
 
     @Test
     void disablesAutoSubnetsSoVpcCidrHolds() {
-        // 자동 서브넷은 전 리전에 대역을 잡아 vpcCidr 과 충돌한다.
+        // 자동 서브넷은 전체 리전에 대역을 할당해 vpcCidr 과 충돌.
         assertThat(props("net")).containsEntry("autoCreateSubnetworks", false);
     }
 
     @Test
     void cloudInitGoesToUserDataNotStartupScript() {
-        // startup-script 는 셸만 받아 kubeadm cloud-init 흐름이 깨진다.
+        // startup-script 는 셸만 수용해 kubeadm cloud-init 흐름 실패.
         @SuppressWarnings("unchecked")
         Map<String, Object> metadata = (Map<String, Object>) props("master").get("metadata");
 
@@ -101,7 +101,7 @@ class GcpYamlEmitterTest {
 
     @Test
     void missingProjectFailsBeforePreview() {
-        // 필수 값이 비면 preview 까지 가지 말고 즉시 알린다.
+        // 필수 값 부재 시 preview 도달 전 즉시 통보.
         Map<String, String> cfg = cfg();
         cfg.remove("providerSpec.project");
 

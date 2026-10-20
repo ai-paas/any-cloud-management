@@ -304,10 +304,10 @@ public class AutomationProvisioningService implements ProvisioningService {
     }
 
     /**
-     * 프로바이더 리전이 자격증명에 없으면 요청 리전을 쓴다.
+     * 자격증명에 프로바이더 리전이 없으면 요청 리전 사용.
      *
-     * <p>비워 두면 프로바이더가 자기 기본 리전으로 붙는다. IBM 은 {@code us-south} 라, 도쿄를 골라도
-     * 자원은 us-south 에 생기고 존은 "invalid zone" 으로 거절된다. 리전 선택이 조용히 무시된다.
+     * <p>미지정 시 프로바이더가 자체 기본 리전으로 접속. IBM 기본값은 {@code us-south} 이므로
+     * 도쿄를 선택해도 자원은 us-south 에 생성되고 존은 "invalid zone" 거절. 리전 선택이 무음 무시.
      */
     private void applyProviderRegion(Map<String, ConfigValue> allConfig, ProvisioningRequest request) {
         String region = request.getRegion();
@@ -330,8 +330,8 @@ public class AutomationProvisioningService implements ProvisioningService {
     }
 
     /**
-     * 리소스 정의가 필요 없는 경로(outputs 조회, destroy)용. 빈 YAML 프로그램이면 provider 를 몰라도
-     * 되고, YAML 로 만든 스택과 runtime 이 어긋나지도 않는다.
+     * 리소스 정의가 불필요한 경로(outputs 조회, destroy)용. 빈 YAML 프로그램은 provider 정보가
+     * 불필요하고 YAML 생성 스택과 runtime 도 일치.
      */
     private WorkspaceStack openStackWithoutProgram(
             String stackName, LocalWorkspaceOptions workspaceOpts, Path[] workDirHolder, boolean createIfMissing)

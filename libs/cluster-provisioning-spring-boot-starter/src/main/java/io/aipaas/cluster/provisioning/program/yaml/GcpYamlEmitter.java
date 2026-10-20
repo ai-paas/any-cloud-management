@@ -53,7 +53,7 @@ final class GcpYamlEmitter implements ProviderYamlEmitter {
                         spec.name() + "-net",
                         "project",
                         project,
-                        // 자동 서브넷은 전 리전에 대역을 잡아 vpcCidr 과 충돌한다.
+                        // 자동 서브넷은 전체 리전에 대역을 할당해 vpcCidr 과 충돌.
                         "autoCreateSubnetworks",
                         false));
         b.resource(
@@ -126,7 +126,7 @@ final class GcpYamlEmitter implements ProviderYamlEmitter {
                 List.of(Map.of(
                         "subnetwork", YamlRef.of("subnet", "id"),
                         "accessConfigs", List.of(Map.of("natIp", YamlRef.of("ip-" + node, "address"))))));
-        // GCP 는 cloud-init 을 user-data 키로 읽는다. startup-script 는 셸만 받아 kubeadm 흐름이 깨진다.
+        // GCP 는 cloud-init 을 user-data 키로 조회. startup-script 는 셸만 수용해 kubeadm 흐름 실패.
         instance.put(
                 "metadata",
                 Map.of(
@@ -163,12 +163,12 @@ final class GcpYamlEmitter implements ProviderYamlEmitter {
         }
     }
 
-    /** provider 전용 설정. 다른 CSP 의 spec 이 오면 assembler 가 provider 를 잘못 라우팅한 것이다. */
+    /** provider 전용 설정. 다른 CSP 의 spec 수신은 assembler 의 provider 라우팅 오류. */
     private static ProviderSpec.Gcp gcp(ClusterSpec spec) {
         if (spec.providerSpec() instanceof ProviderSpec.Gcp g) return g;
         throw new IllegalStateException("Gcp 설정이 없다: provider=" + spec.provider());
     }
-    /** 존을 고르지 않으면 리전의 첫 존을 쓴다. GPU 계열은 존마다 제공 여부가 달라 직접 골라야 한다. */
+    /** 존 미지정 시 리전의 첫 존 사용. GPU 계열은 존별 제공 여부가 달라 직접 지정 필요. */
     private String zone(ClusterSpec spec) {
         ProviderSpec.Gcp gcp = spec.providerSpec() instanceof ProviderSpec.Gcp value ? value : null;
         String zone = gcp == null ? null : gcp.zone();

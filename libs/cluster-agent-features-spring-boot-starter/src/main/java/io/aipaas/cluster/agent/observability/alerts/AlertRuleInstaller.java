@@ -98,7 +98,7 @@ public class AlertRuleInstaller {
         return out;
     }
 
-    /** capability 가 필요한 rule-set 을 그 능력이 없는 cluster 에 설치하지 않는다. */
+    /** capability 가 필요한 rule-set 은 해당 능력이 없는 cluster 에 미설치. */
     private boolean supportedBy(String clusterName, AlertRuleSet rs) {
         String required = rs.requiredCapability();
         if (required == null || capabilities == null) {

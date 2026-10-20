@@ -48,7 +48,7 @@ public class AlertRuleCatalog {
 
     // ----- internal -----
 
-    /** {@code metadata.labels.requires-capability} 값. 정규식으로 충분하다. 라벨 한 줄이다. */
+    /** {@code metadata.labels.requires-capability} 값. 라벨 한 줄이라 정규식으로 충분. */
     private static String requiredCapability(String yaml) {
         java.util.regex.Matcher m = REQUIRES_CAPABILITY.matcher(yaml);
         return m.find() ? m.group(1) : null;

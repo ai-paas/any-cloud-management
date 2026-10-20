@@ -47,7 +47,7 @@ final class AwsYamlEmitter implements ProviderYamlEmitter {
         return new StandardOutputs.NodeRefs("sshKey", "vpc", "id", master, workers);
     }
 
-    /** osImage 가 없으면 최신 Ubuntu 24.04 를 찾는다. {@code return: id} 라 변수 자체가 AMI id 문자열이다. */
+    /** osImage 부재 시 최신 Ubuntu 24.04 조회. {@code return: id} 이므로 변수 자체가 AMI id 문자열. */
     private void emitAmiLookup(PulumiProgram.Builder b, ClusterSpec spec) {
         if (spec.osImage() != null && !spec.osImage().isBlank()) {
             return;
@@ -165,7 +165,7 @@ final class AwsYamlEmitter implements ProviderYamlEmitter {
         instance.put("associatePublicIpAddress", true);
         instance.put("rootBlockDevice", Map.of("volumeSize", rootDiskGb(spec), "volumeType", "gp3"));
         instance.put("tags", Map.of("Name", spec.name() + "-" + node));
-        // route table 이 붙기 전에 뜨면 cloud-init 이 패키지 저장소에 닿지 못한다.
+        // route table 연결 전 기동 시 cloud-init 의 패키지 저장소 접근 불가.
         b.resource(node, T_INSTANCE, instance, Map.of("dependsOn", List.of(YamlRef.resource("routeAssoc"))));
 
         return new StandardOutputs.NodeRef(node, "id", "privateIp", node, "publicIp");

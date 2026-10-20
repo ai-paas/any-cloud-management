@@ -45,9 +45,9 @@ public class AgentSessionRegistry {
     private final Map<String, List<AgentSession>> sessionsByCluster = new ConcurrentHashMap<>();
 
     /**
-     * session → 마지막 응답 시각. timeout 이 "끊긴 연결" 인지 "느린 명령" 인지 가르는 유일한 신호다.
+     * session 별 마지막 응답 시각. timeout 이 연결 종료인지 느린 명령인지 판정하는 유일한 신호.
      *
-     * <p>죽은 pod 의 stream 은 TCP keepalive 가 걷어갈 때까지 남아 leader 자리를 차지한다.
+     * <p>종료된 pod 의 stream 은 TCP keepalive 가 정리할 때까지 잔존해 leader 자리를 점유.
      */
     private final Map<AgentSession, Long> lastResponseAt = new ConcurrentHashMap<>();
 
@@ -258,10 +258,10 @@ public class AgentSessionRegistry {
     }
 
     /**
-     * 명령이 시한을 넘겼고 그 사이 이 stream 이 아무 응답도 주지 않았으면 끊어진 것으로 본다.
+     * 명령이 시한을 초과하고 그 구간에 해당 stream 의 응답이 없으면 연결 종료로 판정.
      *
-     * <p>같은 stream 이 다른 명령에는 답하고 있다면 그저 느린 명령이다. 무거운 작업마다 클러스터가
-     * 끊기면 안 되므로 그때는 남겨둔다.
+     * <p>동일 stream 이 다른 명령에 응답 중이면 느린 명령으로 판정. 대용량 작업마다 클러스터
+     * 연결이 끊기지 않도록 유지.
      */
     private void dropIfSilentSince(AgentSession session, long submittedAt) {
         Long answered = lastResponseAt.get(session);
@@ -272,8 +272,8 @@ public class AgentSessionRegistry {
                 "응답 없는 agent stream 을 내림 cluster={} instance={} — 다음 replica 로 넘긴다",
                 session.clusterId(),
                 session.agentInstanceId());
-        // 레지스트리에서만 빼면 agent 는 아직 붙어 있다고 믿는다. 끊은 줄 몰라 다시 연결하지도
-        // 않으므로, 그 클러스터는 pod 가 재시작될 때까지 닿지 않는다.
+        // 레지스트리에서만 제거하면 agent 는 연결 유지 상태로 인식. 종료를 인지하지 못해
+        // 재연결도 수행하지 않으므로 해당 클러스터는 pod 재시작 전까지 접근 불가.
         try {
             session.downstream()
                     .onError(io.grpc.Status.UNAVAILABLE

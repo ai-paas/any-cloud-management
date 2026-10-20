@@ -9,11 +9,11 @@ import org.yaml.snakeyaml.Yaml;
 /**
  * {@code Pulumi.yaml} 프로그램의 트리 표현.
  *
- * <p>문자열을 조립하지 않고 Map/List 트리를 직렬화한다. user-data 처럼 개행과 따옴표가 섞인 값을
- * 문자열로 조립하면 따옴표와 들여쓰기를 사람이 관리하게 되고 반드시 깨진다.
+ * <p>문자열 조립 대신 Map, List 트리를 직렬화. user-data 처럼 개행과 따옴표가 혼재하는 값을
+ * 문자열로 조립하면 따옴표와 들여쓰기를 수동 관리하게 되고 오류 발생.
  *
- * <p>{@link LinkedHashMap} 을 쓰는 이유는 진단이다. 순서가 안정되면 두 스택의 Pulumi.yaml 을
- * diff 해서 차이를 바로 볼 수 있다.
+ * <p>{@link LinkedHashMap} 사용 목적은 진단. 순서가 고정되면 두 스택의 Pulumi.yaml 을 diff 로
+ * 비교 가능.
  */
 public final class PulumiProgram {
 
@@ -30,7 +30,7 @@ public final class PulumiProgram {
     public String toYaml() {
         DumperOptions options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        // 긴 user-data 가 임의 위치에서 접히면 Pulumi 가 읽을 때 값이 달라진다.
+        // 긴 user-data 가 임의 위치에서 줄바꿈되면 Pulumi 읽기 시 값 변형.
         options.setWidth(Integer.MAX_VALUE);
         options.setSplitLines(false);
         return new Yaml(options).dump(document);
@@ -58,7 +58,7 @@ public final class PulumiProgram {
             entry.put("type", type);
             entry.put("properties", new LinkedHashMap<>(properties));
             Map<String, Object> merged = new LinkedHashMap<>(options);
-            // 고정하지 않으면 캐시가 빈 환경에서 그날의 latest 를 받는다.
+            // 미고정 시 캐시가 빈 환경에서 해당 시점 latest 수신.
             String version = pluginVersions.forType(type);
             if (version != null) {
                 merged.putIfAbsent("version", version);
@@ -75,9 +75,9 @@ public final class PulumiProgram {
         }
 
         /**
-         * 사전 컴파일된 플러그인이 없는 provider 선언. {@code terraform-provider} 베이스가 런타임에
-         * OpenTofu provider 를 붙인다. 이 선언만으로는 부족하고 {@code sdks/} 스키마가 옆에 있어야
-         * 타입이 해석된다.
+         * 사전 컴파일된 플러그인이 없는 provider 선언. {@code terraform-provider} 베이스가
+         * 런타임에 OpenTofu provider 를 로드. 이 선언만으로는 부족하며 {@code sdks/} 스키마가
+         * 함께 있어야 타입 해석 가능.
          */
         public Builder pkg(String name, String source, String version, List<String> parameters) {
             Map<String, Object> entry = new LinkedHashMap<>();
@@ -88,7 +88,7 @@ public final class PulumiProgram {
             return this;
         }
 
-        /** provider function 호출 결과처럼 리소스가 아닌 값. {@code ${name.field}} 로 참조한다. */
+        /** provider function 호출 결과 등 리소스가 아닌 값. {@code ${name.field}} 로 참조. */
         public Builder variable(String name, Object value) {
             variables.put(name, value);
             return this;
@@ -109,7 +109,7 @@ public final class PulumiProgram {
             if (!variables.isEmpty()) {
                 doc.put("variables", variables);
             }
-            // 비어도 항상 넣는다. resources 키가 없으면 CLI 가 프로그램으로 인정하지 않는다.
+            // 빈 값이어도 항상 포함. resources 키 부재 시 CLI 가 프로그램으로 인식하지 않음.
             doc.put("resources", resources);
             if (!outputs.isEmpty()) {
                 doc.put("outputs", outputs);

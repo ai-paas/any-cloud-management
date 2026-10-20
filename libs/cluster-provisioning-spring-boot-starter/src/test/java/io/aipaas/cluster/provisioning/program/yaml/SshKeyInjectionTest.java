@@ -10,10 +10,10 @@ import org.junit.jupiter.api.Test;
 import org.yaml.snakeyaml.Yaml;
 
 /**
- * 모든 emitter 가 생성한 공개키를 VM 에 주입하는지 확인한다.
+ * 전체 emitter 의 공개키 VM 주입 여부 검증.
  *
- * <p>주입 위치가 CSP 마다 달라(keyName, metadata, userAccount …) 개별 테스트에서 빠지기 쉽다.
- * 빠지면 VM 은 정상적으로 뜨고 bootstrap 의 SSH 접속만 실패해 원인이 늦게 드러난다.
+ * <p>주입 위치가 CSP 별로 달라(keyName, metadata, userAccount 등) 개별 테스트에서 누락되기 쉬움.
+ * 누락 시 VM 은 정상 기동하고 bootstrap 의 SSH 접속만 실패해 원인 파악 지연.
  */
 class SshKeyInjectionTest {
 

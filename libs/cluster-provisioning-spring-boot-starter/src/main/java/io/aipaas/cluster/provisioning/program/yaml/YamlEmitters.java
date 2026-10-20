@@ -18,13 +18,13 @@ public final class YamlEmitters {
 
     private YamlEmitters() {}
 
-    /** YAML 경로를 지원하는 provider 인지. 나머지는 아직 inline 프로그램으로 돈다. */
+    /** YAML 경로 지원 provider 여부. 그 외는 inline 프로그램으로 실행. */
     public static boolean supports(String provider) {
         String canonical = ProviderName.canonical(provider);
         return EMITTERS.stream().anyMatch(emitter -> emitter.name().equals(canonical));
     }
 
-    /** 등록된 provider 토큰. 계약 검사가 emitter 를 빠뜨리지 않도록 목록을 노출한다. */
+    /** 등록된 provider 토큰. 계약 검사의 emitter 누락 방지를 위해 목록 노출. */
     public static List<String> supported() {
         return EMITTERS.stream().map(ProviderYamlEmitter::name).sorted().toList();
     }

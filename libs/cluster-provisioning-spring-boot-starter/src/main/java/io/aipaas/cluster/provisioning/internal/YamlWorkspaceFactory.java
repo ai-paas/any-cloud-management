@@ -17,8 +17,8 @@ public final class YamlWorkspaceFactory {
     private static final String PROGRAM_FILE = "Pulumi.yaml";
 
     /**
-     * 사전 컴파일된 플러그인이 없는 provider(IBM 등)의 스키마 위치. 프로그램 옆에 {@code sdks/} 로
-     * 있어야 타입이 해석된다. 이미지 빌드 때 만들어 두고 여기서 복사한다.
+     * 사전 컴파일된 플러그인이 없는 provider(IBM 등)의 스키마 위치. 프로그램과 같은 위치의
+     * {@code sdks/} 에 있어야 타입 해석 가능. 이미지 빌드 시 생성하고 이 지점에서 복사.
      */
     private static final String SDK_DIR = "sdks";
 
@@ -39,7 +39,7 @@ public final class YamlWorkspaceFactory {
         }
     }
 
-    /** 스키마가 없으면 해당 provider 만 실패한다. 나머지 provider 의 프로비저닝은 막지 않는다. */
+    /** 스키마 부재 시 해당 provider 만 실패. 다른 provider 의 프로비저닝은 차단하지 않음. */
     private static void copySdks(Path workDir) {
         String configured = System.getenv(SDK_SOURCE_ENV);
         Path source = Path.of(configured == null || configured.isBlank() ? SDK_SOURCE_DEFAULT : configured);

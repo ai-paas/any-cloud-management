@@ -14,10 +14,10 @@ public final class KubeadmUserData {
     }
 
     /**
-     * cloud-init 을 거치지 않고 노드에서 직접 돌릴 때 쓴다.
+     * cloud-init 경유 없이 노드에서 직접 실행할 때 사용.
      *
-     * <p>Proxmox API 가 snippets 업로드를 받지 않아 user-data 를 전달할 방법이 없다. 같은 스크립트를
-     * SSH 로 실행하므로 설치 내용은 한 벌로 유지된다.
+     * <p>Proxmox API 가 snippets 업로드를 지원하지 않아 user-data 전달 수단 부재. 동일 스크립트를
+     * SSH 로 실행하므로 설치 내용은 단일 소스 유지.
      */
     public static String forRole(String kubernetesVersion, String role) {
         boolean master = "master".equalsIgnoreCase(role);

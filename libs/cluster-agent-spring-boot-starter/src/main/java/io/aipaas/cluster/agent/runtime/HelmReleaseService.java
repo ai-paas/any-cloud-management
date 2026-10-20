@@ -16,17 +16,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Helm 작업을 agent gRPC stream 으로 넘기는 facade 입니다. {@link KubeResourceService} 와 같은
- * 패턴이고, 호스트는 이 service 만 부르면 됩니다.
+ * Helm 작업을 agent gRPC stream 으로 전달하는 facade. {@link KubeResourceService} 와 동일 패턴
+ * 이며 호스트는 이 service 만 호출.
  *
- * <p>실제 실행은 cluster 안의 agent 가 Helm SDK 로 합니다. 따라서 chart repository 는 backend 가
- * 아니라 cluster 에서 닿을 수 있어야 합니다.
+ * <p>실제 실행은 cluster 내 agent 가 Helm SDK 로 수행. 따라서 chart repository 는 backend 가
+ * 아닌 cluster 에서 접근 가능해야 함.
  *
- * <p>chart 이름, 버전 범위, namespace 는 agent 의 allowlist 가 검증합니다. 기본값은 전부 거부라
- * 호스트가 허용 목록을 넣기 전에는 아무것도 설치되지 않습니다.
+ * <p>chart 이름, 버전 범위, namespace 는 agent 의 allowlist 가 검증. 기본값이 전체 거부이므로
+ * 호스트가 허용 목록을 등록하기 전에는 설치 불가.
  *
- * <p>세션이 없으면 {@code isActiveFor} 가 false 입니다. 호출자가 그 상황을 어떻게 다룰지 정해야
- * 합니다.
+ * <p>세션 부재 시 {@code isActiveFor} 가 false. 해당 상황의 처리는 호출자 책임.
  *
  * @see KubeResourceService K8s 작업의 같은 패턴
  */

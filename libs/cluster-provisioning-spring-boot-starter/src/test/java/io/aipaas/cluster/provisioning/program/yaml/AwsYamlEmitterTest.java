@@ -9,7 +9,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.yaml.snakeyaml.Yaml;
 
-/** AWS YAML 프로그램 회귀 보호. 타입 토큰과 참조 형태는 CLI 가 preview 에서만 잡아준다. */
+/** AWS YAML 프로그램 회귀 보호. 타입 토큰과 참조 형태는 CLI 의 preview 에서만 검출. */
 class AwsYamlEmitterTest {
 
     private ClusterSpec spec() {
@@ -64,7 +64,7 @@ class AwsYamlEmitterTest {
 
     @Test
     void usesSchemaVerifiedTypeTokens() {
-        // 토큰이 틀리면 preview 에서 "resolving type" 으로 죽는다. 스키마로 확인한 값이다.
+        // 토큰 불일치 시 preview 가 "resolving type" 으로 실패. 스키마 확인 값.
         assertThat(type("vpc")).isEqualTo("aws:ec2/vpc:Vpc");
         assertThat(type("subnet")).isEqualTo("aws:ec2/subnet:Subnet");
         assertThat(type("secgroup")).isEqualTo("aws:ec2/securityGroup:SecurityGroup");
@@ -75,7 +75,7 @@ class AwsYamlEmitterTest {
     @Test
     @SuppressWarnings("unchecked")
     void amiVariableIsAlreadyAnIdString() {
-        // return: id 를 쓰므로 변수 자체가 문자열이다. ${ami.id} 로 쓰면 preview 가 거부한다.
+        // return: id 사용이므로 변수 자체가 문자열. ${ami.id} 사용 시 preview 거부.
         Map<String, Object> variables = (Map<String, Object>) doc().get("variables");
 
         assertThat(variables).containsKey("ami");
@@ -108,7 +108,7 @@ class AwsYamlEmitterTest {
 
     @Test
     void nodesWaitForRouteAssociation() {
-        // route table 이 붙기 전에 뜨면 cloud-init 이 패키지 저장소에 닿지 못한다.
+        // route table 연결 전 기동 시 cloud-init 의 패키지 저장소 접근 불가.
         @SuppressWarnings("unchecked")
         Map<String, Object> resources = (Map<String, Object>) doc().get("resources");
         @SuppressWarnings("unchecked")

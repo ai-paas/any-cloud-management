@@ -29,7 +29,7 @@ public class ProvisionEventBus {
         }
     }
 
-    /** Subscribe: multicast 이므로 여러 subscriber 가 같은 stream 을 받는다. */
+    /** Subscribe. multicast 이므로 여러 subscriber 가 동일 stream 수신. */
     public Flux<ProvisionEvent> asFlux() {
         return sink.asFlux();
     }

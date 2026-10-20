@@ -91,8 +91,8 @@ public class VeleroInstallerImpl implements VeleroInstaller {
             throw new BackupException("VELERO_INSTALL_FAILED", "helm install velero failed: " + e.getMessage(), e);
         }
 
-        // Velero 설치 성공 시 자동 정책 install. 정책 install 실패는 helm install 자체의 성공을 무효화하지 않는다.
-        // warn log 후 진행. host 가 후속으로 수동 install 가능.
+        // Velero 설치 성공 시 정책 자동 install. 정책 install 실패는 helm install 성공 판정에
+        // 영향 없음. warn 로그 기록 후 진행하며 host 가 이후 수동 install 가능.
         if (autoInstallPolicies && policyInstaller != null) {
             try {
                 var results = policyInstaller.installAll(clusterName, ns);

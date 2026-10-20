@@ -112,9 +112,9 @@ final class OpenstackYamlEmitter implements ProviderYamlEmitter {
         rule(b, spec, "nodeport", "tcp", K8sConstants.NODE_PORT_MIN, K8sConstants.NODE_PORT_MAX, "0.0.0.0/0");
         rule(b, spec, "intra-tcp", "tcp", 1, 65535, spec.vpcCidr());
         rule(b, spec, "intra-udp", "udp", 1, 65535, spec.vpcCidr());
-        // Calico 기본값 ipipMode=Always 는 노드 간 파드 트래픽을 IP protocol 4 로 감싼다. TCP/UDP 만
-        // 열면 캡슐이 전부 버려져 파드가 다른 노드의 CoreDNS 에 닿지 못하고, 노드는 Ready 라
-        // 클러스터가 정상으로 보인다. VXLAN 으로 바꿔도 intra-udp 가 4789 를 이미 덮는다.
+        // Calico 기본값 ipipMode=Always 는 노드 간 파드 트래픽을 IP protocol 4 로 캡슐화.
+        // TCP, UDP 만 개방하면 캡슐이 전부 폐기돼 파드의 다른 노드 CoreDNS 접근이 불가하고,
+        // 노드는 Ready 라 클러스터가 정상으로 표시. VXLAN 전환 시에도 intra-udp 가 4789 포함.
         rule(b, spec, "calico-ipip", IP_PROTO_IPIP, 1, 65535, spec.vpcCidr());
     }
 
@@ -128,8 +128,8 @@ final class OpenstackYamlEmitter implements ProviderYamlEmitter {
         props.put("direction", "ingress");
         props.put("ethertype", "IPv4");
         props.put("protocol", proto);
-        // OpenStack 은 1-65535 를 "전체 포트"(범위 없음)로 정규화해 저장한다. 명시하면 읽어온 값과
-        // 항상 달라 매 up 마다 replace 를 시도하고, delete 전에 create 해서 409 로 실패한다.
+        // OpenStack 은 1-65535 를 전체 포트(범위 없음)로 정규화해 저장. 명시하면 조회 값과 항상
+        // 달라 매 up 마다 replace 를 시도하고, delete 전에 create 해 409 실패.
         if (!isFullPortRange(from, to)) {
             props.put("portRangeMin", from);
             props.put("portRangeMax", to);
@@ -165,7 +165,7 @@ final class OpenstackYamlEmitter implements ProviderYamlEmitter {
         b.resource(node, T_INSTANCE, instance);
 
         b.resource("fip-" + node, T_FLOATING_IP, Map.of("pool", os(spec).floatingIpPool(), "region", spec.region()));
-        // 스키마의 FloatingIpAssociate 는 portId 만 받는다. instanceId 라는 속성은 없다.
+        // 스키마의 FloatingIpAssociate 는 portId 만 수용. instanceId 속성 미존재.
         b.resource(
                 "fipassoc-" + node,
                 T_FIP_ASSOCIATE,
@@ -197,14 +197,14 @@ final class OpenstackYamlEmitter implements ProviderYamlEmitter {
         return cidrs == null || cidrs.isEmpty() ? spec.vpcCidr() : cidrs.get(0);
     }
 
-    /** preview 까지 가지 말고 즉시 실패한다. 원인이 스택 로그에 묻히면 진단이 오래 걸린다. */
+    /** preview 도달 전 즉시 실패. 원인이 스택 로그에 묻히면 진단 지연. */
     private static void requireConfig(String value, String key) {
         if (value == null || value.isBlank()) {
             throw new IllegalStateException(key + " is required for OpenStack provisioning");
         }
     }
 
-    /** provider 전용 설정. 다른 CSP 의 spec 이 오면 assembler 가 provider 를 잘못 라우팅한 것이다. */
+    /** provider 전용 설정. 다른 CSP 의 spec 수신은 assembler 의 provider 라우팅 오류. */
     private static ProviderSpec.Openstack os(ClusterSpec spec) {
         if (spec.providerSpec() instanceof ProviderSpec.Openstack os) return os;
         throw new IllegalStateException("Openstack 설정이 없다: provider=" + spec.provider());
