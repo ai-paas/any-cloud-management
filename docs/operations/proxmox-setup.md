@@ -297,4 +297,4 @@ cloud 이미지의 기본 사용자와 다르면 접속이 거부됩니다. Ubun
 
 - [provider-credential-matrix.md](../api/provider-credential-matrix.md) — CSP 별 자격증명과 필수 설정
 - [v1-reference.md](../api/v1-reference.md) — VM 생성 요청 형태
-- [pulumi-yaml-migration.md](../architecture/pulumi/pulumi-yaml-migration.md) — provider 별 emitter 설계
+- [cluster-provisioning-starter.md](../architecture/starters/cluster-provisioning-starter.md) — provider 별 emitter 구조

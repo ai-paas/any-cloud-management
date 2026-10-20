@@ -20,9 +20,9 @@ dispatch 위에 **RBAC / Backup / Observability** 3 feature 를 한 artifact 으
 
 | Sub-feature | 책임 | 상세 |
 |---|---|---|
-| **RBAC** | OIDC group → K8s ClusterRoleBinding orchestration. Caffeine TTL fleet view + informer push event. | [cluster-agent-rbac-starter.md](./cluster-agent-rbac-starter.md) |
-| **Backup** | Velero install + schedule. etcd snapshot + PKI backup (control-plane 노드 1대 host network). | [cluster-agent-backup-starter.md](./cluster-agent-backup-starter.md) |
-| **Observability** | PromQL passthrough. alert rule 설치 (in-cluster Prometheus operator). Grafana dashboard URL 조회. | [cluster-agent-observability-starter.md](./cluster-agent-observability-starter.md) |
+| **RBAC** | OIDC group → K8s ClusterRoleBinding orchestration. Caffeine TTL fleet view + informer push event. | [cluster-agent-rbac-feature.md](./cluster-agent-rbac-feature.md) |
+| **Backup** | Velero install + schedule. etcd snapshot + PKI backup (control-plane 노드 1대 host network). | [cluster-agent-backup-feature.md](./cluster-agent-backup-feature.md) |
+| **Observability** | PromQL passthrough. alert rule 설치 (in-cluster Prometheus operator). Grafana dashboard URL 조회. | [cluster-agent-observability-feature.md](./cluster-agent-observability-feature.md) |
 
 ## AutoConfiguration
 
