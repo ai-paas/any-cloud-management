@@ -4,22 +4,22 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * CSP 전용 설정. 공통 {@link ClusterSpec} 은 provider 이름만 알고 내부는 모른다.
+ * CSP 전용 설정. 공통 {@link ClusterSpec} 은 provider 이름만 보유하고 내부 구조는 미인지.
  *
- * <p>평면 접두 키(provider 무관하게 나열)는 잘못된 조합을 막지 못하고 provider 별 독립 진화도
- * 안 된다. {@code provider=aws} 인데 openstack 필드를 채워도 통과한다. sealed 로 닫아 emitter 가
- * 자기 타입만 받게 한다.
+ * <p>평면 접두 키(provider 무관 나열)는 잘못된 조합을 차단하지 못하고 provider 별 독립 확장도
+ * 불가. {@code provider=aws} 상태에서 openstack 필드를 채워도 통과. sealed 로 닫아 emitter 가
+ * 자기 타입만 수용.
  *
- * <p>provider 전용 설정이 없는 CSP(AWS 등)는 {@code null} 이다.
+ * <p>provider 전용 설정이 없는 CSP(AWS 등)는 {@code null}.
  */
 public sealed interface ProviderSpec {
 
-    /** 설정 키 접두. {@code providerSpec.imageName} 처럼 중첩을 평면 map 에 담는다. */
+    /** 설정 키 접두. {@code providerSpec.imageName} 형태로 중첩 구조를 평면 map 에 저장. */
     String PREFIX = "providerSpec.";
 
     /**
-     * @param zone 비우면 {@code region-a}. 계열마다 제공 존이 달라 GPU 는 존을 골라야 한다.
-     *     a2-highgpu 는 리전에 있어도 -a 존에서는 만들지 못하는 경우가 있다
+     * @param zone 미지정 시 {@code region-a}. 계열별 제공 존이 달라 GPU 는 존 지정 필요.
+     *     a2-highgpu 는 리전에 있어도 -a 존에서 생성 불가한 경우 존재
      */
     record Gcp(String project, String zone) implements ProviderSpec {}
 
@@ -30,9 +30,9 @@ public sealed interface ProviderSpec {
     /**
      * Alibaba Cloud ECS.
      *
-     * @param zone VSwitch 가 zone 단위라 리전만으로는 서브넷을 만들 수 없다 (예: ap-northeast-2a).
-     *     계정과 인스턴스 타입마다 쓸 수 있는 zone 이 달라 리전에서 유도하지 않는다. 자동으로
-     *     고르면 재고 없음이 엉뚱한 오류로 나온다
+     * @param zone VSwitch 가 zone 단위이므로 리전만으로 서브넷 생성 불가 (예: ap-northeast-2a).
+     *     계정과 인스턴스 타입별 사용 가능 zone 이 달라 리전에서 유도하지 않음. 자동 선택 시
+     *     재고 없음이 다른 오류로 표시
      */
     record Alibaba(String zone) implements ProviderSpec {}
 
@@ -40,20 +40,20 @@ public sealed interface ProviderSpec {
             implements ProviderSpec {}
 
     /**
-     * Proxmox 는 VPC, 서브넷, 보안그룹이 없다. 노드 위에 VM 을 올리고 기존 브리지에 붙인다.
+     * Proxmox 는 VPC, 서브넷, 보안그룹 개념 부재. 노드 위에 VM 을 생성하고 기존 브리지에 연결.
      *
-     * @param nodeName 배치할 PVE 노드. 클러스터라도 노드를 지정해야 한다
-     * @param datastoreId 디스크와 cloud-init 디스크를 만들 datastore. 블록 스토리지여야 한다
-     * @param imageDatastoreId 내려받은 cloud 이미지를 둘 datastore. import content type 을 받는
-     *     디렉터리 스토리지여야 해서 {@code datastoreId} 와 같은 곳을 쓸 수 없다
-     * @param networkBridge 붙일 브리지 (예: vmbr0)
-     * @param nodeIps 노드에 고정할 IPv4 주소. master 가 먼저고 worker 가 뒤따른다. 비우면 DHCP 인데,
-     *     cloud 이미지에 {@code qemu-guest-agent} 가 없어 받은 주소를 알아낼 방법이 없다
-     * @param gateway 고정 주소를 쓸 때의 기본 게이트웨이
+     * @param nodeName 배치할 PVE 노드. 클러스터 구성에서도 노드 지정 필요
+     * @param datastoreId 디스크와 cloud-init 디스크 생성용 datastore. 블록 스토리지 필요
+     * @param imageDatastoreId 수신한 cloud 이미지 저장용 datastore. import content type 을
+     *     허용하는 디렉터리 스토리지가 필요하므로 {@code datastoreId} 와 동일 지정 불가
+     * @param networkBridge 연결할 브리지 (예: vmbr0)
+     * @param nodeIps 노드에 고정할 IPv4 주소. master 선행, worker 후행. 미지정 시 DHCP 이나
+     *     cloud 이미지에 {@code qemu-guest-agent} 가 없어 할당 주소 조회 불가
+     * @param gateway 고정 주소 사용 시 기본 게이트웨이
      * @param subnetPrefix 고정 주소의 prefix 길이 (예: 24)
-     * @param dnsServers 쉼표로 이은 DNS 주소. 노드가 apt, 레지스트리로 나가야 한다
-     * @param sshHost 부트스트랩이 붙을 주소. NAT 뒤라 노드 IP 로 직접 닿지 않을 때만 쓴다
-     * @param sshPorts {@code sshHost} 의 포트. {@code nodeIps} 와 같은 순서여야 한다
+     * @param dnsServers 쉼표로 구분한 DNS 주소. 노드의 apt, 레지스트리 접근에 필요
+     * @param sshHost 부트스트랩 접속 주소. NAT 뒤라 노드 IP 직접 접근이 불가할 때만 사용
+     * @param sshPorts {@code sshHost} 의 포트. {@code nodeIps} 와 동일 순서 필요
      */
     record Proxmox(
             String nodeName,
@@ -68,12 +68,12 @@ public sealed interface ProviderSpec {
             List<Integer> sshPorts)
             implements ProviderSpec {
 
-        /** 고정 주소를 쓰는지. 하나라도 있으면 전부 지정된 것으로 본다. preflight 가 개수를 검증한다. */
+        /** 고정 주소 사용 여부. 하나라도 있으면 전체 지정으로 판정. 개수 검증은 preflight 담당. */
         public boolean usesStaticAddressing() {
             return nodeIps != null && !nodeIps.isEmpty();
         }
 
-        /** {@code sshHost} 가 없으면 노드 주소로 직접 붙는다. */
+        /** {@code sshHost} 부재 시 노드 주소로 직접 접속. */
         public String sshHostOr(String nodeIp) {
             return sshHost == null || sshHost.isBlank() ? nodeIp : sshHost;
         }
@@ -96,9 +96,9 @@ public sealed interface ProviderSpec {
     record Ibm(String zone, String resourceGroup) implements ProviderSpec {}
 
     /**
-     * config map 에서 provider 에 맞는 spec 을 만든다. 인식하지 못하는 provider 는 {@code null}.
+     * config map 에서 provider 에 해당하는 spec 생성. 미인식 provider 는 {@code null}.
      *
-     * @param lookup 키 하나를 읽는 함수. 호출자가 namespace 접두 처리를 소유한다.
+     * @param lookup 키 단건 조회 함수. namespace 접두 처리는 호출자 책임
      */
     static ProviderSpec from(String provider, java.util.function.Function<String, String> lookup) {
         if (provider == null) {

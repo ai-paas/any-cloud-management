@@ -10,9 +10,9 @@ import java.util.Map;
 /**
  * 표준 stack output 조립: {@code AbstractKubeadmProvisioner.assembleOutputs} 의 YAML 등가물.
  *
- * <p>여기 키 목록이 {@code ProvisioningService.stackOutputs()} 의 계약이다. anycloud 의
+ * <p>이 키 목록이 {@code ProvisioningService.stackOutputs()} 의 계약. anycloud 의
  * {@code ProvisioningResultMapper}, {@code VmClusterNodeResolver},
- * {@code VmClusterPayloadServiceImpl} 이 이 이름으로 읽는다. 하나라도 바뀌면 소비자가 깨진다.
+ * {@code VmClusterPayloadServiceImpl} 이 이 이름으로 조회. 변경 시 소비자 동작 실패.
  */
 public final class StandardOutputs {
 
@@ -21,8 +21,8 @@ public final class StandardOutputs {
     /**
      * 인스턴스 하나의 YAML 리소스 이름과 속성 경로.
      *
-     * <p>IP 가 리소스별로 따로인 이유: OpenStack 은 floating IP 가, Azure 는 private IP 가 인스턴스가
-     * 아니라 별도 리소스에 붙는다. 인스턴스를 가리키면 값이 비어 나온다.
+     * <p>IP 를 리소스별로 분리한 이유. OpenStack 의 floating IP 와 Azure 의 private IP 는
+     * 인스턴스가 아닌 별도 리소스에 연결. 인스턴스를 참조하면 빈 값 반환.
      */
     public record NodeRef(
             String resource,
@@ -65,10 +65,10 @@ public final class StandardOutputs {
         }
 
         /**
-         * 주소를 요청에서 정한 CSP 용.
+         * 요청에서 주소를 지정하는 CSP 용.
          *
-         * <p>Proxmox 는 cloud 이미지에 {@code qemu-guest-agent} 가 없어 인스턴스에게 주소를 물을 수
-         * 없다. 고정 주소를 넣었으므로 그 값을 그대로 쓴다.
+         * <p>Proxmox 는 cloud 이미지에 {@code qemu-guest-agent} 가 없어 인스턴스 주소 조회 불가.
+         * 고정 주소를 지정했으므로 해당 값 사용.
          */
         public static NodeRef literal(
                 String resource, String instanceIdProperty, String privateIp, String publicIp, int sshPort) {
@@ -105,7 +105,7 @@ public final class StandardOutputs {
                 .output("masterInstanceId", refs.master().instanceId())
                 .output("masterPublicIp", masterPublicIp)
                 .output("masterPrivateIp", refs.master().privateIp())
-                // 현재 구현이 publicIp 를 그대로 넣는다. 계약 유지가 목적이라 동작을 바꾸지 않는다.
+                // 현재 구현은 publicIp 를 그대로 사용. 계약 유지가 목적이므로 동작 변경 없음.
                 .output("masterPublicDns", masterPublicIp)
                 .output("apiServerUrl", "https://" + masterPublicIp + ":" + K8sConstants.PORT_KUBE_API_SERVER)
                 /*
@@ -124,7 +124,7 @@ public final class StandardOutputs {
         return sshCommand(spec, publicIp, K8sConstants.PORT_SSH);
     }
 
-    /** 포트를 붙이는 쪽은 NAT 뒤 노드다. 기본 포트면 인자를 넣지 않아 기존 출력과 같은 모양을 유지한다. */
+    /** 포트 지정 대상은 NAT 뒤 노드. 기본 포트면 인자를 생략해 기존 출력 형태 유지. */
     private static String sshCommand(ClusterSpec spec, String publicIp, int sshPort) {
         String port = sshPort == K8sConstants.PORT_SSH ? "" : "-p " + sshPort + " ";
         return "ssh " + port + "-i ./secrets/" + spec.name() + ".pem " + spec.sshUser() + "@" + publicIp;
@@ -136,9 +136,9 @@ public final class StandardOutputs {
     }
 
     /**
-     * 배열 그대로 내보내면 안 된다. {@code WorkspaceStack.up} 이 내부에서 호출하는
-     * {@code getStackOutputs} 가 문자열을 기대해 gson 단계에서 죽는다. YAML 경로도 SDK 를 거친다.
-     * 소비자({@code VmClusterNodeResolver})는 배열과 JSON 문자열을 모두 받는다.
+     * 배열 그대로 출력 금지. {@code WorkspaceStack.up} 이 내부 호출하는
+     * {@code getStackOutputs} 가 문자열을 기대해 gson 단계에서 실패. YAML 경로도 SDK 경유.
+     * 소비자({@code VmClusterNodeResolver})는 배열과 JSON 문자열 모두 수용.
      */
     private static List<Map<String, Object>> nodes(ClusterSpec spec, NodeRefs refs) {
         List<Map<String, Object>> nodes = new ArrayList<>(1 + refs.workers().size());
@@ -149,7 +149,7 @@ public final class StandardOutputs {
         return nodes;
     }
 
-    /** 키 이름은 {@code AbstractKubeadmProvisioner.nodeEntry} 와 같아야 한다. */
+    /** 키 이름은 {@code AbstractKubeadmProvisioner.nodeEntry} 와 동일 필요. */
     private static Map<String, Object> nodeEntry(ClusterSpec spec, String role, NodeRef ref) {
         String publicIp = ref.publicIp();
         Map<String, Object> entry = new LinkedHashMap<>();
@@ -158,7 +158,7 @@ public final class StandardOutputs {
         entry.put("privateIp", ref.privateIp());
         entry.put("publicIp", publicIp);
         entry.put("publicDns", publicIp);
-        // 22 가 아닌 노드는 부트스트랩과 웹 콘솔이 이 값을 봐야 한다. 없으면 22 로 붙는다.
+        // 22 가 아닌 노드는 부트스트랩과 웹 콘솔이 이 값을 참조. 부재 시 22 로 접속.
         entry.put("sshPort", ref.sshPort());
         entry.put("ssh", sshCommand(spec, publicIp, ref.sshPort()));
         return entry;

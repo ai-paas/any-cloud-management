@@ -59,7 +59,7 @@ class OpenstackYamlEmitterTest {
 
     @Test
     void typeTokensMatchProviderSchema() {
-        // 스키마에서 확인한 값이다. 틀리면 preview 에서 unknown resource type 으로 드러난다.
+        // 스키마 확인 값. 불일치 시 preview 에서 unknown resource type 으로 검출.
         Map<String, Object> res = resourcesOf(spec(1));
 
         assertThat(typeOf(res, "net")).isEqualTo("openstack:networking/network:Network");
@@ -94,7 +94,7 @@ class OpenstackYamlEmitterTest {
 
     @Test
     void floatingIpAssociatesWithPortNotInstance() {
-        // 스키마의 FloatingIpAssociate 는 portId 만 받는다. instanceId 는 존재하지 않는 속성이다.
+        // 스키마의 FloatingIpAssociate 는 portId 만 수용. instanceId 는 미존재 속성.
         Map<String, Object> props = propsOf(resourcesOf(spec(1)), "fipassoc-master");
 
         assertThat(props).containsKey("portId");
@@ -104,7 +104,7 @@ class OpenstackYamlEmitterTest {
 
     @Test
     void masterUserDataIsEmbedded() {
-        // kubeadm 스크립트가 인스턴스에 들어가지 않으면 클러스터가 만들어지지 않는다.
+        // kubeadm 스크립트 미주입 시 클러스터 생성 불가.
         Map<String, Object> props = propsOf(resourcesOf(spec(1)), "master");
 
         assertThat((String) props.get("userData")).contains("kubeadm").contains("#!/bin/bash");
@@ -115,13 +115,13 @@ class OpenstackYamlEmitterTest {
         Map<String, Object> res = resourcesOf(spec(1));
         String yaml = new Yaml().dump(res);
 
-        // SSH, kube-apiserver, NodePort 범위가 없으면 클러스터에 접근할 수 없다.
+        // SSH, kube-apiserver, NodePort 범위 부재 시 클러스터 접근 불가.
         assertThat(yaml).contains("22").contains("6443").contains("30000").contains("32767");
     }
 
     @Test
     void requiresExternalNetworkId() {
-        // 없으면 floating IP 를 붙일 수 없다. preview 까지 가지 말고 즉시 실패해야 한다.
+        // 부재 시 floating IP 연결 불가. preview 도달 전 즉시 실패 필요.
         Map<String, String> cfg = new HashMap<>();
         cfg.put("provider", "openstack");
         cfg.put("name", "demo");
@@ -148,7 +148,7 @@ class OpenstackYamlEmitterTest {
     @Test
     @SuppressWarnings("unchecked")
     void dependsOnReferencesResourceNotProperty() {
-        // ${res.id} 를 넘기면 Pulumi 가 "to must be a struct type" 으로 panic 한다.
+        // ${res.id} 전달 시 Pulumi 가 "to must be a struct type" 으로 panic.
         Map<String, Object> res = resourcesOf(spec(1));
         Map<String, Object> options =
                 (Map<String, Object>) ((Map<String, Object>) res.get("port-master")).get("options");
@@ -160,8 +160,8 @@ class OpenstackYamlEmitterTest {
     @Test
     @SuppressWarnings("unchecked")
     void fullRangeRulesOmitPortRange() {
-        // OpenStack 은 1-65535 를 "범위 없음" 으로 정규화한다. 명시하면 매 up 마다 replace 를
-        // 시도하고 delete 전에 create 해서 409 로 실패한다. 두 번째 up 이 항상 깨진다.
+        // OpenStack 은 1-65535 를 범위 없음으로 정규화. 명시하면 매 up 마다 replace 를 시도하고
+        // delete 전에 create 해 409 실패. 두 번째 up 이 항상 실패.
         Map<String, Object> res = resourcesOf(spec(1));
 
         for (String id : List.of("sgrule-intra-tcp", "sgrule-intra-udp")) {
@@ -181,8 +181,8 @@ class OpenstackYamlEmitterTest {
 
     @Test
     void securityGroup_allowsIpipForCalicoOverlay() {
-        // Calico 기본값 ipipMode=Always. protocol 4 를 막으면 노드 간 파드 트래픽이 통째로 사라지고
-        // 파드가 다른 노드의 CoreDNS 에 닿지 못한다. 노드는 Ready 라 증상이 늦게 드러난다.
+        // Calico 기본값 ipipMode=Always. protocol 4 차단 시 노드 간 파드 트래픽 전체가 소실되고
+        // 파드의 다른 노드 CoreDNS 접근 불가. 노드는 Ready 상태라 증상 검출이 지연.
         Map<String, Object> props = propsOf(resourcesOf(spec(1)), "sgrule-calico-ipip");
 
         assertThat(props).containsEntry("protocol", "4");
@@ -192,7 +192,7 @@ class OpenstackYamlEmitterTest {
 
     @Test
     void securityGroup_ipipRuleOmitsPortRange() {
-        // IPIP 에는 포트 개념이 없다. 전체 범위를 명시하면 OpenStack 이 정규화해 매 up 마다 replace 한다.
+        // IPIP 는 포트 개념 부재. 전체 범위 명시 시 OpenStack 이 정규화해 매 up 마다 replace.
         Map<String, Object> props = propsOf(resourcesOf(spec(1)), "sgrule-calico-ipip");
 
         assertThat(props).doesNotContainKey("portRangeMin");

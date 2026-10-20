@@ -12,9 +12,9 @@ import java.util.Map;
 /**
  * IBM Cloud VPC 리소스를 YAML 로 생성.
  *
- * <p>다른 CSP 와 달리 사전 컴파일된 Pulumi 플러그인이 없다. {@code terraform-provider} 베이스가
- * OpenTofu 레지스트리의 provider 를 런타임에 붙인다. 그래서 프로그램에 {@code packages} 선언이
- * 필요하고, 이미지에 플러그인을 미리 넣어 둘 수 없다.
+ * <p>다른 CSP 와 달리 사전 컴파일된 Pulumi 플러그인 부재. {@code terraform-provider} 베이스가
+ * OpenTofu 레지스트리의 provider 를 런타임에 로드. 따라서 프로그램에 {@code packages} 선언이
+ * 필요하고 이미지에 플러그인 사전 포함 불가.
  */
 final class IbmYamlEmitter implements ProviderYamlEmitter {
 
@@ -31,7 +31,7 @@ final class IbmYamlEmitter implements ProviderYamlEmitter {
 
     private static final String F_GET_IMAGE = "ibm:index/getIsImage:getIsImage";
 
-    /** Dockerfile 의 IBM_PACKAGE, 그리고 이미지에 구워 둔 스키마와 같은 좌표여야 한다. */
+    /** Dockerfile 의 IBM_PACKAGE 및 이미지에 포함한 스키마와 동일 좌표 필요. */
     private static final String TF_BASE_VERSION = "1.4.0";
 
     private static final String TF_PARAMETER = "ibm-cloud/ibm";
@@ -73,9 +73,9 @@ final class IbmYamlEmitter implements ProviderYamlEmitter {
 
     private void emitNetwork(PulumiProgram.Builder b, ClusterSpec spec, ProviderSpec.Ibm ibm) {
         /*
-         * 기본값(auto)으로 두면 IBM 이 자기 대역(10.240.0.0/18 등)으로 주소 접두사를 만든다.
-         * 요청한 vpcCidr 은 그 안에 들어가지 않아 서브넷 생성이 "CIDR does not fit in any of the
-         * address prefixes" 로 거절된다. 접두사를 직접 만들어 요청한 대역을 쓴다.
+         * 기본값(auto) 사용 시 IBM 이 자체 대역(10.240.0.0/18 등)으로 주소 접두사 생성.
+         * 요청한 vpcCidr 이 해당 범위에 포함되지 않아 서브넷 생성이 "CIDR does not fit in any
+         * of the address prefixes" 로 거절. 접두사를 직접 생성해 요청 대역 사용.
          */
         b.resource(
                 "vpc",
@@ -91,7 +91,7 @@ final class IbmYamlEmitter implements ProviderYamlEmitter {
                         "zone", ibm.zone(),
                         "cidr", spec.vpcCidr()));
 
-        // 인터넷 egress 가 없으면 cloud-init 이 패키지 저장소에 닿지 못한다.
+        // 인터넷 egress 부재 시 cloud-init 의 패키지 저장소 접근 불가.
         b.resource(
                 "gateway",
                 T_PUBLIC_GATEWAY,
@@ -141,15 +141,15 @@ final class IbmYamlEmitter implements ProviderYamlEmitter {
                 T_SECURITY_GROUP_RULE,
                 rule("inbound", "0.0.0.0/0", "tcp", K8sConstants.NODE_PORT_MIN, K8sConstants.NODE_PORT_MAX));
         /*
-         * 노드 간 파드 트래픽(Calico VXLAN, UDP 4789)과 kubelet, etcd 를 한 번에 연다.
+         * 노드 간 파드 트래픽(Calico VXLAN, UDP 4789)과 kubelet, etcd 를 함께 개방.
          *
-         * IP-in-IP 는 이 규칙으로도 통하지 않는다. IBM VPC 패브릭이 프로토콜 4 를 아예 전달하지
-         * 않아 보안그룹과 무관하게 버려진다. 그래서 부트스트랩이 VXLAN 을 쓴다.
+         * IP-in-IP 는 이 규칙으로도 통과 불가. IBM VPC 패브릭이 프로토콜 4 를 미전달하므로
+         * 보안그룹과 무관하게 폐기. 따라서 부트스트랩은 VXLAN 사용.
          */
         b.resource("sg-intra", T_SECURITY_GROUP_RULE, rule("inbound", spec.vpcCidr(), null, 0, 0));
     }
 
-    /** {@code protocol} 이 null 이면 all: IBM 은 "all" 문자열 대신 필드 생략으로 표현한다. */
+    /** {@code protocol} 이 null 이면 all. IBM 은 "all" 문자열 대신 필드 생략으로 표현. */
     private Map<String, Object> rule(String direction, String remote, String protocol, int from, int to) {
         Map<String, Object> r = new LinkedHashMap<>();
         r.put("group", YamlRef.of("secgroup", "id"));
@@ -182,7 +182,7 @@ final class IbmYamlEmitter implements ProviderYamlEmitter {
         }
         b.resource(node, T_INSTANCE, instance);
 
-        // IBM 은 인스턴스에 공인 IP 를 직접 붙이지 않는다. floating IP 를 NIC 에 연결한다.
+        // IBM 은 인스턴스에 공인 IP 직접 연결 불가. floating IP 를 NIC 에 연결.
         String fip = "fip-" + node;
         b.resource(
                 fip,
@@ -206,9 +206,9 @@ final class IbmYamlEmitter implements ProviderYamlEmitter {
     }
 
     /**
-     * IBM 이미지 이름에는 빌드 번호가 붙고(예: {@code ibm-ubuntu-24-04-4-minimal-amd64-7}) 주기적으로
-     * 새 번호로 갈린다. 기본값을 박아 두면 그 이미지가 사라진 순간 모든 생성이 36초쯤 지나
-     * "No image found" 로 죽는다. 목록에서 고른 값을 받는다.
+     * IBM 이미지 이름에는 빌드 번호가 포함되고(예: {@code ibm-ubuntu-24-04-4-minimal-amd64-7})
+     * 주기적으로 교체. 기본값을 고정하면 해당 이미지 삭제 시점부터 모든 생성이 약 36초 후
+     * "No image found" 로 실패. 목록에서 선택한 값을 수신.
      */
     private String imageName(ClusterSpec spec) {
         requireConfig(spec.osImage(), "osImage (IBM image name)");
@@ -234,7 +234,7 @@ final class IbmYamlEmitter implements ProviderYamlEmitter {
         }
     }
 
-    /** provider 전용 설정. 다른 CSP 의 spec 이 오면 assembler 가 provider 를 잘못 라우팅한 것이다. */
+    /** provider 전용 설정. 다른 CSP 의 spec 수신은 assembler 의 provider 라우팅 오류. */
     private static ProviderSpec.Ibm ibm(ClusterSpec spec) {
         if (spec.providerSpec() instanceof ProviderSpec.Ibm i) return i;
         throw new IllegalStateException("Ibm 설정이 없다: provider=" + spec.provider());

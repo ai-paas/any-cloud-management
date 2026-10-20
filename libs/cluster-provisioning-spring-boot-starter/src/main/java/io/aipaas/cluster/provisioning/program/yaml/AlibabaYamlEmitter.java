@@ -25,7 +25,7 @@ final class AlibabaYamlEmitter implements ProviderYamlEmitter {
     /** 클라우드 디스크. 최소 20GB 이며 ESSD 가 기본 선택지다. */
     private static final String SYSTEM_DISK_CATEGORY = "cloud_essd";
 
-    /** EIP 대역폭(Mbps). 문자열로 받는다. 스키마가 string 이다. */
+    /** EIP 대역폭(Mbps). 스키마가 string 이라 문자열로 수신. */
     private static final String EIP_BANDWIDTH = "100";
 
     @Override
@@ -38,10 +38,10 @@ final class AlibabaYamlEmitter implements ProviderYamlEmitter {
         ProviderSpec.Alibaba ali = alibaba(spec);
         requireConfig(ali.zone(), "providerSpec.zone");
         /*
-         * 이미지 ID 에 빌드 날짜가 붙어 주기적으로 갈리고(..._alibase_20260828.vhd) 리전마다
-         * 다르다. getImages 로 풀려 했으나 결과가 배열이라 인덱스 접근이 필요하고, pulumi-yaml
-         * 이 그 경로의 타입을 풀지 못해 타입 검사에서 panic 한다. OCI 와 같이 필수로 받는다.
-         * 화면은 이미지 목록에서 고른 값을 그대로 보낸다.
+         * 이미지 ID 에 빌드 날짜가 포함돼 주기적으로 교체되고(..._alibase_20260828.vhd)
+         * 리전별로 상이. getImages 사용 시 결과가 배열이라 인덱스 접근이 필요한데 pulumi-yaml
+         * 이 해당 경로의 타입을 해석하지 못해 타입 검사에서 panic. OCI 와 동일하게 필수 수신.
+         * 화면은 이미지 목록에서 선택한 값을 그대로 전송.
          */
         requireConfig(spec.osImage(), "osImage");
 
@@ -104,8 +104,8 @@ final class AlibabaYamlEmitter implements ProviderYamlEmitter {
     }
 
     /**
-     * {@code portRange} 는 {@code "22/22"} 형식의 문자열이다. 프로토콜이 {@code all} 이면
-     * {@code "-1/-1"} 을 쓴다. 숫자 범위를 주면 거절된다.
+     * {@code portRange} 는 {@code "22/22"} 형식 문자열. 프로토콜이 {@code all} 이면
+     * {@code "-1/-1"} 사용. 숫자 범위 전달 시 거절.
      */
     private Map<String, Object> ingress(String protocol, int from, int to) {
         Map<String, Object> rule = new LinkedHashMap<>();
@@ -114,7 +114,7 @@ final class AlibabaYamlEmitter implements ProviderYamlEmitter {
         rule.put("ipProtocol", protocol);
         rule.put("portRange", "all".equals(protocol) ? "-1/-1" : from + "/" + to);
         rule.put("cidrIp", "0.0.0.0/0");
-        // 규칙이 여러 개면 우선순위가 같아야 평가 순서가 정해진다. 기본값과 같은 값을 명시한다.
+        // 규칙이 여러 개면 우선순위가 동일해야 평가 순서 확정. 기본값과 동일 값 명시.
         rule.put("priority", 1);
         return rule;
     }
@@ -136,8 +136,8 @@ final class AlibabaYamlEmitter implements ProviderYamlEmitter {
         b.resource(node, T_INSTANCE, instance);
 
         /*
-         * EIP 는 인스턴스와 따로 산다. 인스턴스를 지워도 남아 계속 과금된다. 스택이 함께
-         * 관리하므로 destroy 에서 같이 사라진다.
+         * EIP 는 인스턴스와 독립 자원. 인스턴스 삭제 후에도 잔존해 과금 지속. 스택이 함께
+         * 관리하므로 destroy 시 동시 삭제.
          */
         String eip = node + "-eip";
         b.resource(eip, T_EIP, Map.of("addressName", resourceName(spec, node + "-eip"), "bandwidth", EIP_BANDWIDTH));
@@ -146,7 +146,7 @@ final class AlibabaYamlEmitter implements ProviderYamlEmitter {
                 T_EIP_ASSOCIATION,
                 Map.of("allocationId", YamlRef.of(eip, "id"), "instanceId", YamlRef.of(node, "id")));
 
-        // 공인 주소는 EIP 에 붙는다. 인스턴스의 publicIp 는 EIP 를 쓰면 비어 있다.
+        // 공인 주소는 EIP 에 할당. EIP 사용 시 인스턴스의 publicIp 는 빈 값.
         return new StandardOutputs.NodeRef(node, "id", node, "privateIp", eip, "ipAddress");
     }
 
@@ -156,7 +156,7 @@ final class AlibabaYamlEmitter implements ProviderYamlEmitter {
     }
 
     private int rootDiskGb(ClusterSpec spec) {
-        // ECS 시스템 디스크 최소가 20GB 다. 그보다 작게 요청하면 생성이 거절된다.
+        // ECS 시스템 디스크 최소 20GB. 미만 요청 시 생성 거절.
         return Math.max(spec.rootDiskSizeGb() > 0 ? spec.rootDiskSizeGb() : 50, 20);
     }
 
@@ -164,7 +164,7 @@ final class AlibabaYamlEmitter implements ProviderYamlEmitter {
         return spec.name() + "-" + suffix;
     }
 
-    /** 노드가 한 서브넷에 모이므로 하나면 된다. */
+    /** 전체 노드가 단일 서브넷에 배치되므로 1개로 충분. */
     private static String firstSubnet(ClusterSpec spec) {
         List<String> cidrs = spec.subnetCidrs();
         return (cidrs == null || cidrs.isEmpty()) ? spec.vpcCidr() : cidrs.get(0);
@@ -176,7 +176,7 @@ final class AlibabaYamlEmitter implements ProviderYamlEmitter {
         }
     }
 
-    /** provider 전용 설정. 다른 CSP 의 spec 이 오면 assembler 가 provider 를 잘못 라우팅한 것이다. */
+    /** provider 전용 설정. 다른 CSP 의 spec 수신은 assembler 의 provider 라우팅 오류. */
     private static ProviderSpec.Alibaba alibaba(ClusterSpec spec) {
         if (spec.providerSpec() instanceof ProviderSpec.Alibaba a) return a;
         throw new IllegalStateException("Alibaba 설정이 없다: provider=" + spec.provider());

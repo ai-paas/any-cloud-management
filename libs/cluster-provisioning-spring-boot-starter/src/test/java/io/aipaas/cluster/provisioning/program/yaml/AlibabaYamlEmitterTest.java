@@ -59,7 +59,7 @@ class AlibabaYamlEmitterTest {
 
     @Test
     void usesSchemaVerifiedTypeTokens() {
-        // 토큰이 틀리면 preview 가 "unknown resource type" 으로 죽는다.
+        // 토큰 불일치 시 preview 가 "unknown resource type" 으로 실패.
         assertThat(res("vpc").get("type")).isEqualTo("alicloud:vpc/network:Network");
         assertThat(res("subnet").get("type")).isEqualTo("alicloud:vpc/switch:Switch");
         assertThat(res("secgroup").get("type")).isEqualTo("alicloud:ecs/securityGroup:SecurityGroup");
@@ -69,15 +69,15 @@ class AlibabaYamlEmitterTest {
 
     @Test
     void theSwitchCarriesTheZone() {
-        // VSwitch 는 zone 단위다. 빠지면 서브넷을 만들지 못한다.
+        // VSwitch 는 zone 단위. 누락 시 서브넷 생성 불가.
         assertThat(props("subnet")).containsEntry("zoneId", "ap-northeast-2a");
     }
 
     @Test
     void zoneIsRequired() {
         /*
-         * 계정과 인스턴스 타입마다 쓸 수 있는 zone 이 달라 리전에서 유도하지 않는다. 자동으로
-         * 고르면 재고 없음이 엉뚱한 오류로 나온다.
+         * 계정과 인스턴스 타입별 사용 가능 zone 이 달라 리전에서 유도하지 않음. 자동 선택 시
+         * 재고 없음이 다른 오류로 표시.
          */
         Map<String, String> cfg = cfg();
         cfg.remove("providerSpec.zone");
@@ -89,13 +89,13 @@ class AlibabaYamlEmitterTest {
 
     @Test
     void everyNodeGetsItsOwnElasticIp() {
-        // EIP 는 인스턴스와 따로 산다. 스택이 함께 관리해야 destroy 에서 같이 사라진다.
+        // EIP 는 인스턴스와 독립 자원. 스택이 함께 관리해야 destroy 시 동시 삭제.
         assertThat(resources(cfg())).containsKeys("master-eip", "master-eip-assoc", "worker-1-eip");
     }
 
     @Test
     void thePublicAddressComesFromTheElasticIp() {
-        // EIP 를 붙이면 인스턴스의 publicIp 는 비어 있다. 거기를 가리키면 출력이 빈 값이 된다.
+        // EIP 연결 시 인스턴스의 publicIp 는 빈 값. 해당 필드 참조 시 출력도 빈 값.
         @SuppressWarnings("unchecked")
         Map<String, Object> outputs = (Map<String, Object>) doc(cfg()).get("outputs");
 
@@ -119,14 +119,14 @@ class AlibabaYamlEmitterTest {
 
     @Test
     void portRangesUseTheSlashForm() {
-        // 숫자 하나만 주면 provider 가 거절한다.
+        // 숫자 단일 값 전달 시 provider 거절.
         assertThat(props("sg-ssh")).containsEntry("portRange", "22/22");
         assertThat(props("sg-api")).containsEntry("portRange", "6443/6443");
     }
 
     @Test
     void theSystemDiskNeverGoesBelowTheMinimum() {
-        // ECS 시스템 디스크 최소가 20GB 다. 그보다 작게 요청하면 생성이 거절된다.
+        // ECS 시스템 디스크 최소 20GB. 미만 요청 시 생성 거절.
         Map<String, String> cfg = cfg();
         cfg.put("rootDiskSizeGb", "5");
 
@@ -148,7 +148,7 @@ class AlibabaYamlEmitterTest {
 
     @Test
     void theKeyPairIsWiredByName() {
-        // ECS 는 키를 id 가 아니라 이름으로 참조한다.
+        // ECS 는 키를 id 가 아닌 이름으로 참조.
         assertThat(props("master").get("keyName")).isEqualTo("${sshKey.keyPairName}");
     }
 
