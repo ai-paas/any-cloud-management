@@ -35,7 +35,7 @@ Layer 1 + Layer 2 starter 들은 **데이터베이스 없이 동작**하도록 �
 | cluster-agent-backup-* | BackupHistoryWriter | NoOp | ✅ |
 | cluster-agent-observability-* | (storage SPI 없음 — cluster 안 Prometheus 가 truth) | — | ✅ |
 | cluster-agent-rbac-* | BindingTemplateCatalog, BindingAuditSink | Classpath / SLF4J | ✅ |
-| cluster-provisioning-* | ClusterDescriptorRepository, Pulumi state backend | InMemory (test only) | ⚠️ Pulumi state 가 외부 storage 필수 (RustFS/S3) |
+| cluster-provisioning-* | 호스트가 구현할 SPI 없음. Pulumi state backend 만 필요 | - | ⚠️ Pulumi state 는 외부 storage (RustFS/S3) 가 필수 |
 
 → anycloud backend 는 자체 RDB 를 보유 (cluster registry, CSP credential, audit log 등). 다만
 **RBAC binding 과 사용자/그룹은 DB 에 두지 않음** (다음 섹션).
@@ -110,11 +110,12 @@ K8s minor version upgrade 는 **scope 외** (별도 운영 도구 — `docs/runb
 
 | 책임 | API |
 |---|---|
-| Pulumi CLI orchestration | `PulumiCommandService` |
-| 8 CSP provider modules | `program/provisioner/*Provisioner` (Java) |
-| stack-config 영속화 | `ClusterDescriptorRepository` SPI (host = backend DB) |
+| 진입점 | `ProvisioningService` (`AutomationProvisioningService` 가 구현) |
+| CSP 별 프로그램 생성 | `program/yaml/*YamlEmitter` 7종 |
+| 실행 이벤트 | `ProvisionEvent`, `ProvisionEventBus` |
 
-> 본 starter 만 외부 storage (RustFS/S3) 필수 — Pulumi state 가 외부에서만 의미.
+Pulumi Automation API 로 `runtime: yaml` 프로그램을 만들어 실행합니다. 호스트가 구현해야 하는
+SPI 는 없고, Pulumi state 를 둘 외부 storage (RustFS 나 S3) 만 준비하면 됩니다.
 
 ## 호스트가 자체 application 으로 starter 활용 (예시)
 

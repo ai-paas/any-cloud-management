@@ -108,8 +108,6 @@ Controller: `ClusterResourceCatalogController`.
 
 | Method | Path | 설명 | Auth |
 |---|---|---|---|
-| GET | `/v1/agent-bootstrap/ca-bundle.pem` | backend CA (raw PEM, text/plain) | **None** |
-| GET | `/v1/agent-bootstrap/ca-bundle` | backend CA (JSON envelope) | **None** |
 | POST | `/v1/clusters/{id}/agent-registration` | bootstrap JWT 발급 (10분 TTL, jti 1회용) | Required |
 | GET | `/v1/clusters/{id}/agent/pods` | [TEST] agent 통한 pod 조회 | Required |
 | GET | `/v1/clusters/{id}/agent/logs` | [TEST] agent 통한 pod log | Required |
@@ -119,21 +117,9 @@ Controller: `ClusterResourceCatalogController`.
 VM 프로비저닝 후의 cluster 등록은 BOOTSTRAP step 안에서 자동 (VmClusterRegistrationServiceImpl.createClusterEntity).
 수동 cluster 등록은 `POST /v1/clusters` 호출 후 응답의 helm/kubectl 명령 실행 — agent 가 gRPC dial-in 으로 ACTIVE.
 
-Controllers: `AgentBootstrapPublicController`, `AgentRegistrationController`, `AgentCommandTestController`, `AdminAgentController`.
+Controllers: `AgentRegistrationController`, `AgentCommandTestController`, `AdminAgentController`.
 
-⚠️ tech-debt: `/v1/agent-bootstrap/*` rate limit 없음. anonymous + 결정적 응답.
-
-### 2.7 Agent Cert / Identity Revocation (`/v1/admin/clusters/.../cert`)
-
-| Method | Path | 설명 |
-|---|---|---|
-| GET | `/v1/admin/clusters/{name}/cert` | per-cluster cert metadata |
-| POST | `/v1/admin/clusters/{name}/cert/revoke` | cluster-wide / cert-serial revoke |
-| POST | `/v1/admin/clusters/{name}/cert/unrevoke` | revoke 복구 |
-
-Controller: `AdminAgentCertController`.
-
-### 2.8 Agent Policy (`/v1/admin/clusters/.../agent-policy` + `/v1/admin/agent/policy/*`)
+### 2.7 Agent Policy (`/v1/admin/clusters/.../agent-policy` + `/v1/admin/agent/policy/*`)
 
 | Method | Path | 설명 |
 |---|---|---|
@@ -145,15 +131,7 @@ Controller: `AdminAgentCertController`.
 
 Controller: `AdminAgentPolicyController` (771 LOC — split 권고).
 
-### 2.9 Backend CA (`/v1/admin/backend-ca`)
-
-| Method | Path | 설명 |
-|---|---|---|
-| POST | `/v1/admin/backend-ca/rotate` | CA 회전. default ttlYears=10, 1..50 |
-
-Controller: `AdminBackendCaController`.
-
-### 2.10 State Machine Admin (`/v1/admin/state-machine`)
+### 2.8 State Machine Admin (`/v1/admin/state-machine`)
 
 | Method | Path | 설명 |
 |---|---|---|
@@ -163,7 +141,7 @@ Controller: `AdminBackendCaController`.
 
 Controller: `AdminStateMachineController`.
 
-### 2.11 Fleet Upgrade (`/v1/fleet/upgrade`, `/v1/clusters/.../upgrade*`)
+### 2.9 Fleet Upgrade (`/v1/fleet/upgrade`, `/v1/clusters/.../upgrade*`)
 
 | Method | Path | 설명 |
 |---|---|---|
@@ -174,7 +152,7 @@ Controller: `AdminStateMachineController`.
 
 Controller: `FleetUpgradeController`.
 
-### 2.12 Operations & Async Task Tracking (`/v1/operations`)
+### 2.10 Operations & Async Task Tracking (`/v1/operations`)
 
 | Method | Path | 설명 |
 |---|---|---|
@@ -186,7 +164,7 @@ Controller: `FleetUpgradeController`.
 
 Controllers: `OperationController`, `OperationEventsController`.
 
-### 2.13 Cluster Validation (`/v1/cluster-validations`)
+### 2.11 Cluster Validation (`/v1/cluster-validations`)
 
 | Method | Path | 설명 |
 |---|---|---|
@@ -194,7 +172,7 @@ Controllers: `OperationController`, `OperationEventsController`.
 
 Controller: `ClusterValidationController`.
 
-### 2.14 CSP Credentials (`/v1/credentials`)
+### 2.12 CSP Credentials (`/v1/credentials`)
 
 | Method | Path | 설명 |
 |---|---|---|
@@ -205,7 +183,7 @@ Controller: `ClusterValidationController`.
 
 Controller: `CspCredentialController`. 암호화는 `CspCredentialCryptoService` 위임.
 
-### 2.15 VM / Cloud Provider Options (`/v1/providers`)
+### 2.13 VM / Cloud Provider Options (`/v1/providers`)
 
 | Method | Path | 설명 |
 |---|---|---|
@@ -217,7 +195,7 @@ Controller: `CspCredentialController`. 암호화는 `CspCredentialCryptoService`
 
 Controller: `VmOptionsController`. 각 CSP impl 은 `service.vmoptions.providers/`.
 
-### 2.16 Helm Releases (`/v1/clusters/.../helm-releases`)
+### 2.14 Helm Releases (`/v1/clusters/.../helm-releases`)
 
 | Method | Path | 설명 |
 |---|---|---|
@@ -232,7 +210,7 @@ Controller: `VmOptionsController`. 각 CSP impl 은 `service.vmoptions.providers
 
 Controller: `ClusterHelmReleaseController`.
 
-### 2.17 Helm Repos (`/v1/helm-repos`)
+### 2.15 Helm Repos (`/v1/helm-repos`)
 
 | Method | Path | 설명 |
 |---|---|---|
@@ -248,7 +226,7 @@ Controller: `ClusterHelmReleaseController`.
 
 Controllers: `HelmRepoController`, `HelmRepoChartController`.
 
-### 2.18 Observability & Metrics
+### 2.16 Observability & Metrics
 
 | Method | Path | 설명 |
 |---|---|---|
@@ -264,9 +242,9 @@ Controllers: `HelmRepoController`, `HelmRepoChartController`.
 | GET | `/v1/observability/standard-queries` | 표준 PromQL 카탈로그 |
 | GET | `/v1/clusters/{n}/metrics/standard/{...}` | node-cpu / node-memory / namespace-cpu / namespace-memory / pod-phases / top-cpu |
 
-Controllers: `MonitoringController`, `ObservabilityController`.
+Controller: `ObservabilityController`.
 
-### 2.19 Audit (`/v1/audit-logs`)
+### 2.17 Audit (`/v1/audit-logs`)
 
 | Method | Path | 설명 |
 |---|---|---|
@@ -274,7 +252,7 @@ Controllers: `MonitoringController`, `ObservabilityController`.
 
 Controller: `AuditLogController`.
 
-### 2.20 VM Workflow (`/v1/workflow/*`)
+### 2.18 VM Workflow (`/v1/workflow/*`)
 
 | Method | Path | 설명 |
 |---|---|---|

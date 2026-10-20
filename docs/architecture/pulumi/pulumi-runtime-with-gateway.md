@@ -212,7 +212,7 @@ docker compose -f docker-compose.dev.yml exec anycloud-backend pulumi login --he
 현재 리포지토리 기준 권장 분리는 다음과 같습니다.
 
 - `ClusterEntity` 는 kubeconfig 기반으로 실제 Kubernetes API 에 붙는 운영 엔티티
-- `ClusterProvisioningEntity` 는 Pulumi infra 생성 상태와 raw output 을 저장하는 엔티티
+- `VmClusterEntity` 가 Pulumi 로 만든 인프라의 상태와 출력을 저장합니다
 
 즉, `프로비저닝 완료` 와 `운영용 클러스터 등록 완료` 를 같은 개념으로 두지 않습니다.
 이 분리는 현재 프로젝트의 kubeconfig 중심 구조와 잘 맞습니다.

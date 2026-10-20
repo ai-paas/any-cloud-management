@@ -45,7 +45,7 @@ internal mirror 로 redirect 될 수 있습니다.
        │
        │ Observability install
        │
-       └► ObservabilityStackInstaller
+       └► MonitoringAddonInstaller
             ├ InstallRequest(namespace, releaseName, chartVersion,
             │                valuesJson, repo, chart)
             │     repo == null → agent default "prometheus-community"
@@ -67,7 +67,7 @@ internal mirror 로 redirect 될 수 있습니다.
 | `HelmRepoListSerializer` | DB → JSON array string |
 | `AdminAgentPolicyController` | apply-policy 시 helm_repositories 도 push |
 | `AgentCommandRouter.applyAgentConfig` | 6-param overload (helmRepositoriesJson) |
-| `ObservabilityStackInstaller.InstallRequest` | `repo` / `chart` optional 필드 |
+| `MonitoringAddonInstaller` | addon spec 의 `repo`, `chart` 가 비면 기본 저장소를 씁니다 |
 | `ClusterPolicyBootstrapper.pushOnActive` | Cluster PENDING_AGENT → ACTIVE 전환 시 자동 호출 (`AgentBootstrapServiceImpl.backfillClusterFromAgent` 가 transition 직후 trigger) |
 | `HelmRepoChangedEvent` | HelmRepo CRUD 시 publish — `@TransactionalEventListener(AFTER_COMMIT)` + `@Async` broadcast |
 | `AgentPolicyValidator.validateRequestCommands` | APPLY_AGENT_CONFIG / GET_AGENT_CONFIG / ENSURE_AGENT_CONFIG_ANNOTATIONS 누락 시 HIGH warning |
