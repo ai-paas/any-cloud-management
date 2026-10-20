@@ -19,10 +19,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * 이름이 틀린 요청을 인프라 생성 전에 세운다.
+ * 이름이 잘못된 요청을 인프라 생성 전에 차단.
  *
- * <p>노드, datastore, 브리지는 Pulumi 가 VM 을 만들기 시작한 뒤에야 확인된다. 그때 실패하면 이미
- * 만들어진 자원이 롤백 대상으로 남는다.
+ * <p>노드, datastore, 브리지는 Pulumi 의 VM 생성 시작 이후에 확인. 그 시점 실패는 생성된 자원을
+ * 롤백 대상으로 남김.
  */
 class ProxmoxPreflightValidatorTest extends AbstractUnitTest {
 
@@ -85,7 +85,7 @@ class ProxmoxPreflightValidatorTest extends AbstractUnitTest {
 
     @Test
     void anUnknownNodeIsRejectedWithTheAvailableOnes() {
-        // 문서 예시의 pve1 을 그대로 복사해 쓰는 경우가 많다. 실제 이름은 설치할 때 정한 호스트명이다.
+        // 문서 예시의 pve1 을 그대로 복사해 사용하는 경우가 많음. 실제 이름은 설치 시 지정한 호스트명.
         Map<String, String> config = config();
         config.put("anycloud-k8s:providerSpec.nodeName", "pve1");
 
@@ -96,14 +96,14 @@ class ProxmoxPreflightValidatorTest extends AbstractUnitTest {
 
     @Test
     void aZfsDiskDatastoreIsAccepted() {
-        // ZFS 로 설치하면 디스크 스토리지가 local-zfs 다. 기본값을 덮어 쓸 수 있어야 한다.
+        // ZFS 설치 시 디스크 스토리지는 local-zfs. 기본값 재정의 가능해야 함.
         assertThatCode(() -> validator.validate(credential(), config("datastoreId", "local-zfs")))
                 .doesNotThrowAnyException();
     }
 
     @Test
     void anImageDatastoreWithoutImportContentIsRejected() {
-        // local 에 import 를 켜지 않으면 이미지 다운로드가 거부된다. 기본 설치는 꺼져 있다.
+        // local 에 import 미활성 시 이미지 다운로드 거부. 기본 설치는 비활성 상태.
         assertThatThrownBy(() -> validator.validate(credential(), config("imageDatastoreId", "local-lvm")))
                 .isInstanceOf(CustomException.class)
                 .hasMessageContaining("import");
@@ -132,7 +132,7 @@ class ProxmoxPreflightValidatorTest extends AbstractUnitTest {
 
     @Test
     void anIncompleteCredentialFallsThroughToTheStaticRules() {
-        // 여기까지 왔다면 정적 검증이 통과시킨 것이다. 같은 것을 두 번 막지 않는다.
+        // 이 지점은 정적 검증 통과 후. 동일 항목 중복 차단 불필요.
         assertThatCode(() -> validator.validate(Map.of(), config())).doesNotThrowAnyException();
     }
 
@@ -147,7 +147,7 @@ class ProxmoxPreflightValidatorTest extends AbstractUnitTest {
 
     @Test
     void anAuthenticationFailureIsReportedInsteadOfDeferred() {
-        // 401 은 토큰 문제라 진단이 명확하다. Pulumi 까지 끌고 가면 같은 실패를 늦게 본다.
+        // 401 은 토큰 문제로 진단이 명확. Pulumi 단계까지 진행하면 동일 실패를 늦게 검출.
         status = 401;
 
         assertThatThrownBy(() -> validator.validate(credential(), config()))
@@ -174,8 +174,8 @@ class ProxmoxPreflightValidatorTest extends AbstractUnitTest {
     @Test
     void tooFewAddressesAreRejectedBeforeAnythingIsCreated() {
         /*
-         * 모자라면 남은 노드가 DHCP 로 떨어지는데, cloud 이미지에 qemu-guest-agent 가 없어 받은
-         * 주소를 알 수 없다. BOOTSTRAP 에서야 드러나고 그때는 VM 이 이미 과금된다.
+         * 부족하면 잔여 노드가 DHCP 로 전환되는데, cloud 이미지에 qemu-guest-agent 가 없어
+         * 할당 주소 확인 불가. BOOTSTRAP 단계에서 드러나며 그 시점에 VM 은 이미 과금 중.
          */
         assertThatThrownBy(() -> validator.validate(credential(), staticConfig("192.168.0.200", null)))
                 .isInstanceOf(CustomException.class)
@@ -194,7 +194,7 @@ class ProxmoxPreflightValidatorTest extends AbstractUnitTest {
 
     @Test
     void portCountMustMatchAddressCount() {
-        // 순서로 짝을 짓기 때문에 개수가 어긋나면 노드가 남의 포트로 붙는다.
+        // 순서로 짝을 맺으므로 개수 불일치 시 노드가 다른 노드의 포트로 접속.
         assertThatThrownBy(() -> validator.validate(credential(), staticConfig("192.168.0.200,192.168.0.201", "2200")))
                 .isInstanceOf(CustomException.class)
                 .hasMessageContaining("순서");

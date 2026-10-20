@@ -20,14 +20,14 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 /**
- * 스냅샷은 기본값이 채워진 config 를 읽어야 한다.
+ * 스냅샷은 기본값이 반영된 config 를 참조해야 함.
  *
- * <p>사용자가 보낸 원본을 읽으면 {@code applyDefaults} 가 넣은 값이 전부 빠진다. 모니터링은
- * 체크박스가 기본 켜짐이라 프론트가 끌 때만 값을 보내는데, 그러면 켠 채로 만든 클러스터의
- * {@code enableMonitoring} 이 null 로 굳는다.
+ * <p>사용자 전송 원본을 참조하면 {@code applyDefaults} 주입 값이 전부 누락. 모니터링은 체크박스
+ * 기본값이 활성이라 프론트가 비활성화할 때만 값을 전송하고, 그 결과 활성 상태로 생성한
+ * 클러스터의 {@code enableMonitoring} 이 null 로 고정.
  *
- * <p>{@link RequestedAddons} 는 null 을 켜짐으로 읽지 않으므로 애드온이 등록되지 않는다.
- * 프로비저닝은 성공하고 클러스터도 READY 가 되어, 모니터링 화면이 빈 것만 남는다.
+ * <p>{@link RequestedAddons} 는 null 을 활성으로 해석하지 않으므로 애드온 미등록. 프로비저닝은
+ * 성공하고 클러스터도 READY 로 전이해 모니터링 화면만 비어 있음.
  */
 @MockitoSettings(strictness = Strictness.LENIENT)
 class DefaultedFlagsReachTheSnapshotTest extends AbstractUnitTest {
@@ -40,7 +40,7 @@ class DefaultedFlagsReachTheSnapshotTest extends AbstractUnitTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    /** 프론트가 모니터링을 켠 채로 보낼 때: 값 자체를 싣지 않는다. */
+    /** 프론트가 모니터링 활성 상태로 전송하는 경우. 값 자체를 포함하지 않음. */
     private ProvisionClusterRequest requestWithoutMonitoringFlag() {
         ProvisionClusterRequest cluster = new ProvisionClusterRequest();
         cluster.setClusterProvider("GCP");
@@ -75,14 +75,14 @@ class DefaultedFlagsReachTheSnapshotTest extends AbstractUnitTest {
 
     @Test
     void theMonitoringAddonIsEnrolled() throws Exception {
-        // 스냅샷이 맞아도 카탈로그 id 가 어긋나면 설치되지 않는다. 끝까지 확인한다.
+        // 스냅샷이 정확해도 카탈로그 id 불일치 시 미설치. 최종 단계까지 검증.
         assertThat(RequestedAddons.catalogEntries(snapshotOf(requestWithoutMonitoringFlag())))
                 .containsKey("kube-prometheus-stack");
     }
 
     @Test
     void anExplicitOptOutIsRespected() throws Exception {
-        // 껐는데 켜지면 사용자가 원치 않은 자원이 클러스터에 깔린다.
+        // 비활성 요청이 활성으로 처리되면 사용자가 의도하지 않은 자원이 클러스터에 설치.
         ProvisionClusterRequest cluster = requestWithoutMonitoringFlag();
         cluster.getConfig().put("anycloud-k8s:enableMonitoring", "false");
 
@@ -92,7 +92,7 @@ class DefaultedFlagsReachTheSnapshotTest extends AbstractUnitTest {
 
     @Test
     void flagsTheUserDidSendSurvive() throws Exception {
-        // 기본값을 읽느라 사용자가 보낸 값을 덮으면 안 된다.
+        // 기본값 참조 과정에서 사용자 전송 값 덮어쓰기 금지.
         assertThat(snapshotOf(requestWithoutMonitoringFlag()).getEnableIngress())
                 .isFalse();
     }
