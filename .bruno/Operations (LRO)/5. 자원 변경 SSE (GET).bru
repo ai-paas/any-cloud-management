@@ -1,0 +1,30 @@
+meta {
+  name: 5. 자원 변경 SSE (GET)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/v1/events
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: text/event-stream
+  User-Agent: bruno/3.3.0
+}
+
+docs {
+  무언가 바뀌었다는 신호만 흘려보냅니다. 바뀐 값은 담지 않으므로 받은 쪽이 다시 조회해야 합니다.
+
+  Bruno 의 응답 뷰는 SSE 를 일부만 보여줍니다. 실제 확인은 curl 이 낫습니다.
+
+      curl -N -H 'Accept: text/event-stream' http://localhost:8888/v1/events
+}
+
+tests {
+  test("200 + text/event-stream", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

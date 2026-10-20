@@ -41,7 +41,7 @@ Bruno에서는 두 가지 방식으로 credential 생성 테스트를 할 수 �
 ```bash
 export VM_CREDENTIALS_JSON='{"AWS_ACCESS_KEY_ID":"...","AWS_SECRET_ACCESS_KEY":"..."}'
 cd .bruno
-bru run "VM Credentials (VM 자격증명)/2a. VM Credential Create From Process Env (환경변수 기반 생성).bru" --env local-aws-provisioning
+bru run "VM Credentials (VM 자격증명)/3. VM Credential Create From Process Env (환경변수 기반 생성).bru" --env local-aws-provisioning
 ```
 
 ## VM Cluster 연동

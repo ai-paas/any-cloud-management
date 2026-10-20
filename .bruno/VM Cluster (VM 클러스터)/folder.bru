@@ -9,15 +9,15 @@ docs {
 
   ```bash
   # 1. credential 등록 (한 번만)
-  bru run "VM Credentials (VM 자격증명)/2b. AWS Credential Create.bru" \
+  bru run "VM Credentials (VM 자격증명)/4. AWS Credential Create (자격증명 생성).bru" \
       --env local-aws-provisioning
 
   # 2. (선택) 사전 검토 — quota / region / instance type 가용성 + 예상 비용
-  bru run "VM Cluster (VM 클러스터)/2a. VM Cluster Preflight.bru" \
+  bru run "VM Cluster (VM 클러스터)/3. VM Cluster Preflight (생성 사전 검토).bru" \
       --env local-aws-provisioning
 
   # 3. CSP 별 cluster 생성 — 8개 중 해당 .bru 선택
-  bru run "VM Cluster (VM 클러스터)/2b. AWS Cluster Create.bru" \
+  bru run "VM Cluster (VM 클러스터)/5. AWS Cluster Create (AWS 클러스터 생성).bru" \
       --env local-aws-provisioning
   ```
 

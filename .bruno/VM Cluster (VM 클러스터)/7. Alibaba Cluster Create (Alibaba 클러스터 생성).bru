@@ -1,0 +1,75 @@
+meta {
+  name: 7. Alibaba Cluster Create (Alibaba 클러스터 생성)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/v1/vms
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  Idempotency-Key: {{$randomUUID}}
+}
+
+body:json {
+  {
+    "vmGroupName": "{{provision_cluster_name}}",
+    "provider": "ALIBABA",
+    "description": "Alibaba Cloud ECS 기반 Kubernetes 클러스터",
+    "environment": "{{provision_environment}}",
+    "region": "{{provision_region}}",
+    "credentialId": "{{credential_id}}",
+    "spec": {
+      "masterInstanceType": "{{master_vm_spec}}",
+      "workerInstanceType": "{{worker_vm_spec}}",
+      "workerCount": "{{worker_count}}",
+      "kubernetesVersion": "{{kubernetes_version}}",
+      "enableIngress": "{{enable_ingress}}",
+      "enableGpuOperator": "{{enable_gpu_operator}}",
+      "network": {
+        "vpcCidr": "{{vpc_cidr}}",
+        "podCidr": "{{pod_cidr}}",
+        "serviceCidr": "{{service_cidr}}"
+      }
+    },
+    "providerSpec": {
+      "zone": "{{alibaba_zone}}"
+    }
+  }
+}
+
+script:post-response {
+  if (res.body && res.body.data && res.body.data.id) {
+    bru.setEnvVar('last_operation_id', res.body.data.id);
+  }
+}
+
+tests {
+  test("상태 코드 202", function() {
+    expect(res.getStatus()).to.equal(202);
+  });
+}
+
+docs {
+  ## Alibaba Cloud ECS 기반 cluster 생성
+
+  ### Required env vars (local-alibaba-provisioning.bru)
+  - `provision_provider: ALIBABA`
+  - `provision_region`: e.g. `ap-northeast-2`(서울), `cn-hangzhou`
+  - `alibaba_zone`: VSwitch 가 zone 단위라 필수. e.g. `ap-northeast-2a`
+  - `credential_id`: Alibaba credential UUID
+  - `master_vm_spec` / `worker_vm_spec`: e.g. `ecs.g7.large`, `ecs.c7.xlarge`
+
+  ### Alibaba 만의 config — **없음** (기본 K8s 공통 config 만).
+  Region 만 정확히 — VSwitch / Security Group 자동 생성.
+
+  ### 실행
+  ```bash
+  bru run "VM Cluster (VM 클러스터)/7. Alibaba Cluster Create (Alibaba 클러스터 생성).bru" \
+      --env local-alibaba-provisioning
+  ```
+}
