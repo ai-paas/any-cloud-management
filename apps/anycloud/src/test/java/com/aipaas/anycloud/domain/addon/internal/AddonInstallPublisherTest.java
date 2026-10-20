@@ -15,9 +15,9 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
- * 커밋 전에 보내면 소비자가 없는 row 를 찾아 메시지를 버린다.
+ * 커밋 전 전송 시 소비자가 미생성 row 를 조회해 메시지 폐기.
  *
- * <p>버려진 addon 은 ENQUEUED 에서 움직이지 않고, 같은 이름으로 다시 설치할 수도 없다.
+ * <p>폐기된 addon 은 ENQUEUED 에 고착되고 동일 이름 재설치도 불가.
  */
 class AddonInstallPublisherTest {
 

@@ -22,13 +22,13 @@ class IncludeDeletedTest extends AbstractUnitTest {
 
     @Test
     void includeDeletedShowsEverything() {
-        // 토글은 "함께 보기" 다. 살아 있는 것이 사라지면 안 된다.
+        // 토글은 함께 조회 옵션. 유효 항목이 누락되면 안 됨.
         assertThat(VmClusterListFilter.hidesDeleted(null, true)).isFalse();
     }
 
     @Test
     void explicitStatusIsNotOverriddenByTheToggle() {
-        // status=FAILED 는 FAILED 만 보겠다는 뜻이다. 토글이 이를 뒤집으면 필터가 거짓말이 된다.
+        // status=FAILED 는 FAILED 만 조회를 의미. 토글이 이를 덮으면 필터 결과가 요청과 불일치.
         assertThat(VmClusterListFilter.hidesDeleted(VmClusterStatus.FAILED, true))
                 .isFalse();
         assertThat(VmClusterListFilter.hidesDeleted(VmClusterStatus.FAILED, false))
@@ -37,7 +37,7 @@ class IncludeDeletedTest extends AbstractUnitTest {
 
     @Test
     void explicitDeletedStatusStillWorks() {
-        // 삭제된 것만 보고 싶을 때가 있다. status=DELETED 는 그대로 둔다.
+        // 삭제 항목만 조회하는 경우 존재. status=DELETED 는 그대로 유지.
         assertThat(VmClusterListFilter.hidesDeleted(VmClusterStatus.DELETED, false))
                 .isFalse();
     }

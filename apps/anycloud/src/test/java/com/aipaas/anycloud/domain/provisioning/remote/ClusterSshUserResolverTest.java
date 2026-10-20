@@ -11,10 +11,10 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * 접속 사용자는 그 클러스터를 만든 스택이 정한다.
+ * 접속 사용자는 해당 클러스터를 생성한 스택이 결정.
  *
- * <p>전역 기본값으로 붙으면 Alibaba 만 publickey 거절로 막힌다. 그 이미지에는 ubuntu 계정이
- * 없고 키가 root 에 들어간다. 화면에는 노드가 다 올라온 것으로 보여 원인이 드러나지 않는다.
+ * <p>전역 기본값으로 접속하면 Alibaba 만 publickey 거절. 해당 이미지에는 ubuntu 계정이 없고
+ * 키가 root 에 등록. 화면에는 노드가 정상 기동한 것으로 표시돼 원인 파악 지연.
  */
 class ClusterSshUserResolverTest extends AbstractUnitTest {
 
@@ -41,7 +41,7 @@ class ClusterSshUserResolverTest extends AbstractUnitTest {
 
     @Test
     void clustersCreatedBeforeTheOutputExistedStillResolve() {
-        // sshUser 를 내보내기 전에 만든 스택이 남아 있다. 여기서 막으면 그 클러스터가 접속 불가가 된다.
+        // sshUser 출력 도입 이전 생성 스택 잔존. 이 지점에서 차단하면 해당 클러스터 접속 불가.
         assertThat(resolver.resolve(cluster("{\"provider\":\"aws\"}"))).isEqualTo("ubuntu");
         assertThat(resolver.resolve(cluster(null))).isEqualTo("ubuntu");
         assertThat(resolver.resolve((VmClusterEntity) null)).isEqualTo("ubuntu");

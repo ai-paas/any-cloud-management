@@ -50,7 +50,7 @@ class RequestedAddonEnrollerTest {
         verify(addonService).create(anyString(), spec.capture());
         assertThat(spec.getValue().catalogId()).isEqualTo("ingress-nginx");
         assertThat(spec.getValue().type()).isEqualTo(AddonType.INGRESS_NGINX);
-        // 나머지는 카탈로그 기본값을 쓴다. 버전을 두 곳에 적으면 갈린다.
+        // 나머지는 카탈로그 기본값 사용. 버전을 두 곳에 기재하면 불일치.
         assertThat(spec.getValue().chartVersion()).isNull();
         assertThat(spec.getValue().repoUrl()).isNull();
     }
@@ -88,7 +88,7 @@ class RequestedAddonEnrollerTest {
 
     @Test
     void oneFailureDoesNotBlockTheOtherOrThrow() {
-        // addon 등록 실패가 BOOTSTRAP 을 실패시키면 안 된다. 조정 루프가 이어받는다.
+        // addon 등록 실패가 BOOTSTRAP 실패로 이어지면 안 됨. 이후 처리는 조정 루프 담당.
         request(true, true);
         when(addonService.create(anyString(), any()))
                 .thenThrow(new IllegalStateException("duplicate"))
@@ -100,7 +100,7 @@ class RequestedAddonEnrollerTest {
 
     @Test
     void usesClusterIdNotVmClusterId() {
-        // addon 은 cluster.id 로 묶인다. vm_cluster.id 를 넘기면 영원히 매칭되지 않는다.
+        // addon 은 cluster.id 기준 연결. vm_cluster.id 전달 시 매칭 불가.
         request(false, true);
         ArgumentCaptor<String> clusterId = ArgumentCaptor.forClass(String.class);
 

@@ -26,11 +26,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 
 /**
- * 관측이 Pulumi 를 부르지 않아야 한다.
+ * 관측 경로의 Pulumi 호출 차단.
  *
- * <p>{@code stackOutputs} 는 Pulumi CLI 를 띄우고 원격 상태를 읽는 호출이다. 5분 주기 조정이
- * READY/DEGRADED 클러스터 전부에 대해 이걸 돌면 클러스터 수에 비례해 비용이 커진다. 지금 유일한
- * 컴포넌트인 agent probe 는 DB 만 읽어 outputs 가 필요 없다. 필요한 쪽만 값을 당겨 쓰게 한다.
+ * <p>{@code stackOutputs} 는 Pulumi CLI 실행과 원격 상태 조회를 수반. 5분 주기 조정이
+ * READY, DEGRADED 클러스터 전체에 대해 실행하면 클러스터 수에 비례해 비용 증가. 현재 유일
+ * 컴포넌트인 agent probe 는 DB 만 조회하므로 outputs 불필요. 필요한 구현만 값을 조회.
  */
 class ObserverLazyOutputsTest extends AbstractUnitTest {
 
@@ -93,7 +93,7 @@ class ObserverLazyOutputsTest extends AbstractUnitTest {
 
     @Test
     void observationStillReportsTheProbeResult() {
-        // 지연 평가를 넣다가 관측 자체를 건너뛰면 수렴이 영영 판정되지 않는다.
+        // 지연 평가 적용 과정에서 관측을 생략하면 수렴 판정 불가.
         ClusterComponentObserverImpl observer = observer(probeOnly(null));
 
         assertThat(observer.observe(cluster())).hasSize(1);

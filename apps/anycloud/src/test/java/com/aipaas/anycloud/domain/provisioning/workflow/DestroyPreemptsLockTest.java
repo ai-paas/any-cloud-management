@@ -14,12 +14,12 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 
 /**
- * 삭제는 앞 단계를 기다리지 않는다.
+ * 삭제는 앞 단계를 대기하지 않음.
  *
- * <p>stale 창을 단계 예산(BOOTSTRAP 170분)에 맞추자 삭제가 그 뒤에 줄을 섰다. 멈춘 프로비저닝을
- * 지우려는데 3시간을 기다려야 했다. 삭제는 사용자의 탈출구다.
+ * <p>stale 창을 단계 예산(BOOTSTRAP 170분)에 맞추면 삭제가 그 뒤에 대기. 정지된 프로비저닝
+ * 삭제에 3시간 소요. 삭제는 사용자의 복구 수단.
  *
- * <p>앞 단계의 결과는 어차피 버려진다. 밀어내도 잃는 것이 없다.
+ * <p>앞 단계 결과는 폐기 대상이므로 선점해도 손실 없음.
  */
 class DestroyPreemptsLockTest extends AbstractUnitTest {
 
@@ -52,7 +52,7 @@ class DestroyPreemptsLockTest extends AbstractUnitTest {
 
     @Test
     void nothingToLockIsStillAllowed() {
-        // 잠글 대상이 없는 destroy 흐름(스택만 남은 경우)을 막으면 정리할 방법이 없다.
+        // 잠금 대상이 없는 destroy 흐름(스택만 잔존)을 차단하면 정리 수단 부재.
         assertThat(lock.preempt(null, "m-destroy")).isTrue();
         assertThat(lock.preempt("c1", null)).isTrue();
     }

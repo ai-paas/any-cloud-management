@@ -15,10 +15,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 
 /**
- * heartbeat 의 gpu_node_count 는 드라이버가 올라오기 전에는 0 이다.
+ * heartbeat 의 gpu_node_count 는 드라이버 기동 전까지 0.
  *
- * <p>그 값을 그대로 쓰면 GPU 로 만든 클러스터가 false 로 뒤집혀 화면에서 가속기 영역이 사라진다.
- * IBM 과 GCP 에서 실제로 그랬다.
+ * <p>해당 값을 그대로 사용하면 GPU 로 생성한 클러스터가 false 로 전환돼 화면의 가속기 영역이
+ * 사라짐. IBM 과 GCP 에서 발생.
  */
 class AnycloudClusterCapabilitiesSinkTest {
 
