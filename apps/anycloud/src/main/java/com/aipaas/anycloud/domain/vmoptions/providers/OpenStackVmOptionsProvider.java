@@ -308,7 +308,7 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
         return base.endsWith("/v2") ? base + "/images" : base + "/v2/images";
     }
 
-    /** 깨진 override 로 preflight 를 통째로 실패시키지 않는다 — 카탈로그로 물러난다. */
+    /** 깨진 override 로 preflight 를 통째로 실패시키지 않는다: 카탈로그로 물러난다. */
     Map<String, String> endpointOverrides() {
         String raw = resolveCredential("OS_ENDPOINT_OVERRIDES");
         if (!StringUtils.hasText(raw)) {

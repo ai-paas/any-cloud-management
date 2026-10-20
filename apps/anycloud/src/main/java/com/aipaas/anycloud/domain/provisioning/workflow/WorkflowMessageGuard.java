@@ -39,7 +39,7 @@ public class WorkflowMessageGuard {
         }
         String vmClusterId = message.getVmClusterId();
         if (vmClusterId == null || vmClusterId.isBlank()) {
-            // 가드 키 없음 — 호출부 책임. 통과.
+            // 가드 키 없음. 호출부 책임. 통과.
             return true;
         }
 
@@ -55,7 +55,7 @@ public class WorkflowMessageGuard {
         }
         VmClusterEntity entity = opt.get();
 
-        //  세대(generation) 가드 — 같은 clusterName 의 최신 row 가 아니면 옛 세대를
+        //  세대(generation) 가드: 같은 clusterName 의 최신 row 가 아니면 옛 세대를
         // 가리키는 잔존 메시지다. Backend 재시작 시 unacked 메시지가 재전달되면서 이미
         // 삭제/대체된 cluster 의 옛 row 를 부활시켜 pulumi up 까지 실행하는 사고의 직접 원인
         // (dev 에서 DELETED demo-aws-01 부활로 실증). status staleness 검사는 해당 row 자신의
@@ -65,7 +65,7 @@ public class WorkflowMessageGuard {
                 .map(latest -> !Objects.equals(latest.getId(), entity.getId()))
                 .orElse(false);
         // DESTROY 는 부활이 아니라 정리다. 막으면 같은 이름으로 재시도하며 쌓인 옛 세대를
-        // 지울 방법이 사라진다 — 실제로 FAILED 두 건이 목록에 영영 남았다.
+        // 지울 방법이 사라진다: 실제로 FAILED 두 건이 목록에 영영 남았다.
         if ((superseded || entity.getDeletedAt() != null)
                 && SupersededPolicy.blocks(message.getStep(), entity.getProvisioningStatus())) {
             log.warn(

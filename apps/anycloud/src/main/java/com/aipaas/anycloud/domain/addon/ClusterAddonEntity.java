@@ -23,13 +23,13 @@ import lombok.Setter;
 /**
  * Cluster 별 helm addon 설치 spec + lifecycle state.  *
  * <p>frontend 가 cluster 생성 시 checkbox 로 선택한 addon (monitoring/velero 등) 의 per-cluster
- * spec 과 비동기 install state 를 추적. RabbitMQ background install path 의 source-of-truth.
+ * spec 과 비동기 install state 를 추적. RabbitMQ background install path 의 단일 출처.
  *
  * <p>설계 결정:
  * <ul>
- *   <li>cluster 별 다른 spec 허용 — chart_version/repo/values 는 row 마다 column.</li>
- *   <li>state 가 cluster state 와 독립 — cluster=ACTIVE/addon=FAILED 가능.</li>
- *   <li>catalog (Option B) 와 custom override 둘 다 — catalogId nullable.</li>
+ *   <li>cluster 별 다른 spec 허용: chart_version/repo/values 는 row 마다 column.</li>
+ *   <li>state 가 cluster state 와 독립: cluster=ACTIVE/addon=FAILED 가능.</li>
+ *   <li>catalog (Option B) 와 custom override 둘 다: catalogId nullable.</li>
  * </ul>
  *
  * @see com.aipaas.anycloud.domain.addon.AddonState
@@ -53,7 +53,7 @@ public class ClusterAddonEntity implements Serializable {
     @Column(name = "id", nullable = false, length = 64)
     private String id;
 
-    /** FK cluster.id. CASCADE delete — cluster 제거 시 addon row 도 정리. */
+    /** FK cluster.id. CASCADE delete: cluster 제거 시 addon row 도 정리. */
     @Column(name = "cluster_id", nullable = false, length = 45)
     private String clusterId;
 
@@ -92,7 +92,7 @@ public class ClusterAddonEntity implements Serializable {
     @Column(name = "state", nullable = false, length = 24)
     private AddonState state;
 
-    /** 최신 OperationEntity ref — SSE 연결용. install 시작 시 set, retry 시 갱신. */
+    /** 최신 OperationEntity ref: SSE 연결용. install 시작 시 set, retry 시 갱신. */
     @Column(name = "last_operation_id", length = 36)
     private String lastOperationId;
 
@@ -100,11 +100,11 @@ public class ClusterAddonEntity implements Serializable {
     @Column(name = "last_error", columnDefinition = "TEXT")
     private String lastError;
 
-    /** 누적 install 시도 횟수 — retry backoff 산정 / metric 용. */
+    /** 누적 install 시도 횟수: retry backoff 산정 / metric 용. */
     @Column(name = "attempts", nullable = false)
     private Integer attempts;
 
-    /** soft disable — false 면 자동 enqueue 제외. row 제거 없이 toggle. */
+    /** soft disable: false 면 자동 enqueue 제외. row 제거 없이 toggle. */
     @Column(name = "enabled", nullable = false)
     private Boolean enabled;
 

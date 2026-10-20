@@ -25,7 +25,7 @@ public class VmClusterRegistrationServiceImpl implements VmClusterRegistrationSe
     public ClusterEntity createClusterEntity(VmClusterEntity vmCluster) {
         ClusterEntity clusterEntity = toClusterEntity(vmCluster);
         clusterRepository.save(clusterEntity);
-        // FK link 명시 — vm_cluster.cluster_id 가 cluster.id 를 가리키도록.
+        // FK link 명시: vm_cluster.cluster_id 가 cluster.id 를 가리키도록.
         vmCluster.setClusterId(clusterEntity.getId());
         // Backend 는 cluster K8s API 를 직접 호출하지 않으므로 도달성 확인 없이 AGENT_PENDING.
         // cluster-agent 가 helm install 후 boot → gRPC dial-in 시점에 ACTIVE 로 전환됨.
@@ -37,7 +37,7 @@ public class VmClusterRegistrationServiceImpl implements VmClusterRegistrationSe
     }
 
     private ClusterEntity toClusterEntity(VmClusterEntity vmCluster) {
-        // VM provisioned cluster — agent 가 helm install 후 gRPC dial-in 으로 ACTIVE 전환.
+        // VM provisioned cluster: agent 가 helm install 후 gRPC dial-in 으로 ACTIVE 전환.
         // kubeconfig material 은 vm_cluster.raw_outputs 에만 머물고 cluster row 에는 미저장.
         return ClusterEntity.builder()
                 .id(vmCluster.getClusterName())

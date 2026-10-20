@@ -20,13 +20,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 진행 중인 채로 멈춘 단계를 다시 민다.
+ * 진행 중인 채로 멈춘 단계를 다시 실행한다.
  *
- * <p>메시지를 즉시 ack 하므로 크래시가 나면 되돌아올 것이 없다. 이 루프가 즉시 ack 의 안전망이고,
- * 없으면 재전달 루프를 메시지 유실로 바꾼 것에 지나지 않는다.
+ * <p>메시지를 즉시 ack 하므로 크래시가 나면 RabbitMQ 가 재전달하지 않는다. 이 루프가 없으면
+ * 그 단계는 영영 멈춘 채로 남는다.
  *
- * <p>여기서 미는 것은 <b>메시지</b>지 인프라가 아니다. 단계 서비스가 멱등하므로 이미 끝난 일을
- * 다시 해도 결과는 같다.
+ * <p>재전송하는 것은 <b>메시지</b>지 인프라가 아니다. 단계 서비스가 멱등하므로 이미 끝난 일을
+ * 다시 실행해도 결과는 같다.
  */
 @Slf4j
 @Component

@@ -64,13 +64,13 @@ public class AgentPolicyMergeServiceImpl implements AgentPolicyMergeService {
                     JSON_MAPPER.treeToValue(body.get("resourcePolicy"), AgentPolicySnapshot.ResourcePolicy.class);
         }
 
-        // force flag — primitive boolean 이라 RFC 7396 의 null=clear 의미 적용 안 함.
+        // force flag: primitive boolean 이라 RFC 7396 의 null=clear 의미 적용 안 함.
         boolean force = body.has("force") && body.get("force").asBoolean(false);
 
         return new AgentPolicyUpdateRequest(namespaces, commands, charts, execNs, resourcePolicy, force);
     }
 
-    /** RFC 7396 — has(field) 안 보이면 current, null 이면 empty list, 값이면 사용. */
+    /** RFC 7396: has(field) 안 보이면 current, null 이면 empty list, 값이면 사용. */
     static List<String> mergeStringList(JsonNode body, String field, List<String> currentValue) {
         if (!body.has(field)) {
             return currentValue;
@@ -89,7 +89,7 @@ public class AgentPolicyMergeServiceImpl implements AgentPolicyMergeService {
 
     /**
      * Snapshot 의 {@code allowedNamespaces} + wildcard flag 를 합쳐 단일 list 로. RFC 7396 merge 의
-     * "current value" 계산에 사용 — wildcard 가 set 이면 list 에 {@code "*"} 추가.
+     * "current value" 계산에 사용: wildcard 가 set 이면 list 에 {@code "*"} 추가.
      */
     static List<String> buildNsListFromSnapshot(AgentPolicySnapshot s) {
         List<String> out = new ArrayList<>(s.allowedNamespaces());

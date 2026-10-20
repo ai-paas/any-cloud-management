@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 /**
  * Cluster agent 의 degraded 응답 분류 결과를 Prometheus counter 로 집계.
  *
- * <p>MeterRegistry 가 미주입된 환경 (test 등) 에서도 동작하도록 ObjectProvider lazy lookup — 등록
+ * <p>MeterRegistry 가 미주입된 환경 (test 등) 에서도 동작하도록 ObjectProvider lazy lookup: 등록
  * 실패는 fail-open (audit 정책과 동일).
  *
  * <p>kind 라벨은 GVR 식별 가능한 normalize string 으로 변환되어 cardinality 폭주를 막는다

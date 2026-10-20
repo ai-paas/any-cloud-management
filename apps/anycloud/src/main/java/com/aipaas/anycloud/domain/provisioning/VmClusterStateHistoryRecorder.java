@@ -19,10 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
  * 호출 후 본 recorder 의 {@link #record} 를 호출. operator/사용자는 endpoint
  * {@code GET /v1/clusters/{name}/state-history} 로 시간순 transition history 조회.
  *
- * <p>state machine graph 가 invalid 라고 판정한 transition 도 {@code valid=false} row 로 남김 —
+ * <p>state machine graph 가 invalid 라고 판정한 transition 도 {@code valid=false} row 로 남김:
  * observation mode (default) 에서 그대로 진행됐어도 회귀 분석용 trace 보존.
  *
- * <p>독립 transaction (REQUIRES_NEW) — caller 의 비즈니스 TX 가 rollback 되어도 audit row 는 보존.
+ * <p>독립 transaction (REQUIRES_NEW). caller 의 비즈니스 TX 가 rollback 되어도 audit row 는 보존.
  * Recorder 자체 실패는 best-effort (caller flow 깨뜨리지 않음).
  */
 @Slf4j
@@ -60,7 +60,7 @@ public class VmClusterStateHistoryRecorder {
                         reason);
             }
         } catch (Exception e) {
-            // best-effort — audit insertion 실패가 비즈니스 flow 를 막지 않음.
+            // best-effort: audit insertion 실패가 비즈니스 flow 를 막지 않음.
             log.warn(
                     "VmCluster state history record failed (cluster={}, from={}, to={}): {}",
                     entity.getClusterName(),

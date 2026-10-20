@@ -14,7 +14,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-// In-process backend AgentRuntime stub — bidi stream.
+// In-process backend AgentRuntime stub: bidi stream.
 
 type runtimeStub struct {
 	agentv1.UnimplementedAgentRuntimeServer
@@ -173,7 +173,7 @@ func TestRunStream_CommandRoundTrip(t *testing.T) {
 		t.Fatalf("responses len = %d, want 1", len(stub.responses))
 	}
 	resp := stub.responses[0]
-	// Dispatcher 가 deps nil (k8s/helm/allowlist 모두 nil) — 본 테스트는 round-trip mechanics
+	// Dispatcher 가 deps nil (k8s/helm/allowlist 모두 nil). 본 테스트는 round-trip mechanics
 	// 만 검증, status 는 PERMISSION_DENIED (allowlist deny-all) 또는 AGENT_UNAVAILABLE 둘 다 OK.
 	// 실 명령 동작은 dispatcher_test 가 담당.
 	st := resp.GetStatus()

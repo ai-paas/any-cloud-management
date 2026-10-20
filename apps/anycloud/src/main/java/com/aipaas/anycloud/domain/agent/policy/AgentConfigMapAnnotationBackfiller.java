@@ -44,7 +44,7 @@ public class AgentConfigMapAnnotationBackfiller {
 
     /**
      * Startup 직후 trigger. {@code ApplicationReadyEvent} 시점은 모든 bean 초기화 완료 + Tomcat /
-     * Hibernate 가 ready 상태 — DB / cluster registry 안전하게 query 가능.
+     * Hibernate 가 ready 상태: DB / cluster registry 안전하게 query 가능.
      */
     @EventListener(ApplicationReadyEvent.class)
     public void onStartup() {

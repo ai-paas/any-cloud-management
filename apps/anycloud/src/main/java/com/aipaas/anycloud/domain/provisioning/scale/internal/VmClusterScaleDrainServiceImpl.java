@@ -45,7 +45,7 @@ public class VmClusterScaleDrainServiceImpl implements VmClusterScaleDrainServic
                     vmCluster.getClusterName(),
                     targets);
         } else {
-            // 2) Fallback — 라벨이 없거나 매칭 실패 시 creationTimestamp 순. 기존 동작 보존.
+            // 2) Fallback: 라벨이 없거나 매칭 실패 시 creationTimestamp 순. 기존 동작 보존.
             List<String> workerNodes = listWorkerNodesSortedByCreation(vmCluster, outputs);
             if (workerNodes.isEmpty()) {
                 log.warn("Scale drain: no worker nodes resolved for cluster {}", vmCluster.getClusterName());

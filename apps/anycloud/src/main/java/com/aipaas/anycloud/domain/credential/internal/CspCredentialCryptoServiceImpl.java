@@ -105,7 +105,7 @@ public class CspCredentialCryptoServiceImpl implements CspCredentialCryptoServic
             cipher.init(Cipher.DECRYPT_MODE, secretKey(), new GCMParameterSpec(GCM_TAG_LENGTH, iv));
             return new String(cipher.doFinal(cipherText), StandardCharsets.UTF_8);
         } catch (javax.crypto.AEADBadTagException e) {
-            // AES-GCM 태그 검증 실패 — 거의 확정적으로 AES 키 불일치.
+            // AES-GCM 태그 검증 실패: 거의 확정적으로 AES 키 불일치.
             // 운영 중 CSP_CREDENTIAL_ENCRYPTION_KEY 가 바뀌었거나 .env 가 reload 된 케이스.
             log.error(
                     "CSP credential decrypt failed: AES-GCM tag verification failed — "

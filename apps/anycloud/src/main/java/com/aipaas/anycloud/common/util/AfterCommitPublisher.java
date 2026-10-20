@@ -46,7 +46,7 @@ public class AfterCommitPublisher {
         });
     }
 
-    /** action(payload) 형식 helper — payload 가 명시적인 경우. */
+    /** action(payload) 형식 helper: payload 가 명시적인 경우. */
     public <T> void publish(String description, T payload, Consumer<T> action) {
         publish(description, () -> action.accept(payload));
     }

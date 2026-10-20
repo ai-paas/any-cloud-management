@@ -343,7 +343,7 @@ public class ClusterHelmReleaseController {
      * <p>{@code atomic} 은 기본 true 라 실패하면 자동으로 rollback 합니다.
      *
      * <p>{@code reuseValues} 는 기존 values 를 남기고 병합하고, {@code resetValues} 는 chart 기본값
-     * 부터 다시 시작합니다. 둘 다 true 로 주면 {@code resetValues} 가 이깁니다.
+     * 부터 다시 시작합니다. 둘 다 true 면 {@code resetValues} 가 적용됩니다.
      */
     @org.springframework.web.bind.annotation.PutMapping(
             value = "/{releaseName}",

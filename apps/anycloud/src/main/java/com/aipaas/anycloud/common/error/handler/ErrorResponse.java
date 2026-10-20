@@ -26,7 +26,7 @@ public class ErrorResponse {
 
     /**
      * RFC 9457 type URI prefix. 클라이언트가 에러 카테고리별 문서/문제 페이지를 파싱할 수 있는
-     * stable identifier. 기존 응답 구조는 그대로 유지하고 추가 필드만 노출 — 호환성 보존.
+     * stable identifier. 기존 응답 구조는 그대로 유지하고 추가 필드만 노출: 호환성 보존.
      */
     private static final String PROBLEM_TYPE_PREFIX = "https://anycloud.local/problems/";
 
@@ -60,12 +60,12 @@ public class ErrorResponse {
     @Schema(description = "원본 에러 전문 (장문). message 는 요약, 전체는 여기.", example = "error: ... full stderr ...")
     private String detail;
 
-    /** 다음 행동 제안 — 사용자가 무엇을 하면 해소되는지 한 줄. */
+    /** 다음 행동 제안: 사용자가 무엇을 하면 해소되는지 한 줄. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @Schema(description = "권장 다음 행동", example = "IAM policy 에 ec2:Describe* 추가 후 재시도하세요.")
     private String hint;
 
-    /** 복구/관련 동작 경로 — 성공 응답의 {@code ApiSuccessResponse.links} 와 동형. */
+    /** 복구/관련 동작 경로: 성공 응답의 {@code ApiSuccessResponse.links} 와 동형. */
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     @Schema(description = "복구/관련 동작 URL (HATEOAS-lite). 예: clusterList, agentManifest, status.")
     private Map<String, String> links;
@@ -124,13 +124,13 @@ public class ErrorResponse {
         return new ErrorResponse(code, errors);
     }
 
-    /** customMessage + errors 모두 override — NO_BODY 등 cause hint 가 필요한 케이스 용. */
+    /** customMessage + errors 모두 override: NO_BODY 등 cause hint 가 필요한 케이스 용. */
     public static ErrorResponse of(final ErrorCode code, final String customMessage, final List<FieldError> errors) {
         return new ErrorResponse(code, customMessage, errors);
     }
 
     /**
-     * customMessage + metadata override — UNSUPPORTED_KIND 의 suggestions 등 추가 context 노출.
+     * customMessage + metadata override: UNSUPPORTED_KIND 의 suggestions 등 추가 context 노출.
      * metadata 가 null/empty 면 직렬화에서 제외.
      */
     public static ErrorResponse of(

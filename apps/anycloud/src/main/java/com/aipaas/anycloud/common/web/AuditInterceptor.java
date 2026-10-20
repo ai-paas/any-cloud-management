@@ -99,7 +99,7 @@ public class AuditInterceptor implements HandlerInterceptor {
         if (uri.startsWith("/v1/clusters/")) {
             // /v1/clusters/{c}/helm-releases/...
             if (uri.contains("/helm-releases")) return "helmRelease";
-            // /v1/clusters/{c}/namespaces/{ns}/{kind}/...  (sub-resource — K8s)
+            // /v1/clusters/{c}/namespaces/{ns}/{kind}/...  (sub-resource: K8s)
             if (uri.contains("/namespaces/")) return "k8sResource";
             return "cluster";
         }
@@ -137,12 +137,12 @@ public class AuditInterceptor implements HandlerInterceptor {
 
         Set<String> collectionMarkers =
                 Set.of("clusters", "cluster-validations", "operations", "helm-repos", "audit-logs");
-        // 옛 `/v1/clusters:importKubeconfig` 같이 collection 이름 자체에 :verb 가 붙던 케이스 — 식별자 없음.
+        // 옛 `/v1/clusters:importKubeconfig` 같이 collection 이름 자체에 :verb 가 붙던 케이스: 식별자 없음.
         if (collectionMarkers.contains(last) && colonIdx >= 0) {
             return null;
         }
 
-        // 액션성 suffix (collection / sub-resource verb) — 한 단계 위 segment 가 실제 ID.
+        // 액션성 suffix (collection / sub-resource verb). 한 단계 위 segment 가 실제 ID.
         // 콜론 custom-method(:cancel/:flush/:install-all/:enqueue/:importKubeconfig)를 colon-free
         // 서브패스로 전환하면서, 옛 콜론과 동일한 resourceId 추출을 위해 verb suffix 로 추가.
         Set<String> verbs = Set.of(
@@ -162,7 +162,7 @@ public class AuditInterceptor implements HandlerInterceptor {
                 "importKubeconfig");
         if (verbs.contains(last) && !prev.isBlank()) {
             // prev 가 collection marker 면 collection-level custom method (예: /clusters/importKubeconfig)
-            // — 특정 식별자 없음.
+            // 특정 식별자 없음.
             return collectionMarkers.contains(prev) ? null : prev;
         }
 
@@ -173,7 +173,7 @@ public class AuditInterceptor implements HandlerInterceptor {
         // 우선순위: X-User-Id (gateway 가 검증된 사용자 식별자를 forward) → SecurityContext → anonymous.
         String fromGw = request.getHeader("X-User-Id");
         if (fromGw != null && !fromGw.isBlank()) return fromGw;
-        // SecurityContext lookup 은 의도적으로 생략 — gateway 환경에선 header 가 표준 경로.
+        // SecurityContext lookup 은 의도적으로 생략: gateway 환경에선 header 가 표준 경로.
         String mdcPrincipal = MDC.get("principal");
         return mdcPrincipal != null ? mdcPrincipal : "anonymous";
     }

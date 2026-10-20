@@ -62,7 +62,7 @@ public class ErrorResponseFormatter {
                 .body(response);
     }
 
-    /** ErrorCode 기준 HttpStatus 변환 helper — 핸들러에서 status code 산출 반복 제거. */
+    /** ErrorCode 기준 HttpStatus 변환 helper: 핸들러에서 status code 산출 반복 제거. */
     public static HttpStatus statusOf(ErrorCode code) {
         return HttpStatus.valueOf(code.getStatus());
     }

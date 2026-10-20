@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Profile;
  * dev profile 에서만 부팅마다 {@code repair()} 를 먼저 부르고 {@code migrate()} 합니다.
  *
  * <p>migration 중간에 죽으면 flyway_schema_history 에 failed row 가 남아 다음 부팅이
- * ValidateException 으로 거부됩니다. dev 에서 그때마다 손으로 지우지 않으려는 것입니다.
+ * ValidateException 으로 거부됩니다. dev 에서는 그 행을 매번 직접 지워야 합니다.
  *
  * <p>운영에는 이 bean 이 없습니다. 깨진 history 는 사람이 봐야 하므로 부팅이 실패하는 게 맞습니다.
  */

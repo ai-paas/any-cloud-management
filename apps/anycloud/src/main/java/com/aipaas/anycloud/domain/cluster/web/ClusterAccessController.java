@@ -83,7 +83,7 @@ public class ClusterAccessController {
                     @Size(max = ApiValidationConstants.K8S_NAME_MAX)
                     String namespace,
             @RequestParam(name = "ttlSeconds", required = false) Long ttlSeconds) {
-        // identity(ns+SA) 해석은 KubeconfigIdentityResolver 단일 seam — VM admin 기본 / 명시 SA
+        // identity(ns+SA) 해석은 KubeconfigIdentityResolver 단일 seam: VM admin 기본 / 명시 SA
         // / 향후 per-user.
         var identity = kubeconfigIdentityResolver.resolve(clusterName, serviceAccount, namespace);
         IssuedKubeconfig result = kubeconfigExportService.issue(
@@ -136,7 +136,7 @@ public class ClusterAccessController {
         }
     }
 
-    // ===== VM SSH access (Deprecated alias — canonical 은 /v1/vms/{name}/ssh-key)
+    // ===== VM SSH access (Deprecated alias: canonical 은 /v1/vms/{name}/ssh-key)
     // =====
 
     @PostMapping("/clusters/{clusterName}/ssh-key")
@@ -160,7 +160,7 @@ public class ClusterAccessController {
     }
 
     // ===== Error mapping =====
-    // 에러는 전 API 공통의 ErrorResponse (RFC 9457) 한 가지 형태로 — 기존엔
+    // 에러는 전 API 공통의 ErrorResponse (RFC 9457) 한 가지 형태로: 기존엔
     // ApiSuccessResponse(success=false) 로 내려 frontend 가 에러 파싱을 두 벌 유지해야 했다.
     // 원래 module 별 errorCode 문자열은 metadata.sourceCode 로 보존.
 

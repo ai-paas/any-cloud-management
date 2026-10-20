@@ -42,7 +42,7 @@ public class NodeSshWebSocketHandler extends AbstractWebSocketHandler {
         }
     }
 
-    /** 사용자가 친 글자. 바이너리로 온다 — 터미널 입력은 텍스트가 아닐 수 있다. */
+    /** 사용자가 친 글자. 바이너리로 온다: 터미널 입력은 텍스트가 아닐 수 있다. */
     @Override
     protected void handleBinaryMessage(WebSocketSession session, BinaryMessage message) {
         ByteBuffer payload = message.getPayload();

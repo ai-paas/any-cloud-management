@@ -73,7 +73,7 @@ public class ClusterConvergenceOrchestratorImpl implements ClusterConvergenceOrc
         if (next == current) {
             return;
         }
-        // raw setter 가 아니라 transitionTo — 상태 이력과 메트릭이 여기에 달려 있다.
+        // raw setter 가 아니라 transitionTo: 상태 이력과 메트릭이 여기에 달려 있다.
         vmCluster.transitionTo(next, "convergence.reconcile");
         stampReadyAt(vmCluster, next);
         if (next == VmClusterStatus.READY) {
@@ -84,7 +84,7 @@ public class ClusterConvergenceOrchestratorImpl implements ClusterConvergenceOrc
         log.info("컴포넌트 조정으로 상태 변경 cluster={} {} -> {}", vmCluster.getClusterName(), current, next);
     }
 
-    /** 실패해도 상태 전이는 유효하다 — 기록 정리가 조정을 막으면 안 된다. */
+    /** 실패해도 상태 전이는 유효하다: 기록 정리가 조정을 막으면 안 된다. */
     private void closeActiveOperation(String clusterName) {
         try {
             operationService
@@ -108,7 +108,7 @@ public class ClusterConvergenceOrchestratorImpl implements ClusterConvergenceOrc
         }
     }
 
-    /** {@code observe} 가 영속화한 상태를 읽는다 — 다시 probe 하면 클러스터마다 SSH 가 두 번 열린다. */
+    /** {@code observe} 가 영속화한 상태를 읽는다: 다시 probe 하면 클러스터마다 SSH 가 두 번 열린다. */
     private void repairUnsatisfied(VmClusterEntity vmCluster, List<ConvergenceSignal> signals) {
         if (evaluate(signals) != ConvergenceVerdict.UNSATISFIED) {
             return;
@@ -132,7 +132,7 @@ public class ClusterConvergenceOrchestratorImpl implements ClusterConvergenceOrc
         return signals;
     }
 
-    /** UNSATISFIED 가 INCONCLUSIVE 를 이긴다 — 하나라도 확실히 미충족이면 판정은 미충족이다. */
+    /** 하나라도 UNSATISFIED 면 전체 판정이 UNSATISFIED 다. INCONCLUSIVE 는 그보다 뒤에 본다. */
     static ConvergenceVerdict evaluate(List<ConvergenceSignal> signals) {
         boolean anyUnknown = false;
         for (ConvergenceSignal signal : signals) {

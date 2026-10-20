@@ -37,8 +37,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// installObservabilityStack — helm install kube-prometheus-stack. 기존 installAddon 의 specialization.
-// chart 는 항상 "prometheus-community/kube-prometheus-stack" — allowlist 에서 별도 rule 필요.
+// installObservabilityStack: helm install kube-prometheus-stack. 기존 installAddon 의 specialization.
+// chart 는 항상 "prometheus-community/kube-prometheus-stack": allowlist 에서 별도 rule 필요.
 func (d *Dispatcher) installObservabilityStack(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {
 	if d.helm == nil {
 		return errorResponse(agentv1.Status_AGENT_UNAVAILABLE, "HELM_CLIENT_NIL", "Helm client not initialized")
@@ -50,7 +50,7 @@ func (d *Dispatcher) installObservabilityStack(ctx context.Context, cmd *agentv1
 	releaseName := defaultStr(getStringParam(cmd, "release_name"), "kube-prometheus-stack")
 	chartVersion := defaultStr(getStringParam(cmd, "chart_version"), "65.0.0")
 
-	// repo/chart override 지원 — caller 가 internal mirror redirect 가능.
+	// repo/chart override 지원: caller 가 internal mirror redirect 가능.
 	// 기본값은 backward-compat 위해 hardcoded "prometheus-community/kube-prometheus-stack".
 	repo := defaultStr(getStringParam(cmd, "repo"), "prometheus-community")
 	chart := defaultStr(getStringParam(cmd, "chart"), "kube-prometheus-stack")
@@ -58,7 +58,7 @@ func (d *Dispatcher) installObservabilityStack(ctx context.Context, cmd *agentv1
 	// 비어있으면 helm SDK 가 settings 기반 alias resolve 로 fallback (기존 동작).
 	repoURL := getStringParam(cmd, "repo_url")
 
-	// AllowList 검증 — namespace + chart.
+	// AllowList 검증: namespace + chart.
 	policy := d.allowlist.Snapshot()
 	if !policy.IsNamespaceAllowed(namespace) {
 		return errorResponse(agentv1.Status_PERMISSION_DENIED, "NAMESPACE_NOT_ALLOWED",
@@ -108,20 +108,20 @@ func (d *Dispatcher) installObservabilityStack(ctx context.Context, cmd *agentv1
 	return okResponse(result)
 }
 
-// queryMetrics — Prometheus /api/v1/query (instant) 또는 /api/v1/query_range.
+// queryMetrics: Prometheus /api/v1/query (instant) 또는 /api/v1/query_range.
 func (d *Dispatcher) queryMetrics(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {
 	query := getStringParam(cmd, "query")
 	if query == "" {
 		return errorResponse(agentv1.Status_INVALID_PARAMS, "MISSING_QUERY", "query required")
 	}
 
-	// URL 결정 우선순위 — (1) params.prometheus_url, (2) label-based service
+	// URL 결정 우선순위: (1) params.prometheus_url, (2) label-based service
 	// discovery 결과, (3) namespace 기반 hardcoded fallback.
 	promURL := defaultStr(
 		getStringParam(cmd, "prometheus_url"),
 		discoverPrometheusURL(ctx, d, getStringParam(cmd, "namespace")))
 
-	// range vs instant 결정 — start/end/step 셋 다 있으면 range.
+	// range vs instant 결정: start/end/step 셋 다 있으면 range.
 	start := getStringParam(cmd, "start")
 	end := getStringParam(cmd, "end")
 	step := getStringParam(cmd, "step")
@@ -159,7 +159,7 @@ func (d *Dispatcher) queryMetrics(ctx context.Context, cmd *agentv1.CommandReque
 			fmt.Sprintf("Prometheus HTTP %d: %s", status, truncate(string(body), 512)))
 	}
 
-	// raw 응답을 result.data 에 그대로 expose — caller (Java starter) 가 PromQLResult 로 파싱.
+	// raw 응답을 result.data 에 그대로 expose: caller (Java starter) 가 PromQLResult 로 파싱.
 	result, perr := structFromJSON(map[string]interface{}{
 		"prometheus_url": promURL,
 		"is_range":       isRange,
@@ -171,7 +171,7 @@ func (d *Dispatcher) queryMetrics(ctx context.Context, cmd *agentv1.CommandReque
 	return okResponse(result)
 }
 
-// listMetricTargets — Prometheus /api/v1/targets.
+// listMetricTargets: Prometheus /api/v1/targets.
 func (d *Dispatcher) listMetricTargets(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {
 	promURL := defaultStr(
 		getStringParam(cmd, "prometheus_url"),
@@ -197,7 +197,7 @@ func (d *Dispatcher) listMetricTargets(ctx context.Context, cmd *agentv1.Command
 	return okResponse(result)
 }
 
-// listAlerts — Alertmanager /api/v2/alerts.
+// listAlerts: Alertmanager /api/v2/alerts.
 func (d *Dispatcher) listAlerts(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {
 	amURL := defaultStr(
 		getStringParam(cmd, "alertmanager_url"),
@@ -229,7 +229,7 @@ func (d *Dispatcher) listAlerts(ctx context.Context, cmd *agentv1.CommandRequest
 	return okResponse(result)
 }
 
-// getDashboardURL — Grafana service / ingress URL 조회.
+// getDashboardURL: Grafana service / ingress URL 조회.
 // 우선순위: Ingress > LoadBalancer Service > ClusterIP Service (in-cluster URL 만).
 func (d *Dispatcher) getDashboardURL(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {
 	if d.kube == nil {
@@ -274,7 +274,7 @@ func (d *Dispatcher) getDashboardURL(ctx context.Context, cmd *agentv1.CommandRe
 		}
 	}
 
-	// 3) Ingress 검색 (best-effort — 같은 namespace 의 ingress 중 svcName 가 backend 인 것).
+	// 3) Ingress 검색 (best-effort: 같은 namespace 의 ingress 중 svcName 가 backend 인 것).
 	if rl, err := d.kube.ListResources(ctx, k8s.ListResourcesOptions{
 		Kind: "ingress", Namespace: namespace, Limit: 50,
 	}); err == nil && rl != nil && rl.Items != "" {
@@ -283,7 +283,7 @@ func (d *Dispatcher) getDashboardURL(ctx context.Context, cmd *agentv1.CommandRe
 		}
 	}
 
-	// 4) ClusterIP fallback — agent 안에서만 접근 가능, frontend 는 사용 불가. 정보만 제공.
+	// 4) ClusterIP fallback: agent 안에서만 접근 가능, frontend 는 사용 불가. 정보만 제공.
 	if svc.Spec.ClusterIP != "" && svc.Spec.ClusterIP != "None" {
 		host := fmt.Sprintf("%s.%s.svc", svcName, namespace)
 		return errorResponse(agentv1.Status_FAILED, "GRAFANA_NOT_EXPOSED",
@@ -303,7 +303,7 @@ func grafanaResult(url, host string, port int32, exposure string) *agentv1.Comma
 	return okResponse(result)
 }
 
-// findGrafanaIngressHost — IngressList JSON 에서 svcName 을 backend 로 갖는 첫 host 반환.
+// findGrafanaIngressHost: IngressList JSON 에서 svcName 을 backend 로 갖는 첫 host 반환.
 func findGrafanaIngressHost(itemsJSON, svcName string) string {
 	var list struct {
 		Items []struct {
@@ -358,11 +358,11 @@ const promCacheTTL = 5 * time.Minute
 // 우리 카탈로그(addons.yaml)가 설치하는 kube-prometheus-stack 의 service 이름.
 const wellKnownPromService = "kube-prometheus-stack-prometheus"
 
-// discoverPrometheusURL — label-based 자동 발견 + hardcoded fallback.
+// discoverPrometheusURL: label-based 자동 발견 + hardcoded fallback.
 //
 // 5분 TTL cache 로 매 metric query 마다 LIST 회피. 1차 selector `app.kubernetes.io/name=prometheus`
-// 실패 시 `prometheus.io/scrape=true` 로 fallback — 사용자 custom prometheus 대응. 둘 다 0개면
-// hardcoded `kube-prometheus-stack-prometheus.{ns}.svc:9090` — backend 가 cluster row 의
+// 실패 시 `prometheus.io/scrape=true` 로 fallback: 사용자 custom prometheus 대응. 둘 다 0개면
+// hardcoded `kube-prometheus-stack-prometheus.{ns}.svc:9090`: backend 가 cluster row 의
 // monit_server_url 컬럼 없이도 query 가능하게.
 //
 // ns 빈 문자열이면 "monitoring" (kube-prometheus-stack 의 default namespace).
@@ -385,7 +385,7 @@ func discoverPrometheusURL(ctx context.Context, d *Dispatcher, ns string) string
 		return url
 	}
 
-	// 3) label-based service lookup — 직접 올린 prometheus 는 이름이 다르다.
+	// 3) label-based service lookup: 직접 올린 prometheus 는 이름이 다르다.
 	candidates := []string{
 		"app.kubernetes.io/name=prometheus",
 		"prometheus.io/scrape=true",
@@ -399,7 +399,7 @@ func discoverPrometheusURL(ctx context.Context, d *Dispatcher, ns string) string
 		return url
 	}
 
-	// 4) fallback. 못 찾았다는 사실도 기억한다 — 아무것도 없는 클러스터에서 5분마다 같은
+	// 4) fallback. 못 찾았다는 사실도 기억한다. 아무것도 없는 클러스터에서 5분마다 같은
 	// 조회를 반복하면 모니터링 화면을 열 때마다 그만큼 기다린다.
 	fallback := prometheusInClusterURL(ns)
 	cachePromURL(fallback)
@@ -412,7 +412,7 @@ func cachePromURL(url string) {
 	promCacheMu.Unlock()
 }
 
-// tryFindPromServiceByName — 이름이 정확히 아는 값일 때. LIST 한 번이지만 field selector 로
+// tryFindPromServiceByName: 이름이 정확히 아는 값일 때. LIST 한 번이지만 field selector 로
 // 좁혀 라벨 전수 스캔보다 싸다.
 func tryFindPromServiceByName(ctx context.Context, d *Dispatcher, ns, name string) string {
 	if d == nil || d.kube == nil {
@@ -446,9 +446,9 @@ func tryFindPromService(ctx context.Context, d *Dispatcher, ns, selector string)
 	return firstPromURL(res.Items)
 }
 
-// firstPromURL — service list JSON 에서 쓸 수 있는 첫 주소.
+// firstPromURL: service list JSON 에서 쓸 수 있는 첫 주소.
 func firstPromURL(itemsJSON string) string {
-	// 응답 JSON parse — corev1.Service list 모양. minimal parse 만.
+	// 응답 JSON parse: corev1.Service list 모양. minimal parse 만.
 	var list struct {
 		Items []corev1.Service `json:"items"`
 	}
@@ -465,7 +465,7 @@ func firstPromURL(itemsJSON string) string {
 				return fmt.Sprintf("http://%s.%s.svc:%d", svc.Name, svc.Namespace, p.Port)
 			}
 		}
-		// fallback — 첫 port
+		// fallback: 첫 port
 		if len(svc.Spec.Ports) > 0 {
 			return fmt.Sprintf("http://%s.%s.svc:%d", svc.Name, svc.Namespace, svc.Spec.Ports[0].Port)
 		}
@@ -505,7 +505,7 @@ func httpGetJSON(ctx context.Context, urlStr string) ([]byte, int, error) {
 	}
 	req.Header.Set("Accept", "application/json")
 
-	// 5s default — agent 가 backend 응답 timeout 보다 짧게 잡아 cascade 회피.
+	// 5s default: agent 가 backend 응답 timeout 보다 짧게 잡아 cascade 회피.
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -513,7 +513,7 @@ func httpGetJSON(ctx context.Context, urlStr string) ([]byte, int, error) {
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	// 1MB 상한 — Prometheus 응답이 매우 큰 경우 메모리 보호.
+	// 1MB 상한. Prometheus 응답 전체를 메모리에 올리지 않는다.
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return nil, resp.StatusCode, fmt.Errorf("read body: %w", err)
@@ -550,7 +550,7 @@ func httpRequestJSON(ctx context.Context, method, urlStr string, body []byte) ([
 	return rb, resp.StatusCode, nil
 }
 
-// listAlertSilences — Alertmanager /api/v2/silences (GET).
+// listAlertSilences: Alertmanager /api/v2/silences (GET).
 func (d *Dispatcher) listAlertSilences(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {
 	amURL := defaultStr(
 		getStringParam(cmd, "alertmanager_url"),
@@ -570,7 +570,7 @@ func (d *Dispatcher) listAlertSilences(ctx context.Context, cmd *agentv1.Command
 	return okResponse(result)
 }
 
-// createAlertSilence — Alertmanager /api/v2/silences (POST).
+// createAlertSilence: Alertmanager /api/v2/silences (POST).
 // params 의 matchers/startsAt/endsAt/createdBy/comment 를 그대로 JSON body 로 전달.
 func (d *Dispatcher) createAlertSilence(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {
 	amURL := defaultStr(
@@ -586,7 +586,7 @@ func (d *Dispatcher) createAlertSilence(ctx context.Context, cmd *agentv1.Comman
 			"matchers, startsAt, endsAt, createdBy, comment all required")
 	}
 
-	// Alertmanager schema 그대로 — matchers 가 이미 JSON array of {name, value, isRegex, isEqual}.
+	// Alertmanager schema 그대로: matchers 가 이미 JSON array of {name, value, isRegex, isEqual}.
 	var matchers []interface{}
 	if err := json.Unmarshal([]byte(matchersJSON), &matchers); err != nil {
 		return errorResponse(agentv1.Status_INVALID_PARAMS, "INVALID_MATCHERS", err.Error())
@@ -612,7 +612,7 @@ func (d *Dispatcher) createAlertSilence(ctx context.Context, cmd *agentv1.Comman
 			fmt.Sprintf("Alertmanager HTTP %d: %s", status, string(body)))
 	}
 
-	// 응답 — { silenceID: "..." } (Alertmanager v2). raw 그대로 전달 + 추출.
+	// 응답: { silenceID: "..." } (Alertmanager v2). raw 그대로 전달 + 추출.
 	var resp map[string]interface{}
 	silenceID := ""
 	if e := json.Unmarshal(body, &resp); e == nil {
@@ -628,7 +628,7 @@ func (d *Dispatcher) createAlertSilence(ctx context.Context, cmd *agentv1.Comman
 	return okResponse(result)
 }
 
-// deleteAlertSilence — Alertmanager /api/v2/silence/{id} (DELETE).
+// deleteAlertSilence: Alertmanager /api/v2/silence/{id} (DELETE).
 func (d *Dispatcher) deleteAlertSilence(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {
 	amURL := defaultStr(
 		getStringParam(cmd, "alertmanager_url"),
@@ -659,5 +659,5 @@ func structFromJSON(m map[string]interface{}) (*structpb.Struct, error) {
 	return structpb.NewStruct(m)
 }
 
-// ---- 미사용 import 회피 (corev1, metav1) 가드 — Service Get 시 사용 ----
+// ---- 미사용 import 회피 (corev1, metav1) 가드: Service Get 시 사용 ----
 var _ = metav1.GetOptions{}

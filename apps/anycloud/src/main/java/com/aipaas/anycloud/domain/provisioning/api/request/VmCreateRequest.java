@@ -12,7 +12,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/** POST /v1/vms body — VM (CSP 인스턴스) 생성 요청. cluster 등록과 분리된 단일 책임. */
+/** POST /v1/vms body: VM (CSP 인스턴스) 생성 요청. cluster 등록과 분리된 단일 책임. */
 @Data
 @Builder
 @NoArgsConstructor

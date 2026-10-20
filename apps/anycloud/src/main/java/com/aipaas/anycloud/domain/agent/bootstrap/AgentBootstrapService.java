@@ -35,13 +35,13 @@ public interface AgentBootstrapService {
             NetworkInfo network);
 
     /**
-     * Identity token rotation — 살아있는 token hash → 새 token 발급, DB 교체. revoked/expired 면 거부.
+     * Identity token rotation: 살아있는 token hash → 새 token 발급, DB 교체. revoked/expired 면 거부.
      *
      * @param requestingInstanceId 진단용 (HA 시 어느 instance 가 rotate 했는지 log).
      */
     RotationResult rotateIdentityToken(String currentTokenHash, String requestingInstanceId);
 
-    /** hex — starter 의 표준 helper 위임. test 등 호출 측 호환을 위해 interface 에 유지. */
+    /** hex: starter 의 표준 helper 위임. test 등 호출 측 호환을 위해 interface 에 유지. */
     static String sha256Hex(String value) {
         return TokenHasher.sha256Hex(value);
     }

@@ -28,12 +28,12 @@ public class AddonInstallerRegistry {
         log.info("AddonInstallerRegistry: {} installers registered — {}", byType.size(), byType.keySet());
     }
 
-    /** type 에 해당하는 installer. 없으면 null — caller 가 GENERIC fallback 또는 에러 처리. */
+    /** type 에 해당하는 installer. 없으면 null: caller 가 GENERIC fallback 또는 에러 처리. */
     public AddonInstaller find(AddonType type) {
         return byType.get(type);
     }
 
-    /** type lookup with fail-fast — missing 시 RuntimeException. */
+    /** type lookup with fail-fast: missing 시 RuntimeException. */
     public AddonInstaller require(AddonType type) {
         AddonInstaller inst = byType.get(type);
         if (inst == null) {

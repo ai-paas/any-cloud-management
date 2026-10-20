@@ -1,4 +1,4 @@
-// Package k8s — fuzzy match helpers for RESOLVE_RESOURCE.
+// Package k8s: fuzzy match helpers for RESOLVE_RESOURCE.
 //
 // 사용자가 "stragecass" 같은 오타를 입력한 경우 RESTMapper 가 ErrUnsupportedKind 로
 // 답한다. 본 파일의 topKByLevenshtein 이 discovery 의 plural 목록과 거리 계산해서
@@ -6,23 +6,23 @@
 //
 // 거리 산정:
 //   - 고전 edit-distance (insert/delete/substitute = 1) DP. 외부 의존성 없음.
-//   - 입력은 lowercased — caller (dispatcher) 가 strings.ToLower 후 전달.
-//   - 거리 > 3 의 후보는 모두 제외 — 의미 있는 오타 범위 제한 (UI noise 줄이기).
+//   - 입력은 lowercased: caller (dispatcher) 가 strings.ToLower 후 전달.
+//   - 거리 > 3 의 후보는 모두 제외: 의미 있는 오타 범위 제한 (UI noise 줄이기).
 package k8s
 
 import (
 	"sort"
 )
 
-// TopKByLevenshtein — input 과 가장 가까운 K 개의 plural 반환. distance > 3 이면 제외.
+// TopKByLevenshtein: input 과 가장 가까운 K 개의 plural 반환. distance > 3 이면 제외.
 //
 // 결정성: 거리가 동률이면 plural 의 lexicographic 정렬로 tie-break (UI 표시 안정).
 // 입력 slice 가 비어있거나 모든 후보가 거리 > 3 이면 빈 slice 반환.
 //
-// Complexity: O(N * |input| * max(|plural|))  — N 후보 수. discovery 캐시 (~수백) 기준
+// Complexity: O(N * |input| * max(|plural|)). N 후보 수. discovery 캐시 (~수백) 기준
 // 한 호출 당 수 ms 수준.
 //
-// dispatcher (다른 패키지) 가 RESOLVE_RESOURCE 응답 보강용으로 호출 — exported. 내부
+// dispatcher (다른 패키지) 가 RESOLVE_RESOURCE 응답 보강용으로 호출: exported. 내부
 // helper (levenshtein) 는 unexported.
 func TopKByLevenshtein(input string, kinds []APIResourceInfo, k int) []string {
 	if k <= 0 || len(kinds) == 0 {
@@ -58,7 +58,7 @@ func TopKByLevenshtein(input string, kinds []APIResourceInfo, k int) []string {
 	return out
 }
 
-// levenshtein — 표준 edit-distance DP. insert/delete/substitute 비용 모두 1.
+// levenshtein: 표준 edit-distance DP. insert/delete/substitute 비용 모두 1.
 // 메모리 최적화: 2-row rolling (full N*M matrix 불요).
 func levenshtein(a, b string) int {
 	la, lb := len(a), len(b)

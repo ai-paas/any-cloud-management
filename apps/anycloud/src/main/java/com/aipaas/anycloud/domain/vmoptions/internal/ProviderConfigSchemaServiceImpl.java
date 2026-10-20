@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
-/** {@link ProviderConfigSchemaService} 의 정적 catalog 구현. {@code ProvisioningConfigRules} 의 검증 로직과 정합성 유지 — 변경 시 동기 갱신 필요. */
+/** {@link ProviderConfigSchemaService} 의 정적 catalog 구현. {@code ProvisioningConfigRules} 의 검증 로직과 정합성 유지: 변경 시 동기 갱신 필요. */
 @Service
 public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaService {
 
@@ -175,7 +175,7 @@ public class ProviderConfigSchemaServiceImpl implements ProviderConfigSchemaServ
                     /*
                      * 아래 넷은 defaultValue 가 비면 일괄 프로비저닝이 Proxmox 를 차단한다.
                      * cloud 이미지에 qemu-guest-agent 가 없어 DHCP 주소를 알아낼 수 없고, 주소를
-                     * 모른 채 만들면 Pulumi 가 빈 목록을 색인하다 죽는다 — VM 이 생긴 뒤에.
+                     * 모른 채 만들면 Pulumi 가 빈 목록을 색인하다 죽는다: VM 이 생긴 뒤에.
                      */
                     ProviderConfigKey.builder()
                             .key("anycloud-k8s:providerSpec.nodeIps")

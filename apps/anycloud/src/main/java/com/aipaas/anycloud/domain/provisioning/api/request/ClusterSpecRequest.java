@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Min;
  * CSP 무관 클러스터 사양.
  *
  * <p>7개 CSP 전부에 대응물이 있는 값만 담는다. 어느 한쪽에만 있는 값은 {@code providerSpec} 으로
- * 간다 — 공통 스키마를 넓히면 provider 하나가 늘 때마다 계약이 흔들린다.
+ * 간다: 공통 스키마를 넓히면 provider 하나가 늘 때마다 계약이 흔들린다.
  */
 @Schema(description = "CSP 무관 클러스터 사양")
 public record ClusterSpecRequest(

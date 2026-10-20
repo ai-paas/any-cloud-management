@@ -12,7 +12,7 @@ public interface FleetUpgradeOrchestrator {
      * @param targetImage      target docker image
      * @param waves            처리할 wave 목록 (CANARY → STAGING → GENERAL 순서로 자동 정렬, PAUSED 거부)
      * @param concurrency      wave 안 동시 진행 cluster 수 (1-20)
-     * @param failureThreshold 단일 wave failure rate (%) — 초과 시 자동 abort (1-100)
+     * @param failureThreshold 단일 wave failure rate (%). 초과 시 자동 abort (1-100)
      * @param createdBy        audit (REST caller 의 user id, nullable)
      * @return 새로 생성된 PLANNED status 의 run row
      */

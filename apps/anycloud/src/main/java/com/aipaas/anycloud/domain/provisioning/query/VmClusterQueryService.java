@@ -14,7 +14,7 @@ public interface VmClusterQueryService {
     /**
      * 삭제 이력을 함께 볼 때 쓴다.
      *
-     * <p>{@code status} 를 명시하면 그 필터가 우선한다 — 토글이 뒤집으면 필터가 거짓말이 된다.
+     * <p>{@code status} 를 명시하면 그 필터가 우선한다. 토글이 뒤집으면 필터가 거짓말이 된다.
      */
     List<VmClusterListItemResponse> listVmClusters(
             String provider, String environment, String status, boolean includeDeleted);
@@ -29,7 +29,7 @@ public interface VmClusterQueryService {
     /**
      * 클러스터 경계를 넘어 노드를 한 행씩 돌려준다.
      *
-     * <p>삭제된 클러스터는 제외한다 — 남은 노드가 없다.
+     * <p>삭제된 클러스터는 제외한다. 남은 노드가 없다.
      *
      * @param provider null 이면 전체
      * @param clusterName null 이면 전체

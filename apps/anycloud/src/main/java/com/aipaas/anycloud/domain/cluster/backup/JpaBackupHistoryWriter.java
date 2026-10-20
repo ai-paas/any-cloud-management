@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
  * VeleroBackupServiceImpl) 가 backup 시작/완료 시점에 본 SPI 호출 → DB 영구 기록. starter 의 default
  * NoOp 가 본 bean 으로 자동 교체.
  *
- * <p>{@code @Transactional(REQUIRES_NEW)} — backup 호출 caller 의 tx 와 독립. backup 자체가 실패해도
+ * <p>{@code @Transactional(REQUIRES_NEW)}: backup 호출 caller 의 tx 와 독립. backup 자체가 실패해도
  * history row 가 fail status 로 남아야 하므로 (audit-style).
  */
 @Slf4j

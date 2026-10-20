@@ -16,7 +16,7 @@ public final class CspStderrClassifier {
 
     private CspStderrClassifier() {}
 
-    /** Case-insensitive substring 매칭 — Pattern 컴파일 비용 회피, stderr 가 보통 짧음. */
+    /** Case-insensitive substring 매칭: Pattern 컴파일 비용 회피, stderr 가 보통 짧음. */
     private static final List<String> PERMANENT_AUTH_TOKENS = List.of(
             // AWS
             "InvalidAccessKeyId",
@@ -66,7 +66,7 @@ public final class CspStderrClassifier {
         return new TransientProvisioningFailure(message);
     }
 
-    /** Pulumi CLI 호출 전용 — summary 가 항상 "Pulumi <action> failed" 형태. */
+    /** Pulumi CLI 호출 전용: summary 가 항상 "Pulumi <action> failed" 형태. */
     public static ProvisioningException classifyPulumi(String action, String rawStderr) {
         String detail = blankToNull(rawStderr);
         String message = "Pulumi " + action + " failed" + (detail == null ? "" : ": " + detail);

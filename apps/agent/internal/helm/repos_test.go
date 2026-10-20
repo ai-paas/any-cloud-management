@@ -183,7 +183,7 @@ func TestSyncRepositoriesWithCleanup_UpdateExisting(t *testing.T) {
 		t.Fatalf("pre-seed: %v", err)
 	}
 
-	// Same name, new URL — overwrite + no orphan.
+	// Same name, new URL: overwrite + no orphan.
 	desired := []RepoEntry{
 		{Name: "anycloud-prom", URL: "https://new.prom.io"},
 	}

@@ -14,11 +14,11 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Component;
 
 /**
- * Cluster Agent 의 Kubernetes manifest 를 단일 source-of-truth (Helm chart) 로부터 동적 생성.
+ * Cluster Agent 의 Kubernetes manifest 를 단일 출처 (Helm chart) 로부터 동적 생성.
  *
  * <p>chart 는 {@code classpath:agent-chart/} 에 있습니다. Gradle 의
  * {@code copyAgentChartResources} 가 빌드 때 {@code apps/agent/deploy/helm/cluster-agent/} 를
- * 그대로 복사해 jar 에 넣습니다. chartmuseum 없이도 설치할 수 있게 하려는 것입니다.
+ * 그대로 복사해 jar 에 넣습니다. chartmuseum 에 접근하지 못하는 환경에서도 설치합니다.
  *
  * <p>부팅 때 chart 를 임시 디렉토리로 한 번 풀고 Chart.yaml 이 있는지 봅니다. 없으면 부팅이
  * 실패합니다. 설치를 시도하는 시점이 아니라 지금 알아야 하기 때문입니다.
@@ -100,7 +100,7 @@ public class AgentChartRenderer {
     /**
      * @param adminKubeconfig true 면 chart 가 cluster-admin SA(aipaas-admin)를 추가 생성
      *        ({@code rbac.adminKubeconfig.enabled}). VM(PULUMI) 프로비저닝 cluster 의 전체 권한
-     *        kubeconfig 다운로드용. registered/BYO 는 false — 사용자 자격 사용.
+     *        kubeconfig 다운로드용. registered/BYO 는 false: 사용자 자격 사용.
      */
     public String render(String registrationToken, boolean adminKubeconfig) {
         if (registrationToken == null || registrationToken.isBlank()) {
@@ -122,7 +122,7 @@ public class AgentChartRenderer {
     }
 
     /**
-     * Values.yaml 생성 — chart 의 values.yaml 위에 override 되는 key 만 들고 있음.
+     * Values.yaml 생성: chart 의 values.yaml 위에 override 되는 key 만 들고 있음.
      * 사용자가 helm install 시 명시 안 한 항목들 (token / endpoint / image) 만 주입.
      */
     private Path writeValuesYaml(String token, boolean adminKubeconfig) {
@@ -181,7 +181,7 @@ public class AgentChartRenderer {
 
     record ImageRef(String repository, String tag) {}
 
-    /** test 보조 — chart 추출 위치 확인. */
+    /** test 보조: chart 추출 위치 확인. */
     Path getChartDir() {
         return chartDir;
     }

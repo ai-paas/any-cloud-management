@@ -213,10 +213,10 @@ final class ProxmoxYamlEmitter implements ProviderYamlEmitter {
     }
 
     /**
-     * 쉼표로 이은 값을 항목으로 가른다.
+     * 쉼표로 이은 값을 항목으로 나눈다.
      *
      * <p>구분자 정규식에 {@code \s*} 를 두면 공백이 길어질수록 매칭 비용이 제곱으로 는다
-     * (polynomial ReDoS). 값이 외부 입력이라 고정 문자로 가르고 공백은 따로 턴다.
+     * (polynomial ReDoS). 값이 외부 입력이라 고정 문자로 나누고 공백은 따로 제거한다.
      */
     private static List<String> splitCsv(String value) {
         List<String> out = new ArrayList<>();

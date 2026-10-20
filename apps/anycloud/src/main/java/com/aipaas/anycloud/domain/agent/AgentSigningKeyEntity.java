@@ -34,12 +34,12 @@ public class AgentSigningKeyEntity implements Serializable {
     @Column(name = "id")
     private Long id;
 
-    /** Stable UUID — rotation history 추적용 (e.g. agent log 가 어떤 key 로 sign 됐는지). */
+    /** Stable UUID: rotation history 추적용 (e.g. agent log 가 어떤 key 로 sign 됐는지). */
     @NotNull
     @Column(name = "key_id", nullable = false, length = 36, unique = true)
     private String keyId;
 
-    /** HMAC raw bytes (>=32 for HS256). VARBINARY(128) — 256bit (32B) ~ 1024bit (128B) 범위 커버. */
+    /** HMAC raw bytes (>=32 for HS256). VARBINARY(128). 256bit (32B) ~ 1024bit (128B) 범위 커버. */
     @NotNull
     @Column(name = "key_bytes", nullable = false, length = 128)
     private byte[] keyBytes;

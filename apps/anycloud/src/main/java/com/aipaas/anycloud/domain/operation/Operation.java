@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
  * 돌아가야 하므로 여기에 {@code @Entity} 나 {@code @Column} 을 붙이지 마세요. JPA 와의 변환은
  * {@link com.aipaas.anycloud.domain.operation.mapper.OperationMapper} 한 곳에서만 합니다.
  *
- * @param id            UUID. JPA insert 전에는 비어있을 수 있음 — start() 에서 채워짐.
+ * @param id            UUID. JPA insert 전에는 비어있을 수 있음. start() 에서 채워짐.
  * @param type          Operation 종류 (CLUSTER_CREATE / VM_CLUSTER_DELETE 등).
  * @param resourceType  대상 리소스 타입 (예: "cluster", "vm-cluster").
  * @param resourceId    대상 리소스 식별자.
@@ -27,7 +27,7 @@ import java.time.LocalDateTime;
  * @param principal       요청자 principal (audit).
  * @param startedAt       RUNNING 진입 시각.
  * @param endedAt         terminal state 진입 시각.
- * @param createdAt       row 생성 시각 (JPA 가 채움 — domain create 경로는 null).
+ * @param createdAt       row 생성 시각 (JPA 가 채움: domain create 경로는 null).
  * @param updatedAt       row 갱신 시각 (JPA 가 채움).
  */
 public record Operation(
@@ -50,17 +50,17 @@ public record Operation(
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
 
-    /** Terminal state 여부 — 더 이상 progress 갱신 불가. */
+    /** Terminal state 여부: 더 이상 progress 갱신 불가. */
     public boolean isTerminal() {
         return state == OperationState.SUCCEEDED || state == OperationState.FAILED || state == OperationState.CANCELLED;
     }
 
-    /** Active (PENDING / RUNNING) — workflow handler 가 progress push 가능. */
+    /** Active (PENDING / RUNNING). workflow handler 가 progress push 가능. */
     public boolean isActive() {
         return state == OperationState.PENDING || state == OperationState.RUNNING;
     }
 
-    /** Convenience — start 시 호출되는 신규 PENDING domain. */
+    /** Convenience: start 시 호출되는 신규 PENDING domain. */
     public static Operation pending(
             String id,
             OperationType type,

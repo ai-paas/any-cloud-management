@@ -76,7 +76,7 @@ public final class VmClusterNodeRows {
         if (nodes.isEmpty()) {
             /*
              * 노드는 PROVISION 이 끝나야 생긴다. 빈 목록을 돌려주면 만들어지는 중이거나 실패한
-             * 클러스터가 목록에서 통째로 사라진다. 화면이 대신 끼워 넣던 줄을 여기서 만든다 —
+             * 클러스터가 목록에서 통째로 사라진다. 화면이 대신 끼워 넣던 줄을 여기서 만든다:
              * 자르는 곳과 세는 곳이 갈리면 페이지마다 전체 개수가 달라진다.
              */
             return List.of(new Row(
@@ -119,7 +119,7 @@ public final class VmClusterNodeRows {
     }
 
     /**
-     * YAML 프로그램은 nodes 를 JSON 문자열로 내보낸다 — 배열을 그대로 내보내면 SDK 가 죽어서다.
+     * YAML 프로그램은 nodes 를 JSON 문자열로 내보낸다: 배열을 그대로 내보내면 SDK 가 죽어서다.
      * 배열과 문자열을 모두 받는다.
      *
      * <p>깨진 outputs 는 빈 목록이다. 한 클러스터 때문에 전체 목록이 실패하면 안 된다.

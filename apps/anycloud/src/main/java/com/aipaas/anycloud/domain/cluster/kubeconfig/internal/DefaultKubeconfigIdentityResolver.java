@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  * <ol>
  *   <li>호출자가 SA 를 주면 그대로 씁니다. namespace 를 안 주면 "default" 입니다.</li>
  *   <li>SA 를 안 주고 admin 기본값이 켜진 VM(PULUMI) cluster 면 chart 가 만든 admin SA
- *       (aipaas-admin / aipaas-system, cluster-admin) — 전체 권한 다운로드.</li>
+ *       (aipaas-admin / aipaas-system, cluster-admin). 전체 권한 다운로드.</li>
  *   <li>그 외 → {@code SERVICE_ACCOUNT_REQUIRED} (registered cluster 는 존재하는 SA 명시 필요).</li>
  * </ol>
  *
@@ -33,7 +33,7 @@ public class DefaultKubeconfigIdentityResolver implements KubeconfigIdentityReso
     @Value("${agent.kubeconfig.admin-namespace:aipaas-system}")
     private String adminNamespace;
     /**
-     * VM cluster 의 admin SA 기본값 적용 여부. impersonation 활성 환경에서는 false 로 — admin SA 를
+     * VM cluster 의 admin SA 기본값 적용 여부. impersonation 활성 환경에서는 false 로: admin SA 를
      * break-glass 로 강등하고 per-user 전략으로 대체.
      */
     @Value("${agent.kubeconfig.admin-default-enabled:true}")

@@ -21,16 +21,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Admin endpoint — Pulumi state drift 감지 + 복구.
+ * Admin endpoint: Pulumi state drift 감지 + 복구.
  *
  * <p>Drift = Pulumi state 와 실제 CSP 자원의 불일치. 운영자가 콘솔에서 VM 을 직접 지우거나
- * 변경하면 발생 — 이후 scale / destroy 가 stale state 기준으로 동작해 실패하거나 잘못된 자원을
+ * 변경하면 발생: 이후 scale / destroy 가 stale state 기준으로 동작해 실패하거나 잘못된 자원을
  * 만진다.
  *
  * <ul>
- *   <li>GET {@code /drift} — {@code pulumi preview --refresh --json} 으로 read-only 감지.</li>
- *   <li>POST {@code /refresh-state} — {@code pulumi refresh --yes} 로 state 를 실제 CSP
- *       상태와 동기화. state 만 갱신 — CSP 자원 자체는 건드리지 않는다.</li>
+ *   <li>GET {@code /drift}: {@code pulumi preview --refresh --json} 으로 read-only 감지.</li>
+ *   <li>POST {@code /refresh-state}: {@code pulumi refresh --yes} 로 state 를 실제 CSP
+ *       상태와 동기화. state 만 갱신: CSP 자원 자체는 건드리지 않는다.</li>
  * </ul>
  *
  * <p>컨트롤러는 VmClusterRepository 를 직접 호출하지 않는다. 모든 도메인 로직은

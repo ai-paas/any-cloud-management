@@ -24,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>설정
  * <ul>
  *   <li>{@code anycloud.agent.liveness.enabled} (default true)</li>
- *   <li>{@code anycloud.agent.liveness.timeout} (default 5m) — 이 시간 침묵하면 내린다</li>
+ *   <li>{@code anycloud.agent.liveness.timeout} (default 5m). 이 시간 침묵하면 내린다</li>
  *   <li>{@code anycloud.agent.liveness.cron} (default 매분)</li>
  * </ul>
  */

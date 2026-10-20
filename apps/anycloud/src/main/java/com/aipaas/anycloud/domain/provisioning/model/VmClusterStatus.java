@@ -28,9 +28,9 @@ public enum VmClusterStatus {
      * 않기 위해서다.
      */
     DEGRADED,
-    /** Day-2 ops — workerCount 변경 진행 중. */
+    /** Day-2 ops: workerCount 변경 진행 중. */
     SCALING,
-    /** Day-2 ops — Kubernetes version upgrade 진행 중. */
+    /** Day-2 ops: Kubernetes version upgrade 진행 중. */
     UPGRADING,
     FAILED,
     /**
@@ -43,12 +43,12 @@ public enum VmClusterStatus {
 
     // ============= State transition graph =============
 
-    /** Terminal — 더 이상 자동 진행 안 함. */
+    /** Terminal: 더 이상 자동 진행 안 함. */
     public boolean isTerminal() {
         return this == DELETED;
     }
 
-    /** Workflow 정지 — 운영자 개입 필요. */
+    /** Workflow 정지: 운영자 개입 필요. */
     public boolean isBlocked() {
         return this == BLOCKED;
     }
@@ -85,14 +85,14 @@ public enum VmClusterStatus {
         m.put(PROVISIONING, EnumSet.of(BOOTSTRAPPING, READY, FAILED, BLOCKED, DELETING));
         m.put(BOOTSTRAPPING, EnumSet.of(VERIFYING, FAILED, BLOCKED, DELETING));
         m.put(VERIFYING, EnumSet.of(READY, DEGRADED, FAILED, BLOCKED, DELETING));
-        // Steady state — day-2 ops 가 명시적 status 로 분기.
+        // Steady state: day-2 ops 가 명시적 status 로 분기.
         m.put(READY, EnumSet.of(SCALING, UPGRADING, DEGRADED, FAILED, DELETING));
-        // 수렴 대기 — 조정 루프가 READY 로 올리거나, 클러스터가 깨지면 FAILED.
+        // 수렴 대기: 조정 루프가 READY 로 올리거나, 클러스터가 깨지면 FAILED.
         m.put(DEGRADED, EnumSet.of(READY, FAILED, DELETING));
-        // Day-2 ops — 완료 후 READY 복귀, 실패 시 FAILED. delete 도 어디서나 가능.
+        // Day-2 ops: 완료 후 READY 복귀, 실패 시 FAILED. delete 도 어디서나 가능.
         m.put(SCALING, EnumSet.of(READY, FAILED, DELETING));
         m.put(UPGRADING, EnumSet.of(READY, FAILED, DELETING));
-        // Recovery — operator / auto retry. BOOTSTRAPPING 은 VERIFY 재시도 시 진입 직전 상태로
+        // Recovery: operator / auto retry. BOOTSTRAPPING 은 VERIFY 재시도 시 진입 직전 상태로
         // transition 이 필요하다 (command.retry.VERIFY).
         m.put(FAILED, EnumSet.of(PROVISIONING, BOOTSTRAPPING, BLOCKED, DELETING, REQUESTED));
         m.put(BLOCKED, EnumSet.of(PROVISIONING, BOOTSTRAPPING, DELETING, REQUESTED));

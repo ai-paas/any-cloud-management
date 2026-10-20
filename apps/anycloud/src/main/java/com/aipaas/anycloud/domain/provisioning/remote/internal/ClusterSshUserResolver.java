@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 /**
  * 그 클러스터를 만든 스택에서 접속 사용자를 읽는다.
  *
- * <p>기본 계정이 CSP 마다 다르다 — Alibaba 의 Ubuntu 이미지에는 ubuntu 계정이 없고 키가 root 에
+ * <p>기본 계정이 CSP 마다 다르다: Alibaba 의 Ubuntu 이미지에는 ubuntu 계정이 없고 키가 root 에
  * 들어간다. 백엔드 전역 설정 하나로 붙으면 그 CSP 만 publickey 거절로 막힌다.
  */
 @Slf4j
@@ -23,7 +23,7 @@ public class ClusterSshUserResolver {
     private final ObjectMapper objectMapper;
     private final PulumiProperties pulumiProperties;
 
-    /** 스택 output 에 없으면 전역 기본값으로 간다 — sshUser 를 내보내기 전에 만든 클러스터가 있다. */
+    /** 스택 output 에 없으면 전역 기본값으로 간다: sshUser 를 내보내기 전에 만든 클러스터가 있다. */
     public String resolve(VmClusterEntity cluster) {
         if (cluster == null || cluster.getRawOutputs() == null) {
             return pulumiProperties.getSshUser();

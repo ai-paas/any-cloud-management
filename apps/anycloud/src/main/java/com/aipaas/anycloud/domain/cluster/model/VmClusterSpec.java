@@ -38,7 +38,7 @@ public record VmClusterSpec(
          *   <li>Azure: Spot priority VM (eviction policy=Deallocate)</li>
          *   <li>GCP: preemptible VM (spot instance)</li>
          *   <li>Alibaba: PostPaid 의 SpotStrategy=SpotAsPriceGo</li>
-         *   <li>그 외 (OCI / OpenStack / DigitalOcean) — no-op (지원 X 또는 의미 없음)</li>
+         *   <li>그 외 (OCI / OpenStack / DigitalOcean). no-op (지원 X 또는 의미 없음)</li>
          * </ul>
          */
         @Schema(
@@ -75,7 +75,7 @@ public record VmClusterSpec(
                 Integer rootDiskSizeGb)
         implements ClusterSpec {
 
-    // Compact constructor — null Boolean 은 false 로 정규화 (config map 매핑 단순화).
+    // Compact constructor: null Boolean 은 false 로 정규화 (config map 매핑 단순화).
     public VmClusterSpec {
         if (hasGpuNodes == null) hasGpuNodes = false;
         if (useSpot == null) useSpot = false;

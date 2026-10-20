@@ -226,7 +226,7 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
         headers.setBearerAuth(accessToken());
         /*
          * URI 로 넘긴다. String 오버로드는 URI 템플릿으로 취급해 이미 인코딩된 값을 한 번 더
-         * 인코딩한다 — orderBy 의 %20 이 %2520 이 되어 GCP 가 400 으로 거절한다.
+         * 인코딩한다. orderBy 의 %20 이 %2520 이 되어 GCP 가 400 으로 거절한다.
          */
         return restTemplate.exchange(java.net.URI.create(url), HttpMethod.GET, new HttpEntity<>(headers), String.class);
     }
@@ -348,7 +348,7 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * emitter 는 {@code region-a} 에 띄운다. 리전 어느 존에든 있으면 통과시키면 안 된다 —
+     * emitter 는 {@code region-a} 에 띄운다. 리전 어느 존에든 있으면 통과시키면 안 된다.
      * a2-highgpu-1g 는 asia-northeast3 에 있어도 -a 존에는 없다.
      */
     @Override
@@ -368,7 +368,7 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
                 return false;
             }
             /*
-             * 타입이 있어도 가속기가 그 존에 없으면 만들지 못한다 — a2-highgpu-1g 는
+             * 타입이 있어도 가속기가 그 존에 없으면 만들지 못한다. a2-highgpu-1g 는
              * asia-northeast3-a 에 있지만 nvidia-tesla-a100 이 없어 생성이 거절된다.
              */
             String accelerator = requiredAccelerator(instanceType);
@@ -384,7 +384,7 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
     /**
      * 그 리전에서 이 GPU 를 쓸 수 있는 한도가 있는지.
      *
-     * <p>가속기가 목록에 있어도 프로젝트 한도가 0 이면 만들지 못한다 — GCP 가 "not supported
+     * <p>가속기가 목록에 있어도 프로젝트 한도가 0 이면 만들지 못한다. GCP 가 "not supported
      * in the zone with your configuration" 이라고 답하는 경우가 이것이다.
      */
     private boolean hasGpuQuota(String region, String accelerator) {
@@ -418,7 +418,7 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
      * GPU 계열이 요구하는 가속기 이름 조각.
      *
      * <p>a2, a3, g2 는 GPU 가 붙어야만 뜨는 계열이다. 모르는 계열은 {@code null} 이고 확인하지
-     * 않는다 — 새 계열이 나올 때마다 정상 요청을 막을 이유는 없다.
+     * 않는다: 새 계열이 나올 때마다 정상 요청을 막을 이유는 없다.
      */
     private String requiredAccelerator(String instanceType) {
         String type = instanceType.toLowerCase(Locale.ROOT);

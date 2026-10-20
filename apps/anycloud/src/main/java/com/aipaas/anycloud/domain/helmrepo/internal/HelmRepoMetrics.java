@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
  * 또는 Grafana 가 source 별 추세 visualize 가능. air-gapped 운영 환경에서 unintended external
  * repo 가 등록됐는지 즉시 감지.
  *
- * <p>매 30초 마다 refresh — DB count() 만 호출하는 cheap query. CRUD event-driven update 도
+ * <p>매 30초 마다 refresh: DB count() 만 호출하는 cheap query. CRUD event-driven update 도
  * 가능하나 metric 의 typical resolution (~분 단위) 에선 polling 으로 충분 + 동시성 단순.
  */
 @Slf4j

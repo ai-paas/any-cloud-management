@@ -144,12 +144,12 @@ public class AsyncConfig implements AsyncConfigurer {
                 pool.isRunOnCallerWhenFull()
                         ? new CallerRunsPolicy()
                         : new java.util.concurrent.ThreadPoolExecutor.AbortPolicy());
-        // 큐가 가득 차야 core 를 넘어 늘어난다 — 실질 동시성은 coreSize 다
+        // 큐가 가득 차야 core 를 넘어 늘어난다: 실질 동시성은 coreSize 다
         executor.setAllowCoreThreadTimeOut(true);
         executor.setKeepAliveSeconds(pool.getKeepAliveSeconds());
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(pool.getAwaitTerminationSeconds());
-        // MDC 컨텍스트를 작업 스레드로 propagate — 작업 종료 시 원복 (pool reuse 누수 방지).
+        // MDC 컨텍스트를 작업 스레드로 propagate: 작업 종료 시 원복 (pool reuse 누수 방지).
         executor.setTaskDecorator(MDC_PROPAGATING_DECORATOR);
         executor.initialize();
         registerPoolGauges(executor, poolName);
@@ -163,7 +163,7 @@ public class AsyncConfig implements AsyncConfigurer {
         return executor;
     }
 
-    /** MDC propagation — 작업 종료 시 원복 (pool thread 재사용으로 인한 누수 차단). */
+    /** MDC propagation: 작업 종료 시 원복 (pool thread 재사용으로 인한 누수 차단). */
     private static final TaskDecorator MDC_PROPAGATING_DECORATOR = runnable -> {
         Map<String, String> caller = LoggingMdc.snapshot();
         return () -> {

@@ -11,8 +11,8 @@ import java.time.LocalDateTime;
  *
  * @param id           transition row UUID.
  * @param clusterName  대상 cluster 이름.
- * @param vmClusterId  VmCluster row id (nullable — pre-create 단계 transition).
- * @param fromState    이전 status (nullable — initial transition).
+ * @param vmClusterId  VmCluster row id (nullable: pre-create 단계 transition).
+ * @param fromState    이전 status (nullable: initial transition).
  * @param toState      새 status.
  * @param reason       transition 사유 (사용자 / 시스템 메시지).
  * @param principal    transition 호출자.

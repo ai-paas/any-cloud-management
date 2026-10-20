@@ -12,7 +12,7 @@ import (
 	k8stesting "k8s.io/client-go/testing"
 )
 
-// newFakeClientWithScheduledPods — 만든 파드를 kubelet 이 띄운 것처럼 Running 으로 채운다.
+// newFakeClientWithScheduledPods: 만든 파드를 kubelet 이 띄운 것처럼 Running 으로 채운다.
 //
 // fake clientset 은 상태를 채우지 않아 CreateNodeDebugPod 의 준비 대기가 상한까지 돈다. 실제
 // 클러스터에서는 곧 Running 이 되므로 그 쪽을 흉내내는 것이 맞다.

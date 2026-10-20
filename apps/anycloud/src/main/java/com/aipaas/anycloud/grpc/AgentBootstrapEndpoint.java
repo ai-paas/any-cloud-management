@@ -29,7 +29,7 @@ import net.devh.boot.grpc.server.service.GrpcService;
  * Bearer-only 인증.
  *
  * <p>인증 방식: Authorization metadata header 의 Bearer JWT (registration_token).
- * gRPC interceptor 가 따로 검증하지 않고 본 handler 안에서 직접 검증 — bootstrap 채널은 단일
+ * gRPC interceptor 가 따로 검증하지 않고 본 handler 안에서 직접 검증: bootstrap 채널은 단일
  * RPC 라 별도 interceptor chain 가 과한 추상화.
  *
  * <p>실패 매핑:
@@ -129,7 +129,7 @@ public class AgentBootstrapEndpoint extends AgentBootstrapGrpc.AgentBootstrapImp
 
     /**
      * Authorization metadata 추출. {@link AuthMetadataInterceptor} 가 BEARER_TOKEN_CONTEXT 에
-     * 넣어주는 게 정석. bootstrap 은 단순화 — net.devh starter 의 GrpcServerInterceptor
+     * 넣어주는 게 정석. bootstrap 은 단순화: net.devh starter 의 GrpcServerInterceptor
      * 추가 없이 ServerCallStreamObserver attribute 로 우회 불가능하므로 본 메서드에서 직접 추출.
      */
     private String extractBearerToken() {

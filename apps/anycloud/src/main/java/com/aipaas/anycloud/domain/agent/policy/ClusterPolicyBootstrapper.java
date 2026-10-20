@@ -38,7 +38,7 @@ public class ClusterPolicyBootstrapper {
     private final ClusterRepository clusterRepository;
     /**
      * RBAC starter 의 BindingTemplate catalog. cluster ACTIVE 시점에 binding apply.
-     * ObjectProvider lazy — starter 가 부재한 컨텍스트 (test, worker) 에서도 robust.
+     * ObjectProvider lazy: starter 가 부재한 컨텍스트 (test, worker) 에서도 robust.
      */
     private final org.springframework.beans.factory.ObjectProvider<
                     io.aipaas.cluster.agent.rbac.port.BindingTemplateCatalog>
@@ -48,7 +48,7 @@ public class ClusterPolicyBootstrapper {
             bindingApplyClientProvider;
     // per-cluster push 의 parallel 실행. KUBERNETES_EXECUTOR (core=4, max=8).
     // Lombok @RequiredArgsConstructor 가 field-level @Qualifier 를 constructor param 으로 propagate
-    // 안 하는 한계 회피 — @Resource(name=) 가 field-injection 시 Spring 이 직접 처리.
+    // 안 하는 한계 회피: @Resource(name=) 가 field-injection 시 Spring 이 직접 처리.
     @jakarta.annotation.Resource(name = com.aipaas.anycloud.configuration.properties.AsyncConfig.KUBERNETES_EXECUTOR)
     private org.springframework.core.task.AsyncTaskExecutor broadcastExecutor;
 
@@ -60,7 +60,7 @@ public class ClusterPolicyBootstrapper {
             String commandsJson = toJsonArray(current.allowedCommands());
             String chartsJson = toJsonArray(current.allowedCharts());
             String execNsJson = toJsonArray(current.allowedExecNamespaces());
-            // resource_policy YAML — getAgentConfig 가 record 형태로 반환. backend 가 다시 yaml 직렬화
+            // resource_policy YAML: getAgentConfig 가 record 형태로 반환. backend 가 다시 yaml 직렬화
             // 하기 까다로워 이 호출에서는 빈 문자열 (agent 측이 빈 = no-op 으로 treat). 사용자가 정책 세팅
             // 했다면 admin endpoint 로 별도 관리.
             String resourcePolicyYaml = "";
@@ -85,11 +85,11 @@ public class ClusterPolicyBootstrapper {
     /**
      * backend 의 helm_repo CRUD 이후 모든 ACTIVE cluster 에 fresh
      * helm_repositories 를 broadcast. 각 cluster 호출은 동기 (per-cluster) 이지만 broadcast 자체는
-     * @Async — caller (HelmRepoServiceImpl) 의 transaction 종료 후 background. 부분 실패는
+     * @Async: caller (HelmRepoServiceImpl) 의 transaction 종료 후 background. 부분 실패는
      * eventual consistency 로 swallow (next push 시 retry).
      */
     /**
-     * fix — caller transaction 의 commit 이후에 broadcast 시작. caller 의 @Async 직접
+     * fix: caller transaction 의 commit 이후에 broadcast 시작. caller 의 @Async 직접
      * 호출은 race (commit 전 다른 thread DB 조회 → 새 row 누락). TransactionalEventListener 가
      * commit phase 까지 기다린 후 dispatch + @Async 가 별도 thread 로.
      */
@@ -101,7 +101,7 @@ public class ClusterPolicyBootstrapper {
         broadcastHelmRepoChange();
     }
 
-    /** (+ +) — 모든 ACTIVE cluster 에 fresh helm_repositories broadcast. */
+    /** (+ +). 모든 ACTIVE cluster 에 fresh helm_repositories broadcast. */
     @Async
     public void broadcastHelmRepoChange() {
         List<com.aipaas.anycloud.domain.cluster.ClusterEntity> active =
@@ -174,7 +174,7 @@ public class ClusterPolicyBootstrapper {
         return false;
     }
 
-    /** {@link #pushOnActive} 의 sync 변형 — broadcast loop 안에서 호출. 외부에서는 async 호출 권장. */
+    /** {@link #pushOnActive} 의 sync 변형: broadcast loop 안에서 호출. 외부에서는 async 호출 권장. */
     void pushOnActiveSync(String clusterName) {
         AgentPolicySnapshot current = kubeResourceService.getAgentConfig(clusterName);
         String namespacesJson = toJsonArray(current.allowedNamespaces());

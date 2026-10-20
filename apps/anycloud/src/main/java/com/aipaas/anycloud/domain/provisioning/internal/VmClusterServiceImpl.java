@@ -37,7 +37,7 @@ public class VmClusterServiceImpl implements VmClusterService {
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public com.aipaas.anycloud.domain.provisioning.api.response.VmClusterPreviewResponse previewVmCluster(
             ProvisionClusterRequest cluster) {
-        // Pulumi CLI + CSP API 호출로 수십 초 — TX/connection 점유 없이 실행 (provision 과 동일 원칙).
+        // Pulumi CLI + CSP API 호출로 수십 초: TX/connection 점유 없이 실행 (provision 과 동일 원칙).
         return vmClusterQueryService.previewVmCluster(cluster);
     }
 

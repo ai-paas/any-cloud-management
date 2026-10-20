@@ -26,13 +26,13 @@ public interface ClusterAgentRepository
      */
     List<ClusterAgentEntity> findByStatus(ClusterAgentStatus status);
 
-    /** 같은 cluster_name + agent_instance_id 조합 — 멱등 upsert 용. */
+    /** 같은 cluster_name + agent_instance_id 조합: 멱등 upsert 용. */
     Optional<ClusterAgentEntity> findByClusterNameAndAgentInstanceId(String clusterName, String agentInstanceId);
 
     List<ClusterAgentEntity> findByClusterName(String clusterName);
 
     /**
-     * Cluster 삭제 시 cascade cleanup — 동일 cluster_name 의 모든 agent row 정리.
+     * Cluster 삭제 시 cascade cleanup: 동일 cluster_name 의 모든 agent row 정리.
      * Spring Data JPA derived delete (auto-implementation).
      *
      * @return 삭제된 row 수.
@@ -41,16 +41,16 @@ public interface ClusterAgentRepository
     long deleteByClusterName(String clusterName);
 
     /**
-     * Fleet upgrade orchestrator 의 N+1 회피 — 여러 wave 의 agent 를 한 번에 조회.
+     * Fleet upgrade orchestrator 의 N+1 회피: 여러 wave 의 agent 를 한 번에 조회.
      * {@code drive()} 가 매 PLANNED→RUNNING 전환 시 totalClusters 계산용으로 호출.
      */
     List<ClusterAgentEntity> findByUpgradeWaveIn(List<ClusterAgentUpgradeWave> waves);
 
-    /** Fleet upgrade — 같은 wave 의 모든 agent (HA replica 포함). orchestrator 가 cluster 기준 dedup. */
+    /** Fleet upgrade: 같은 wave 의 모든 agent (HA replica 포함). orchestrator 가 cluster 기준 dedup. */
     List<ClusterAgentEntity> findByUpgradeWave(ClusterAgentUpgradeWave wave);
 
     /**
-     * AgentUpgradeProgressMonitor.sweep 전용 scoped finder — SQL WHERE upgrade_status IN (...)
+     * AgentUpgradeProgressMonitor.sweep 전용 scoped finder: SQL WHERE upgrade_status IN (...)
      * 로 DB index 활용 (agent 1000+ 환경에서 heap 전송량 최소화).
      */
     List<ClusterAgentEntity> findByUpgradeStatusIn(List<ClusterAgentUpgradeStatus> statuses);

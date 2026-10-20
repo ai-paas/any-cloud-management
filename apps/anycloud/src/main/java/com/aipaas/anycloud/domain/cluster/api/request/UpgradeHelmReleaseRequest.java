@@ -8,7 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/** PUT /v1/clusters/{cluster}/helm-releases/{releaseName} body — -3. */
+/** PUT /v1/clusters/{cluster}/helm-releases/{releaseName} body: -3. */
 @Data
 @Builder
 @NoArgsConstructor

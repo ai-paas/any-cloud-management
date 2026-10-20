@@ -43,7 +43,7 @@ func TestCountGpuNodes_CapacityBased(t *testing.T) {
 }
 
 func TestCountGpuNodes_LabelBased(t *testing.T) {
-	// capacity 는 없지만 label 만 있는 경우 — gpu operator 가 driver 설치 전 단계 등.
+	// capacity 는 없지만 label 만 있는 경우: gpu operator 가 driver 설치 전 단계 등.
 	c := newFakeRealClient(
 		gpuNode("gpu-1", 0, true),
 		plainNode("cpu-1"),
@@ -97,7 +97,7 @@ func TestCountGpuNodes_EmptyCluster(t *testing.T) {
 }
 
 func TestNodeHasGpu_ZeroCapacity_ReturnsFalse(t *testing.T) {
-	// nvidia.com/gpu key 는 있지만 0 인 경우 — 드물지만 방어.
+	// nvidia.com/gpu key 는 있지만 0 인 경우: 드물지만 방어.
 	n := &corev1.Node{
 		Status: corev1.NodeStatus{
 			Capacity: corev1.ResourceList{

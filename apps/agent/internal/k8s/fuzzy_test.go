@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// Levenshtein 자체 — exact / 1-char typo / unrelated. table-driven.
+// Levenshtein 자체: exact / 1-char typo / unrelated. table-driven.
 func TestLevenshtein(t *testing.T) {
 	cases := []struct {
 		a, b string
@@ -41,7 +41,7 @@ func TestTopKByLevenshtein_ExactMatch(t *testing.T) {
 }
 
 func TestTopKByLevenshtein_OneCharTypo(t *testing.T) {
-	// "ppds" → 1 sub from "pods" (distance 1) — should be top.
+	// "ppds" → 1 sub from "pods" (distance 1). should be top.
 	kinds := []APIResourceInfo{
 		{Plural: "pods"},
 		{Plural: "services"},
@@ -54,7 +54,7 @@ func TestTopKByLevenshtein_OneCharTypo(t *testing.T) {
 }
 
 func TestTopKByLevenshtein_StorageClassesTypo(t *testing.T) {
-	// "storageclas" vs "storageclasses" — 거리 3 (3 inserts), threshold (≤3) 매칭 경계.
+	// "storageclas" vs "storageclasses": 거리 3 (3 inserts), threshold (≤3) 매칭 경계.
 	kinds := []APIResourceInfo{
 		{Plural: "pods"},
 		{Plural: "storageclasses"},
@@ -75,7 +75,7 @@ func TestTopKByLevenshtein_StorageClassesTypo(t *testing.T) {
 }
 
 func TestTopKByLevenshtein_UnrelatedExcluded(t *testing.T) {
-	// "xyz" — distance to anything sensible > 3. expect empty or no false positives.
+	// "xyz": distance to anything sensible > 3. expect empty or no false positives.
 	kinds := []APIResourceInfo{
 		{Plural: "pods"},
 		{Plural: "services"},
@@ -91,7 +91,7 @@ func TestTopKByLevenshtein_UnrelatedExcluded(t *testing.T) {
 }
 
 func TestTopKByLevenshtein_KCap(t *testing.T) {
-	// Many close candidates — should cap at K.
+	// Many close candidates: should cap at K.
 	kinds := []APIResourceInfo{
 		{Plural: "pod"}, // 1
 		{Plural: "pos"}, // 1

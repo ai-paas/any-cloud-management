@@ -31,7 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class JpaSigningKeyResolver implements SigningKeyResolver {
 
-    /** HMAC-SHA256 권장 길이 — 32B (256bit) 최소, 64B (512bit) 권장 (Brute-force 내성). */
+    /** HMAC-SHA256 권장 길이: 32B (256bit) 최소, 64B (512bit) 권장 (Brute-force 내성). */
     private static final int KEY_BYTES = 64;
 
     private final AgentSigningKeyRepository repository;
@@ -49,7 +49,7 @@ public class JpaSigningKeyResolver implements SigningKeyResolver {
             return bytes;
         }
 
-        // 첫 startup — 생성 + insert. UNIQUE 제약으로 race 안전.
+        // 첫 startup: 생성 + insert. UNIQUE 제약으로 race 안전.
         byte[] bytes = generate();
         String keyId = UUID.randomUUID().toString();
         try {
@@ -67,7 +67,7 @@ public class JpaSigningKeyResolver implements SigningKeyResolver {
                     bytes.length);
             return bytes;
         } catch (DataIntegrityViolationException race) {
-            // 다른 instance 가 먼저 insert — re-read.
+            // 다른 instance 가 먼저 insert: re-read.
             log.info("Race detected on first-time signing key insert (key_id={}) — re-reading persisted row", keyId);
             AgentSigningKeyEntity winner = repository
                     .findFirstByActiveTrueOrderByIdDesc()

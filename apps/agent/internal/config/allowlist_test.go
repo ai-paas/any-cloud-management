@@ -120,12 +120,12 @@ func TestParseChartRule(t *testing.T) {
 	}
 }
 
-// IsNamespaceAllowed 의 wildcard "*" — 현재 default 정책 (no-restriction).
+// IsNamespaceAllowed 의 wildcard "*": 현재 default 정책 (no-restriction).
 // 추후 user-tenant gating 도입 시 narrower 정책으로 override 되더라도 wildcard semantic 자체는
 // 안정적으로 유지되어야 회귀 방지.
 //
-// 회귀 보호: wildcard 는 별도 boolean field 로 표현 — map["*"] lookup 에 의존하지 않음.
-// AllowAllNamespaces=true 가 single source of truth.
+// 회귀 보호: wildcard 는 별도 boolean field 로 표현: map["*"] lookup 에 의존하지 않음.
+// AllowAllNamespaces=true 가 단일 출처.
 func TestIsNamespaceAllowed_Wildcard(t *testing.T) {
 	policy := &AllowList{
 		AllowAllNamespaces: true,
@@ -137,7 +137,7 @@ func TestIsNamespaceAllowed_Wildcard(t *testing.T) {
 	}
 }
 
-// Parser regression — ConfigMap 의 - "*" 가 정상 wildcard 로 인식되는지 (end-to-end).
+// Parser regression: ConfigMap 의 - "*" 가 정상 wildcard 로 인식되는지 (end-to-end).
 func TestParseConfigMap_WildcardNamespace(t *testing.T) {
 	cm := &corev1.ConfigMap{
 		Data: map[string]string{
@@ -165,7 +165,7 @@ func TestParseConfigMap_WildcardNamespace(t *testing.T) {
 	}
 }
 
-// Parser regression — explicit list + wildcard 혼합. wildcard 가 있으면 explicit 무시되고 모두 허용.
+// Parser regression: explicit list + wildcard 혼합. wildcard 가 있으면 explicit 무시되고 모두 허용.
 func TestParseConfigMap_MixedWildcardAndExplicit(t *testing.T) {
 	cm := &corev1.ConfigMap{
 		Data: map[string]string{
@@ -184,7 +184,7 @@ func TestParseConfigMap_MixedWildcardAndExplicit(t *testing.T) {
 	if !policy.AllowAllNamespaces {
 		t.Fatal("AllowAllNamespaces should be true")
 	}
-	// explicit "default" / "monitoring" 도 map 에 추가됨 — wildcard 가 우선이므로 무해
+	// explicit "default" / "monitoring" 도 map 에 추가됨. wildcard 가 우선이므로 무해
 	if !policy.IsNamespaceAllowed("anything") {
 		t.Error("wildcard should allow any namespace")
 	}
@@ -206,7 +206,7 @@ func TestIsNamespaceAllowed_ExplicitList(t *testing.T) {
 }
 
 func TestIsNamespaceAllowed_WildcardOverridesExplicit(t *testing.T) {
-	// 일관성 — AllowAllNamespaces=true 이면 명시 ns 가 있든 없든 모두 허용.
+	// 일관성: AllowAllNamespaces=true 이면 명시 ns 가 있든 없든 모두 허용.
 	policy := &AllowList{
 		AllowAllNamespaces: true,
 		Namespaces: map[string]struct{}{
@@ -234,7 +234,7 @@ func TestIsNamespaceAllowed_NilSafe(t *testing.T) {
 	}
 }
 
-// Chart wildcard — `repo/*:min-max` 는 해당 repo 의 모든 chart 를 version range 내에서 허용.
+// Chart wildcard: `repo/*:min-max` 는 해당 repo 의 모든 chart 를 version range 내에서 허용.
 // exact rule 이 없을 때만 wildcard fallback 사용.
 func TestChartWildcard_AnyChartInRepo(t *testing.T) {
 	rule, err := parseChartRule("prometheus-community/*:0.0.0-99.99.99")
@@ -255,7 +255,7 @@ func TestChartWildcard_AnyChartInRepo(t *testing.T) {
 }
 
 // Wildcard 의 version range 가 ChartRule field 에 그대로 보존되는지. 실제 version
-// check 는 caller 측 책임 — 본 테스트는 field population 만 검증.
+// check 는 caller 측 책임. 본 테스트는 field population 만 검증.
 func TestChartWildcard_VersionRangeStillEnforced(t *testing.T) {
 	rule, err := parseChartRule("prometheus-community/*:1.0.0-2.5.0")
 	if err != nil {
@@ -373,7 +373,7 @@ func TestChartWildcard_PriorityOrder(t *testing.T) {
 	}
 }
 
-// End-to-end — ConfigMap 의 `repo/*:min-max` 가 parseConfigMap 통과 후 AllowList.Charts
+// End-to-end: ConfigMap 의 `repo/*:min-max` 가 parseConfigMap 통과 후 AllowList.Charts
 // 에 Chart="*" 로 보존되는지.
 func TestChartWildcard_ParseAndPersist(t *testing.T) {
 	cm := &corev1.ConfigMap{
@@ -405,14 +405,14 @@ func TestChartWildcard_ParseAndPersist(t *testing.T) {
 	}
 }
 
-// ResourcePolicy — ConfigMap 에 정책이 없으면 legacy 동작 (모든 kind 허용 — RBAC + Namespace
+// ResourcePolicy: ConfigMap 에 정책이 없으면 legacy 동작 (모든 kind 허용: RBAC + Namespace
 // allowlist 에 의존). backward compatibility 핵심.
 func TestParseConfigMap_ResourcePolicy_AllowAllDiscovered_NoDeny(t *testing.T) {
 	cm := &corev1.ConfigMap{
 		Data: map[string]string{
 			"allowed_commands": `- LIST_RESOURCES
 `,
-			// resource_policy 키 없음 — legacy 동작 기대.
+			// resource_policy 키 없음. legacy 동작 기대.
 		},
 	}
 	policy, err := parseConfigMap(cm)
@@ -430,7 +430,7 @@ func TestParseConfigMap_ResourcePolicy_AllowAllDiscovered_NoDeny(t *testing.T) {
 	}
 }
 
-// ResourcePolicy — allow_all_discovered + deny 룰. 매칭되는 deny 만 차단.
+// ResourcePolicy: allow_all_discovered + deny 룰. 매칭되는 deny 만 차단.
 // Test cases:
 //   - secrets 는 global deny (어떤 namespace 든 거부)
 //   - configmaps 는 kube-system 에서만 deny
@@ -482,7 +482,7 @@ deny:
 	}
 }
 
-// ResourcePolicy — strict 모드. allow 에 명시된 kind 만 통과.
+// ResourcePolicy: strict 모드. allow 에 명시된 kind 만 통과.
 func TestParseConfigMap_ResourcePolicy_Strict(t *testing.T) {
 	cm := &corev1.ConfigMap{
 		Data: map[string]string{
@@ -523,7 +523,7 @@ allow:
 	}
 }
 
-// ResourcePolicy — strict 모드 + namespace-scoped allow 룰. ns 매칭까지 정확해야 통과.
+// ResourcePolicy: strict 모드 + namespace-scoped allow 룰. ns 매칭까지 정확해야 통과.
 func TestParseConfigMap_ResourcePolicy_Strict_NamespaceScoped(t *testing.T) {
 	cm := &corev1.ConfigMap{
 		Data: map[string]string{
@@ -550,7 +550,7 @@ allow:
 	}
 }
 
-// nil-safe — receiver nil 에선 무조건 false (deny-all 의 정의 일관성).
+// nil-safe: receiver nil 에선 무조건 false (deny-all 의 정의 일관성).
 func TestIsResourceKindAllowed_NilSafe(t *testing.T) {
 	var policy *AllowList = nil
 	if policy.IsResourceKindAllowed("pods", "default") {
@@ -558,7 +558,7 @@ func TestIsResourceKindAllowed_NilSafe(t *testing.T) {
 	}
 }
 
-// MetaSnapshot — LoadOnce 후 LastReloadAt 가 non-zero, ConfigMapResourceVersion 가 ConfigMap
+// MetaSnapshot: LoadOnce 후 LastReloadAt 가 non-zero, ConfigMapResourceVersion 가 ConfigMap
 // 의 resourceVersion 과 일치해야 함. GET_AGENT_CONFIG 가 본 값을 노출.
 func TestLoader_MetaSnapshot_AfterParse(t *testing.T) {
 	cm := &corev1.ConfigMap{
@@ -575,7 +575,7 @@ func TestLoader_MetaSnapshot_AfterParse(t *testing.T) {
 	cs := fake.NewSimpleClientset(cm)
 	loader := NewLoader(cs, "aipaas-system", "aipaas-agent-allowlist")
 
-	// 초기 (LoadOnce 호출 전) — meta 는 zero-value.
+	// 초기 (LoadOnce 호출 전). meta 는 zero-value.
 	pre := loader.MetaSnapshot()
 	if !pre.LastReloadAt.IsZero() {
 		t.Errorf("pre-LoadOnce LastReloadAt should be zero, got %v", pre.LastReloadAt)

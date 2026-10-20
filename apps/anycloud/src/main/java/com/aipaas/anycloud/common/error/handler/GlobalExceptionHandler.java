@@ -67,7 +67,7 @@ public class GlobalExceptionHandler {
         Throwable cause = e.getMostSpecificCause();
         String causeClass = cause == null ? "<none>" : cause.getClass().getSimpleName();
         String causeMsg = cause == null ? "<none>" : cause.getMessage();
-        // 실제 도착한 request 의 헤더 정보를 함께 log — 클라이언트 (Bruno 등) 가 보낸 게 진짜
+        // 실제 도착한 request 의 헤더 정보를 함께 log: 클라이언트 (Bruno 등) 가 보낸 게 진짜
         // empty 인지, Content-Type 이 어떤지, charset 이 뭔지 확인 가능.
         log.error(
                 "HttpMessageNotReadable: {} | contentLength={} contentType={} method={} uri={} | cause class={} cause msg={}",
@@ -79,7 +79,7 @@ public class GlobalExceptionHandler {
                 causeClass,
                 causeMsg);
 
-        // sub-case 분기 — body missing 인지 JSON parse 실패인지.
+        // sub-case 분기: body missing 인지 JSON parse 실패인지.
         boolean bodyMissing = e.getMessage() != null && e.getMessage().contains("Required request body is missing");
 
         final String hint;
@@ -253,7 +253,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * cluster-provisioning starter 의 Pulumi 실행 실패 (up/preview/destroy) — 외부 시스템 실패이므로
+     * cluster-provisioning starter 의 Pulumi 실행 실패 (up/preview/destroy). 외부 시스템 실패이므로
      * UPSTREAM_FAILED(502). starter 가 host 예외에 의존하지 않도록 ProvisioningExecutionException
      * → host 매핑으로 처리.
      */
@@ -278,25 +278,25 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * — IllegalStateException 을 409 Conflict 로 매핑.
-     * 예: addon retry 가 FAILED 외 state 에서 호출, addon 중복 enqueue 등 — 요청 자체는 valid
+     * IllegalStateException 을 409 Conflict 로 매핑.
+     * 예: addon retry 가 FAILED 외 state 에서 호출, addon 중복 enqueue 등: 요청 자체는 valid
      * 이지만 현재 리소스 state 와 충돌. 400 (bad input) 과 의미 구분.
      *
      * <p>신규 코드는 의미 명확한
      * {@link com.aipaas.anycloud.common.error.exception.provisioning.StateConflictException}
-     * 사용 권장. 이 핸들러는 기존 IllegalStateException 을 받기 위한 것입니다.
+     * 사용 권장. 이 핸들러는 기존 IllegalStateException 을 받습니다.
      */
     @ExceptionHandler(IllegalStateException.class)
     protected ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException e) {
         log.warn("Illegal state: {}", e.getMessage());
-        //  이전엔 body 에 INVALID_INPUT_VALUE(400) 를 넣고 HTTP 만 409 — status 불일치 +
+        //  이전엔 body 에 INVALID_INPUT_VALUE(400) 를 넣고 HTTP 만 409: status 불일치 +
         // "입력 값 오류" 오해 유발. 전용 STATE_CONFLICT(409) 로 HTTP==body 일치 보장.
         final ErrorResponse response = ErrorResponse.ofSummarized(ErrorCode.STATE_CONFLICT, e.getMessage());
         return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
 
     /**
-     * — JPA 의 jakarta.persistence.EntityNotFoundException (자체 정의 클래스
+     * JPA 의 jakarta.persistence.EntityNotFoundException (자체 정의 클래스
      * 와는 별개) 도 404 로 매핑. AddonService / 일반 JPA flow 에서 throw.
      */
     @ExceptionHandler(jakarta.persistence.EntityNotFoundException.class)
@@ -341,7 +341,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ClusterNotFoundException.class)
     protected ResponseEntity<ErrorResponse> handleClusterNotFoundException(ClusterNotFoundException e) {
         log.warn("Cluster not found: {}", e.getMessage(), e);
-        //  복구 경로 제공 — 목록에서 정확한 이름 확인. 예외가 clusterName 을 들고 있어
+        //  복구 경로 제공: 목록에서 정확한 이름 확인. 예외가 clusterName 을 들고 있어
         // 정적이 아닌 정확한 link 생성 가능.
         final ErrorResponse response = ErrorResponse.of(e.getErrorCode(), e.getMessage())
                 .withHint("GET /v1/clusters 로 등록된 cluster 이름을 확인하세요.")
@@ -391,11 +391,11 @@ public class GlobalExceptionHandler {
     }
 
     // ==== starter exception 일원화 ====
-    // 응답 envelope 는 {@link ApiSuccessResponse} (success=false) 유지 — frontend 호환성 보존
+    // 응답 envelope 는 {@link ApiSuccessResponse} (success=false) 유지: frontend 호환성 보존
     // (UI 가 success boolean 으로 분기).
 
     /**
-     * cluster-observability-starter 의 {@link ObservabilityException} — Prometheus / Alertmanager /
+     * cluster-observability-starter 의 {@link ObservabilityException}: Prometheus / Alertmanager /
      * Grafana 라우팅 실패. errorCode 별 HTTP status 매핑.
      */
     @ExceptionHandler(ObservabilityException.class)
@@ -419,7 +419,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * cluster-backup-starter 의 {@link BackupException} — K8s upgrade / Velero / etcd backup
+     * cluster-backup-starter 의 {@link BackupException}: K8s upgrade / Velero / etcd backup
      * 등 lifecycle 작업 실패. errorCode 별 HTTP status 매핑.
      */
     @ExceptionHandler(BackupException.class)

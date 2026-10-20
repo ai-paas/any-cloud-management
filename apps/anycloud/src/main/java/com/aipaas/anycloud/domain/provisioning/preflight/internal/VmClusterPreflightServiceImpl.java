@@ -29,18 +29,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * VM cluster preflight 검증 service — VmClusterQueryService 의 delegation 대상.
+ * VM cluster preflight 검증 service: VmClusterQueryService 의 delegation 대상.
  *
  * <p>preflightVmCluster 가 7 단계로 분해됨 (각 단계마다 helper + result record):
  *
  * <ol>
- *   <li>{@code normalizeProviderAndDefaults} — provider lookup + default config 적용.</li>
- *   <li>{@code checkClusterNameConflict} — 등록된 cluster / 진행 중 workflow 충돌.</li>
- *   <li>{@code resolveCredentialAndValidate} — credential resolve + 필수 config + selection.</li>
- *   <li>Inline — required credential keys + missing detection.</li>
- *   <li>{@code checkVmOptionsDiscovery} — CSP region listing + selection 매칭.</li>
- *   <li>{@code assessProviderReadiness} — CSP 별 readiness checklist.</li>
- *   <li>{@code buildStackNamePreview} — Pulumi stack name 미리보기.</li>
+ *   <li>{@code normalizeProviderAndDefaults}: provider lookup + default config 적용.</li>
+ *   <li>{@code checkClusterNameConflict}: 등록된 cluster / 진행 중 workflow 충돌.</li>
+ *   <li>{@code resolveCredentialAndValidate}: credential resolve + 필수 config + selection.</li>
+ *   <li>Inline: required credential keys + missing detection.</li>
+ *   <li>{@code checkVmOptionsDiscovery}: CSP region listing + selection 매칭.</li>
+ *   <li>{@code assessProviderReadiness}: CSP 별 readiness checklist.</li>
+ *   <li>{@code buildStackNamePreview}: Pulumi stack name 미리보기.</li>
  * </ol>
  *
  * <p>각 helper 의 결과는 record (ProviderNormalizationResult / CredentialAndValidationResult /
@@ -63,7 +63,7 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
 
     /**
      * Pulumi preview 기반 create 미리보기. create 와 동일한 정적 검증 + credential 해석 후
-     * {@code pulumi preview --json} 실행 — CSP 자원은 생성하지 않는다.
+     * {@code pulumi preview --json} 실행: CSP 자원은 생성하지 않는다.
      */
     @Override
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
@@ -98,7 +98,7 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
         List<String> providerReadinessMessages = new ArrayList<>();
         List<String> e2eChecklistItems = new ArrayList<>();
 
-        // ─── Step 1: Provider normalize + config defaults — helper 위임 ───────────────
+        // ─── Step 1: Provider normalize + config defaults: helper 위임 ───────────────
         ProviderNormalizationResult normalization = normalizeProviderAndDefaults(cluster, rawConfig, normalizedConfig);
         provider = normalization.provider();
         appliedDefaults.addAll(normalization.appliedDefaults());
@@ -106,7 +106,7 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
             addError(errors, errorItems, "INVALID_PROVIDER", normalization.error(), "clusterProvider");
         }
 
-        // ─── Step 2: Cluster name conflict — helper 위임 ──────────────────────────────
+        // ─── Step 2: Cluster name conflict: helper 위임 ──────────────────────────────
         existingClusterConflict = checkClusterNameConflict(cluster);
         if (existingClusterConflict) {
             addError(
@@ -117,7 +117,7 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
                     "clusterName");
         }
 
-        // ─── Step 3: Credential resolve + config + selection validate — helper 위임 ───
+        // ─── Step 3: Credential resolve + config + selection validate: helper 위임 ───
         if (provider != null) {
             CredentialAndValidationResult result = resolveCredentialAndValidate(provider, cluster, normalizedConfig);
             resolvedCredential = result.credential();
@@ -142,7 +142,7 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
                     "credentialId");
         }
 
-        // ─── Step 5: VM options discovery (region 매칭 포함) — helper 위임 ────────────
+        // ─── Step 5: VM options discovery (region 매칭 포함): helper 위임 ────────────
         if (provider != null && missingCredentialKeys.isEmpty()) {
             vmOptionsDiscoveryChecked = true;
             VmOptionsDiscoveryResult discovery = checkVmOptionsDiscovery(provider, cluster);
@@ -165,7 +165,7 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
             warningItems.addAll(providerReadiness.warningItems());
         }
 
-        // ─── Step 7: Stack name preview — helper 위임 ─────────────────────────────────
+        // ─── Step 7: Stack name preview: helper 위임 ─────────────────────────────────
         if (provider != null
                 && errors.stream().noneMatch(message -> message != null && message.contains("Provider is blank"))) {
             StackNamePreview preview = buildStackNamePreview(provider, cluster, resolvedCredential, normalizedConfig);
@@ -252,7 +252,7 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
      * mutable 변수 (resolvedCredential / credentialResolved) 는 {@link CredentialAndValidationResult}
      * 로 반환.
      *
-     * <p>각 단계가 독립 — 한 단계가 실패해도 다음 단계 계속 (preflight 의 의도: 모든 에러 누적).
+     * <p>각 단계가 독립: 한 단계가 실패해도 다음 단계 계속 (preflight 의 의도: 모든 에러 누적).
      */
     private CredentialAndValidationResult resolveCredentialAndValidate(
             SupportedProvisioningProvider provider,
@@ -516,21 +516,21 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
             List<String> e2eChecklistItems,
             List<VmClusterPreflightIssue> warningItems) {}
 
-    /** F-D — Step 5 helper 결과. error 가 non-null 이면 caller 가 errors 에 추가. */
+    /** F-D: Step 5 helper 결과. error 가 non-null 이면 caller 가 errors 에 추가. */
     private record VmOptionsDiscoveryResult(boolean ready, List<String> messages, String error) {}
 
-    /** F-D — Step 7 helper 결과. warning 이 non-null 이면 caller 가 warnings 에 추가. */
+    /** F-D: Step 7 helper 결과. warning 이 non-null 이면 caller 가 warnings 에 추가. */
     private record StackNamePreview(String stackName, String warning) {}
 
-    /** G-B — Step 3 helper 결과. issues 는 caller 가 errors 에 일괄 추가. */
+    /** G-B: Step 3 helper 결과. issues 는 caller 가 errors 에 일괄 추가. */
     private record CredentialAndValidationResult(
             ResolvedCspCredential credential, boolean credentialResolved, List<PreflightIssueData> issues) {}
 
-    /** G-B — preflight issue 의 raw data. caller 가 addError / addWarning 로 누적. */
+    /** G-B: preflight issue 의 raw data. caller 가 addError / addWarning 로 누적. */
     private record PreflightIssueData(String code, String message, String field) {}
 
     /**
-     * I-A — Step 1 helper 결과. provider 가 null 이면 정규화 실패. error 가 non-null 이면 caller 가
+     * I-A: Step 1 helper 결과. provider 가 null 이면 정규화 실패. error 가 non-null 이면 caller 가
      * errors 에 추가 (INVALID_PROVIDER).
      */
     private record ProviderNormalizationResult(

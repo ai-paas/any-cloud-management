@@ -47,7 +47,7 @@ public class AgentBootstrapServiceImpl implements AgentBootstrapService {
     // ACTIVE 전환 시 helm_repositories 자동 push.
     private final com.aipaas.anycloud.domain.agent.policy.ClusterPolicyBootstrapper clusterPolicyBootstrapper;
     // ACTIVE 전환 시 PENDING addon 자동 enqueue. ObjectProvider 로 lazy/optional
-    // 주입 — addon-workflow.enabled=false 인 환경 (인프라를 안 깐 경우) 에서도 bootstrap path 정상 동작.
+    // 주입: addon-workflow.enabled=false 인 환경 (인프라를 안 깐 경우) 에서도 bootstrap path 정상 동작.
     private final org.springframework.beans.factory.ObjectProvider<AddonOrchestrator> addonOrchestratorProvider;
     // GPU cluster (hasGpuNodes=true) ACTIVE 시 nvidia-gpu-operator 자동 enroll.
     private final org.springframework.beans.factory.ObjectProvider<com.aipaas.anycloud.domain.addon.AddonService>
@@ -99,7 +99,7 @@ public class AgentBootstrapServiceImpl implements AgentBootstrapService {
             return new ClusterNotRegisteredException("Cluster not found: " + clusterId);
         });
 
-        // Opaque identity token — 32 bytes hex.
+        // Opaque identity token: 32 bytes hex.
         String identityToken = generateOpaqueToken();
         String identityHash = TokenHasher.sha256Hex(identityToken);
         LocalDateTime now = LocalDateTime.now();
@@ -165,7 +165,7 @@ public class AgentBootstrapServiceImpl implements AgentBootstrapService {
     private void backfillClusterFromAgent(ClusterEntity cluster, ClusterIdentity identity) {
         if (identity == null) return;
         boolean dirty = false;
-        // apiServerUrl / serverCa 컬럼 제거 — agent 가 in-cluster 에서 K8s API
+        // apiServerUrl / serverCa 컬럼 제거: agent 가 in-cluster 에서 K8s API
         // 자체에 SA token 으로 접근하므로 backend 에 저장할 필요 없음. endpoint/CA 정보는 무시.
         String version = emptyAsNull(identity.getVersion());
         // 값 변경 시에만 dirty. 매 register 마다 동일 버전 write 하면
@@ -188,17 +188,17 @@ public class AgentBootstrapServiceImpl implements AgentBootstrapService {
                     cluster.getStatus(),
                     cluster.getVersion());
         }
-        // (+) — agent stream connect 시점 마다 helm_repositories sync.
+        // (+). agent stream connect 시점 마다 helm_repositories sync.
         // PENDING_AGENT → ACTIVE 첫 전환 시 push (welcome 시점)
         // 이미 ACTIVE 인 cluster 의 agent 재접속 시에도 push (reconnect 회복).
         //        backend 재기동 사이 발생한 repo CRUD 가 누락된 agent 도 reconnect 시점에 회복.
         // @Async 라 이 경로를 막지 않습니다. 매 reconnect 마다 호출되지만 멱등 (agent SyncRepositoriesWithCleanup).
         clusterPolicyBootstrapper.pushOnActive(cluster.getId());
 
-        // GPU cluster 면 nvidia-gpu-operator 자동 enroll — driver / nvidia-container-toolkit /
+        // GPU cluster 면 nvidia-gpu-operator 자동 enroll: driver / nvidia-container-toolkit /
         // device-plugin / GFD 의 K8s native 관리. 운영자 manual create 호출 없이 cluster ACTIVE 즉시
         // install. AddonService.create 가 catalog default 채우며, namespace+releaseName 중복 시
-        // silent skip (idempotent — 매 agent reconnect 마다 호출되어도 안전).
+        // silent skip (idempotent: 매 agent reconnect 마다 호출되어도 안전).
         if (justActivated && Boolean.TRUE.equals(cluster.getHasGpuNodes())) {
             /*
              * 커밋한 뒤에 부른다. 같은 트랜잭션 안에서 부르면 addon 이 이미 있다는 예외가
@@ -228,7 +228,7 @@ public class AgentBootstrapServiceImpl implements AgentBootstrapService {
     }
 
     /**
-     * Identity token rotation — 살아있는 token hash → 새 token 발급, DB 교체. revoked/expired 면 거부.
+     * Identity token rotation: 살아있는 token hash → 새 token 발급, DB 교체. revoked/expired 면 거부.
      * @param requestingInstanceId 진단용 (HA 시 어느 instance 가 rotate 했는지 log).
      */
     @Transactional
@@ -247,7 +247,7 @@ public class AgentBootstrapServiceImpl implements AgentBootstrapService {
         }
         if (existing.getExpiresAt() != null
                 && existing.getExpiresAt().isBefore(LocalDateTime.now().minusSeconds(1))) {
-            // 이미 만료 — rotation 불가. 새 registration_token 으로 재등록 필요.
+            // 이미 만료: rotation 불가. 새 registration_token 으로 재등록 필요.
             throw new RotationDeniedException("identity_token already expired at " + existing.getExpiresAt());
         }
 
@@ -316,7 +316,7 @@ public class AgentBootstrapServiceImpl implements AgentBootstrapService {
             addonService.create(clusterId, spec);
             log.info("GPU operator auto-enrolled for cluster_id={}", clusterId);
         } catch (Exception e) {
-            // 이미 등록돼 있으면 그것으로 충분하다 — 프로비저닝 요청이 먼저 넣어 두는 경로가 있다.
+            // 이미 등록돼 있으면 그것으로 충분하다: 프로비저닝 요청이 먼저 넣어 두는 경로가 있다.
             log.debug("GPU operator auto-enroll skipped cluster={}: {}", clusterId, e.toString());
         }
     }

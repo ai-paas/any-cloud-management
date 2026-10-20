@@ -48,14 +48,14 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 통합 cluster 자원 API (RESTful 재설계).
  * <ul>
- *   <li>GET    /v1/clusters                                — 통합 list</li>
- *   <li>GET    /v1/clusters/{name}                         — 단일 조회</li>
- *   <li>POST   /v1/clusters                                — VM 생성 또는 외부 등록 (body source)</li>
- *   <li>PATCH  /v1/clusters/{name}                         — state 변경 (scale / upgrade)</li>
- *   <li>DELETE /v1/clusters/{name}                         — destroy</li>
- *   <li>POST   /v1/clusters/{name}/operations              — 액션 operation (retry/refresh)</li>
- *   <li>GET    /v1/clusters/{name}/operations              — 이 cluster 의 operation 이력</li>
- *   <li>POST   /v1/clusters/{name}/connectivity-checks     — K8s API 연결 검사 (결과 자원)</li>
+ *   <li>GET    /v1/clusters: 통합 list</li>
+ *   <li>GET    /v1/clusters/{name}: 단일 조회</li>
+ *   <li>POST   /v1/clusters: VM 생성 또는 외부 등록 (body source)</li>
+ *   <li>PATCH  /v1/clusters/{name}: state 변경 (scale / upgrade)</li>
+ *   <li>DELETE /v1/clusters/{name}: destroy</li>
+ *   <li>POST   /v1/clusters/{name}/operations: 액션 operation (retry/refresh)</li>
+ *   <li>GET    /v1/clusters/{name}/operations: 이 cluster 의 operation 이력</li>
+ *   <li>POST   /v1/clusters/{name}/connectivity-checks: K8s API 연결 검사 (결과 자원)</li>
  * </ul>
  */
 @RestController
@@ -71,7 +71,7 @@ public class ClusterController {
     private final ClusterCapabilitiesSink clusterCapabilitiesSink;
 
     private final VmClusterStateHistoryQueryService stateHistoryQueryService;
-    // agent-led registration — token 발급 + helm install 명령 노출.
+    // agent-led registration: token 발급 + helm install 명령 노출.
     private final AgentApiManagedInstaller agentApiManagedInstaller;
 
     // =============== Collection ===============
@@ -332,7 +332,7 @@ public class ClusterController {
                     @Valid
                     @RequestBody
                     CreateClusterOperationRequest request) {
-        // 항상 202 + Operation — sync/async 양 케이스를 동일 패턴으로 처리. 클라이언트는
+        // 항상 202 + Operation: sync/async 양 케이스를 동일 패턴으로 처리. 클라이언트는
         // 응답 body 의 state (PENDING/RUNNING/SUCCEEDED/FAILED) 로 polling 필요 여부 판단.
         var op = clusterFacade.createOperationDomain(
                 clusterName, request.getType().name());
@@ -379,7 +379,7 @@ public class ClusterController {
                             String clusterName,
                     @RequestParam(name = "pageSize", required = false, defaultValue = "50") @Min(1) @Max(500)
                             int pageSize) {
-        // Domain record 반환 — JPA proxy 직렬화 회피.
+        // Domain record 반환: JPA proxy 직렬화 회피.
         var items = stateHistoryQueryService.listRecentDomain(clusterName, pageSize);
         return ResponseEntity.ok(
                 ApiSuccessResponse.of(HttpStatus.OK.value(), "State history loaded", PagedData.of(items)));

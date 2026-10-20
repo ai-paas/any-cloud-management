@@ -37,7 +37,7 @@ public class VmClusterDestroyStepServiceImpl implements VmClusterDestroyStepServ
     @Override
     public void execute(String clusterName) {
         // 같은 이름의 세대가 여럿이면 전부 DELETING 으로 들어온다. 스택은 하나지만 행은 모두
-        // 닫아야 한다 — 최신 1건만 닫으면 옛 행이 DELETING 에 영원히 남는다.
+        // 닫아야 한다. 최신 1건만 닫으면 옛 행이 DELETING 에 영원히 남는다.
         List<VmClusterEntity> deleting = VmClusterDeletionTargets.beingDeleted(
                 vmClusterRepository.findAllByClusterNameOrderByCreatedAtDesc(clusterName));
 
@@ -85,7 +85,7 @@ public class VmClusterDestroyStepServiceImpl implements VmClusterDestroyStepServ
         }
     }
     /**
-     * CSP 를 실제로 본다. 확인하지 못해도 삭제는 진행한다 — 막으면 CSP 장애 때 정리할 방법이 없어진다.
+     * CSP 를 실제로 본다. 확인하지 못해도 삭제는 진행한다. 막으면 CSP 장애 때 정리할 방법이 없어진다.
      */
     private DestroyPrecheck precheck(VmClusterEntity vmCluster, Map<String, String> credentialEnvironment) {
         if (!precheckEnabled) {

@@ -7,7 +7,7 @@ package com.aipaas.anycloud.domain.provisioning.workflow;
  * 어긋나는데, 확인하지 않으면 그걸 모른 채 destroy 를 돌린다.
  *
  * <p><b>확인은 기록일 뿐 destroy 를 건너뛰는 근거가 아니다.</b> outputs 가 비었다고 자원이 없는
- * 것이 아니다 — up 이 중간에 실패하면 보안 그룹과 네트워크는 만들어졌는데 outputs 는 0 이다.
+ * 것이 아니다. up 이 중간에 실패하면 보안 그룹과 네트워크는 만들어졌는데 outputs 는 0 이다.
  * 그때 건너뛰면 그 자원들이 남아 공유 테넌트의 쿼터를 문다. destroy 는 멱등이라 없으면 금방 끝난다.
  *
  * @param remaining stack outputs 로 짐작한 수. 자원 수가 아니다. 확인하지 못했으면 -1
@@ -24,7 +24,7 @@ public record DestroyPrecheck(int remaining, String note) {
                 : new DestroyPrecheck(remaining, "스택 출력값 " + remaining + "개가 확인됩니다.");
     }
 
-    /** 확인하지 못했다. 삭제는 그대로 진행한다 — 막으면 CSP 장애 때 정리할 방법이 없어진다. */
+    /** 확인하지 못했다. 삭제는 그대로 진행한다. 막으면 CSP 장애 때 정리할 방법이 없어진다. */
     public static DestroyPrecheck failed(String reason) {
         return new DestroyPrecheck(UNKNOWN, "CSP 상태를 확인하지 못해 그대로 진행합니다: " + reason);
     }

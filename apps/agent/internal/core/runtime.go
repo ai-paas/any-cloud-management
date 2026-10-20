@@ -1,9 +1,9 @@
-// Runtime stream client — bootstrap 이후 identity_token 으로 backend gRPC 에 bidi stream 연결.
+// Runtime stream client: bootstrap 이후 identity_token 으로 backend gRPC 에 bidi stream 연결.
 //
-// recv / heartbeat 두 goroutine 분리 — backend 명령 처리가 30s interval heartbeat 를 늦추지
+// recv / heartbeat 두 goroutine 분리: backend 명령 처리가 30s interval heartbeat 를 늦추지
 // 못하도록. heartbeat 누락은 backend 가 agent stale 판정 trigger 이므로 critical.
 //
-// Reconnect: exponential backoff (initial 1s, mul 2, max 30s, jitter ±10%) — backend / network
+// Reconnect: exponential backoff (initial 1s, mul 2, max 30s, jitter ±10%). backend / network
 // flap 시 thundering herd 회피. context cancel (SIGTERM) 시 정상 종료.
 package core
 
@@ -31,11 +31,11 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// ErrIdentityInvalidated — RunStream 이 self-heal 로 Secret 을 삭제한 후 반환. main loop 가 본
+// ErrIdentityInvalidated: RunStream 이 self-heal 로 Secret 을 삭제한 후 반환. main loop 가 본
 // sentinel 을 감지하면 leader 모드 여부와 무관하게 process exit (Pod restart 유도).
 var ErrIdentityInvalidated = errors.New("identity invalidated — pod restart required")
 
-// RuntimeConfig — main 에서 env / bootstrap 결과로 채워 전달.
+// RuntimeConfig: main 에서 env / bootstrap 결과로 채워 전달.
 type RuntimeConfig struct {
 	BackendAddr        string
 	AgentIdentityToken string
@@ -63,7 +63,7 @@ type RuntimeConfig struct {
 	TLS tlsconfig.Config
 }
 
-// currentToken — RuntimeConfig 에 TokenStore 있으면 그 값, 없으면 AgentIdentityToken.
+// currentToken: RuntimeConfig 에 TokenStore 있으면 그 값, 없으면 AgentIdentityToken.
 func (c RuntimeConfig) currentToken() string {
 	if c.TokenStore != nil {
 		t, _ := c.TokenStore.Get()
@@ -74,7 +74,7 @@ func (c RuntimeConfig) currentToken() string {
 	return c.AgentIdentityToken
 }
 
-// DefaultRuntimeConfig — production 권장값.
+// DefaultRuntimeConfig: production 권장값.
 func DefaultRuntimeConfig() RuntimeConfig {
 	return RuntimeConfig{
 		HeartbeatInterval: 30 * time.Second,
@@ -117,7 +117,7 @@ func RunStream(ctx context.Context, cfg RuntimeConfig, dispatcher *controller.Di
 			slog.Warn("runtime stream error — reconnecting",
 				slog.String("error", err.Error()),
 				slog.Duration("backoff", backoff))
-			// backend 가 identity_token 을 모르거나 만료로 본 경우 — DB row 가 cluster 재생성 등으로
+			// backend 가 identity_token 을 모르거나 만료로 본 경우: DB row 가 cluster 재생성 등으로
 			// 사라진 상태일 가능성. N회 연속이면 Secret 무효화 → pod 재시작 후 fresh register.
 			if isUnauthenticated(err) {
 				unauthCount++
@@ -146,8 +146,8 @@ func RunStream(ctx context.Context, cfg RuntimeConfig, dispatcher *controller.Di
 	}
 }
 
-// isUnauthenticated — gRPC status code Unauthenticated (16) 검출. error chain 안의 grpc status
-// 를 확인 — wrapped error 도 detect.
+// isUnauthenticated: gRPC status code Unauthenticated (16) 검출. error chain 안의 grpc status
+// 를 확인: wrapped error 도 detect.
 func isUnauthenticated(err error) bool {
 	if err == nil {
 		return false
@@ -160,7 +160,7 @@ func isUnauthenticated(err error) bool {
 	return strings.Contains(msg, "Unauthenticated") || strings.Contains(msg, "identity_token invalid")
 }
 
-// connectAndStream 은 한 번의 stream 세션 — dial / stream open / send-recv loops 까지.
+// connectAndStream 은 한 번의 stream 세션: dial / stream open / send-recv loops 까지.
 func connectAndStream(ctx context.Context, cfg RuntimeConfig, dispatcher *controller.Dispatcher,
 	execRunner *execpkg.Runner, logRunner *logstreampkg.Runner, gpuCounter *gpuNodeCounter,
 	kube k8s.Client) error {
@@ -196,7 +196,7 @@ func connectAndStream(ctx context.Context, cfg RuntimeConfig, dispatcher *contro
 
 	slog.Info("runtime stream open", slog.String("backend", cfg.BackendAddr))
 
-	// Token rotation force-reconnect watcher — rotation 직후 TokenStore.Set 의 signal 수신 시
+	// Token rotation force-reconnect watcher: rotation 직후 TokenStore.Set 의 signal 수신 시
 	// stream cancel → 즉시 새 token 으로 reconnect.
 	if cfg.TokenStore != nil {
 		go func() {
@@ -269,7 +269,7 @@ func handleControl(ctx context.Context, stream agentv1.AgentRuntime_StreamClient
 			},
 		})
 	case *agentv1.ControlMessage_Heartbeat:
-		// Backend → agent heartbeat — agent 응답 비대칭이라 별도 처리 없이 기록만.
+		// Backend → agent heartbeat: agent 응답 비대칭이라 별도 처리 없이 기록만.
 		slog.Debug("heartbeat from backend")
 		return nil
 	case *agentv1.ControlMessage_Shutdown:
@@ -311,7 +311,7 @@ func handleControl(ctx context.Context, stream agentv1.AgentRuntime_StreamClient
 		}()
 		return nil
 	case *agentv1.ControlMessage_OpenLogStream:
-		// PodExec 과 동일 패턴 — 별도 StreamPodLogs bidi 를 신규 open.
+		// PodExec 과 동일 패턴: 별도 StreamPodLogs bidi 를 신규 open.
 		open := msg.GetOpenLogStream()
 		if logRunner == nil {
 			slog.Warn("logstream: OpenLogStream received but runner not configured",
@@ -385,7 +385,7 @@ func runHeartbeatLoop(ctx context.Context, stream agentv1.AgentRuntime_StreamCli
 	}
 }
 
-// streamEventSender — runtime stream 의 AgentEvent send 추상화 (rbacwatcher.EventSender 구현).
+// streamEventSender: runtime stream 의 AgentEvent send 추상화 (rbacwatcher.EventSender 구현).
 type streamEventSender struct {
 	stream agentv1.AgentRuntime_StreamClient
 }
@@ -405,7 +405,7 @@ func nextBackoff(current, max time.Duration, mult float64) time.Duration {
 }
 
 func jitter(d time.Duration) time.Duration {
-	// ±10% jitter — thundering herd 방지.
+	// ±10% jitter: thundering herd 방지.
 	delta := float64(d) * 0.1
 	offset := (rand.Float64()*2 - 1) * delta
 	result := d + time.Duration(offset)

@@ -24,11 +24,11 @@ import org.springframework.transaction.annotation.Transactional;
  * 리전 조회로 자격증명을 확인한다.
  *
  * <p>등록만 하고 쓸 수 있는지는 프로비저닝을 걸어봐야 알았다. 리전 조회는 CSP API 를 실제로
- * 부르므로 그 자체가 검증이다 — 비밀값을 내보내지 않으므로 새 노출면이 생기지 않는다.
+ * 부르므로 그 자체가 검증이다. 비밀값을 내보내지 않으므로 새 노출면이 생기지 않는다.
  *
  * <p>결과는 저장한다. 화면 상태로만 두면 새로고침하면 사라지고 사용자마다 각자 확인해야 한다.
  * 반대로 페이지를 열 때마다 전부 다시 확인하면 CSP 요청 제한에 걸리므로, 자동 갱신은 오래된
- * 것만 본다. 사용자가 직접 누른 확인은 캐시를 건너뛴다 — 방금 키를 고쳤을 수 있다.
+ * 것만 본다. 사용자가 직접 누른 확인은 캐시를 건너뛴다: 방금 키를 고쳤을 수 있다.
  */
 @Slf4j
 @Service
@@ -36,7 +36,7 @@ public class CredentialHealthServiceImpl implements CredentialHealthService {
 
     private static final String HEALTHY = "HEALTHY";
     private static final String UNHEALTHY = "UNHEALTHY";
-    /** 확인할 방법이 없어 모른다. 실패와 구분해야 한다 — 정상인 자격증명을 실패로 보이면 경고를 무시하게 된다. */
+    /** 확인할 방법이 없어 모른다. 실패와 구분해야 한다. 정상인 자격증명을 실패로 보이면 경고를 무시하게 된다. */
     private static final String UNKNOWN = "UNKNOWN";
 
     private static final int DETAIL_MAX = 1000;
@@ -135,7 +135,7 @@ public class CredentialHealthServiceImpl implements CredentialHealthService {
                         LocalDateTime.now());
             }
             // 리전 목록이 정적인 프로바이더는 자격증명을 건드리지도 않는다. 그걸 정상이라 말하면
-            // 완전히 가짜인 키가 '정상'으로 나온다 — 실제로 그랬다.
+            // 완전히 가짜인 키가 '정상'으로 나온다: 실제로 그랬다.
             if (!CredentialVerification.verifiable(provider)) {
                 return new CredentialHealth(
                         false,
@@ -159,7 +159,7 @@ public class CredentialHealthServiceImpl implements CredentialHealthService {
      *
      * <p>{@code getRegions} 로 내려가면 등록된 VM options provider 가 없어 예외로 끝나고, 정상인
      * 자격증명도 "확인 불가" 로 보인다. {@code /version} 은 토큰을 실제로 검사하므로 그 호출이
-     * 곧 검증이다 — 만료된 토큰까지 걸러진다.
+     * 곧 검증이다. 만료된 토큰까지 걸러진다.
      */
     private CredentialHealth probeProxmox(String credentialId) {
         try {

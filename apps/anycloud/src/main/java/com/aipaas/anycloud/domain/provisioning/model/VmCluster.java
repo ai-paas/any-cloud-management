@@ -36,7 +36,7 @@ public record VmCluster(
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
 
-    /** Active workflow 진행 중 — terminal state (READY, FAILED, DELETED) 가 아님. */
+    /** Active workflow 진행 중: terminal state (READY, FAILED, DELETED) 가 아님. */
     public boolean isInProgress() {
         return provisioningStatus != null
                 && provisioningStatus != VmClusterStatus.READY
@@ -44,12 +44,12 @@ public record VmCluster(
                 && provisioningStatus != VmClusterStatus.DELETED;
     }
 
-    /** READY 상태 — 사용 가능. */
+    /** READY 상태: 사용 가능. */
     public boolean isReady() {
         return provisioningStatus == VmClusterStatus.READY;
     }
 
-    /** FAILED 상태 — error 진단 필요. */
+    /** FAILED 상태: error 진단 필요. */
     public boolean isFailed() {
         return provisioningStatus == VmClusterStatus.FAILED;
     }

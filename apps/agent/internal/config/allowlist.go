@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// ChartRule — "prometheus-community/kube-prometheus-stack:45.0.0-50.0.0" 파싱 결과.
+// ChartRule: "prometheus-community/kube-prometheus-stack:45.0.0-50.0.0" 파싱 결과.
 type ChartRule struct {
 	Repo       string // "prometheus-community"
 	Chart      string // "kube-prometheus-stack"
@@ -37,7 +37,7 @@ type ChartRule struct {
 	MaxVersion string // "50.0.0"  (semver, inclusive)
 }
 
-// AllowList — 현재 활성 정책. snapshot — 변경 시 atomic 교체.
+// AllowList: 현재 활성 정책. snapshot: 변경 시 atomic 교체.
 //
 // Wildcard 처리: ConfigMap 의 allowed_namespaces / allowed_exec_namespaces 안에 "*" 가 포함되면
 // 별도 boolean field (AllowAllNamespaces / AllowAllExecNamespaces) 로 분리. map key 의 string
@@ -52,13 +52,13 @@ type AllowList struct {
 	AllowAllNamespaces     bool                // "*" 가 allowed_namespaces 안에 있는 경우 true.
 	AllowAllExecNamespaces bool                // PodExec wildcard.
 
-	// ResourcePolicy — LIST/GET/DELETE resource 명령의 kind-level 화이트/블랙리스트.
+	// ResourcePolicy: LIST/GET/DELETE resource 명령의 kind-level 화이트/블랙리스트.
 	// nil = legacy 동작 (allow-all-discovered: RESTMapper 가 해석한 모든 자원 통과,
 	// 안전성은 RBAC + Namespaces 화이트리스트에 의존).
 	ResourcePolicy *ResourcePolicy
 }
 
-// ResourcePolicy — kind-level allow/deny 정책. Mode = "strict" 면 Allow 화이트리스트만 통과.
+// ResourcePolicy: kind-level allow/deny 정책. Mode = "strict" 면 Allow 화이트리스트만 통과.
 // Mode = "allow_all_discovered" (기본) 면 Deny 룰만 차단.
 //
 // ConfigMap data key "resource_policy" (YAML) 로 주입:
@@ -77,7 +77,7 @@ type ResourcePolicy struct {
 	Allow []ResourceRule `json:"allow,omitempty"`
 }
 
-// ResourceRule — 단일 kind/namespace 룰. Kind 는 lowercase plural (예: "pods", "storageclasses").
+// ResourceRule: 단일 kind/namespace 룰. Kind 는 lowercase plural (예: "pods", "storageclasses").
 // Namespace="" 는 모든 namespace 매칭 (cluster-scoped 자원에도 자연스럽게 적용).
 type ResourceRule struct {
 	Kind      string `json:"kind,omitempty"`
@@ -89,7 +89,7 @@ const (
 	resourcePolicyModeStrict   = "strict"
 )
 
-// LoaderMeta — Snapshot 의 metadata (last reload + ConfigMap resourceVersion).
+// LoaderMeta: Snapshot 의 metadata (last reload + ConfigMap resourceVersion).
 //
 // Reload 가 한 번도 안 일어난 (LoadOnce 실패 + watch 미수신) 상태에선 LastReloadAt = zero
 // time, ConfigMapResourceVersion = "". GET_AGENT_CONFIG 가 이 값을 그대로 직렬화해서
@@ -99,7 +99,7 @@ type LoaderMeta struct {
 	ConfigMapResourceVersion string
 }
 
-// Loader — ConfigMap 에서 정책 로드 + watch. Lock-free snapshot read (sync.Map 대신 RWMutex).
+// Loader: ConfigMap 에서 정책 로드 + watch. Lock-free snapshot read (sync.Map 대신 RWMutex).
 type Loader struct {
 	cs            kubernetes.Interface
 	namespace     string
@@ -120,7 +120,7 @@ func NewLoader(cs kubernetes.Interface, namespace, configMapName string) *Loader
 	}
 }
 
-// LoadOnce — 초기 로드. ConfigMap 없으면 deny-all 유지.
+// LoadOnce: 초기 로드. ConfigMap 없으면 deny-all 유지.
 func (l *Loader) LoadOnce(ctx context.Context) error {
 	cm, err := l.cs.CoreV1().ConfigMaps(l.namespace).Get(ctx, l.configMapName, metav1.GetOptions{})
 	if err != nil {
@@ -141,7 +141,7 @@ func (l *Loader) LoadOnce(ctx context.Context) error {
 	return nil
 }
 
-// Watch — ConfigMap 변경 watch. Stream 이 close 되면 caller 가 재호출.
+// Watch: ConfigMap 변경 watch. Stream 이 close 되면 caller 가 재호출.
 func (l *Loader) Watch(ctx context.Context) error {
 	w, err := l.cs.CoreV1().ConfigMaps(l.namespace).Watch(ctx, metav1.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector("metadata.name", l.configMapName).String(),
@@ -178,7 +178,7 @@ func (l *Loader) Watch(ctx context.Context) error {
 				}
 			case watch.Deleted:
 				slog.Warn("allowlist: ConfigMap deleted — fallback to deny-all")
-				// Deleted 도 reload event — meta 갱신 (UI 가 "정책 사라짐" 인지).
+				// Deleted 도 reload event: meta 갱신 (UI 가 "정책 사라짐" 인지).
 				l.swap(emptyAllowList(), LoaderMeta{
 					LastReloadAt: time.Now().UTC(),
 				})
@@ -187,14 +187,14 @@ func (l *Loader) Watch(ctx context.Context) error {
 	}
 }
 
-// Snapshot — 현재 정책의 lock-free read 용 복사본. Dispatcher 가 매 명령 시점에 호출.
+// Snapshot: 현재 정책의 lock-free read 용 복사본. Dispatcher 가 매 명령 시점에 호출.
 func (l *Loader) Snapshot() *AllowList {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 	return l.current
 }
 
-// MetaSnapshot — Snapshot 의 metadata. Reload 가 한 번도 안 일어났으면 zero-value 반환.
+// MetaSnapshot: Snapshot 의 metadata. Reload 가 한 번도 안 일어났으면 zero-value 반환.
 func (l *Loader) MetaSnapshot() LoaderMeta {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
@@ -208,7 +208,7 @@ func (l *Loader) swap(p *AllowList, meta LoaderMeta) {
 	l.mu.Unlock()
 }
 
-// IsCommandAllowed — command type name (예: "INSTALL_ADDON") 가 허용 목록에 있는지.
+// IsCommandAllowed: command type name (예: "INSTALL_ADDON") 가 허용 목록에 있는지.
 func (a *AllowList) IsCommandAllowed(name string) bool {
 	if a == nil {
 		return false
@@ -217,7 +217,7 @@ func (a *AllowList) IsCommandAllowed(name string) bool {
 	return ok
 }
 
-// IsNamespaceAllowed — Helm install / read 명령의 target namespace 검증.
+// IsNamespaceAllowed: Helm install / read 명령의 target namespace 검증.
 //
 // Wildcard 지원: ConfigMap 의 allowed_namespaces 에 "*" 가 있으면 {@link AllowAllNamespaces}
 // boolean field 가 true 로 설정되어 모든 namespace 통과. 현재 default 정책 (no-restriction).
@@ -233,7 +233,7 @@ func (a *AllowList) IsNamespaceAllowed(name string) bool {
 	return ok
 }
 
-// IsExecNamespaceAllowed — PodExec 대상 namespace 가 화이트리스트에 있는지.
+// IsExecNamespaceAllowed: PodExec 대상 namespace 가 화이트리스트에 있는지.
 // kube-system 등 critical namespace 격리 목적. wildcard "*" 동일 지원하지만 일반적으로
 // PodExec 은 명시 ns 만 허용 권장 (운영 강제 의미를 살리기 위해).
 func (a *AllowList) IsExecNamespaceAllowed(name string) bool {
@@ -247,14 +247,14 @@ func (a *AllowList) IsExecNamespaceAllowed(name string) bool {
 	return ok
 }
 
-// IsResourceKindAllowed — LIST/GET/DELETE 명령의 kind-level 정책 검사.
+// IsResourceKindAllowed: LIST/GET/DELETE 명령의 kind-level 정책 검사.
 //
 // Plural 입력: k8s.Client.ResolveResource(...).Plural 가 normalize 한 lowercase plural
 // (예: "pods", "storageclasses", "customresourcedefinitions"). short name ("pvc", "sc") 으로
 // 전달되면 정책에 plural 로 적힌 룰과 일치하지 않을 수 있으니 caller 는 plural 만 넘긴다.
 //
 // Namespace 의미: cluster-scoped 자원이면 "" 가 전달됨. Deny/Allow 룰의 Namespace="" 는
-// "어떤 namespace 든" 의미 — cluster-scoped 자원도 자연스럽게 적용.
+// "어떤 namespace 든" 의미: cluster-scoped 자원도 자연스럽게 적용.
 //
 // 정책 우선순위:
 //  1. ResourcePolicy == nil → return true (legacy / backwards-compatible. RBAC 의존).
@@ -292,7 +292,7 @@ func (a *AllowList) IsResourceKindAllowed(resourcePlural, namespace string) bool
 	}
 }
 
-// matchResourceRule — Kind/Namespace 매칭. ResourceRule.Namespace="" 면 namespace 무관 매칭.
+// matchResourceRule: Kind/Namespace 매칭. ResourceRule.Namespace="" 면 namespace 무관 매칭.
 func matchResourceRule(rule ResourceRule, plural, namespace string) bool {
 	if strings.ToLower(rule.Kind) != plural {
 		return false
@@ -303,17 +303,17 @@ func matchResourceRule(rule ResourceRule, plural, namespace string) bool {
 	return rule.Namespace == namespace
 }
 
-// FindChartRule — "repo/chart" 가 매칭되는 첫 rule 반환. 없으면 nil.
+// FindChartRule: "repo/chart" 가 매칭되는 첫 rule 반환. 없으면 nil.
 //
 // 매칭 우선순위 (narrower 가 항상 승리):
-//  1. Exact match           — Repo=<r>      Chart=<c>      (정확 매칭)
-//  2. Chart wildcard        — Repo=<r>      Chart="*"      (repo 내 모든 chart)
-//  3. Repo wildcard         — Repo="*"      Chart=<c>      (모든 repo 의 특정 chart)
-//  4. Full wildcard         — Repo="*"      Chart="*"      (모든 chart 허용)
+//  1. Exact match: Repo=<r>      Chart=<c>      (정확 매칭)
+//  2. Chart wildcard: Repo=<r>      Chart="*"      (repo 내 모든 chart)
+//  3. Repo wildcard: Repo="*"      Chart=<c>      (모든 repo 의 특정 chart)
+//  4. Full wildcard: Repo="*"      Chart="*"      (모든 chart 허용)
 //
 // 운영자가 동시에 `repo/foo:1.0.0-1.5.0` 과 `*/*:0.0.0-99.99.99` 를 등록하면,
 // foo 는 narrower (exact) 규칙으로, 그 외 chart 는 full wildcard 로 매칭. 버전 range 는
-// caller 측에서 ChartRule.MinVersion/MaxVersion 으로 추가 검증 — 범위 밖이면 caller
+// caller 측에서 ChartRule.MinVersion/MaxVersion 으로 추가 검증: 범위 밖이면 caller
 // 가 CHART_NOT_ALLOWED 를 반환.
 //
 // `*/*:0.0.0-99.99.99` full-wildcard default 가 dead rule 이었던 버그 수정.
@@ -323,25 +323,25 @@ func (a *AllowList) FindChartRule(repo, chart string) *ChartRule {
 	if a == nil {
 		return nil
 	}
-	// 1. Exact match — narrowest. repo + chart 모두 정확 일치.
+	// 1. Exact match: narrowest. repo + chart 모두 정확 일치.
 	for i := range a.Charts {
 		if a.Charts[i].Repo == repo && a.Charts[i].Chart == chart {
 			return &a.Charts[i]
 		}
 	}
-	// 2. Chart wildcard — repo 정확 일치 + Chart="*".
+	// 2. Chart wildcard: repo 정확 일치 + Chart="*".
 	for i := range a.Charts {
 		if a.Charts[i].Repo == repo && a.Charts[i].Chart == "*" {
 			return &a.Charts[i]
 		}
 	}
-	// 3. Repo wildcard — Repo="*" + chart 정확 일치.
+	// 3. Repo wildcard: Repo="*" + chart 정확 일치.
 	for i := range a.Charts {
 		if a.Charts[i].Repo == "*" && a.Charts[i].Chart == chart {
 			return &a.Charts[i]
 		}
 	}
-	// 4. Full wildcard — */* allows anything (default).
+	// 4. Full wildcard: */* allows anything (default).
 	for i := range a.Charts {
 		if a.Charts[i].Repo == "*" && a.Charts[i].Chart == "*" {
 			return &a.Charts[i]
@@ -399,13 +399,13 @@ func parseConfigMap(cm *corev1.ConfigMap) (*AllowList, error) {
 		policy.ExecNamespaces[n] = struct{}{}
 	}
 
-	// ResourcePolicy — optional. 없으면 nil 유지 (legacy allow-all 동작).
+	// ResourcePolicy: optional. 없으면 nil 유지 (legacy allow-all 동작).
 	if raw := cm.Data["resource_policy"]; strings.TrimSpace(raw) != "" {
 		var rp ResourcePolicy
 		if err := yaml.Unmarshal([]byte(raw), &rp); err != nil {
 			return nil, fmt.Errorf("resource_policy: %w", err)
 		}
-		// Kind 는 lowercase 로 정규화 (정책 일관성 — caller 도 lowercase plural 로 검사).
+		// Kind 는 lowercase 로 정규화 (정책 일관성: caller 도 lowercase plural 로 검사).
 		for i := range rp.Deny {
 			rp.Deny[i].Kind = strings.ToLower(strings.TrimSpace(rp.Deny[i].Kind))
 		}
@@ -418,7 +418,7 @@ func parseConfigMap(cm *corev1.ConfigMap) (*AllowList, error) {
 	return policy, nil
 }
 
-// parseYAMLList — ConfigMap data value 를 list 로 파싱.
+// parseYAMLList: ConfigMap data value 를 list 로 파싱.
 // 정식 YAML list 가 우선이고, 실패 시 line/comma 분할 fallback (사용자 hand-edit 관용).
 func parseYAMLList(value string) ([]string, error) {
 	if strings.TrimSpace(value) == "" {
@@ -430,7 +430,7 @@ func parseYAMLList(value string) ([]string, error) {
 	if yamlErr == nil {
 		return yamlResult, nil
 	}
-	// 2) Fallback — line / comma 토큰 분할.
+	// 2) Fallback: line / comma 토큰 분할.
 	tokens := splitListTokens(value)
 	if len(tokens) > 0 {
 		return tokens, yamlErr // yamlErr 는 nil — fallback 성공.
@@ -439,7 +439,7 @@ func parseYAMLList(value string) ([]string, error) {
 	return nil, yamlErr
 }
 
-// splitListTokens — 라인 / 콤마로 분할하고 leading `-`, 공백, 인용부호, 주석 라인 제거.
+// splitListTokens: 라인 / 콤마로 분할하고 leading `-`, 공백, 인용부호, 주석 라인 제거.
 // 토큰 자체가 비어있으면 skip. 결과 list 가 비어있으면 빈 슬라이스 반환 (caller 가 빈/오류 구분).
 func splitListTokens(value string) []string {
 	out := make([]string, 0, 8)
@@ -454,10 +454,10 @@ func splitListTokens(value string) []string {
 		} else if line == "-" {
 			continue
 		}
-		// 라인 내 콤마 분할 — 콤마 + 줄바꿈 혼용 입력 cover.
+		// 라인 내 콤마 분할: 콤마 + 줄바꿈 혼용 입력 cover.
 		for _, raw := range strings.Split(line, ",") {
 			tok := strings.TrimSpace(raw)
-			// 인용부호 stripping — `"foo"` / `'foo'` → `foo`.
+			// 인용부호 stripping: `"foo"` / `'foo'` → `foo`.
 			if len(tok) >= 2 {
 				first, last := tok[0], tok[len(tok)-1]
 				if (first == '"' && last == '"') || (first == '\'' && last == '\'') {
@@ -472,7 +472,7 @@ func splitListTokens(value string) []string {
 	return out
 }
 
-// parseChartRule — "repo/chart:min-max" or "repo/chart:single-version".
+// parseChartRule: "repo/chart:min-max" or "repo/chart:single-version".
 // version 부분에 "-" 있으면 min-max range, 없으면 단일 version (min=max).
 func parseChartRule(raw string) (ChartRule, error) {
 	// repo/chart:version

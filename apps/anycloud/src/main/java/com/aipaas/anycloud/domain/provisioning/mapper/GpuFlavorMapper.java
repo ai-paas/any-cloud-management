@@ -16,7 +16,7 @@ public final class GpuFlavorMapper {
     /** 운영자가 명시한 instance type 으로 override 가능한 key. */
     public static final String CONFIG_KEY_WORKER_INSTANCE_TYPE = "workerInstanceType";
 
-    /** GCP 전용 — accelerator type/count 별도 config key (Pulumi GCP provider 가 사용). */
+    /** GCP 전용: accelerator type/count 별도 config key (Pulumi GCP provider 가 사용). */
     public static final String CONFIG_KEY_WORKER_ACCELERATOR_TYPE = "workerAcceleratorType";
 
     public static final String CONFIG_KEY_WORKER_ACCELERATOR_COUNT = "workerAcceleratorCount";
@@ -30,7 +30,7 @@ public final class GpuFlavorMapper {
      * provider 별 GPU instance type. 미지원이면 null.
      *
      * <pre>
-     * AWS         g5.xlarge       NVIDIA A10G x1 (24GB) — Inference / lightweight training
+     * AWS         g5.xlarge       NVIDIA A10G x1 (24GB). Inference / lightweight training
      * GCP         n1-standard-4 + accelerator nvidia-tesla-t4 x1
      * OCI         VM.GPU.A10.1    NVIDIA A10 x1 (24GB)
      * Alibaba     ecs.gn6i-c4g1.xlarge   NVIDIA T4 x1
@@ -58,7 +58,7 @@ public final class GpuFlavorMapper {
      * <p>지원하지 않는 조합은 null 입니다. 그때는 instance type 을 직접 적어야 합니다.
      *
      * <pre>
-     *               gpu-small (T4/L4 — inference) | gpu-medium (A10/V100 — mid) | gpu-large (A100 — training) | gpu-h100 (H100 — large training)
+     *               gpu-small (T4/L4: inference) | gpu-medium (A10/V100: mid) | gpu-large (A100: training) | gpu-h100 (H100: large training)
      * AWS           g4dn.xlarge                    g5.xlarge                     p4d.24xlarge                  p5.48xlarge
      * GCP           n1-standard-4 (T4)             g2-standard-4 (L4)            a2-highgpu-1g (A100)          a3-highgpu-8g (H100 8x)
      * OCI           VM.GPU3.1 (V100)               VM.GPU.A10.1                  BM.GPU.A100-v2.8              BM.GPU.H100.8
@@ -131,8 +131,8 @@ public final class GpuFlavorMapper {
      * hasGpuNodes=true 일 때 호출. provided config 에 workerInstanceType 이 없으면 provider default
      * 주입. 이미 있으면 변경 없음 (운영자 명시 우선).
      *
-     * @param provider CSP provider (aws/gcp/oci/alibaba 등 — 소문자 권장이지만 대소문자 무관 처리)
-     * @param config   Pulumi config (mutable copy 전달 권장 — 본 메서드가 직접 mutate)
+     * @param provider CSP provider (aws/gcp/oci/alibaba 등: 소문자 권장이지만 대소문자 무관 처리)
+     * @param config   Pulumi config (mutable copy 전달 권장. 본 메서드가 직접 mutate)
      * @return mutate 발생 여부. true 면 caller 가 log/audit.
      */
     /**
@@ -191,7 +191,7 @@ public final class GpuFlavorMapper {
         String existing = read(config, CONFIG_KEY_WORKER_INSTANCE_TYPE);
         String aliasResolved = null;
         if (existing != null && !existing.isBlank() && existing.startsWith("gpu-")) {
-            // 운영자가 CSP-agnostic alias (gpu-small / medium / large / h100) 명시 — CSP 별 실 instance
+            // 운영자가 CSP-agnostic alias (gpu-small / medium / large / h100) 명시: CSP 별 실 instance
             // type 으로 변환. 변환 실패 시 default GPU instance 로 fallback.
             aliasResolved = resolveAlias(provider, existing);
             if (aliasResolved != null) {

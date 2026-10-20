@@ -1,11 +1,10 @@
-// Package k8s — agent 가 Kubernetes API 와 통신하는 thin abstraction.
+// Package k8s: agent 가 Kubernetes API 와 통신하는 thin abstraction.
 //
-// Interface 분리 이유:
-//  1. Dispatcher 가 client-go 의 구체 타입에 직접 의존하면 테스트가 매우 어려움 (특히 GetLogs
-//     의 SubResource API 는 fake clientset 으로 채우기 까다로움).
-//  2. kubeclient connection 을 in-cluster vs out-of-cluster 로 dynamic switch 할 수 있도록
-//     front-loaded abstraction.
-//  3. AllowList enforcement  도 본 interface 의 메서드 호출 전후로 wrap 가능.
+// interface 로 분리한 이유는 셋이다.
+//  1. Dispatcher 가 client-go 구체 타입을 직접 쓰면 테스트에서 GetLogs 의 SubResource API 를
+//     fake clientset 으로 채울 수 없다.
+//  2. in-cluster 와 out-of-cluster 연결을 런타임에 바꾼다.
+//  3. allowlist 검사를 메서드 호출 앞뒤로 감싼다.
 package k8s
 
 import (
@@ -42,72 +41,72 @@ import (
 
 // Client 는 agent 가 사용하는 K8s 명령들의 최소 surface. 추후 명령 확대 시 메서드 추가.
 type Client interface {
-	// ListPods — namespace 가 빈 문자열이면 all-namespaces. 결과는 PodSummary 의 slice.
+	// ListPods: namespace 가 빈 문자열이면 all-namespaces. 결과는 PodSummary 의 slice.
 	ListPods(ctx context.Context, namespace string) ([]PodSummary, error)
 
-	// GetPodLogs — kubectl logs 등가. tailLines 0 = unlimited, sinceSeconds 0 = no time filter,
+	// GetPodLogs: kubectl logs 등가. tailLines 0 = unlimited, sinceSeconds 0 = no time filter,
 	// previous=true 면 terminated container 의 이전 로그. 길이 제한 (maxBytes) 까지만 읽음.
 	GetPodLogs(ctx context.Context, opts PodLogsOptions) (string, error)
 
-	// StreamPodLogs — `kubectl logs -f` 등가. caller 가 반환된 ReadCloser 를 EOF/error 까지 읽음.
+	// StreamPodLogs: `kubectl logs -f` 등가. caller 가 반환된 ReadCloser 를 EOF/error 까지 읽음.
 	// follow=true 면 K8s API 가 chunk push 하는 stream (장기 연결).
 	// Caller 책임: ctx cancellation 으로 stream 종료 보장 + Close() 호출.
 	StreamPodLogs(ctx context.Context, opts StreamPodLogsOptions) (io.ReadCloser, error)
 
-	// ClusterInfo — server version + node count + kube-system UID. agent bootstrap 시 자동 수집.
+	// ClusterInfo: server version + node count + kube-system UID. agent bootstrap 시 자동 수집.
 	ClusterInfo(ctx context.Context) (*ClusterInfo, error)
 
-	// DeleteResource — kind + namespace + name 으로 단일 자원 삭제. cluster-scoped kind 면
+	// DeleteResource: kind + namespace + name 으로 단일 자원 삭제. cluster-scoped kind 면
 	// namespace 무시. 삭제 성공 시 nil. NotFound 도 caller 가 ErrIsNotFound 로 구분.
 	// 지원 kind 는 KubernetesKind enum (case-insensitive 매칭). 미지원 시 ErrUnsupportedKind.
 	DeleteResource(ctx context.Context, opts DeleteResourceOptions) error
 
-	// GetResource — 단일 K8s 자원 조회. 결과는 JSON encoded string (kubectl get -o json 등가).
+	// GetResource: 단일 K8s 자원 조회. 결과는 JSON encoded string (kubectl get -o json 등가).
 	// kind 미지원 시 ErrUnsupportedKind.
 	GetResource(ctx context.Context, opts GetResourceOptions) (string, error)
 
-	// ListResources — paginated K8s 자원 list. 결과 items 는 JSON encoded string (자원 list 형식).
+	// ListResources: paginated K8s 자원 list. 결과 items 는 JSON encoded string (자원 list 형식).
 	// continueToken 으로 다음 페이지 fetch. kind 미지원 시 ErrUnsupportedKind.
 	ListResources(ctx context.Context, opts ListResourcesOptions) (*ListResourcesResult, error)
 
-	// ResolveResource — 입력 kind 문자열 (short name / singular / plural) 을 discovery 기반
+	// ResolveResource: 입력 kind 문자열 (short name / singular / plural) 을 discovery 기반
 	// RESTMapper 로 GVR + scope 로 정규화. dispatcher 가 namespace/policy 검사 전에 호출.
 	// kind 가 RESTMapper 에 없으면 ErrUnsupportedKind.
 	ResolveResource(input string) (ResolvedResource, error)
 
-	// ListByHelmRelease — helm release 가 만든 K8s 자원들을 한 번에 enumerate.
+	// ListByHelmRelease: helm release 가 만든 K8s 자원들을 한 번에 enumerate.
 	// label "app.kubernetes.io/instance=<release>" 기준으로 11 종 자원 type (Deployment / StatefulSet /
 	// DaemonSet / Service / ConfigMap / Secret / PVC / PV / Role / RoleBinding / ServiceAccount /
 	// Ingress) 을 namespace 한정 list. PVC 가 bound 된 PV 도 자동 포함.
 	// backend 의 HelmReleaseScanner 의 agent-side equivalent.
 	ListByHelmRelease(ctx context.Context, opts HelmReleaseResourcesOptions) ([]HelmReleaseResourceRef, error)
 
-	// ApplyManifest — kubectl apply 등가. multi-doc YAML 지원. server-side apply.
+	// ApplyManifest: kubectl apply 등가. multi-doc YAML 지원. server-side apply.
 	// 결과는 적용된 자원들의 metadata (kind/name/ns/resourceVersion) list.
 	ApplyManifest(ctx context.Context, opts ApplyManifestOptions) (*ApplyManifestResult, error)
 
-	// ListPodsRaw — label selector + namespace 로 raw corev1.Pod 목록 반환. PodSummary 가 노출하지
+	// ListPodsRaw: label selector + namespace 로 raw corev1.Pod 목록 반환. PodSummary 가 노출하지
 	// 않는 annotation / labels 가 필요한 caller 용 (예: TTL annotation 검사).
 	// debug pod sweeper 가 사용. namespace="" 이면 all-namespaces.
 	ListPodsRaw(ctx context.Context, namespace, labelSelector string) ([]corev1.Pod, error)
 
-	// IssueServiceAccountToken — K8s TokenRequest API 호출. ServiceAccount 의 한시 token 발급.
+	// IssueServiceAccountToken: K8s TokenRequest API 호출. ServiceAccount 의 한시 token 발급.
 	// kubeconfig export 용. expirationSeconds 가 60 미만이면 60 으로 clamp.
 	// 반환: token string + 실제 만료 시각 (server 가 결정).
 	IssueServiceAccountToken(ctx context.Context, opts TokenRequestOptions) (TokenRequestResult, error)
 
-	// CreateNodeDebugPod — node 에 host namespace + privileged debug pod 을 생성.
+	// CreateNodeDebugPod: node 에 host namespace + privileged debug pod 을 생성.
 	// kubectl debug node 등가. 호출자는 반환된 (namespace, name) 으로 PodExec 호출.
 	CreateNodeDebugPod(ctx context.Context, opts NodeDebugPodOptions) (NodeDebugPodResult, error)
 
-	// ServerCAData — kubeconfig 생성 시 cluster.certificate-authority-data 에 들어갈 PEM 값.
+	// ServerCAData: kubeconfig 생성 시 cluster.certificate-authority-data 에 들어갈 PEM 값.
 	// in-cluster config 의 경우 /var/run/secrets/kubernetes.io/serviceaccount/ca.crt.
 	ServerCAData() ([]byte, error)
 
-	// APIServerURL — kubeconfig 의 cluster.server.
+	// APIServerURL: kubeconfig 의 cluster.server.
 	APIServerURL() string
 
-	// CountGpuNodes — cluster 의 Ready 노드 중 GPU 가 1개 이상인 노드 수.
+	// CountGpuNodes: cluster 의 Ready 노드 중 GPU 가 1개 이상인 노드 수.
 	// heartbeat 에 piggy-back 되어 backend 의 cluster.has_gpu_nodes 자동 backfill 에 사용.
 	//
 	// 판정 기준 (둘 중 하나라도 만족):
@@ -117,7 +116,7 @@ type Client interface {
 	// 호출 부하 (대형 cluster 1000 노드 가정) 가 적지 않으므로 caller 가 5분 캐싱 권장.
 	CountGpuNodes(ctx context.Context) (int, error)
 
-	// ExecInPod — kubectl exec 등가. Streaming bidirectional I/O.
+	// ExecInPod: kubectl exec 등가. Streaming bidirectional I/O.
 	//
 	// 호출자는 streams 의 Stdin/Stdout/Stderr 를 통해 양방향 I/O 를 처리하고,
 	// TerminalSize 변경 시 ResizeQueue 로 SIGWINCH 전달. ResizeQueue 가 nil 이면 PTY resize 비활성.
@@ -127,17 +126,17 @@ type Client interface {
 	// 호출자는 *exec.CodeExitError 로 type assertion 해서 shell exit code 추출 가능.
 	ExecInPod(ctx context.Context, opts PodExecOptions, streams ExecStreams) error
 
-	// Clientset — 내부 kubernetes.Interface 노출. Secret CRUD 등 client-go 직접 API 가 필요한
+	// Clientset: 내부 kubernetes.Interface 노출. Secret CRUD 등 client-go 직접 API 가 필요한
 	// caller (IdentityStore 구현체 등) 용. Test 의 mock 도 동일 interface 반환 가능.
 	Clientset() kubernetes.Interface
 
-	// ListAPIResources — server discovery 결과를 UI 친화 shape 로 list. CRD 도 자연스럽게 포함.
+	// ListAPIResources: server discovery 결과를 UI 친화 shape 로 list. CRD 도 자연스럽게 포함.
 	// LIST_RESOURCE_KINDS 명령의 backend. RBAC 부족 / discovery 자체 실패 시 wrap 된 error.
 	// 결과는 (Group, Plural) 안정 정렬, subresource 와 list-verb 미지원 자원은 자동 제외.
 	ListAPIResources(ctx context.Context) ([]APIResourceInfo, error)
 }
 
-// PodExecOptions — kubectl exec 옵션.
+// PodExecOptions: kubectl exec 옵션.
 type PodExecOptions struct {
 	Namespace string
 	Pod       string
@@ -151,7 +150,7 @@ type PodExecOptions struct {
 	Stdin bool
 }
 
-// ExecStreams — caller 가 제공하는 I/O endpoints.
+// ExecStreams: caller 가 제공하는 I/O endpoints.
 type ExecStreams struct {
 	// Stdin: caller→pod 입력. nil 이면 stdin 미연결.
 	Stdin io.Reader
@@ -163,7 +162,7 @@ type ExecStreams struct {
 	ResizeQueue remotecommand.TerminalSizeQueue
 }
 
-// ApplyManifestOptions — kubectl apply -f - 등가.
+// ApplyManifestOptions: kubectl apply -f - 등가.
 type ApplyManifestOptions struct {
 	// Multi-doc YAML 또는 JSON manifest. "---" 로 분리된 여러 자원 가능.
 	Manifest string
@@ -178,7 +177,7 @@ type ApplyManifestOptions struct {
 	DryRun bool
 }
 
-// AppliedResource — apply 결과 entry. Status 는 K8s 가 반환한 latest resourceVersion 까지.
+// AppliedResource: apply 결과 entry. Status 는 K8s 가 반환한 latest resourceVersion 까지.
 type AppliedResource struct {
 	APIVersion      string
 	Kind            string
@@ -188,18 +187,18 @@ type AppliedResource struct {
 	UID             string
 }
 
-// ApplyManifestResult — apply 호출 결과.
+// ApplyManifestResult: apply 호출 결과.
 type ApplyManifestResult struct {
 	Applied []AppliedResource
 }
 
-// HelmReleaseResourcesOptions — ListByHelmRelease 입력.
+// HelmReleaseResourcesOptions: ListByHelmRelease 입력.
 type HelmReleaseResourcesOptions struct {
 	Namespace string
 	Release   string
 }
 
-// HelmReleaseResourceRef — release 가 소유한 단일 자원의 식별 정보. backend 의
+// HelmReleaseResourceRef: release 가 소유한 단일 자원의 식별 정보. backend 의
 // ChartReleasesResponse.ReleaseResource 와 1:1.
 type HelmReleaseResourceRef struct {
 	Kind       string // "Deployment", "Service" 등
@@ -208,7 +207,7 @@ type HelmReleaseResourceRef struct {
 	Name       string
 }
 
-// ListResourcesOptions — kubectl get <kind> 등가의 paginated list.
+// ListResourcesOptions: kubectl get <kind> 등가의 paginated list.
 type ListResourcesOptions struct {
 	Kind          string
 	Namespace     string // 비어 있으면 all-namespaces (k8s server-side default).
@@ -218,21 +217,21 @@ type ListResourcesOptions struct {
 	FieldSelector string // K8s field selector 식 빈 문자열이면 미적용.
 }
 
-// ListResourcesResult — server-side paginated list 결과.
+// ListResourcesResult: server-side paginated list 결과.
 type ListResourcesResult struct {
 	Items         string // JSON-encoded array of objects.
 	ContinueToken string // null/빈 문자열이면 마지막 페이지.
 	ReturnedCount int
 }
 
-// GetResourceOptions — kubectl get 등가.
+// GetResourceOptions: kubectl get 등가.
 type GetResourceOptions struct {
 	Kind      string
 	Namespace string
 	Name      string
 }
 
-// DeleteResourceOptions — kubectl delete 등가.
+// DeleteResourceOptions: kubectl delete 등가.
 type DeleteResourceOptions struct {
 	// 자원 종류 (case-insensitive). 예: "pod", "deployment", "service".
 	Kind string
@@ -243,7 +242,7 @@ type DeleteResourceOptions struct {
 	GracePeriodSeconds *int64
 }
 
-// ResolvedResource — Client.ResolveResource 결과. RESTMapper 가 입력 kind 문자열로부터
+// ResolvedResource: Client.ResolveResource 결과. RESTMapper 가 입력 kind 문자열로부터
 // 정규화한 GVR + scope 정보. dispatcher 가 namespace allowlist / resource policy 검사 시 사용.
 //
 // Plural 은 lowercase plural resource name (예: "pods", "storageclasses", "customresourcedefinitions").
@@ -251,7 +250,7 @@ type DeleteResourceOptions struct {
 //
 // Singular / Kind / ShortNames 는 RESOLVE_RESOURCE 명령에서만 필요한 추가 필드.
 // resolveKindToGVR 만으론 채울 수 없어 (RESTMapper 는 plural 만 노출) discovery 의
-// APIResource 와 매칭해서 best-effort 로 채운다. 매칭 실패 시 빈 값 — caller (dispatcher)
+// APIResource 와 매칭해서 best-effort 로 채운다. 매칭 실패 시 빈 값: caller (dispatcher)
 // 는 빈 값이어도 OK 응답을 만든다.
 type ResolvedResource struct {
 	Plural     string   // lowercase plural resource name (RESTMapping.Resource.Resource)
@@ -263,7 +262,7 @@ type ResolvedResource struct {
 	ShortNames []string // 빈 slice 일 수 있음. e.g. {"po"} for pods, {"pvc"} 등.
 }
 
-// PodSummary — list 결과의 간략 요약 (전체 Pod object 안 노출).
+// PodSummary: list 결과의 간략 요약 (전체 Pod object 안 노출).
 type PodSummary struct {
 	Name            string
 	Namespace       string
@@ -275,7 +274,7 @@ type PodSummary struct {
 	ContainersTotal int
 }
 
-// PodLogsOptions — kubectl logs 옵션 매핑.
+// PodLogsOptions: kubectl logs 옵션 매핑.
 type PodLogsOptions struct {
 	Namespace    string
 	Pod          string
@@ -286,7 +285,7 @@ type PodLogsOptions struct {
 	MaxBytes     int   // 응답 cap (default 1MB)
 }
 
-// StreamPodLogsOptions — `kubectl logs -f` 등가. agent → backend gRPC streaming 용.
+// StreamPodLogsOptions: `kubectl logs -f` 등가. agent → backend gRPC streaming 용.
 // Follow=true 면 K8s API 가 chunk-by-chunk push 하는 stream 을 그대로 io.ReadCloser 로 반환.
 // Caller (dispatcher 의 stream handler) 가 chunk 를 gRPC 로 relay.
 type StreamPodLogsOptions struct {
@@ -300,7 +299,7 @@ type StreamPodLogsOptions struct {
 	Previous     bool // crash 이전 container 로그
 }
 
-// ClusterInfo — bootstrap 시점에 수집할 클러스터 메타.
+// ClusterInfo: bootstrap 시점에 수집할 클러스터 메타.
 type ClusterInfo struct {
 	K8sClusterUID     string // kube-system namespace UID
 	Version           string // server version (예: "v1.34.3")
@@ -309,7 +308,7 @@ type ClusterInfo struct {
 	APIServerEndpoint string
 }
 
-// NewInClusterClient — Pod 안에서 ServiceAccount 토큰으로 kube-apiserver 접근.
+// NewInClusterClient: Pod 안에서 ServiceAccount 토큰으로 kube-apiserver 접근.
 // In-cluster 가 아닌 경우 (local dev / test) NewFromKubeconfig 사용.
 func NewInClusterClient() (Client, error) {
 	config, err := rest.InClusterConfig()
@@ -324,7 +323,7 @@ func NewInClusterClient() (Client, error) {
 	return &realClient{cs: cs, restConfig: config}, nil
 }
 
-// NewFromKubeconfig — KUBECONFIG env 또는 ~/.kube/config 에서 로딩. local dev / test 용.
+// NewFromKubeconfig: KUBECONFIG env 또는 ~/.kube/config 에서 로딩. local dev / test 용.
 func NewFromKubeconfig(path string) (Client, error) {
 	if path == "" {
 		path = os.Getenv("KUBECONFIG")
@@ -349,7 +348,7 @@ func NewFromKubeconfig(path string) (Client, error) {
 	return &realClient{cs: cs, restConfig: config}, nil
 }
 
-// NewClient — preferred entry. In-cluster 시도 실패 시 kubeconfig fallback.
+// NewClient: preferred entry. In-cluster 시도 실패 시 kubeconfig fallback.
 func NewClient() (Client, error) {
 	if c, err := NewInClusterClient(); err == nil {
 		return c, nil
@@ -364,14 +363,14 @@ type realClient struct {
 	cs         kubernetes.Interface
 	restConfig *rest.Config
 
-	// Lazy-initialized — sync.Once 로 thread-safe.
+	// Lazy-initialized: sync.Once 로 thread-safe.
 	dynOnce sync.Once
 	dyn     dynamic.Interface
 	mapper  meta.RESTMapper
 	dynErr  error
 }
 
-// ensureDynamic — dynamic client + RESTMapper 초기화. 한 번만 수행, race-safe.
+// ensureDynamic: dynamic client + RESTMapper 초기화. 한 번만 수행, race-safe.
 func (c *realClient) ensureDynamic() error {
 	c.dynOnce.Do(func() {
 		dyn, err := dynamic.NewForConfig(c.restConfig)
@@ -379,7 +378,7 @@ func (c *realClient) ensureDynamic() error {
 			c.dynErr = fmt.Errorf("dynamic client: %w", err)
 			return
 		}
-		// RESTMapper — discovery 결과 캐시. kubectl 도 동일 패턴 사용.
+		// RESTMapper: discovery 결과 캐시. kubectl 도 동일 패턴 사용.
 		dc, err := discovery.NewDiscoveryClientForConfig(c.restConfig)
 		if err != nil {
 			c.dynErr = fmt.Errorf("discovery client: %w", err)
@@ -401,10 +400,10 @@ func (c *realClient) ensureDynamic() error {
 // NewForConfig 하는 비용 (수 micro-second + heap alloc + 별도 HTTP/2 transport 가능성) 을 N 명 동시
 // 사용자 32명 한도 안에서 재사용. UI burst (list/get refresh) 의 GC 압박 해소.
 //
-// 캐시는 typed (clientset) + dynamic 을 묶어서 같은 identity key 로 보관. ttl 5분 — 사용자 RBAC 변동
+// 캐시는 typed (clientset) + dynamic 을 묶어서 같은 identity key 로 보관. ttl 5분: 사용자 RBAC 변동
 // 시 최대 5분 wait 가능 (acceptable). cache key = sha256(user|sorted_groups|sorted_extras).
 
-// clientsetForCtx — ctx 에 impersonation 이 있으면 LRU cache 의 typed clientset, 없으면 base.
+// clientsetForCtx: ctx 에 impersonation 이 있으면 LRU cache 의 typed clientset, 없으면 base.
 func (c *realClient) clientsetForCtx(ctx context.Context) (kubernetes.Interface, error) {
 	imp := ImpersonationFromContext(ctx)
 	if imp.IsZero() {
@@ -414,7 +413,7 @@ func (c *realClient) clientsetForCtx(ctx context.Context) (kubernetes.Interface,
 	return cs, err
 }
 
-// dynamicForCtx — ctx 에 impersonation 이 있으면 LRU cache 의 dynamic.Interface, 없으면 base.
+// dynamicForCtx: ctx 에 impersonation 이 있으면 LRU cache 의 dynamic.Interface, 없으면 base.
 // caller 는 ensureDynamic() 호출로 base mapper 가 초기화되어 있다고 가정.
 func (c *realClient) dynamicForCtx(ctx context.Context) (dynamic.Interface, error) {
 	imp := ImpersonationFromContext(ctx)
@@ -479,7 +478,7 @@ func (c *realClient) GetPodLogs(ctx context.Context, opts PodLogsOptions) (strin
 	}
 	defer func() { _ = rc.Close() }()
 
-	// Bound buffer 로 읽기 — pod logs 가 GB 단위면 메모리 폭주 방지.
+	// Bound buffer 로 읽기: pod logs 가 GB 단위면 메모리 폭주 방지.
 	buf := make([]byte, 0, 64*1024)
 	chunk := make([]byte, 16*1024)
 	for {
@@ -502,14 +501,14 @@ func (c *realClient) GetPodLogs(ctx context.Context, opts PodLogsOptions) (strin
 	return string(buf), nil
 }
 
-// StreamPodLogs — K8s API 의 chunked log endpoint (Follow=true 시 long-lived) 를 그대로
+// StreamPodLogs: K8s API 의 chunked log endpoint (Follow=true 시 long-lived) 를 그대로
 // io.ReadCloser 로 노출. caller (stream handler) 가 한 chunk 씩 읽어 gRPC 로 forward.
 //
 // Caller 책임:
 //   - ctx cancellation 으로 종료 보장 (gRPC client ctx 또는 server-side cancel propagation).
 //   - 반환된 ReadCloser 의 Close() 호출.
 //
-// GetPodLogs 와 달리 본 메서드는 in-memory buffering 안 함 — chunk 단위 streaming.
+// GetPodLogs 와 달리 본 메서드는 in-memory buffering 안 함. chunk 단위 streaming.
 func (c *realClient) StreamPodLogs(ctx context.Context, opts StreamPodLogsOptions) (io.ReadCloser, error) {
 	if opts.Pod == "" {
 		return nil, errors.New("pod required")
@@ -563,13 +562,13 @@ func (c *realClient) ClusterInfo(ctx context.Context) (*ClusterInfo, error) {
 	return info, nil
 }
 
-// CountGpuNodes — Ready 상태의 GPU 노드 개수. 캐싱은 caller (runtime.go) 가 담당.
+// CountGpuNodes: Ready 상태의 GPU 노드 개수. 캐싱은 caller (runtime.go) 가 담당.
 //
 // 판정:
 //   - node.status.capacity["nvidia.com/gpu"] 가 0 보다 큰 quantity → GPU 노드
 //   - 또는 node.metadata.labels["nvidia.com/gpu.present"] == "true" → GPU 노드
 //
-// Ready condition (NodeReady=True) 인 노드만 카운트 — NotReady 노드는 일시 장애일 수 있어 제외.
+// Ready condition (NodeReady=True) 인 노드만 카운트: NotReady 노드는 일시 장애일 수 있어 제외.
 // (단순화: 현재는 Ready 검사 없이 모두 카운트. 추후 필요 시 추가.)
 func (c *realClient) CountGpuNodes(ctx context.Context) (int, error) {
 	nodes, err := c.cs.CoreV1().Nodes().List(ctx, metav1.ListOptions{Limit: 500})
@@ -585,7 +584,7 @@ func (c *realClient) CountGpuNodes(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-// nodeHasGpu — capacity 또는 label 기반 GPU 노드 판정.
+// nodeHasGpu: capacity 또는 label 기반 GPU 노드 판정.
 func nodeHasGpu(node *corev1.Node) bool {
 	// 1) capacity 의 nvidia.com/gpu > 0
 	if q, ok := node.Status.Capacity["nvidia.com/gpu"]; ok {
@@ -600,11 +599,11 @@ func nodeHasGpu(node *corev1.Node) bool {
 	return false
 }
 
-// ErrUnsupportedKind — kind 문자열이 RESTMapper 로 해석되지 않을 때 반환.
+// ErrUnsupportedKind: kind 문자열이 RESTMapper 로 해석되지 않을 때 반환.
 // caller (dispatcher) 가 Status_INVALID_PARAMS + UNSUPPORTED_KIND 로 매핑.
 var ErrUnsupportedKind = errors.New("unsupported kind")
 
-// shortNames — kubectl 익숙 short name 을 plural resource 로 빠르게 정규화. RESTMapper 가
+// shortNames: kubectl 익숙 short name 을 plural resource 로 빠르게 정규화. RESTMapper 가
 // short name 을 자체 지원하긴 하지만 discovery 캐시 미스 시 추가 round-trip 이 발생하므로,
 // 빈번한 K8s core/apps 자원은 본 정적 매핑으로 우회.
 //
@@ -617,17 +616,17 @@ var shortNames = map[string]string{
 	"sc": "storageclasses",
 }
 
-// resolveKindToGVR — 입력 kind 문자열을 RESTMapper 기반으로 GVR + scope 으로 정규화.
+// resolveKindToGVR: 입력 kind 문자열을 RESTMapper 기반으로 GVR + scope 으로 정규화.
 //
 // 입력 형식 (case-insensitive):
 //   - lowercase singular: "pod", "storageclass"
 //   - lowercase plural:   "pods", "storageclasses"
 //   - short name:         "po", "pvc", "deploy", "sts", "ds", "rs", "crd", "sc" 등
 //
-// 실패 시 ErrUnsupportedKind wrap — dispatcher 가 sentinel 로 분류 가능.
+// 실패 시 ErrUnsupportedKind wrap: dispatcher 가 sentinel 로 분류 가능.
 //
 // 주의: shortNames 는 plural 로 정규화하지만 allowlist 의 ResourceRule.Kind 는 lowercase
-// 정규화만 하고 plural 변환 안 함. 운영자가 ConfigMap 에 "sc" 를 적으면 매칭되지 않음 —
+// 정규화만 하고 plural 변환 안 함. 운영자가 ConfigMap 에 "sc" 를 적으면 매칭되지 않음.
 // 의도적 명시 plural 강제 (정책 의미 명확화).
 func (c *realClient) resolveKindToGVR(input string) (gvr schema.GroupVersionResource, namespaced bool, err error) {
 	raw := strings.TrimSpace(strings.ToLower(input))
@@ -655,7 +654,7 @@ func (c *realClient) resolveKindToGVR(input string) (gvr schema.GroupVersionReso
 	return mapping.Resource, mapping.Scope.Name() == meta.RESTScopeNameNamespace, nil
 }
 
-// ResolveResource — RESTMapper 기반 정규화 결과를 dispatcher 가 사용할 수 있게 reveal.
+// ResolveResource: RESTMapper 기반 정규화 결과를 dispatcher 가 사용할 수 있게 reveal.
 //
 // 1차 해석 (resolveKindToGVR) 으로 plural/group/version/namespaced 채우고, RESOLVE_RESOURCE
 // 명령용 추가 metadata (Singular/Kind/ShortNames) 는 discovery 의 APIResource 와 매칭해 채운다.
@@ -672,7 +671,7 @@ func (c *realClient) ResolveResource(input string) (ResolvedResource, error) {
 		Namespaced: namespaced,
 		ShortNames: []string{},
 	}
-	// Discovery enrichment — Singular / Kind / ShortNames 채우기.
+	// Discovery enrichment: Singular / Kind / ShortNames 채우기.
 	// memCacheClient 가 한 번 받아둔 결과를 재사용하므로 호출 비용은 낮음.
 	// cs 가 nil 인 일부 테스트 path (dynamic_test 의 newPreparedClient) 에선 enrichment skip.
 	if c.cs == nil {
@@ -754,7 +753,7 @@ func (c *realClient) GetResource(ctx context.Context, opts GetResourceOptions) (
 		return "", fmt.Errorf("get %s/%s: %w", gvr.Resource, opts.Name, getErr)
 	}
 	// unstructured.Unstructured 의 JSON shape 는 typed object 와 wire-compatible
-	// (둘 다 K8s API 의 표준 직렬화 — metadata/spec/status 동일).
+	// (둘 다 K8s API 의 표준 직렬화: metadata/spec/status 동일).
 	bytes, jsonErr := json.Marshal(obj.Object)
 	if jsonErr != nil {
 		return "", fmt.Errorf("marshal resource: %w", jsonErr)
@@ -800,11 +799,11 @@ func (c *realClient) ListResources(ctx context.Context, opts ListResourcesOption
 	}, nil
 }
 
-// ListByHelmRelease — helm release 가 만든 K8s 자원들을 한 번에 enumerate. backend 의
+// ListByHelmRelease: helm release 가 만든 K8s 자원들을 한 번에 enumerate. backend 의
 // HelmReleaseScanner 의 agent-side equivalent. label selector "app.kubernetes.io/instance=<release>"
 // 로 11 종 자원 type 을 namespace 한정 list. PVC 의 boundPV 도 자동 포함.
 //
-// 각 type 별 list 는 idempotent — 부분 실패 시에도 모은 결과 반환 (debug log).
+// 각 type 별 list 는 idempotent: 부분 실패 시에도 모은 결과 반환 (debug log).
 //
 // 효율: backend 의 11 직렬 호출 (RTT * 11) 대비 in-cluster 호출 (latency ~ms each, 병렬 가능).
 // 추후 errgroup 으로 병렬화 가능하나 11 개 정도면 직렬도 무난.
@@ -820,7 +819,7 @@ func (c *realClient) ListByHelmRelease(ctx context.Context, opts HelmReleaseReso
 	out := make([]HelmReleaseResourceRef, 0, 32)
 	ns := opts.Namespace
 
-	// 헬퍼 — list call 의 결과를 out 에 추가. err 는 debug log 만 (best-effort).
+	// 헬퍼: list call 의 결과를 out 에 추가. err 는 debug log 만 (best-effort).
 	appendIfOK := func(kind, apiVersion string, items []metav1.ObjectMeta, listErr error, namespaced bool) {
 		if listErr != nil {
 			slog.Debug("ListByHelmRelease: list type failed",
@@ -839,7 +838,7 @@ func (c *realClient) ListByHelmRelease(ctx context.Context, opts HelmReleaseReso
 		}
 	}
 
-	// apps/v1 — Deployment / StatefulSet / DaemonSet
+	// apps/v1: Deployment / StatefulSet / DaemonSet
 	if dList, err := c.cs.AppsV1().Deployments(ns).List(ctx, selector); err != nil {
 		appendIfOK("Deployment", "apps/v1", nil, err, true)
 	} else {
@@ -868,7 +867,7 @@ func (c *realClient) ListByHelmRelease(ctx context.Context, opts HelmReleaseReso
 		appendIfOK("DaemonSet", "apps/v1", metas, nil, true)
 	}
 
-	// v1 — Service / ConfigMap / Secret / ServiceAccount
+	// v1: Service / ConfigMap / Secret / ServiceAccount
 	if list, err := c.cs.CoreV1().Services(ns).List(ctx, selector); err != nil {
 		appendIfOK("Service", "v1", nil, err, true)
 	} else {
@@ -927,7 +926,7 @@ func (c *realClient) ListByHelmRelease(ctx context.Context, opts HelmReleaseReso
 			}
 		}
 	}
-	// label 직접 가진 PV (cluster-scoped). 위 boundPV 와 dedupe 안함 — list-overlap 은 흔치 않음.
+	// label 직접 가진 PV (cluster-scoped). 위 boundPV 와 dedupe 안함. list-overlap 은 흔치 않음.
 	if list, err := c.cs.CoreV1().PersistentVolumes().List(ctx, selector); err == nil {
 		for i := range list.Items {
 			out = append(out, HelmReleaseResourceRef{
@@ -936,7 +935,7 @@ func (c *realClient) ListByHelmRelease(ctx context.Context, opts HelmReleaseReso
 		}
 	}
 
-	// rbac.authorization.k8s.io/v1 — Role / RoleBinding
+	// rbac.authorization.k8s.io/v1: Role / RoleBinding
 	if list, err := c.cs.RbacV1().Roles(ns).List(ctx, selector); err != nil {
 		appendIfOK("Role", "rbac.authorization.k8s.io/v1", nil, err, true)
 	} else {
@@ -956,7 +955,7 @@ func (c *realClient) ListByHelmRelease(ctx context.Context, opts HelmReleaseReso
 		appendIfOK("RoleBinding", "rbac.authorization.k8s.io/v1", metas, nil, true)
 	}
 
-	// networking.k8s.io/v1 — Ingress
+	// networking.k8s.io/v1: Ingress
 	if list, err := c.cs.NetworkingV1().Ingresses(ns).List(ctx, selector); err != nil {
 		appendIfOK("Ingress", "networking.k8s.io/v1", nil, err, true)
 	} else {
@@ -1062,14 +1061,14 @@ func (c *realClient) ApplyManifest(ctx context.Context, opts ApplyManifestOption
 	return &ApplyManifestResult{Applied: applied}, nil
 }
 
-// ExecInPod — kubectl exec 등가. SPDY-based remotecommand executor 사용.
+// ExecInPod: kubectl exec 등가. SPDY-based remotecommand executor 사용.
 //
 // 구현 노트:
 //   - REST request 는 corev1.PodExecOptions + SubResource("exec") 패턴 (client-go 표준).
-//   - parameter codec 은 scheme.ParameterCodec — corev1 PodExecOptions 직렬화에 사용.
+//   - parameter codec 은 scheme.ParameterCodec: corev1 PodExecOptions 직렬화에 사용.
 //   - StreamWithContext 가 ctx 종료 시 stream close, error 반환.
 //   - Stderr 는 TTY=true 일 때 무시 (PTY 모드).
-//   - 비정상 종료: exec.CodeExitError 로 wrap 되어 반환 — caller 가 unwrap 해 exit code 추출.
+//   - 비정상 종료: exec.CodeExitError 로 wrap 되어 반환: caller 가 unwrap 해 exit code 추출.
 func (c *realClient) ExecInPod(ctx context.Context, opts PodExecOptions, streams ExecStreams) error {
 	if opts.Pod == "" {
 		return errors.New("ExecInPod: pod required")
@@ -1121,7 +1120,7 @@ func (c *realClient) ExecInPod(ctx context.Context, opts PodExecOptions, streams
 	return nil
 }
 
-// summarizePod — corev1.Pod → PodSummary. ContainerStatuses 의 ready count 집계.
+// summarizePod: corev1.Pod → PodSummary. ContainerStatuses 의 ready count 집계.
 func summarizePod(p *corev1.Pod) PodSummary {
 	s := PodSummary{
 		Name:      p.Name,
@@ -1142,7 +1141,7 @@ func summarizePod(p *corev1.Pod) PodSummary {
 	return s
 }
 
-// inferDistribution — server version string 으로부터 distribution 추정. 정확도 best-effort.
+// inferDistribution: server version string 으로부터 distribution 추정. 정확도 best-effort.
 func inferDistribution(gitVersion string) string {
 	switch {
 	case contains(gitVersion, "eks"):

@@ -11,7 +11,7 @@ import java.util.List;
  * 실패해야 드러난다. 여기 목록이 입력 칸이 된다.
  *
  * <p>{@code ProvisioningCredentialRules.requiredCredentialKeys} 가 검증의 기준이고, 이 목록은 그것을
- * 모두 포함해야 한다 — 테스트가 그 관계를 고정한다.
+ * 모두 포함해야 한다. 테스트가 그 관계를 고정한다.
  */
 public final class CredentialSchema {
 
@@ -138,7 +138,7 @@ public final class CredentialSchema {
                 .build();
     }
 
-    /** 그룹 없는 여러 줄 비밀값 — 키 본문이나 JSON 을 통째로 받는 자리. */
+    /** 그룹 없는 여러 줄 비밀값: 키 본문이나 JSON 을 통째로 받는 자리. */
     private static CredentialFieldSchema multiline(
             String key, String label, boolean required, String description, String placeholder) {
         return field(key, label, required, true, true, description, placeholder);

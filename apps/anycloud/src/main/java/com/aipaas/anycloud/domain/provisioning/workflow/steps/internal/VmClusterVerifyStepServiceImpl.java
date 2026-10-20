@@ -45,7 +45,7 @@ public class VmClusterVerifyStepServiceImpl implements VmClusterVerifyStepServic
                     false);
 
             // VM cluster 검증은 bootstrap 과 동일한 SSH transport 사용. agent 경유는 AGENT_PENDING
-            // 신규 cluster 에서 항상 실패 — agent dial-in 은 READY 이후 단계.
+            // 신규 cluster 에서 항상 실패: agent dial-in 은 READY 이후 단계.
             String readyz = remoteAccessService.runOnMaster(
                     vmCluster,
                     provisioningService.stackOutputs(vmCluster.getStackName(), true, java.util.Map.of()),
@@ -56,7 +56,7 @@ public class VmClusterVerifyStepServiceImpl implements VmClusterVerifyStepServic
                 // 일시 상태로 retry interceptor 가 maxAttempts 까지 재시도하면 일반적으로 통과.
                 throw new TransientProvisioningFailure("Cluster readyz verification failed: " + readyz);
             }
-            // Agent 상태 동기화는 best-effort — agent 미설치가 VERIFY 실패 사유가 되면 금지.
+            // Agent 상태 동기화는 best-effort: agent 미설치가 VERIFY 실패 사유가 되면 금지.
             try {
                 clusterService.refreshClusterStatus(clusterName);
             } catch (Exception e) {
@@ -64,7 +64,7 @@ public class VmClusterVerifyStepServiceImpl implements VmClusterVerifyStepServic
                         "refreshClusterStatus best-effort failed for {} (agent 미설치 가능): {}", clusterName, e.toString());
             }
 
-            // 수렴은 여기서 판정한다 — READY 를 결정하는 곳이 VERIFY 이고, agent 설치가
+            // 수렴은 여기서 판정한다. READY 를 결정하는 곳이 VERIFY 이고, agent 설치가
             // BOOTSTRAP 끝에서 일어나 그 단계에서는 probe 가 항상 이르다.
             if (convergenceService.convergeWithinBudget(vmCluster)) {
                 workflowSupportService.markReady(vmCluster);

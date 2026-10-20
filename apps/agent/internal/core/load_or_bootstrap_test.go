@@ -1,4 +1,4 @@
-// BootstrapIdentity 회귀 — Secret 의 valid token 가 있으면 Register 건너뜀.
+// BootstrapIdentity 회귀: Secret 의 valid token 가 있으면 Register 건너뜀.
 package core
 
 import (
@@ -19,7 +19,7 @@ func TestLoadValidIdentity_SkipsRegister(t *testing.T) {
 		t.Fatalf("preset Save: %v", err)
 	}
 
-	// 만약 Register 가 호출되면 BackendAddr 가 unreachable 이라 에러 — 호출 안 되는 게 정상.
+	// 만약 Register 가 호출되면 BackendAddr 가 unreachable 이라 에러: 호출 안 되는 게 정상.
 	cfg := BootstrapConfig{
 		BackendAddr:       "127.0.0.1:1", // not listening — would fail if dialed
 		RegistrationToken: "",            // 비어 있어도 OK (store 에 valid token 있음)

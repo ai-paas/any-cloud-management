@@ -67,7 +67,7 @@ public class RabbitMqAddonWorkflowConfiguration {
                 .with(properties.getDeadLetterRoutingKey());
     }
 
-    /** DLX/DLQ-bound durable queue — VmCluster workflow 와 동일 패턴. */
+    /** DLX/DLQ-bound durable queue: VmCluster workflow 와 동일 패턴. */
     private Queue workflowQueue(String queueName, AddonWorkflowProperties properties) {
         return QueueBuilder.durable(queueName)
                 .withArguments(Map.of(

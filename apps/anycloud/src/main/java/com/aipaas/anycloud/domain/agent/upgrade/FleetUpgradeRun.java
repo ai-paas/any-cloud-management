@@ -49,7 +49,7 @@ public record FleetUpgradeRun(
         return status == FleetUpgradeRunStatus.COMPLETED || status == FleetUpgradeRunStatus.ABORTED;
     }
 
-    /** 0..100 진행률 — totalClusters 0 이면 0. */
+    /** 0..100 진행률: totalClusters 0 이면 0. */
     public int progressPercent() {
         if (totalClusters <= 0) {
             return 0;

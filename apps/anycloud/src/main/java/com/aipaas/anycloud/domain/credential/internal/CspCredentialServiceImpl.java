@@ -48,7 +48,7 @@ public class CspCredentialServiceImpl implements CspCredentialService {
     @Override
     public CspCredentialResponse createCredential(CreateCspCredentialRequest request) {
         SupportedProvisioningProvider provider = SupportedProvisioningProvider.from(request.getProvider());
-        // 모든 credential 은 encrypt 경로로 통일 — 과거 ENV 분기 (sourceType) 제거됨.
+        // 모든 credential 은 encrypt 경로로 통일: 과거 ENV 분기 (sourceType) 제거됨.
         Map<String, String> payload =
                 new LinkedHashMap<>(request.getCredentials() == null ? Map.of() : request.getCredentials());
         ProvisioningProviderValidator.validateCredentialValues(provider, payload);
@@ -125,7 +125,7 @@ public class CspCredentialServiceImpl implements CspCredentialService {
     @Override
     public ResolvedCspCredential resolveForProvision(String provider, String credentialId) {
         SupportedProvisioningProvider normalizedProvider = SupportedProvisioningProvider.from(provider);
-        // credentialId 필수 — 과거 ENV fallback 제거. 자격증명 등록을 사용자 명시 작업으로 강제.
+        // credentialId 필수. 과거 ENV fallback 제거. 자격증명 등록을 사용자 명시 작업으로 강제.
         if (credentialId == null || credentialId.isBlank()) {
             throw new CustomException("Credential ID is required for VM provisioning", ErrorCode.INVALID_INPUT_VALUE);
         }
@@ -173,7 +173,7 @@ public class CspCredentialServiceImpl implements CspCredentialService {
 
     private void assertProviderMatches(SupportedProvisioningProvider provider, String entityProvider) {
         if (!provider.getCanonicalName().equalsIgnoreCase(entityProvider)) {
-            // Provider mismatch 는 영구 입력 오류 — async workflow 가 동일 (request, credential) 로
+            // Provider mismatch 는 영구 입력 오류: async workflow 가 동일 (request, credential) 로
             // 재시도해도 동일 결과. PermanentProvisioningFailure 는 RabbitMQ retry interceptor 가
             // 즉시 DLQ 로 라우팅 (ExceptionClassifierRetryPolicy → NeverRetryPolicy).
             throw new com.aipaas.anycloud.common.error.exception.provisioning.PermanentProvisioningFailure(

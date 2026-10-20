@@ -21,10 +21,10 @@ import lombok.Setter;
  *
  * <p>설계 결정:
  * <ul>
- *   <li>backup_type 은 enum 대신 VARCHAR — 향후 새 backup 종류 확장 부담 없음.</li>
- *   <li>storage_uri 만 기록 — binary blob 은 외부 (RustFS/S3/Velero backup store) 저장.</li>
- *   <li>requested_by — impersonation user. system action (scheduled) 은 NULL.</li>
- *   <li>같은 cluster + type 의 history 가 row 다수로 누적 — 재시도/이력 보존.</li>
+ *   <li>backup_type 은 enum 대신 VARCHAR: 향후 새 backup 종류 확장 부담 없음.</li>
+ *   <li>storage_uri 만 기록: binary blob 은 외부 (RustFS/S3/Velero backup store) 저장.</li>
+ *   <li>requested_by: impersonation user. system action (scheduled) 은 NULL.</li>
+ *   <li>같은 cluster + type 의 history 가 row 다수로 누적: 재시도/이력 보존.</li>
  * </ul>
  */
 @Entity
@@ -46,7 +46,7 @@ public class BackupHistoryEntity implements Serializable {
     @Column(name = "cluster_id", length = 45, nullable = false)
     private String clusterId;
 
-    /** ETCD / PKI / VELERO_FULL / VELERO_NAMESPACE / VELERO_SELECTOR — enum-free for extensibility. */
+    /** ETCD / PKI / VELERO_FULL / VELERO_NAMESPACE / VELERO_SELECTOR: enum-free for extensibility. */
     @Column(name = "backup_type", length = 32, nullable = false)
     private String backupType;
 
@@ -54,7 +54,7 @@ public class BackupHistoryEntity implements Serializable {
     @Column(name = "velero_backup_name", length = 253)
     private String veleroBackupName;
 
-    /** STARTED / SUCCEEDED / FAILED — lifecycle state. */
+    /** STARTED / SUCCEEDED / FAILED: lifecycle state. */
     @Column(name = "status", length = 16, nullable = false)
     private String status;
 

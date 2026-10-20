@@ -17,7 +17,7 @@ public class VmOptionsSelectionValidator {
 
     /*
      * 캐시가 걸린 쪽을 쓴다. QueryService 를 직접 부르면 preflight 마다 CSP API 를 200건씩
-     * 새로 훑는다 — 생성 한 번에 수백 건이 나간다.
+     * 새로 훑는다: 생성 한 번에 수백 건이 나간다.
      */
     private final VmOptionsService vmOptionsService;
 
@@ -49,7 +49,7 @@ public class VmOptionsSelectionValidator {
 
         /*
          * 이미지 식별자는 리전마다 다르고 주기적으로 갈린다. 없는 값을 그대로 보내면 CSP 마다
-         * 다른 방식으로 죽는다 — IBM 은 pulumi-yaml 이 패닉해 Go 스택이 그대로 올라온다.
+         * 다른 방식으로 죽는다: IBM 은 pulumi-yaml 이 패닉해 Go 스택이 그대로 올라온다.
          */
         validateImage(provider, credentialId, region, config.get("anycloud-k8s:osImage"), "osImage");
 
@@ -112,7 +112,7 @@ public class VmOptionsSelectionValidator {
         }
         List<VmOptionSpec> candidates = vmOptionsService.getSpecs(provider, credentialId, region, value, false, 200);
         if (candidates.isEmpty()) {
-            // CSP API 가 빈 list 를 반환하는 경우 — circuit breaker fallback (CSP API 장애)
+            // CSP API 가 빈 list 를 반환하는 경우: circuit breaker fallback (CSP API 장애)
             // 또는 IAM 권한 부족. 사용자 선택을 hard reject 하기보다 Pulumi 의 실 launch 단계에 위임
             // (InvalidParameterValue 등 더 정확한 진단 받음). 정상 데이터로 못 찾는 경우는 다음 라인의
             // exists=false 분기에서 reject 유지.
@@ -150,7 +150,7 @@ public class VmOptionsSelectionValidator {
         }
         /*
          * 키워드 조회가 비었다고 CSP 장애로 단정하면 없는 이미지가 그대로 통과한다. 조회 자체가
-         * 되는지 한 번 더 본다 — 목록이 나오면 그 값이 없는 것이고, 목록도 비면 CSP 를 못 읽는
+         * 되는지 한 번 더 본다: 목록이 나오면 그 값이 없는 것이고, 목록도 비면 CSP 를 못 읽는
          * 상황이라 여기서 막지 않는다.
          */
         if (vmOptionsService

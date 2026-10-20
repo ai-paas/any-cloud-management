@@ -38,7 +38,7 @@ public class AddonWebhookProperties {
     /** HTTP timeout. */
     private Duration timeout = Duration.ofSeconds(5);
 
-    /** 어떤 state 에서 trigger 할지 — SUCCEEDED / FAILED 가 default. */
+    /** 어떤 state 에서 trigger 할지: SUCCEEDED / FAILED 가 default. */
     private boolean onSucceeded = true;
 
     private boolean onFailed = true;

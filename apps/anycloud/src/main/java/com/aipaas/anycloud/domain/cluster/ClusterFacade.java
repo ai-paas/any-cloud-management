@@ -26,12 +26,12 @@ public interface ClusterFacade {
     PagedClusters listPaged(
             String source, String provider, String environment, String status, int pageSize, String pageToken);
 
-    /** Page envelope — items + nextPageToken (null=마지막) + totalEstimate (집계 비용 가능한 경우만). */
+    /** Page envelope: items + nextPageToken (null=마지막) + totalEstimate (집계 비용 가능한 경우만). */
     record PagedClusters(List<UnifiedClusterResponse> items, String nextPageToken, Long totalEstimate) {}
 
     UnifiedClusterResponse getOne(String clusterName);
 
-    // ===== Entity 반환 (legacy) — 점진 deprecate =====
+    // ===== Entity 반환 (legacy). 점진 deprecate =====
 
     /**
      * 생성. source 별로 spec 검증 후 비동기 시작 + operation 등록.
@@ -40,7 +40,7 @@ public interface ClusterFacade {
     OperationEntity create(CreateClusterRequest request);
 
     /**
-     * PATCH — workerCount 변경(SCALE) 트리거.
+     * PATCH: workerCount 변경(SCALE) 트리거.
      * @return 시작된 operation
      */
     OperationEntity patch(String clusterName, PatchClusterRequest request);

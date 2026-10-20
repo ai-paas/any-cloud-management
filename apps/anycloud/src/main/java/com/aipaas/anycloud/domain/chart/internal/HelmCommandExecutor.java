@@ -18,7 +18,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
-/** Helm CLI subprocess executor — <b>오직 {@code helm template}</b> 만 지원. */
+/** Helm CLI subprocess executor: <b>오직 {@code helm template}</b> 만 지원. */
 @Component
 public class HelmCommandExecutor {
 
@@ -32,7 +32,7 @@ public class HelmCommandExecutor {
      * Helm CLI 실행 + exit code 0 확인. 실패면 {@link HelmDeploymentException}.
      *
      * @param args              {@code helm} 뒤의 인자들 (e.g. {@code "template", "release", "/path/to/chart"}).
-     * @param kubeconfigPath    nullable — kubeconfig 가 필요한 명령에만 (template 은 불요).
+     * @param kubeconfigPath    nullable: kubeconfig 가 필요한 명령에만 (template 은 불요).
      * @return stdout (utf-8 텍스트). stderr 는 로그에만 보냄.
      */
     public String executeAndCheck(List<String> args, String kubeconfigPath) {
@@ -83,7 +83,7 @@ public class HelmCommandExecutor {
         return result.stdout() == null ? "" : result.stdout();
     }
 
-    /** {@code helm template <release> <chartDir> --namespace <ns> --values <valuesFile>} <p>cluster 와 무관 — 로컬에서 chart 를 manifest YAML 로 렌더. caller (AgentChartRenderer) 가 그 결과를 agent 경유로 cluster 에 적용. */
+    /** {@code helm template <release> <chartDir> --namespace <ns> --values <valuesFile>} <p>cluster 와 무관: 로컬에서 chart 를 manifest YAML 로 렌더. caller (AgentChartRenderer) 가 그 결과를 agent 경유로 cluster 에 적용. */
     public List<String> templateArgs(String releaseName, Path chartDir, String namespace, Path valuesFile) {
         List<String> args = new ArrayList<>();
         args.add("template");

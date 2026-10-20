@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.core.AmqpAdmin;
 import org.springframework.stereotype.Service;
 
-// @ConditionalOnBean(AmqpAdmin.class) 제거— 일반 @Service 에서는 조건 평가 시점에
+// @ConditionalOnBean(AmqpAdmin.class) 제거: 일반 @Service 에서는 조건 평가 시점에
 // auto-config 의 AmqpAdmin 이 아직 미등록일 수 있어 false 판정 → bean 미생성 → controller 503.
 // AmqpAdmin 은 spring-boot-starter-amqp classpath 존재 시 항상 생성되므로 (연결 실패는 호출
 // 시점 예외) 직접 주입이 안전.

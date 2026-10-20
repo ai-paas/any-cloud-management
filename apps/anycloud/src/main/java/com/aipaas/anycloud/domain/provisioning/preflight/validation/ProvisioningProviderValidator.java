@@ -30,7 +30,7 @@ public class ProvisioningProviderValidator {
     }
 
     /**
-     * Static + live 한 번에 — 옛 동작 보존용 wrapper. 신규 caller 는
+     * Static + live 한 번에: 옛 동작 보존용 wrapper. 신규 caller 는
      * {@link #validateStaticAndBuildRequest} / {@link #validateLive} 분리 호출 권장.
      */
     public ProvisioningRequest validateAndBuildRequest(
@@ -40,7 +40,7 @@ public class ProvisioningProviderValidator {
         return request;
     }
 
-    /** In-memory 정적 검증만 수행 — provider name, required config keys, credential value 존재. */
+    /** In-memory 정적 검증만 수행: provider name, required config keys, credential value 존재. */
     public ProvisioningRequest validateStaticAndBuildRequest(
             ProvisionClusterRequest cluster, ResolvedCspCredential credential) {
         SupportedProvisioningProvider provider = normalizeProvider(cluster.getClusterProvider());
@@ -65,7 +65,7 @@ public class ProvisioningProviderValidator {
 
     /**
      * Live API 호출로 selection (instance type / image) 존재 여부 확인. CSP SDK call 발생 (수 초).
-     * 반드시 async worker (provision step 의 첫 단계) 에서만 호출 — controller sync 경로 금지.
+     * 반드시 async worker (provision step 의 첫 단계) 에서만 호출: controller sync 경로 금지.
      *
      * <p>영속화된 {@link ProvisioningRequest} 만으로 동작 (worker 재실행 / retry 시 원본
      * {@code ProvisionClusterRequest} 가 살아있지 않을 수 있음).
@@ -77,8 +77,8 @@ public class ProvisioningProviderValidator {
                     "ProvisioningRequest 가 null — request_config 복원 실패.", ErrorCode.PROVISIONING_REQUEST_MISSING);
         }
         SupportedProvisioningProvider provider = normalizeProvider(request.getProvider());
-        // Timer 로 provider 별 latency 측정 — p50/p95 SLO 모니터링. outcome tag 로 success/failure
-        // 분리 — failure spike 시 alerting (CSP API 장애 + cred 잘못 둘 다 잡힘).
+        // Timer 로 provider 별 latency 측정: p50/p95 SLO 모니터링. outcome tag 로 success/failure
+        // 분리: failure spike 시 alerting (CSP API 장애 + cred 잘못 둘 다 잡힘).
         Timer.Sample sample = Timer.start(meterRegistry);
         String outcome = "success";
         try {

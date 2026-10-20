@@ -111,7 +111,7 @@ public class VmClusterNodeSshSessionServiceImpl implements VmClusterNodeSshSessi
     }
 
     /**
-     * 창 크기는 ssh 를 다시 띄우지 않고는 바꿀 수 없다 — 원격 TTY 크기는 접속할 때 정해진다.
+     * 창 크기는 ssh 를 다시 띄우지 않고는 바꿀 수 없다. 원격 TTY 크기는 접속할 때 정해진다.
      * 프레임을 버리되 세션은 유지한다. 끊으면 창을 줄였다는 이유로 작업이 날아간다.
      */
     @Override
@@ -158,7 +158,7 @@ public class VmClusterNodeSshSessionServiceImpl implements VmClusterNodeSshSessi
     }
 
     /**
-     * DB 의 raw_outputs 에는 비밀이 REDACTED 로 들어간다 — 올바른 설계다. 개인키는 Pulumi 에서
+     * DB 의 raw_outputs 에는 비밀이 REDACTED 로 들어간다: 올바른 설계다. 개인키는 Pulumi 에서
      * 그때그때 복호화해 읽는다.
      */
     private String privateKeyOf(VmClusterEntity cluster) {

@@ -73,7 +73,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
     public PagedClusters listPaged(
             String source, String provider, String environment, String status, int pageSize, String pageToken) {
         // Source filter 가 있으면 그 source 만 fetch 하고 source-prefixed cursor 사용. 미명시 시 두 source
-        // 모두 fetch 한 뒤 createdAt 내림차순 merge — UI 의 "최신 cluster 가 위로" UX 충족. interleave
+        // 모두 fetch 한 뒤 createdAt 내림차순 merge: UI 의 "최신 cluster 가 위로" UX 충족. interleave
         // 결과는 단일 offset cursor 로 round-trip.
         if (source != null) {
             return pageSingleSource(source, provider, environment, status, pageSize, pageToken);
@@ -189,7 +189,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
 
     /**
      * VmClusterService listVmClusters 결과를 UnifiedClusterResponse 로 변환. list item 이 이미 step
-     * field 들을 포함 (single query) — per-cluster 재조회 (N+1) 금지.
+     * field 들을 포함 (single query). per-cluster 재조회 (N+1) 금지.
      */
     private List<UnifiedClusterResponse> listVm(String provider, String environment, String status) {
         return vmClusterService.listVmClusters(provider, environment, status).stream()
@@ -197,7 +197,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
                         .source("vm")
                         .sources(List.of("vm"))
                         .clusterName(item.getClusterName())
-                        // VM provision cluster 자체가 linked vm — UI cross-link 일관성.
+                        // VM provision cluster 자체가 linked vm: UI cross-link 일관성.
                         .linkedVmName(item.getClusterName())
                         .provider(item.getClusterProvider())
                         .region(item.getRegion())
@@ -229,7 +229,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
                 .toList();
     }
 
-    /** Cursor — pageToken 인코딩. invalid token 은 첫 페이지로 fallback. */
+    /** Cursor: pageToken 인코딩. invalid token 은 첫 페이지로 fallback. */
     private record Cursor(String source, int offset) {
         static Cursor parse(String token, String filterSource) {
             if (token == null || token.isBlank()) {
@@ -334,7 +334,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
     @Override
     public OperationEntity delete(String clusterName) {
         OperationEntity op = operationService.start(OperationType.DELETE_CLUSTER, "cluster", clusterName, null, 1);
-        // Source 분기 — list/getOne 처럼 vm 우선, 없으면 registered 로 위임.
+        // Source 분기: list/getOne 처럼 vm 우선, 없으면 registered 로 위임.
         boolean isVm = vmClusterRepository
                 .findFirstByClusterNameOrderByCreatedAtDesc(clusterName)
                 .isPresent();
@@ -344,7 +344,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
                 return operationService.complete(op.getId(), "{\"noop\":true}");
             }
         } else {
-            // registered (ClusterEntity) — clusterService 의 deleteCluster 가 ClusterNotFoundException
+            // registered (ClusterEntity). clusterService 의 deleteCluster 가 ClusterNotFoundException
             // 으로 404 처리. 정상 삭제 시 200 status code 이지만 unified 입장에선 LRO 형식 유지를
             // 위해 ACCEPTED + Operation 반환.
             clusterService.deleteCluster(clusterName);
@@ -412,7 +412,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
 
     private UnifiedClusterResponse toRegisteredDto(com.aipaas.anycloud.domain.cluster.model.Cluster c) {
         ClusterHealth health = agentHealthService.getHealth(c.id());
-        // 1:1 link — VmClusterEntity 가 같은 이름으로 존재하면 VM provision 으로 만들어진 cluster.
+        // 1:1 link: VmClusterEntity 가 같은 이름으로 존재하면 VM provision 으로 만들어진 cluster.
         // UI 가 cluster 상세에서 VM 메뉴로 cross-link 시 사용.
         String linkedVm = vmClusterRepository
                         .findFirstByClusterNameOrderByCreatedAtDesc(c.id())
@@ -427,7 +427,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
                 .provider(c.clusterProvider())
                 .environment(null)
                 .status(c.status())
-                // Chronological merge 동작 조건 — 두 source 모두 createdAt 필요. ZonedDateTime
+                // Chronological merge 동작 조건: 두 source 모두 createdAt 필요. ZonedDateTime
                 // → LocalDateTime 변환 시 zone 정보 손실해도 UI 정렬 / 표시 의미는 동일.
                 .createdAt(c.createdAt() == null ? null : c.createdAt().toLocalDateTime())
                 .hasGpuNodes(c.hasGpuNodes())
@@ -443,9 +443,9 @@ public class ClusterFacadeImpl implements ClusterFacade {
      *
      * <ul>
      *   <li>NOT_REGISTERED: ClusterAgent row 가 없습니다 (agent 를 안 깔았거나 등록 전).</li>
-     *   <li>CONNECTED — DB ACTIVE + gRPC stream live + heartbeat fresh (≤90s default)</li>
-     *   <li>DEGRADED — agent 등록되어 있고 stream 도 살아있으나 heartbeat 가 stale</li>
-     *   <li>DISCONNECTED — stream 끊김 또는 agent REVOKED/FAILED</li>
+     *   <li>CONNECTED: DB ACTIVE + gRPC stream live + heartbeat fresh (≤90s default)</li>
+     *   <li>DEGRADED: agent 등록되어 있고 stream 도 살아있으나 heartbeat 가 stale</li>
+     *   <li>DISCONNECTED: stream 끊김 또는 agent REVOKED/FAILED</li>
      * </ul>
      *
      * <p>JWT bug 시나리오 (agent CrashLoopBackOff) → stream 끊김 → DISCONNECTED 로 표기.
@@ -501,7 +501,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
         return computePercentFromNames(lastSuccessful, status == null ? null : status.name());
     }
 
-    /** String 기반 변형 — list item (이미 String 으로 직렬화된 DTO) 에서 사용. */
+    /** String 기반 변형: list item (이미 String 으로 직렬화된 DTO) 에서 사용. */
     private static Integer computePercentFromNames(String lastSuccessful, String statusName) {
         if ("READY".equals(statusName)) {
             return 100;

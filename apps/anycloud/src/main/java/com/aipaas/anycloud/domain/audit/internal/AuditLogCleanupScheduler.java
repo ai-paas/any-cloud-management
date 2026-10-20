@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Audit log retention scheduler — 일별로 retention window 보다 오래된 audit log row 일괄 삭제.
+ * Audit log retention scheduler: 일별로 retention window 보다 오래된 audit log row 일괄 삭제.
  * row 수 unbounded growth + DB 디스크 사용량 cap 유지.
  *
  * <p>Default retention: 90일. {@code anycloud.audit.retention-days} 로 운영자 override 가능.
@@ -44,7 +44,7 @@ public class AuditLogCleanupScheduler {
     }
 
     /**
-     * 매일 03:30 (KST) 에 실행 — 운영 외 시간대 부담 최소화. 큰 row 수 (수만~수십만) 삭제 시 lock
+     * 매일 03:30 (KST) 에 실행: 운영 외 시간대 부담 최소화. 큰 row 수 (수만~수십만) 삭제 시 lock
      * timeout (PT30M) 안에 충분. lockAtLeastFor=PT5M 으로 짧은 실패시 즉시 재시도 방지.
      */
     @Scheduled(cron = "${anycloud.audit.cleanup.cron:0 30 3 * * *}")
@@ -72,7 +72,7 @@ public class AuditLogCleanupScheduler {
                     .register(meterRegistry)
                     .increment();
             log.error("AuditLog cleanup failed: {}", e.getMessage(), e);
-            // 재시도 — 다음 cron 트리거에서 retry. 본 method 가 throw 하면 ShedLock 가 lock 빠르게 release
+            // 재시도: 다음 cron 트리거에서 retry. 본 method 가 throw 하면 ShedLock 가 lock 빠르게 release
             // 안 함. silent failure 로 두고 운영자가 metric / log 로 detect.
         }
     }

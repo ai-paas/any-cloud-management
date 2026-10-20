@@ -25,7 +25,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>자격증명마다 TLS 신뢰 여부가 달라 공용 {@code RestTemplate} 을 쓰지 못한다. PVE 는 자체 서명
  * 인증서가 기본이고, IP 로 접속하면 이름도 맞지 않는다. 신뢰를 끄는 범위를 이 호출 하나로 묶어
- * 둔다 — 공용 클라이언트를 고치면 다른 CSP 호출까지 열린다.
+ * 둔다: 공용 클라이언트를 고치면 다른 CSP 호출까지 열린다.
  */
 @Slf4j
 @Component
@@ -42,7 +42,7 @@ public class ProxmoxApiClient {
     }
 
     /**
-     * 조회에 실패하면 {@code null} — 호출자가 다음 단계로 넘긴다.
+     * 조회에 실패하면 {@code null}: 호출자가 다음 단계로 넘긴다.
      *
      * <p>CSP API 장애로 프로비저닝을 막으면 복구 수단이 없다. 다만 401 은 토큰 문제라 진단이
      * 명확하므로 그 자리에서 알린다.
@@ -105,7 +105,7 @@ public class ProxmoxApiClient {
      * <p>PVE 는 자체 서명 인증서가 기본이고, IP 로 접속하면 SAN 에도 없다. 신뢰만 끄면 호스트명
      * 검증에서 막혀 {@code No subject alternative names matching IP address} 로 실패한다.
      *
-     * <p>끄는 범위를 이 클라이언트 하나로 묶어 둔다 — 공용 RestTemplate 을 고치면 다른 CSP 호출까지
+     * <p>끄는 범위를 이 클라이언트 하나로 묶어 둔다: 공용 RestTemplate 을 고치면 다른 CSP 호출까지
      * 열린다.
      */
     private CloseableHttpClient newClient(boolean insecure) throws Exception {

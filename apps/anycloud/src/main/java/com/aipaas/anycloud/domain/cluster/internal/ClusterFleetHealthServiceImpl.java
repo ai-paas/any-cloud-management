@@ -28,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ClusterFleetHealthServiceImpl implements ClusterFleetHealthService {
 
     /**
-     * Fleet 응답을 위한 cluster 페이지 사이즈. 인메모리 집계라 한 번에 다 받기보단 페이징 — cluster 수 가
+     * Fleet 응답을 위한 cluster 페이지 사이즈. 인메모리 집계라 한 번에 다 받기보단 페이징: cluster 수 가
      * 폭증해도 응답 크기 / 메모리 사용량을 일정하게 유지.
      */
     private static final int FLEET_CHUNK_SIZE = 100;
@@ -87,7 +87,7 @@ public class ClusterFleetHealthServiceImpl implements ClusterFleetHealthService 
     }
 
     /**
-     * Fleet 정렬 순위 — 운영자 시야에 unhealthy 가 먼저 보이도록.
+     * Fleet 정렬 순위: 운영자 시야에 unhealthy 가 먼저 보이도록.
      * 0 = unhealthy with agent, 1 = noAgent, 2 = healthy.
      */
     private static int healthRank(ClusterHealthResponse dto) {

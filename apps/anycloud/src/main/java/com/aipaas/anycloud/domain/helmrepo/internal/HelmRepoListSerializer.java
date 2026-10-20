@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
  * 등록된 모든 helm repo 를 agent push 용 JSON array 로 직렬화.
  *
  * <p>Agent 의 reconciler 가 ConfigMap 의 {@code helm_repositories} key 의 JSON 을 parse 해 helm SDK
- * RepositoryFile 갱신. backend 의 DB 가 source-of-truth — repo CRUD 시점 또는 cluster ACTIVE 전환
+ * RepositoryFile 갱신. backend 의 DB 가 단일 출처: repo CRUD 시점 또는 cluster ACTIVE 전환
  * 시점에 본 직렬화 결과를 모든 active cluster 에 push.
  *
  * <p>출력 형식:
@@ -44,7 +44,7 @@ public class HelmRepoListSerializer {
 
     /**
      * 등록된 모든 helm repo 를 JSON array string 으로. 빈 list 면 {@code "[]"}. 직렬화 실패 시 fallback
-     * 으로 빈 array 반환 + warn log — agent 가 빈 repo set 으로 reconcile (deregistration 효과).
+     * 으로 빈 array 반환 + warn log: agent 가 빈 repo set 으로 reconcile (deregistration 효과).
      */
     public String serializeAll() {
         try {

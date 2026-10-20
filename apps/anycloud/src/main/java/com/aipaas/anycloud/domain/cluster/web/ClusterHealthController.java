@@ -28,8 +28,8 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <p>두 가지 view:
  * <ul>
- *   <li>{@code GET /v1/clusters/{clusterName}/health} — 단일 cluster 상세</li>
- *   <li>{@code GET /v1/agents/health} — fleet 전체 요약 + per-cluster list</li>
+ *   <li>{@code GET /v1/clusters/{clusterName}/health}: 단일 cluster 상세</li>
+ *   <li>{@code GET /v1/agents/health}: fleet 전체 요약 + per-cluster list</li>
  * </ul>
  *
  * <p>모든 cluster 의 시계열 metric 은 {@code AgentHealthMetricsBinder} 가 Prometheus 로 노출

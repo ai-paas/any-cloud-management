@@ -269,7 +269,7 @@ public class VmController {
                     @RequestParam(required = false, defaultValue = "false")
                     boolean force) {
         if (force) {
-            // destroy 를 돌리지 않는다. Operation 도 만들지 않는다 — 진행할 작업이 없다.
+            // destroy 를 돌리지 않는다. Operation 도 만들지 않는다: 진행할 작업이 없다.
             var result = vmClusterCommandService.forceDeleteVmCluster(vmName);
             return ResponseEntity.ok(ApiSuccessResponse.of(
                     HttpStatus.OK.value(),

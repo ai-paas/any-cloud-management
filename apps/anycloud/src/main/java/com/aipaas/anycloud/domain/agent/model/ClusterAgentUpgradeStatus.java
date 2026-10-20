@@ -6,9 +6,9 @@ package com.aipaas.anycloud.domain.agent.model;
  * <pre>
  *   IDLE
  *     ↓ (operator triggers POST /v1/clusters/{name}/upgrade)
- *   PENDING — backend 가 manifest 준비
+ *   PENDING: backend 가 manifest 준비
  *     ↓ (APPLY_MANIFEST RPC 응답 OK)
- *   IN_PROGRESS — K8s rolling update 중
+ *   IN_PROGRESS: K8s rolling update 중
  *     ↓ heartbeat 에서 신버전 보고  /  60min 타임아웃
  *   SUCCEEDED                      FAILED
  *     ↓                              ↓
@@ -25,7 +25,7 @@ public enum ClusterAgentUpgradeStatus {
     SUCCEEDED,
     FAILED;
 
-    /** terminal state — 다음 upgrade trigger 가능. */
+    /** terminal state: 다음 upgrade trigger 가능. */
     public boolean isTerminal() {
         return this == IDLE || this == SUCCEEDED || this == FAILED;
     }

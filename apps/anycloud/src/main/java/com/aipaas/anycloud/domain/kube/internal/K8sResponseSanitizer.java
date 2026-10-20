@@ -47,15 +47,15 @@ public final class K8sResponseSanitizer {
         if (metadata instanceof ObjectNode metaObj) {
             metaObj.remove("managedFields");
         }
-        // 2) items 배열 — K8s List wrapper (PodList/Deployment List 등) 케이스.
+        // 2) items 배열: K8s List wrapper (PodList/Deployment List 등) 케이스.
         JsonNode items = node.get("items");
         if (items != null && items.isArray()) {
             for (JsonNode item : items) {
                 walk(item);
             }
         }
-        // 3) Multi-doc apply 응답 — 단일 객체가 아닌 array 가 루트인 경우는 isArray() 가 위에서
-        //    이미 처리. 객체 안의 추가 nested resource 는 K8s 표준 응답엔 없음 — 더 파지 않음.
+        // 3) Multi-doc apply 응답: 단일 객체가 아닌 array 가 루트인 경우는 isArray() 가 위에서
+        //    이미 처리. 객체 안의 추가 nested resource 는 K8s 표준 응답엔 없음. 더 파지 않음.
     }
 
     /**
@@ -89,10 +89,10 @@ public final class K8sResponseSanitizer {
         if (isSecret) {
             redactDataMaps((ObjectNode) node);
         }
-        // SecretList 또는 items wrapper — 각 item 의 kind 가 Secret 이면 자동 redact (재귀).
+        // SecretList 또는 items wrapper: 각 item 의 kind 가 Secret 이면 자동 redact (재귀).
         JsonNode items = node.get("items");
         if (items != null && items.isArray()) {
-            // SecretList 일 때 items 의 각 entry 가 kind 필드 없을 수도 있음 — list wrapper 가 SecretList
+            // SecretList 일 때 items 의 각 entry 가 kind 필드 없을 수도 있음. list wrapper 가 SecretList
             // 이면 items 의 entry 는 모두 Secret 으로 간주.
             for (JsonNode item : items) {
                 if (item.isObject()) {

@@ -69,9 +69,9 @@ public class AdminAgentPolicyController {
     private final ClusterService clusterService;
     /** fleet audit 의 parallel fetch logic 추출. */
     private final AgentPolicyAuditService policyAuditService;
-    /** refactor — RFC 7396 / legacy PATCH merge 책임 분리. */
+    /** refactor: RFC 7396 / legacy PATCH merge 책임 분리. */
     private final AgentPolicyMergeService mergeService;
-    /** refactor — diff 계산 + dry-run snapshot + agent param 직렬화 분리. */
+    /** refactor: diff 계산 + dry-run snapshot + agent param 직렬화 분리. */
     private final AgentPolicyDiffCalculator diffCalculator;
 
     // =================== Preview ===================
@@ -105,7 +105,7 @@ public class AdminAgentPolicyController {
                 HttpStatus.OK.value(), "Policy snapshot + " + warnings.size() + " warning(s)", body));
     }
 
-    // =================== zz — Fleet-wide audit ===================
+    // =================== zz: Fleet-wide audit ===================
 
     @GetMapping("/agent/policy/audit")
     @Operation(
@@ -121,7 +121,7 @@ public class AdminAgentPolicyController {
             body = policyAuditService.runFleetAudit();
         } catch (Exception e) {
             log.error("Failed to run fleet audit: {}", e.getMessage());
-            //  에러는 success-envelope 아닌 공통 ErrorResponse 로 — GlobalExceptionHandler 위임.
+            //  에러는 success-envelope 아닌 공통 ErrorResponse 로: GlobalExceptionHandler 위임.
             throw new com.aipaas.anycloud.common.error.exception.CustomException(
                     "Fleet audit failed: " + e.getMessage(),
                     com.aipaas.anycloud.common.error.enums.ErrorCode.INTERNAL_SERVER_ERROR);
@@ -136,7 +136,7 @@ public class AdminAgentPolicyController {
                 body));
     }
 
-    // =================== PUT — 전체 교체 ===================
+    // =================== PUT: 전체 교체 ===================
 
     @PutMapping("/clusters/{clusterName}/agent-policy")
     @Operation(
@@ -156,7 +156,7 @@ public class AdminAgentPolicyController {
                     @Size(max = ApiValidationConstants.K8S_NAME_MAX)
                     String clusterName,
             @Valid @RequestBody AgentPolicyUpdateRequest req) {
-        // PUT 의 필수 검증 — 3개 list 가 null 이면 400 (controller 내 explicit, DTO 의 @NotNull 제거됨)
+        // PUT 의 필수 검증: 3개 list 가 null 이면 400 (controller 내 explicit, DTO 의 @NotNull 제거됨)
         List<String> missing = new ArrayList<>();
         if (req.allowedNamespaces() == null) missing.add("allowedNamespaces");
         if (req.allowedCommands() == null) missing.add("allowedCommands");
@@ -167,7 +167,7 @@ public class AdminAgentPolicyController {
         return applyChange(clusterName, req, "PUT");
     }
 
-    // =================== PATCH — 부분 갱신 ===================
+    // =================== PATCH: 부분 갱신 ===================
 
     @PatchMapping(value = "/clusters/{clusterName}/agent-policy", consumes = "application/json")
     @Operation(
@@ -187,7 +187,7 @@ public class AdminAgentPolicyController {
                     @Size(max = ApiValidationConstants.K8S_NAME_MAX)
                     String clusterName,
             @Valid @RequestBody AgentPolicyUpdateRequest req) {
-        // PATCH — 현재 snapshot fetch 후 null 필드 fill-in.
+        // PATCH: 현재 snapshot fetch 후 null 필드 fill-in.
         AgentPolicySnapshot current;
         try {
             current = kubeResourceService.getAgentConfig(clusterName);
@@ -198,7 +198,7 @@ public class AdminAgentPolicyController {
         return applyChange(clusterName, merged, "PATCH");
     }
 
-    // =================== CCC — RFC 7396 JSON Merge Patch ===================
+    // =================== CCC: RFC 7396 JSON Merge Patch ===================
 
     /**
      * RFC 7396 표준 JSON Merge Patch.
@@ -215,7 +215,7 @@ public class AdminAgentPolicyController {
      * <p>RFC 7396 의 "비우기" 의미:
      * <ul>
      *   <li>list 필드 (allowedNamespaces 등) → 빈 list {@code []}</li>
-     *   <li>resourcePolicy → null (legacy 동작 — 정책 비활성)</li>
+     *   <li>resourcePolicy → null (legacy 동작: 정책 비활성)</li>
      * </ul>
      *
      * <p>Jackson 의 일반 deserialize 는 absent / null 구분 불가 → JsonNode 로 raw parse 후
@@ -251,7 +251,7 @@ public class AdminAgentPolicyController {
             return agentUnavailable(e);
         }
 
-        // RFC 7396 — 각 필드의 has(field) + isNull() 로 의미 결정.
+        // RFC 7396: 각 필드의 has(field) + isNull() 로 의미 결정.
         AgentPolicyUpdateRequest merged;
         try {
             merged = mergeService.applyMergePatch(body, current);
@@ -264,14 +264,14 @@ public class AdminAgentPolicyController {
     // =================== 공통 apply 흐름 ===================
 
     /**
-     * PUT / PATCH / MERGE_PATCH 의 공통 흐름 — before snapshot fetch → validate → apply → diff → audit.
+     * PUT / PATCH / MERGE_PATCH 의 공통 흐름: before snapshot fetch → validate → apply → diff → audit.
      *
      * <p>HIGH severity warning 이 있고 {@code force=false} 면 422 반환.
      */
     private ResponseEntity<ApiSuccessResponse<Map<String, Object>>> applyChange(
             String clusterName, AgentPolicyUpdateRequest req, String httpMethod) {
 
-        // 1) ww — 이전 snapshot fetch (diff 계산용). PATCH 는 이미 위에서 fetch 했지만 PUT 도 필요.
+        // 1) ww: 이전 snapshot fetch (diff 계산용). PATCH 는 이미 위에서 fetch 했지만 PUT 도 필요.
         AgentPolicySnapshot before;
         try {
             before = kubeResourceService.getAgentConfig(clusterName);
@@ -307,7 +307,7 @@ public class AdminAgentPolicyController {
             return agentUnavailable(e);
         }
 
-        // 6) ww — diff 계산 (before vs new)
+        // 6) ww: diff 계산 (before vs new)
         PolicyDiff diff = diffCalculator.computeDiff(before, dryRun);
 
         /*
@@ -336,7 +336,7 @@ public class AdminAgentPolicyController {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("clusterName", clusterName);
         body.put("method", httpMethod);
-        // 적용 여부를 응답에 담는다 — 실패를 성공처럼 읽고 넘어가지 않게.
+        // 적용 여부를 응답에 담는다: 실패를 성공처럼 읽고 넘어가지 않게.
         body.put("verified", notApplied == null);
         if (notApplied != null) {
             body.put("notApplied", notApplied);

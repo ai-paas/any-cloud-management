@@ -39,7 +39,7 @@ public class FleetUpgradeServiceImpl implements FleetUpgradeService {
     public FleetPreview preview() {
         List<ClusterAgentEntity> all = clusterAgentRepository.findAll();
         // cluster_name → ClusterEntry (versions 집합 + wave). versions list 는 record 의 accessor
-        // 로 받은 동일 reference (record 는 shallow immutable — list 자체는 mutable).
+        // 로 받은 동일 reference (record 는 shallow immutable: list 자체는 mutable).
         Map<String, ClusterEntry> byCluster = new TreeMap<>();
         for (ClusterAgentEntity e : all) {
             ClusterEntry entry = byCluster.computeIfAbsent(
@@ -81,7 +81,7 @@ public class FleetUpgradeServiceImpl implements FleetUpgradeService {
     /**
      * 단일 cluster 의 upgrade_wave 변경. HA replica 가 여러 row 인 경우 모두 같은 wave 로 sync.
      *
-     * @throws CustomException ENTITY_NOT_FOUND — cluster 의 agent row 가 0건.
+     * @throws CustomException ENTITY_NOT_FOUND: cluster 의 agent row 가 0건.
      */
     @Override
     @Transactional
@@ -104,5 +104,5 @@ public class FleetUpgradeServiceImpl implements FleetUpgradeService {
     }
 
     // Response DTOs 는 {@link FleetUpgradeService} interface 에 record 로 노출. impl 안에서는
-    // 상위 type 그대로 사용 — 같은 패키지라 simple name 으로 참조 가능.
+    // 상위 type 그대로 사용: 같은 패키지라 simple name 으로 참조 가능.
 }

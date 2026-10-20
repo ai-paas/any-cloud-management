@@ -24,13 +24,13 @@ public interface KindResolver {
      * @param clusterName 대상 cluster id
      * @param kindOrPluralOrShort 사용자 입력 (예: "pods", "po", "Pod", "deployments.apps")
      * @return 정규화된 ResolvedResource. agent 도 못 잡으면 hardcoded fallback 의 best-effort.
-     *         {@code null} 반환 안함 — 미지 kind 도 namespaced=true 가정의 placeholder 반환.
+     *         {@code null} 반환 안함. 미지 kind 도 namespaced=true 가정의 placeholder 반환.
      */
     ResolvedResource resolve(String clusterName, String kindOrPluralOrShort);
 
     /** 해당 cluster 의 kind cache 전체 무효화. 새 CRD install 직후 호출 권장. */
     void invalidate(String clusterName);
 
-    /** 모든 cluster cache flush — admin / boot-time. */
+    /** 모든 cluster cache flush: admin / boot-time. */
     void invalidateAll();
 }

@@ -11,10 +11,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * bootstrap_jti_used 테이블 위생 sweeper — 만료된 jti 정기 삭제. Redis 의 자동 TTL 대체.
+ * bootstrap_jti_used 테이블 위생 sweeper: 만료된 jti 정기 삭제. Redis 의 자동 TTL 대체.
  *
- * <p>jti 가 만료되면 안전하게 삭제 가능 (JWT 자체 만료 검증이 1차 방어선). 이 테이블 행 수는
- * 분당 발급 토큰 수 × 보관 기간 ≈ 0~100 수준. 매우 가볍지만 무한 증가는 막아야.
+ * <p>만료된 jti 는 지워도 됩니다. JWT 자체 만료 검증이 1차 방어선입니다. 행 수는 분당 발급 토큰
+ * 수와 보관 기간의 곱이라 0~100 수준이지만, 지우지 않으면 계속 쌓입니다.
  */
 @Slf4j
 @Component
@@ -27,7 +27,7 @@ public class BootstrapJtiCleanupSweeper {
     private boolean enabled;
 
     /**
-     * 매일 04:00 (system tz) — operation cleanup (03:30) 직후 timing 차이.
+     * 매일 04:00 (system tz). operation cleanup (03:30) 직후 timing 차이.
      * ShedLock 으로 multi-replica 안전.
      */
     @Scheduled(cron = "${anycloud.bootstrap-jti.cleanup.cron:0 0 4 * * *}")

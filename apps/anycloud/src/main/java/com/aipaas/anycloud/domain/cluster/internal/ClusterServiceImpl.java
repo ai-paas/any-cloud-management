@@ -55,8 +55,8 @@ public class ClusterServiceImpl implements ClusterService {
     /**
      * Cluster create 의 latency / outcome 추적용 metric.
      * <ul>
-     *   <li>{@code anycloud.cluster.create.duration} — Timer (success path only)</li>
-     *   <li>{@code anycloud.cluster.create.total{outcome="success|duplicate|invalid|error"}} — Counter</li>
+     *   <li>{@code anycloud.cluster.create.duration}: Timer (success path only)</li>
+     *   <li>{@code anycloud.cluster.create.total{outcome="success|duplicate|invalid|error"}}: Counter</li>
      * </ul>
      */
     private Timer createTimer;
@@ -197,7 +197,7 @@ public class ClusterServiceImpl implements ClusterService {
             throw new CustomException(ErrorCode.DUPLICATE);
         }
 
-        // 모든 registered cluster 는 agent-led — body 에 K8s admin 자격
+        // 모든 registered cluster 는 agent-led: body 에 K8s admin 자격
         // 받지 않음. 등록 직후 PENDING_AGENT 로 저장, cluster-agent 가 helm install 되어
         // backend 로 dial-in 하면 ACTIVE 전환. K8s API 직접 호출 흐름 (validateBase64Pem /
         // updateClusterVersionAndStatusAsync) 모두 제거.
@@ -240,7 +240,7 @@ public class ClusterServiceImpl implements ClusterService {
         return HttpStatus.CREATED;
     }
 
-    // validateBase64Pem / isBlank helpers 제거 — body 에 PEM 자격 없음.
+    // validateBase64Pem / isBlank helpers 제거: body 에 PEM 자격 없음.
 
     /**
      * [ClusterServiceImpl] 클러스터 업데이트 함수
@@ -277,13 +277,13 @@ public class ClusterServiceImpl implements ClusterService {
     }
 
     /**
-     * 클러스터 필드 부분 업데이트 — non-null 값만 entity 에 반영.
+     * 클러스터 필드 부분 업데이트: non-null 값만 entity 에 반영.
      */
     private void updateClusterFields(ClusterEntity entity, UpdateClusterDto dto) {
         String id = entity.getId();
         // description / clusterType / clusterProvider 만 update 가능.
-        // K8s admin 자격 (apiServer/serverCa/clientCa/Key/Token) + monitServerURL 은 제거 —
-        // cluster-agent 가 source-of-truth.
+        // K8s admin 자격 (apiServer/serverCa/clientCa/Key/Token) + monitServerURL 은 제거:
+        // cluster-agent 가 단일 출처.
         updateField(dto.getDescription(), entity::setDescription, "description", id);
         updateField(dto.getClusterType(), entity::setClusterType, "clusterType", id);
         updateField(dto.getClusterProvider(), entity::setClusterProvider, "clusterProvider", id);
@@ -298,7 +298,7 @@ public class ClusterServiceImpl implements ClusterService {
         }
     }
 
-    // isConnectionInfoChanged 제거 — update body 에 K8s 자격 없음.
+    // isConnectionInfoChanged 제거: update body 에 K8s 자격 없음.
 
     private void assertImportedCluster(ClusterEntity clusterEntity) {
         if ("PULUMI".equalsIgnoreCase(clusterEntity.getProvisioningType())) {
@@ -316,7 +316,7 @@ public class ClusterServiceImpl implements ClusterService {
         ClusterEntity cluster = getClusterEntity(clusterName);
         assertImportedCluster(cluster);
 
-        // Cascade cleanup — DB 에 명시적 FK 가 없으므로 application-level 정리.
+        // Cascade cleanup: DB 에 명시적 FK 가 없으므로 application-level 정리.
         // cluster_agent: 동일 cluster_name 의 모든 agent row (rotate 중 multi-row 가능). 안 지우면
         // 같은 이름 cluster 재등록 시 stale agent 가 cluster_name match 로 살아남아 새 cert 발급
         // 경로에서 충돌. operation/audit_log 은 TTL sweeper 가 별도 정리 (resource_id 추적성 유지).
@@ -361,7 +361,7 @@ public class ClusterServiceImpl implements ClusterService {
             log.info("Successfully refreshed status for cluster: {}", clusterName);
             return HttpStatus.OK;
         } catch (CustomException ce) {
-            // 이미 분류된 application error — 그대로 propagate (404/403/503 등 보존).
+            // 이미 분류된 application error: 그대로 propagate (404/403/503 등 보존).
             throw ce;
         } catch (RuntimeException e) {
             log.error("Failed to refresh status for cluster {}: {}", clusterName, e.getMessage(), e);

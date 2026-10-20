@@ -28,7 +28,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Order(Ordered.HIGHEST_PRECEDENCE + 60) // IdempotencyFilter 보다 후순위
 public class BootstrapRateLimitFilter extends OncePerRequestFilter {
 
-    /** 대상 URL prefix — agent bootstrap anonymous endpoint. */
+    /** 대상 URL prefix: agent bootstrap anonymous endpoint. */
     private static final String PROTECTED_PREFIX = "/v1/agent-bootstrap/";
 
     /** Per-IP fixed window. */

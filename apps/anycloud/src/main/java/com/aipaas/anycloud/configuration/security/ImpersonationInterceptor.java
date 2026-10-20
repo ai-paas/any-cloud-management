@@ -30,9 +30,9 @@ public class ImpersonationInterceptor implements HandlerInterceptor {
 
     /** 게이트웨이가 검증한 user identity header. 표준 trusted-proxy 컨벤션. */
     public static final String USER_HEADER = "X-Forwarded-User";
-    /** Group memberships — CSV 또는 multi-value. */
+    /** Group memberships: CSV 또는 multi-value. */
     public static final String GROUPS_HEADER = "X-Forwarded-Groups";
-    /** Extras prefix — header name 의 lowercased suffix 가 K8s Impersonate-Extra-<key>. */
+    /** Extras prefix: header name 의 lowercased suffix 가 K8s Impersonate-Extra-<key>. */
     public static final String EXTRA_HEADER_PREFIX = "X-Forwarded-Extra-";
 
     public ImpersonationInterceptor() {}
@@ -55,7 +55,7 @@ public class ImpersonationInterceptor implements HandlerInterceptor {
                     request.getMethod(),
                     request.getRequestURI());
         } catch (RuntimeException e) {
-            // identity 생성 실패는 fail-open — log + admin-equivalent 로 진행. fail-closed 가 필요한
+            // identity 생성 실패는 fail-open: log + admin-equivalent 로 진행. fail-closed 가 필요한
             // 환경 (compliance) 에서는 본 catch 를 throw 로 변경 + 4xx 응답.
             log.warn("ImpersonationInterceptor: identity build failed user={}: {}", user, e.toString());
         }
@@ -65,7 +65,7 @@ public class ImpersonationInterceptor implements HandlerInterceptor {
     @Override
     public void afterCompletion(
             HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
-        // ThreadLocal cleanup — leak 시 같은 thread 의 다음 request 가 잘못된 identity 사용.
+        // ThreadLocal cleanup: leak 시 같은 thread 의 다음 request 가 잘못된 identity 사용.
         ThreadLocalImpersonationContext.clear();
     }
 
@@ -78,7 +78,7 @@ public class ImpersonationInterceptor implements HandlerInterceptor {
         while (values != null && values.hasMoreElements()) {
             String v = values.nextElement();
             if (v == null) continue;
-            // CSV 분해 — gateway 가 multi-value 대신 CSV 로 단일 header 전송하는 케이스 cover.
+            // CSV 분해: gateway 가 multi-value 대신 CSV 로 단일 header 전송하는 케이스 cover.
             for (String token : v.split(",")) {
                 String t = trim(token);
                 if (t != null && !t.isEmpty()) out.add(t);

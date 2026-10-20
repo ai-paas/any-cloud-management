@@ -4,7 +4,7 @@ import ch.qos.logback.classic.pattern.ClassicConverter;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import java.util.Map;
 
-/** logback %anycloudMdc 변환 — workflow 컨텍스트 키들을 한 토큰으로 합쳐 출력. */
+/** logback %anycloudMdc 변환: workflow 컨텍스트 키들을 한 토큰으로 합쳐 출력. */
 public class LoggingMdcConverter extends ClassicConverter {
 
     /** MDC 키와 출력 약어. 등록 순서대로 나갑니다. */

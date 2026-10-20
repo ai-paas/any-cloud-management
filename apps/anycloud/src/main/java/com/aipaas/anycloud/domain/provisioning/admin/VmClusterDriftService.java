@@ -20,7 +20,7 @@ public interface VmClusterDriftService {
      * changeSummary / 변경 step 목록이 포함.
      *
      * @param clusterName 대상 cluster
-     * @return drifted / changeSummary / steps 등 — controller 가 그대로 response 로 노출
+     * @return drifted / changeSummary / steps 등: controller 가 그대로 response 로 노출
      * @throws com.aipaas.anycloud.common.error.exception.ClusterNotFoundException cluster 없음 / stack 없음
      * @throws com.aipaas.anycloud.common.error.exception.provisioning.PulumiExecutionException Pulumi CLI 호출 실패 (502 UPSTREAM_FAILED)
      */
@@ -28,10 +28,10 @@ public interface VmClusterDriftService {
 
     /**
      * {@code pulumi refresh --yes} 로 state file 을 실제 CSP 상태와 동기화. CSP 자원 자체는 만들지도
-     * 지우지도 않는다 — state file 만 갱신.
+     * 지우지도 않는다: state file 만 갱신.
      *
      * @param clusterName 대상 cluster
-     * @return success / exitCode / stackName 등 — controller 가 그대로 response 로 노출
+     * @return success / exitCode / stackName 등: controller 가 그대로 response 로 노출
      */
     Map<String, Object> refreshState(String clusterName);
 }

@@ -13,7 +13,7 @@ import (
 	"anycloud/agent/internal/k8s"
 )
 
-// 우리 카탈로그가 설치하는 kube-prometheus-stack 의 service 라벨 — 실제 클러스터에서 그대로 옮겨왔다.
+// 우리 카탈로그가 설치하는 kube-prometheus-stack 의 service 라벨: 실제 클러스터에서 그대로 옮겨왔다.
 // app.kubernetes.io/name 도 prometheus.io/scrape 도 없다.
 func stackService() corev1.Service {
 	return corev1.Service{
@@ -33,7 +33,7 @@ func stackService() corev1.Service {
 	}
 }
 
-// 이름으로 찾을 때만 걸리는 fake — 라벨 셀렉터에는 아무것도 주지 않는다.
+// 이름으로 찾을 때만 걸리는 fake: 라벨 셀렉터에는 아무것도 주지 않는다.
 func dispatcherFindingByName(t *testing.T, calls *[]k8s.ListResourcesOptions) *Dispatcher {
 	t.Helper()
 	m := &mockK8sClient{}

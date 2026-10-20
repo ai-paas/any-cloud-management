@@ -14,7 +14,7 @@ import java.util.Map;
  * {@code SSH_ASKPASS} 로 넘기고 {@code SSH_ASKPASS_REQUIRE=force} 로 터미널이 없어도 쓰게 한다
  * (OpenSSH 8.4+).
  *
- * <p>비밀번호를 인자로 넘기지 않는다 — 인자는 같은 호스트의 다른 프로세스에서 보인다.
+ * <p>비밀번호를 인자로 넘기지 않는다: 인자는 같은 호스트의 다른 프로세스에서 보인다.
  */
 public record SshJumpEnvironment(Map<String, String> env, Path askpassScript) implements AutoCloseable {
 

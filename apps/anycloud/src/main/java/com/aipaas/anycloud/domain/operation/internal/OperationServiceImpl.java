@@ -34,9 +34,9 @@ public class OperationServiceImpl implements OperationService {
     private static final int SUPERSEDE_SCAN_SIZE = 5;
 
     // lifecycle 메서드들 (start/markRunning/complete/fail/cancel) 은 REQUIRES_NEW 로
-    // 격리 — caller (RabbitMqAddonInstallListener 등) 의 outer @Transactional 안에서 호출 시,
+    // 격리: caller (RabbitMqAddonInstallListener 등) 의 outer @Transactional 안에서 호출 시,
     // operation row not-found / RuntimeException 이 outer transaction 의 rollback-only 마크를
-    // trigger 하지 않도록. operation 의 lifecycle 변경은 본질적으로 audit-style — 독립 atomic.
+    // trigger 하지 않도록. operation 의 lifecycle 변경은 본질적으로 audit-style: 독립 atomic.
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public OperationEntity start(
@@ -62,7 +62,7 @@ public class OperationServiceImpl implements OperationService {
      * 같은 자원에 새 작업이 뜨면 앞선 작업은 다시 진행될 수 없다. 남겨두면 자원은 READY 인데
      * 화면은 중간 단계에 멈춰 있다. 시간 기반 정리로는 그 사이를 메우지 못한다.
      *
-     * <p>정리에 실패해도 새 작업은 시작한다 — 기록 때문에 자원 생성을 막을 이유가 없다.
+     * <p>정리에 실패해도 새 작업은 시작한다. 기록 때문에 자원 생성을 막을 이유가 없다.
      */
     private void supersedeActive(OperationType type, String resourceType, String resourceId) {
         try {

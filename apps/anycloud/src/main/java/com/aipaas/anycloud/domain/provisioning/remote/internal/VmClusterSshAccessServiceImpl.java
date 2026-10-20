@@ -51,7 +51,7 @@ public class VmClusterSshAccessServiceImpl implements VmClusterSshAccessService 
     }
 
     /**
-     * Pulumi CLI 호출 (수 초) — caller TX 점유 방지 위해 NOT_SUPPORTED.
+     * Pulumi CLI 호출 (수 초). caller TX 점유 방지 위해 NOT_SUPPORTED.
      */
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)

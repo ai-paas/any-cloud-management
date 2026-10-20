@@ -27,8 +27,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Cluster 가 지원하는 API resource (kind) catalog 조회. UI 의 "resource kind picker" 데이터 소스.
  *
- * <p>cluster 마다 결과가 다름 — CRD 가 다양하기 때문 (cert-manager, ingress-nginx, custom CRD 등).
- * Agent 의 discovery API 를 통해 동적 enumerate — backend 가 미리 알 수 없는 kind 도 노출.
+ * <p>cluster 마다 결과가 다름: CRD 가 다양하기 때문 (cert-manager, ingress-nginx, custom CRD 등).
+ * Agent 의 discovery API 를 통해 동적 enumerate: backend 가 미리 알 수 없는 kind 도 노출.
  *
  * <p>Agent 의 {@code LIST_RESOURCE_KINDS} command 결과를 정규화.
  */

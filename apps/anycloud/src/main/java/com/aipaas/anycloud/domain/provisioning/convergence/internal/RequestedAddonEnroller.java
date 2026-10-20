@@ -20,7 +20,7 @@ public class RequestedAddonEnroller {
     private final AddonService addonService;
     private final VmClusterBootstrapSnapshotService snapshotService;
 
-    /** 예외를 던지지 않는다 — addon 등록 실패가 BOOTSTRAP 을 실패시키면 안 된다. */
+    /** 예외를 던지지 않는다: addon 등록 실패가 BOOTSTRAP 을 실패시키면 안 된다. */
     public void enroll(VmClusterEntity vmCluster) {
         String clusterId = vmCluster.getClusterId();
         if (clusterId == null || clusterId.isBlank()) {
@@ -38,7 +38,7 @@ public class RequestedAddonEnroller {
                 addonService.create(clusterId, catalogOnlySpec(entry.getKey(), entry.getValue()));
                 log.info("요청 addon 등록 cluster={} catalog_id={}", vmCluster.getClusterName(), entry.getKey());
             } catch (Exception e) {
-                // 중복 등록은 정상 — AddonService.create 가 멱등하다. 나머지는 조정 루프가 드러낸다.
+                // 중복 등록은 정상: AddonService.create 가 멱등하다. 나머지는 조정 루프가 드러낸다.
                 log.warn(
                         "요청 addon 등록 실패 cluster={} catalog_id={}: {}",
                         vmCluster.getClusterName(),

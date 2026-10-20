@@ -43,7 +43,7 @@ public class VeleroAddonInstaller extends AbstractHelmAddonInstaller {
                     addon.getClusterId(),
                     addon.getNamespace());
         } catch (RuntimeException e) {
-            // post-install hook 실패가 helm release 자체를 FAILED 로 전환시키지 않음 — log + warn.
+            // post-install hook 실패가 helm release 자체를 FAILED 로 전환시키지 않음. log + warn.
             // release 는 정상 deployed, default policy 만 누락. 운영자가 수동 또는 retry 가능.
             log.warn(
                     "VeleroAddonInstaller: default BackupPolicy install failed (non-fatal) cluster={}: {}",

@@ -4,19 +4,19 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-/** CSP 별 GPU instance type 감지 — instance type 명 prefix 기반. */
+/** CSP 별 GPU instance type 감지: instance type 명 prefix 기반. */
 public final class GpuInstanceClassifier {
 
     private GpuInstanceClassifier() {}
 
     private static final Pattern AWS = Pattern.compile("^(p\\d|g\\d|inf\\d|trn\\d).*");
     private static final Pattern GCP = Pattern.compile("^(a2-|a3-|g2-).*|.*-with-gpu");
-    /** OCI shape 은 BM.GPU4.8 처럼 .GPU 를 낀다. 패턴이 아니라 부분 문자열 — 아래 OpenStack 과 같은 이유. */
+    /** OCI shape 은 BM.GPU4.8 처럼 .GPU 를 낀다. 패턴이 아니라 부분 문자열: 아래 OpenStack 과 같은 이유. */
     private static final String OCI_MARKER = ".gpu";
 
     private static final Pattern ALIBABA = Pattern.compile("^ecs\\.(gn|ebmgn).*");
 
-    /** IBM VPC 의 GPU 프로파일 — gx3-16x80x1l4, gx3d-160x1792x8h100. */
+    /** IBM VPC 의 GPU 프로파일: gx3-16x80x1l4, gx3d-160x1792x8h100. */
     private static final Pattern IBM = Pattern.compile("^gx\\d.*", Pattern.CASE_INSENSITIVE);
 
     /**

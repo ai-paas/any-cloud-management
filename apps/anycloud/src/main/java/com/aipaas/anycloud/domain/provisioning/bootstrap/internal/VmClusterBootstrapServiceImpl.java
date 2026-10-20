@@ -49,7 +49,7 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
         progressReporter.reportSubStepStart(clusterName, BootstrapSubStep.MASTER_INIT);
         initializeMaster(vmCluster, outputs, snapshot, strategy);
 
-        // HA mode — extra master 들을 control-plane 으로 join. single-master 면 no-op + report 도 skip.
+        // HA mode: extra master 들을 control-plane 으로 join. single-master 면 no-op + report 도 skip.
         if (!nodeResolver.extraMasterHosts(outputs).isEmpty()) {
             progressReporter.reportSubStepStart(clusterName, BootstrapSubStep.EXTRA_MASTER_JOIN);
             joinExtraMasters(vmCluster, outputs, snapshot, strategy);
@@ -58,7 +58,7 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
         progressReporter.reportSubStepStart(clusterName, BootstrapSubStep.WORKER_JOIN);
         joinWorkers(vmCluster, outputs, snapshot, strategy);
 
-        //  ADDONS (CNI 포함) 가 NODES_READY 보다 먼저여야 한다 — CNI 없는 노드는 영원히
+        //  ADDONS (CNI 포함) 가 NODES_READY 보다 먼저여야 한다. CNI 없는 노드는 영원히
         // NotReady 라 Ready 대기가 10분 timeout 으로 확정 실패 (e2e 실증). addon 명령 내부의
         // ingress/GPU wait 는 `|| true` 라 NotReady 상태에서 시작해도 안전.
         progressReporter.reportSubStepStart(clusterName, BootstrapSubStep.ADDONS);
@@ -129,7 +129,7 @@ public class VmClusterBootstrapServiceImpl implements VmClusterBootstrapService 
         }
     }
 
-    /** 사설망 전용 클러스터는 공인 IP 가 없다 — 그때는 SAN 을 더하지 않는다. */
+    /** 사설망 전용 클러스터는 공인 IP 가 없다. 그때는 SAN 을 더하지 않는다. */
     private String masterPublicIp(Map<String, Object> outputs) {
         Object value = outputs == null ? null : outputs.get("masterPublicIp");
         return value instanceof String text && !text.isBlank() ? text : null;

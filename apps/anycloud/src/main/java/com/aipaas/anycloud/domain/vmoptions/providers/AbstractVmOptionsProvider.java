@@ -27,8 +27,8 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
      * decrypted credential map 을 set → 그 안에서 no-cred 변형이 실행됨 → 그 변형이 사용하는
      * {@link #resolveCredential(String)} 가 본 map 을 보고 없으면 {@code System.getenv()} fallback.
      *
-     * <p>이 패턴 덕분에 각 provider 는 credentials 인자를 method signature 에 thread 할 필요 없이
-     * "{@code resolveCredential("KEY")}" 한 줄로 사용자 등록 credential 을 활용.
+     * <p>각 provider 는 credentials 를 파라미터로 받지 않습니다. 필요할 때
+     * {@code resolveCredential("KEY")} 를 호출합니다.
      */
     private static final ThreadLocal<Map<String, String>> CREDENTIAL_CONTEXT = new ThreadLocal<>();
 
@@ -77,7 +77,7 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
     }
 
     /**
-     * credentials 를 ThreadLocal 에 잠시 set 한 채로 body 실행 — 종료 시 이전 값 복구.
+     * credentials 를 ThreadLocal 에 잠시 set 한 채로 body 실행: 종료 시 이전 값 복구.
      * try/finally 로 nested call 안전.
      */
     protected static <T> T withCredentials(Map<String, String> credentials, Supplier<T> body) {
@@ -99,7 +99,7 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
     }
 
     /**
-     * Provider 별 helper 가 {@code System.getenv("KEY")} 대신 본 method 호출 — 사용자가 등록한 credential
+     * Provider 별 helper 가 {@code System.getenv("KEY")} 대신 본 method 호출: 사용자가 등록한 credential
      * 우선, 없으면 process env 로 fallback. blank 도 missing 으로 treat.
      */
     protected static String resolveCredential(String key) {
@@ -119,7 +119,7 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
      * <p>키를 하나씩 {@link #resolveCredential(String)} 로 꺼내 Map 을 다시 만들 필요가 없다.
      * 자격증명 Map 을 통째로 받는 클라이언트({@code ProxmoxApiClient} 등) 에 그대로 넘긴다.
      *
-     * <p>등록된 자격증명이 없으면 빈 Map — {@code System.getenv()} fallback 은 여기 없다.
+     * <p>등록된 자격증명이 없으면 빈 Map: {@code System.getenv()} fallback 은 여기 없다.
      * 키 단위 fallback 은 어떤 키가 필요한지 아는 쪽이 정한다.
      */
     protected static Map<String, String> currentCredentials() {
@@ -196,7 +196,7 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
             java.util.regex.Pattern.compile("^[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?$");
 
     /**
-     * region id 를 URL 에 넣기 전에 검증한다. blank 는 통과시킨다 — 호출부가 blank 를
+     * region id 를 URL 에 넣기 전에 검증한다. blank 는 통과시킨다: 호출부가 blank 를
      * "지정 안 함"으로 처리해 기본 endpoint 나 기본 region 으로 분기하기 때문이다.
      *
      * @throws CustomException 형식에 맞지 않는 경우
@@ -293,7 +293,7 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
 
     // ---- 공통 필터 / fallback helper -----------------------------
 
-    /** keyword 기반 case-insensitive contains 매칭. 9 개 provider (AWS/Azure/GCP/OCI/Alibaba/OpenStack/DigitalOcean/Curated) 가 동일 8 줄을 각자 보유하던 패턴을 본 부모 메서드로 통합 — {@code keyword} 가 blank 면 모두 통과, {@code value} 가 null 이면 false. */
+    /** keyword 기반 case-insensitive contains 매칭. 9 개 provider (AWS/Azure/GCP/OCI/Alibaba/OpenStack/DigitalOcean/Curated) 가 동일 8 줄을 각자 보유하던 패턴을 본 부모 메서드로 통합: {@code keyword} 가 blank 면 모두 통과, {@code value} 가 null 이면 false. */
     protected static boolean matchesKeyword(String value, String keyword) {
         if (!StringUtils.hasText(keyword)) {
             return true;
@@ -302,7 +302,7 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
     }
 
     /**
-     * Circuit breaker fallback 의 표준 응답 — 빈 region 리스트. 9 provider 의 listRegionsFallback
+     * Circuit breaker fallback 의 표준 응답: 빈 region 리스트. 9 provider 의 listRegionsFallback
      * 본문이 모두 동일했으므로 본 helper 로 한 줄 위임 가능:
      *
      * <pre>
@@ -319,19 +319,19 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
         return Collections.emptyList();
     }
 
-    /** 동일 패턴 — specs 응답의 빈 fallback. */
+    /** 동일 패턴: specs 응답의 빈 fallback. */
     protected List<VmOptionSpec> emptySpecsFallback(String capability, Throwable throwable) {
         logFallback("specs", capability, throwable);
         return Collections.emptyList();
     }
 
-    /** 동일 패턴 — images 응답의 빈 fallback. */
+    /** 동일 패턴: images 응답의 빈 fallback. */
     protected List<VmOptionImage> emptyImagesFallback(String capability, Throwable throwable) {
         logFallback("images", capability, throwable);
         return Collections.emptyList();
     }
 
-    /** Circuit breaker fallback 로깅. stderr 는 운영 환경의 모니터링 도구가 놓칠 수 있으므로 SLF4J WARN 으로 통일 — circuit OPEN 사유 추적용. 대량 발생은 resilience4j.circuitbreaker.* Prometheus metric 로 별도 알람. */
+    /** Circuit breaker fallback 로깅. stderr 는 운영 환경의 모니터링 도구가 놓칠 수 있으므로 SLF4J WARN 으로 통일: circuit OPEN 사유 추적용. 대량 발생은 resilience4j.circuitbreaker.* Prometheus metric 로 별도 알람. */
     private void logFallback(String resource, String capability, Throwable throwable) {
         String msg = throwable == null ? "<unknown>" : String.valueOf(throwable.getMessage());
         LOG.warn(

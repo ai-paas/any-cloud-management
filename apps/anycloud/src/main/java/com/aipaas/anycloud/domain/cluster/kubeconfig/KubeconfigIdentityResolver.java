@@ -19,7 +19,7 @@ public interface KubeconfigIdentityResolver {
      * @param requestedNamespace      호출자가 명시한 namespace (nullable/blank → SA 의 기본 ns)
      * @return 실제 발급에 사용할 (namespace, serviceAccount)
      * @throws KubeconfigExportService.KubeconfigExportException
-     *         {@code SERVICE_ACCOUNT_REQUIRED} — 기본 전략으로도 SA 를 정할 수 없을 때 (예: registered
+     *         {@code SERVICE_ACCOUNT_REQUIRED}: 기본 전략으로도 SA 를 정할 수 없을 때 (예: registered
      *         cluster 인데 SA 를 주지 않은 경우).
      */
     ResolvedIdentity resolve(String clusterName, String requestedServiceAccount, String requestedNamespace);

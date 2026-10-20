@@ -8,7 +8,7 @@ package com.aipaas.anycloud.domain.agent.upgrade;
  *              ▼
  *           RUNNING ───→ COMPLETED (모든 wave success)
  *              │
- *              ├──→ PAUSED (운영자 수동 중단 — 현재 wave 끝까지 처리 후 정지)
+ *              ├──→ PAUSED (운영자 수동 중단. 현재 wave 끝까지 처리 후 정지)
  *              │     │
  *              │     └──→ RUNNING (운영자 resume)  /  ABORTED (운영자 abort)
  *              │

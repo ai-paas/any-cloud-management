@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
  * 부팅 직후 {@code agent.grpc.public-endpoint} 설정이 운영 가능한 상태인지 1회 점검 후 로그.
  * <p>
  * 본 endpoint 는 원격 K8s cluster 의 agent pod 가 backend 로 outbound 접속하는 주소.
- * 잘못 설정되면 agent 가 CrashLoopBackOff 로 들어간 다음에야 발견 — 운영자가 사전에
+ * 잘못 설정되면 agent 가 CrashLoopBackOff 로 들어간 다음에야 발견: 운영자가 사전에
  * 알 수 있도록 부팅 시점에 경고.
  * <ul>
  *   <li>{@code host.docker.internal} (dev 의 default) → docker-desktop 외부에선 NXDOMAIN. WARN.</li>
@@ -78,7 +78,7 @@ public class AgentEndpointStartupCheck {
             return;
         }
 
-        // DNS preflight — typo / VPN 단절 / 사설 DNS 인지 부팅 시점에 잡아냄.
+        // DNS preflight: typo / VPN 단절 / 사설 DNS 인지 부팅 시점에 잡아냄.
         try {
             InetAddress resolved = InetAddress.getByName(host);
             log.info(
@@ -109,7 +109,7 @@ public class AgentEndpointStartupCheck {
 
     /**
      * "host:port" 또는 "host" 형식에서 host 부분만 추출.
-     * IPv6 zone-id 등 복잡 케이스는 의도적 단순화 — dev 친화 진단용.
+     * IPv6 zone-id 등 복잡 케이스는 의도적 단순화: dev 친화 진단용.
      */
     private static String extractHost(String endpoint) {
         if (endpoint == null) {

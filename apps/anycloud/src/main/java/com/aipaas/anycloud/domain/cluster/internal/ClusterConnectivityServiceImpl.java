@@ -63,7 +63,7 @@ public class ClusterConnectivityServiceImpl implements ClusterConnectivityServic
     public void updateClusterVersionAndStatus(ClusterEntity clusterEntity) {
         log.info("Updating version and status for cluster: {}", clusterEntity.getId());
 
-        // Agent path 우선 — heartbeat 신선하면 K8s API 호출 없이 cluster_agent 테이블만으로 결정.
+        // Agent path 우선: heartbeat 신선하면 K8s API 호출 없이 cluster_agent 테이블만으로 결정.
         ClusterHealth health = agentHealthService.getHealth(clusterEntity.getId());
         if (health.healthy()) {
             String version = lookupAgentK8sVersion(clusterEntity.getId());
@@ -102,13 +102,16 @@ public class ClusterConnectivityServiceImpl implements ClusterConnectivityServic
         return CompletableFuture.completedFuture(null);
     }
 
-    /** Periodic sweep 의 chunk 당 fan-out 수. 너무 크면 KUBERNETES_EXECUTOR pool (core 4 / max 8) 가 한 chunk 에 묶여 caller-runs backpressure 로 sweep 이 오히려 느려진다. */
+    /**
+     * 주기 sweep 의 chunk 당 fan-out 수. 이 값이 KUBERNETES_EXECUTOR 의 max 8 을 크게 넘으면
+     * 큐가 차서 caller-runs 로 떨어지고, 호출 스레드가 직접 실행하느라 sweep 전체가 늦어진다.
+     */
     private static final int FAN_OUT_CHUNK_SIZE = 50;
 
     @Override
     public void updateAllClusterStatuses() {
         // updateClusterVersionAndStatusAsync (@Async KUBERNETES_EXECUTOR) 로 cluster-당 thread fan-out.
-        // outer @Transactional 사용 금지 — child 가 자체 tx 보유 + outer tx 가 child 결과 보장 못 함
+        // outer @Transactional 사용 금지. child 가 자체 tx 보유 + outer tx 가 child 결과 보장 못 함
         // (best-effort sweep). outer tx 가 모든 child 끝까지 connection 점유하면 pool 고갈.
         //
         log.info("Starting periodic cluster status update (page-by-page fan-out)");
@@ -127,7 +130,7 @@ public class ClusterConnectivityServiceImpl implements ClusterConnectivityServic
             for (ClusterEntity cluster : chunk.getContent()) {
                 chunkFutures.add(updateClusterVersionAndStatusAsync(cluster));
             }
-            // chunk 안의 모든 future 완료까지 대기 — pool 가 full 이면 caller-runs backpressure 로 자연
+            // chunk 안의 모든 future 완료까지 대기: pool 가 full 이면 caller-runs backpressure 로 자연
             // throttling. chunk 사이에 쉴 필요가 없습니다. 모든 thread 가 비는 시점에 다음 chunk 를 가져옵니다.
             CompletableFuture.allOf(chunkFutures.toArray(new CompletableFuture[0]))
                     .join();

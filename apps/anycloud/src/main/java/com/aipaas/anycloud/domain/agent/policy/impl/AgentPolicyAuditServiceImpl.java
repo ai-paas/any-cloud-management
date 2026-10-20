@@ -33,7 +33,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class AgentPolicyAuditServiceImpl implements AgentPolicyAuditService {
 
-    /** Fleet audit 의 cluster-별 timeout — 한 cluster 가 끝나기 늦어도 전체 audit 가 무너지지 않게. */
+    /** Fleet audit 의 cluster-별 timeout: 한 cluster 가 끝나기 늦어도 전체 audit 가 무너지지 않게. */
     private static final long PER_CLUSTER_TIMEOUT_SECONDS = 10L;
 
     private final KubeResourceService kubeResourceService;
@@ -61,7 +61,7 @@ public class AgentPolicyAuditServiceImpl implements AgentPolicyAuditService {
 
         long startMs = System.currentTimeMillis();
         // kubernetesExecutor 가 pool size 로 동시성 상한 (default 8). caller-runs 정책이라 queue 초과
-        // 시 caller 가 직접 실행 — runtime backpressure.
+        // 시 caller 가 직접 실행: runtime backpressure.
         List<CompletableFuture<Map<String, Object>>> futures = clusters.stream()
                 .map(c -> CompletableFuture.supplyAsync(() -> auditOneCluster(c), kubernetesExecutor)
                         .completeOnTimeout(timeoutEntry(c), PER_CLUSTER_TIMEOUT_SECONDS, TimeUnit.SECONDS)
@@ -113,7 +113,7 @@ public class AgentPolicyAuditServiceImpl implements AgentPolicyAuditService {
         return body;
     }
 
-    /** Per-cluster audit — kubernetesExecutor 위에서 실행. exception 은 외부에서 처리. */
+    /** Per-cluster audit: kubernetesExecutor 위에서 실행. exception 은 외부에서 처리. */
     private Map<String, Object> auditOneCluster(ClusterEntity cluster) {
         Map<String, Object> entry = new LinkedHashMap<>();
         entry.put("clusterName", cluster.getId());
@@ -180,7 +180,7 @@ public class AgentPolicyAuditServiceImpl implements AgentPolicyAuditService {
                 .orElse("NONE");
     }
 
-    /** UI 정렬용 — HIGH 가 위로. */
+    /** UI 정렬용: HIGH 가 위로. */
     private static int severityRank(String severity) {
         return switch (severity) {
             case "HIGH" -> 0;

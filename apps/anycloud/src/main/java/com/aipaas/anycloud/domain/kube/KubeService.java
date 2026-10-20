@@ -13,7 +13,7 @@ public interface KubeService {
     JsonNode getResource(String clusterName, String namespace, String kind, String name);
 
     /**
-     * Manifest 적용 (kubectl apply 와 동일 시맨틱 — server-side, create or update).
+     * Manifest 적용 (kubectl apply 와 동일 시맨틱: server-side, create or update).
      *
      * @param clusterName 대상 cluster
      * @param namespace   path 의 namespace. cluster-scoped kind 면 무시. manifest 의 metadata.namespace
@@ -39,7 +39,7 @@ public interface KubeService {
      * @param namespace 네임스페이스 (null 이면 all-namespaces)
      * @param limit 한 페이지 최대 개수 (1..500)
      * @param continueToken 이전 응답의 continueToken (첫 호출은 null)
-     * @param labelSelector 라벨 셀렉터(K8s 형식, 예: "app=nginx,tier=web") — null/빈 문자열이면 미적용
+     * @param labelSelector 라벨 셀렉터(K8s 형식, 예: "app=nginx,tier=web"). null/빈 문자열이면 미적용
      */
     PagedKubeResourceResponse listPodsPaginated(
             String clusterName, String namespace, int limit, String continueToken, String labelSelector);
@@ -62,7 +62,7 @@ public interface KubeService {
             String fieldSelector);
 
     /**
-     * 특정 리소스에 연관된 K8s Event 목록 — fieldSelector {@code involvedObject.kind=<Kind>,involvedObject.name=<name>}
+     * 특정 리소스에 연관된 K8s Event 목록: fieldSelector {@code involvedObject.kind=<Kind>,involvedObject.name=<name>}
      * 로 events kind 를 paginated list.
      *
      * @param involvedKind 리소스 path 의 plural (예: "pods", "deployments"). K8s Kind 로 정규화하여 사용.
@@ -74,7 +74,7 @@ public interface KubeService {
     /**
      * 리소스 재시작.
      * <ul>
-     *   <li>pods → delete (컨트롤러가 재생성) — Pod 가 standalone 이면 delete 만 되고 재생성되지 않음.</li>
+     *   <li>pods → delete (컨트롤러가 재생성). Pod 가 standalone 이면 delete 만 되고 재생성되지 않음.</li>
      *   <li>deployments, statefulsets, daemonsets → spec.template.metadata.annotations 에
      *       {@code kubectl.kubernetes.io/restartedAt = <now>} 추가 후 apply (rollout restart).</li>
      *   <li>그 외 → {@link IllegalArgumentException}.</li>
@@ -120,7 +120,7 @@ public interface KubeService {
      * 사용자 입력 (단축이름 "pvc" / plural "pods" / Kind "PersistentVolumeClaim") 을 정규화.
      * type-ahead / form validation / 에러 보강에 사용.
      *
-     * <p>resolve 실패 시 {@link io.aipaas.cluster.agent.runtime.UnsupportedKindException} —
+     * <p>resolve 실패 시 {@link io.aipaas.cluster.agent.runtime.UnsupportedKindException}:
      * fuzzy suggestion 포함. controller 가 404 + suggestions 로 매핑.
      *
      * @return resolve 된 ResolvedResource (plural/singular/kind/group/version/namespaced/shortNames)

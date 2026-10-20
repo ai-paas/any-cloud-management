@@ -83,7 +83,7 @@ public class FleetUpgradeController {
                 HttpStatus.OK.value(), "Wave updated to " + body.wave() + " for cluster " + clusterName, null));
     }
 
-    /** PATCH 요청 본문 — single field. */
+    /** PATCH 요청 본문: single field. */
     public record SetWaveRequest(@NotNull ClusterAgentUpgradeWave wave) {}
 
     @PostMapping("/clusters/{clusterName}/upgrade")
@@ -110,7 +110,7 @@ public class FleetUpgradeController {
         return ResponseEntity.ok(ApiSuccessResponse.of(HttpStatus.OK.value(), "Upgrade " + r.status(), r));
     }
 
-    /** POST 본문 — target image 만. wave 는 cluster 의 upgrade_wave 컬럼에서 가져옴 (별도 patch). */
+    /** POST 본문: target image 만. wave 는 cluster 의 upgrade_wave 컬럼에서 가져옴 (별도 patch). */
     public record UpgradeRequest(
             @NotBlank
                     @Size(max = 256)
@@ -149,7 +149,7 @@ public class FleetUpgradeController {
             description = "최근 20개 run (PLANNED / RUNNING / COMPLETED / ABORTED 모두). createdAt DESC.")
     public ResponseEntity<ApiSuccessResponse<List<com.aipaas.anycloud.domain.agent.upgrade.FleetUpgradeRun>>>
             listRuns() {
-        // Domain record 반환 — JPA proxy 없이 안전한 JSON serialize.
+        // Domain record 반환: JPA proxy 없이 안전한 JSON serialize.
         return ResponseEntity.ok(ApiSuccessResponse.of(
                 HttpStatus.OK.value(), "Fleet upgrade runs", runQueryService.listRecentRunsDomain()));
     }

@@ -9,12 +9,12 @@ import org.springframework.http.HttpStatus;
 
 /** Helm chart repository CRUD. */
 public interface HelmRepoService {
-    // ===== Entity 반환 (legacy) — 점진 deprecate =====
+    // ===== Entity 반환 (legacy). 점진 deprecate =====
     List<HelmRepoEntity> getHelmRepoEntities();
 
     HelmRepoEntity getHelmRepoEntity(String name);
 
-    // ===== Domain 반환 — 새 caller 는 이쪽 사용 =====
+    // ===== Domain 반환: 새 caller 는 이쪽 사용 =====
 
     /** 모든 helm repo 의 immutable 도메인 표현. {@link #getHelmRepoEntities()} 의 domain 변형. */
     List<HelmRepo> findAllDomain();
@@ -29,7 +29,7 @@ public interface HelmRepoService {
     /**
      * Helm repo partial update. null 필드는 현재 값 유지.
      *
-     * <p>name 변경은 미지원 — URL identity. 변경 필요하면 delete + create.
+     * <p>name 변경은 미지원: URL identity. 변경 필요하면 delete + create.
      *
      * @return 200 OK on success
      */

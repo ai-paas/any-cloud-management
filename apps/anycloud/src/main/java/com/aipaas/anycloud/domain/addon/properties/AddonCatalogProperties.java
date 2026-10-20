@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/** Addon catalog YAML binding — addons.yaml 의 declarative spec. */
+/** Addon catalog YAML binding: addons.yaml 의 declarative spec. */
 @ConfigurationProperties(prefix = "addon-catalog")
 public record AddonCatalogProperties(boolean enabled, List<Entry> addons) {
 
@@ -29,7 +29,7 @@ public record AddonCatalogProperties(boolean enabled, List<Entry> addons) {
      * @param defaultValuesYaml    권장 values JSON/YAML. caller override 가능.
      * @param requiredCapabilities 설치 prerequisite (예: gpu).
      * @param tags                 UI filter 용도.
-     * @param rbac — OIDC group → addon ClusterRole 매핑.
+     * @param rbac: OIDC group → addon ClusterRole 매핑.
      *                             활성 + OidcGroupBinding operator 배포 시 활용. null 가능.
      */
     public record Entry(
@@ -52,7 +52,7 @@ public record AddonCatalogProperties(boolean enabled, List<Entry> addons) {
             requiredCapabilities =
                     requiredCapabilities == null ? Collections.emptyList() : List.copyOf(requiredCapabilities);
             tags = tags == null ? Collections.emptyList() : List.copyOf(tags);
-            // rbac null 허용 — addon 의 OIDC group binding 정책 없음 = nop
+            // rbac null 허용: addon 의 OIDC group binding 정책 없음 = nop
         }
     }
 

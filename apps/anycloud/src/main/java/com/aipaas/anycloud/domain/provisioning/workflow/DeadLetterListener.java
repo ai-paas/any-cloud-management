@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
  *   <li>DLQ 메시지를 consume 하면서 즉시 ack (재발행은 별도 결정).</li>
  *   <li>구조화 로그 + headers / body 요약 기록.</li>
  *   <li>Micrometer counter {@code anycloud.workflow.dlq.received{originalQueue,reason}}
- *       — Prometheus 알람으로 사용:
+ *      Prometheus 알람으로 사용:
  *       {@code increase(anycloud_workflow_dlq_received_total[5m]) > 0} → page.</li>
  * </ol>
  * <p>

@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * VM cluster create 사전 미리보기 응답 — {@code pulumi preview --json} 의 구조화 결과.
+ * VM cluster create 사전 미리보기 응답: {@code pulumi preview --json} 의 구조화 결과.
  */
 @Schema(description = "Pulumi preview 결과 — 실제로 생성/변경될 CSP resource 계획")
 public record VmClusterPreviewResponse(

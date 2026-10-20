@@ -20,7 +20,7 @@ public final class SshJumpOptions {
      * 실어 보낼 방법이 없다. 컨테이너에는 {@code ~/.ssh/config} 가 없어 비밀번호 bastion 이면
      * publickey 로 시도하다 "Connection timed out during banner exchange" 로 멈춘다.
      *
-     * <p>host 는 있는데 user 가 없으면 예외다 — 조용히 무시하면 점프를 설정한 줄 알고 있는데
+     * <p>host 는 있는데 user 가 없으면 예외다: 조용히 무시하면 점프를 설정한 줄 알고 있는데
      * 노드에 직접 붙어 실패한다.
      */
     public static List<String> args(SshJump jump) {

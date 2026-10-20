@@ -71,8 +71,8 @@ func (c *realClient) IssueServiceAccountToken(ctx context.Context, opts TokenReq
 	}, nil
 }
 
-// ServerCAData — in-cluster 인 경우 service account ca.crt. KUBECONFIG 인 경우 restConfig.TLSClientConfig.CAData
-// 또는 CAFile 을 읽음. 둘 다 없으면 빈 byte (kubeconfig 발급 시 insecure-skip-tls-verify 가 필요 — 보안상 권장 X).
+// ServerCAData: in-cluster 인 경우 service account ca.crt. KUBECONFIG 인 경우 restConfig.TLSClientConfig.CAData
+// 또는 CAFile 을 읽음. 둘 다 없으면 빈 byte (kubeconfig 발급 시 insecure-skip-tls-verify 가 필요: 보안상 권장 X).
 func (c *realClient) ServerCAData() ([]byte, error) {
 	if c.restConfig == nil {
 		return nil, errors.New("rest config not initialized")
@@ -98,10 +98,10 @@ func (c *realClient) APIServerURL() string {
 }
 
 // ============================================================================
-// debugContainerName — 웹이 exec 대상으로 지정하는 이름과 같아야 한다.
+// debugContainerName: 웹이 exec 대상으로 지정하는 이름과 같아야 한다.
 const debugContainerName = "debug"
 
-// debugPodReadyTimeout — 호출자가 데드라인을 주지 않았을 때의 상한.
+// debugPodReadyTimeout: 호출자가 데드라인을 주지 않았을 때의 상한.
 const debugPodReadyTimeout = 3 * time.Minute
 
 // Node debug pod
@@ -115,12 +115,12 @@ type NodeDebugPodOptions struct {
 	Namespace string // default "kube-system"
 	Image     string // default "registry.k8s.io/e2e-test-images/agnhost:2.40"
 	PodName   string // default "aipaas-node-debug-<ts>"
-	// ToolsShell — 호스트가 아니라 클러스터를 보는 셸. nsenter 없이 이미지를 그대로 실행하므로
+	// ToolsShell: 호스트가 아니라 클러스터를 보는 셸. nsenter 없이 이미지를 그대로 실행하므로
 	// kubectl, k9s 가 이미지에서 온다. 노드에 그 도구들이 깔려 있으리라 기대할 수 없다.
 	ToolsShell bool
 	// ToolsShell 일 때 붙일 SA. 없으면 kubectl 이 모든 호출에서 forbidden 을 받는다.
 	ServiceAccount string
-	// 생성된 debug pod 의 활성 기간 (cleanup 은 호출자/운영자 책임 — TTL 만 정보 제공).
+	// 생성된 debug pod 의 활성 기간 (cleanup 은 호출자/운영자 책임. TTL 만 정보 제공).
 	TTLSeconds int64
 }
 
@@ -130,7 +130,7 @@ type NodeDebugPodResult struct {
 	ExpiresAt time.Time
 }
 
-// CreateNodeDebugPod — kubectl debug node/<name> 등가. host PID/Network/IPC namespace + privileged.
+// CreateNodeDebugPod: kubectl debug node/<name> 등가. host PID/Network/IPC namespace + privileged.
 // nsenter 1 -t 1 -m -u -i -n -p -- bash 를 entrypoint 로 사용 (host root shell).
 func (c *realClient) CreateNodeDebugPod(ctx context.Context, opts NodeDebugPodOptions) (NodeDebugPodResult, error) {
 	if opts.NodeName == "" {
@@ -219,7 +219,7 @@ func (c *realClient) CreateNodeDebugPod(ctx context.Context, opts NodeDebugPodOp
 	}, nil
 }
 
-// waitDebugContainerRunning — 컨테이너가 뜰 때까지 기다린다.
+// waitDebugContainerRunning: 컨테이너가 뜰 때까지 기다린다.
 //
 // 이름만 돌려주면 호출자가 곧바로 exec 을 걸고 "container not found (debug)" 로 끝난다. 노드에
 // 이미지가 없으면 pull 에 1분 넘게 걸려 거의 매번 걸린다. 기다리는 상한은 ctx 가 정한다.

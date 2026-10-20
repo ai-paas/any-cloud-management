@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.ZonedDateTime;
 
 /**
- * GET /v1/clusters/{c}/addons response — frontend addon list / status polling.
+ * GET /v1/clusters/{c}/addons response: frontend addon list / status polling.
  *
  * <p>HTTP response body naming 은 {@code docs/conventions/dto-naming-convention.md} §1 표준 ({@code
  * *Response}). OpenAPI schema 명은 {@code @Schema(name="AddonStatus")} 으로 고정해 wire 호환 보장.

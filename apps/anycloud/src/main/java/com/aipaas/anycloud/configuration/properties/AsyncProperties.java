@@ -50,7 +50,7 @@ public class AsyncProperties {
          */
         private boolean runOnCallerWhenFull = true;
 
-        /** 넘치면 거부하는 풀 — 호출자를 붙잡으면 안 되는 자리. */
+        /** 넘치면 거부하는 풀: 호출자를 붙잡으면 안 되는 자리. */
         public static Pool rejecting(String prefix, int core, int max, int queue) {
             Pool p = defaults(prefix, core, max, queue);
             p.runOnCallerWhenFull = false;

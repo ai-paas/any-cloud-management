@@ -9,7 +9,7 @@ import org.springframework.data.jpa.domain.Specification;
 
 /**
  * AdminAgentQueryService 의 동적 filter spec builder. 모든 filter null/empty 면 no-op
- * conjunction — 전체 row 반환.
+ * conjunction: 전체 row 반환.
  */
 public final class AdminAgentSpecs {
 
@@ -29,8 +29,8 @@ public final class AdminAgentSpecs {
             Long lastSeenOlderThanSec,
             LocalDateTime now) {
         /*
-         * cluster 가 사라진 agent 행은 숨깁니다. 삭제해도 행이 남아 목록이 없는 cluster 의
-         * DEGRADED 로 채워지고, 살아 있는 agent 가 그 안에 묻힙니다.
+         * cluster 가 사라진 agent 행은 숨깁니다. cluster 를 삭제해도 행이 남아, 목록이 없는
+         * cluster 의 DEGRADED 로 채워지면 동작 중인 agent 를 찾기 어렵습니다.
          */
         Specification<ClusterAgentEntity> spec = (root, query, cb) -> {
             var sub = query.subquery(Long.class);

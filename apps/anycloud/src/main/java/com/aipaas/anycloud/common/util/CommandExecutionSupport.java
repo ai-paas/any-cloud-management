@@ -159,7 +159,7 @@ public final class CommandExecutionSupport {
                     try {
                         lineConsumer.accept(line);
                     } catch (RuntimeException ex) {
-                        // consumer 예외는 swallow — 한 줄 처리 실패가 전체 명령을 중단시키면 금지.
+                        // consumer 예외는 swallow: 한 줄 처리 실패가 전체 명령을 중단시키면 금지.
                         // 호출자가 logger 를 가지므로 여기서 별도 log 없음.
                     }
                 }

@@ -3,7 +3,7 @@ package com.aipaas.anycloud.domain.agent.policy;
 import java.util.Map;
 
 /**
- * fleet-wide agent policy audit 집계 — per-cluster parallel fetch + timeout 보호 + severity 집계 + 정렬.
+ * fleet-wide agent policy audit 집계: per-cluster parallel fetch + timeout 보호 + severity 집계 + 정렬.
  *
  * <p>Impl: {@link com.aipaas.anycloud.domain.agent.policy.impl.AgentPolicyAuditServiceImpl}.
  */

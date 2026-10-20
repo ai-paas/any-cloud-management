@@ -17,13 +17,13 @@ public interface VmClusterRepository
     /**
      * 처리 소유권을 잡는다. 이미 다른 메시지가 잡고 있으면 0 을 돌려준다.
      *
-     * <p>조건부 UPDATE 한 번으로 끝내야 한다 — 읽고 나서 쓰면 두 워커가 같은 틈에 들어온다.
+     * <p>조건부 UPDATE 한 번으로 끝내야 한다. 읽고 나서 쓰면 두 워커가 같은 틈에 들어온다.
      * 같은 messageId 면 재진입을 허용해 한 워커의 재시도가 자기 락에 막히지 않는다.
      * staleBefore 보다 오래된 소유권은 워커가 죽은 것으로 보고 회수한다.
      */
     /**
      * AMQP 재전달은 같은 messageId 를 쓴다. 조건에 {@code processingMessageId = :messageId} 를 두면
-     * 재전달이 자기 락을 다시 잡아 같은 작업이 두 번 돈다 — 30분마다 부트스트랩이 처음부터 다시
+     * 재전달이 자기 락을 다시 잡아 같은 작업이 두 번 돈다: 30분마다 부트스트랩이 처음부터 다시
      * 시작하는 것을 관측했다.
      *
      * <p>크래시 후 재시도는 stale 창이 열어준다. 같은 messageId 라는 이유만으로 열어주지 않는다.
@@ -41,7 +41,7 @@ public interface VmClusterRepository
     /**
      * 누가 쥐고 있든 소유권을 가져온다. 삭제 전용이다.
      *
-     * <p>stale 창을 단계 예산에 맞추면 삭제가 그 뒤에 줄을 선다 — 멈춘 프로비저닝을 지우려는데
+     * <p>stale 창을 단계 예산에 맞추면 삭제가 그 뒤에 줄을 선다: 멈춘 프로비저닝을 지우려는데
      * 몇 시간을 기다려야 했다. 앞 단계의 결과는 어차피 버려지므로 밀어내도 잃는 것이 없다.
      */
     @Modifying
@@ -56,7 +56,7 @@ public interface VmClusterRepository
             + "where v.id = :id and v.processingMessageId = :messageId")
     int releaseProcessing(@Param("id") String id, @Param("messageId") String messageId);
 
-    /** 조정 루프 대상 — READY / DEGRADED 클러스터. */
+    /** 조정 루프 대상: READY / DEGRADED 클러스터. */
     List<VmClusterEntity> findByProvisioningStatusIn(
             java.util.Collection<com.aipaas.anycloud.domain.provisioning.model.VmClusterStatus> statuses);
 

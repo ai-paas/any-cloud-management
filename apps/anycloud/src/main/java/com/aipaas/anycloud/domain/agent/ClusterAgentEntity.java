@@ -77,7 +77,7 @@ public class ClusterAgentEntity {
     @Column(name = "last_seen_at")
     private LocalDateTime lastSeenAt;
 
-    /** Agent → K8s API server 의 마지막 성공 호출 시각. Heartbeat 의 AgentHealth.last_k8s_api_ok 에서 갱신. last_seen_at 은 stream 레벨, 본 컬럼은 K8s 통신 가능 여부 — 둘 다 fresh 해야 cluster 실제 사용 가능. */
+    /** Agent → K8s API server 의 마지막 성공 호출 시각. Heartbeat 의 AgentHealth.last_k8s_api_ok 에서 갱신. last_seen_at 은 stream 레벨, 본 컬럼은 K8s 통신 가능 여부: 둘 다 fresh 해야 cluster 실제 사용 가능. */
     @Column(name = "last_k8s_api_ok_at")
     private LocalDateTime lastK8sApiOkAt;
 

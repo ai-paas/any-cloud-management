@@ -62,7 +62,7 @@ public record UnifiedClusterResponse(
                 WorkflowProgress workflowProgress) {
 
     /**
-     * VM cluster 의 workflow 단계 + percent. lastSuccessfulStep 기반 — currentStep 은 "지금 진행 중"
+     * VM cluster 의 workflow 단계 + percent. lastSuccessfulStep 기반: currentStep 은 "지금 진행 중"
      * 의미가 강해 step service 의 인생 주기와 race 가능. lastSuccessfulStep 은 commit 된 사실.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)

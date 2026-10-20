@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 /**
  * 웹 터미널이 노드에 붙을 때 쓰는 ssh 명령.
  *
- * <p>대화형 셸이라 원격에 TTY 를 붙인다. 비대화형 실행과 달리 명령을 붙이지 않는다 — 붙이면
+ * <p>대화형 셸이라 원격에 TTY 를 붙인다. 비대화형 실행과 달리 명령을 붙이지 않는다: 붙이면
  * 그것만 실행하고 끊긴다.
  */
 public final class NodeSshCommand {

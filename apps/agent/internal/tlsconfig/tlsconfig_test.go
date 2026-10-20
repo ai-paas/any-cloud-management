@@ -44,7 +44,7 @@ func TestDialOption_EnabledWithPath_Errors_WhenFileMissing(t *testing.T) {
 	}
 }
 
-// validPEM 은 X.509 self-signed test CA — pure go test 환경에서 cert pool 적재 가능한지 검증.
+// validPEM 은 X.509 self-signed test CA: pure go test 환경에서 cert pool 적재 가능한지 검증.
 // 본 cert 는 expire 됐을 수도 있지만 cert pool 적재 자체는 expiry 무관 (검증은 verify 시점).
 const validPEM = `-----BEGIN CERTIFICATE-----
 MIIBhTCCASugAwIBAgIQIRi6zePL6mKjOipn+dNuaTAKBggqhkjOPQQDAjASMRAw

@@ -26,7 +26,7 @@ public class AddonWorkflowProperties {
     private String uninstallRoutingKey = "addon.uninstall";
     private String deadLetterRoutingKey = "addon.dead-letter";
 
-    /** Listener 의 backoff retry 설정. helm install 은 ~5분 timeout — 그 1번이 retry 1회로 sufficient. */
+    /** Listener 의 backoff retry 설정. helm install 은 ~5분 timeout: 그 1번이 retry 1회로 sufficient. */
     private int maxAttempts = 3;
 
     private long initialIntervalMs = 5000L;

@@ -29,7 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li>{@link LocalDateTime} ↔ {@link Instant} (시스템 기본 ZoneId 기준)</li>
  * </ul>
  *
- * <p>Starter 가 본 bean 을 자동 inject — 별도 wiring 불필요.
+ * <p>Starter 가 본 bean 을 자동 inject: 별도 wiring 불필요.
  */
 @Slf4j
 @Component
@@ -87,7 +87,7 @@ public class JpaAgentIdentityStore implements AgentIdentityStore {
         ClusterAgentEntity e = opt.get();
         e.setIdentityTokenHash(newIdentityTokenHash);
         e.setExpiresAt(toLocal(newExpiresAt));
-        // revoke 풀기 — rotation 으로 다시 살아나는 의미.
+        // revoke 풀기: rotation 으로 다시 살아나는 의미.
         e.setRevokedAt(null);
         ClusterAgentEntity saved = repository.save(e);
         return toDomain(saved);

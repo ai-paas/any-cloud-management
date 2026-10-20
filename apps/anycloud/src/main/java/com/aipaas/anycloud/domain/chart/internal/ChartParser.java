@@ -37,7 +37,7 @@ public class ChartParser {
      * 걷어내면서 classpath 에서 사라졌으므로, 이 우회가 아직 필요한지는 재확인이 필요하다.
      */
     /**
-     * 공개 저장소의 index.yaml 은 크다 — prometheus-community 6.4MB, bitnami 는 더 크다.
+     * 공개 저장소의 index.yaml 은 크다: prometheus-community 6.4MB, bitnami 는 더 크다.
      * snakeyaml 기본 상한 3MiB 로는 거부되는데, 화면에는 차트가 없는 것처럼 보인다.
      */
     private static final int INDEX_CODE_POINT_LIMIT = 64 * 1024 * 1024;
@@ -53,7 +53,7 @@ public class ChartParser {
     private final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
     private final ObjectMapper jsonMapper = new ObjectMapper();
 
-    /** YAML String → JsonNode. Jackson YAMLFactory 우회 — 위 {@link #SNAKE_YAML} doc 참조. */
+    /** YAML String → JsonNode. Jackson YAMLFactory 우회: 위 {@link #SNAKE_YAML} doc 참조. */
     private JsonNode parseYamlToJsonNode(String yamlContent) {
         Object parsed = SNAKE_YAML.load(yamlContent);
         return jsonMapper.valueToTree(parsed);

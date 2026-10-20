@@ -113,7 +113,7 @@ public class ClusterAddonController {
                 .body(ApiSuccessResponse.of(HttpStatus.ACCEPTED.value(), "enqueued " + count + " addon(s)", count));
     }
 
-    /** — Addon 의 현재 active operation 식별자 단축 lookup. */
+    /** Addon 의 현재 active operation 식별자 단축 lookup. */
     @GetMapping("/{addonId}/operation")
     @Operation(
             summary = "Addon 의 latest operation 식별자",
@@ -133,6 +133,6 @@ public class ClusterAddonController {
                 new OperationView(opId, "INSTALL_ADDON", addon.state().name())));
     }
 
-    /** Minimal projection — frontend SSE subscribe 용 operation id + type/state. */
+    /** Minimal projection: frontend SSE subscribe 용 operation id + type/state. */
     public record OperationView(String id, String type, String state) {}
 }

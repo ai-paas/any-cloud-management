@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
  * 오래된 삭제 이력을 걷어낸다.
  *
  * <p>삭제는 감사, 비용 정산, 원인 분석을 위해 행을 남긴다. 그런데 정리하는 곳이 없어 영원히
- * 쌓였다 — operation, audit log, state history 에는 보관 기한이 있는데 vm_cluster 에만 없었다.
+ * 쌓였다: operation, audit log, state history 에는 보관 기한이 있는데 vm_cluster 에만 없었다.
  *
  * <p>삭제 시점에 requestConfig, rawOutputs, bootstrapLog 는 이미 비워지므로 남는 것은
  * 메타데이터뿐이다. 그래도 목록 조회가 매번 전체를 훑는 구조라 누적되면 같이 무거워진다.
@@ -27,7 +27,7 @@ public class DeletedVmClusterReaper {
 
     public DeletedVmClusterReaper(
             VmClusterRepository vmClusterRepository,
-            // 다른 정리 잡과 같은 규약 — retention-days(int). 혼자 Duration 을 쓰면 운영자가 헷갈린다.
+            // 다른 정리 잡과 같은 규약: retention-days(int). 혼자 Duration 을 쓰면 운영자가 헷갈린다.
             @Value("${anycloud.vm-cluster.deleted.retention-days:90}") int retentionDays) {
         this.vmClusterRepository = vmClusterRepository;
         this.retentionDays = retentionDays;

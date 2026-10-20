@@ -67,7 +67,7 @@ public class AgentRegistrationController {
             IssuedToken issued = bootstrapService.issueRegistrationToken(clusterId, installMode);
             String normalizedMode = installMode.toUpperCase();
 
-            // API_MANAGED 는 backend 가 자동 설치 — 사용자 helm install 명령 없음.
+            // API_MANAGED 는 backend 가 자동 설치: 사용자 helm install 명령 없음.
             // HELM_BOOTSTRAP / MANUAL 은 사용자가 직접 배포 → helm install snippet 제공.
             HelmInstallInstructionsResponse helmInstall =
                     "API_MANAGED".equals(normalizedMode) ? null : buildHelmInstructions(issued.token());

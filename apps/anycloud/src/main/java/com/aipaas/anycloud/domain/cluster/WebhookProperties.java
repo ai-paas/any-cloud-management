@@ -8,8 +8,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
- * cluster 상태 변화를 외부 포털로 알리는 webhook 설정입니다. 포털이 주기 조회 대신 이벤트로
- * 받게 하려는 것입니다.
+ * cluster 상태 변화를 외부 포털로 보내는 webhook 설정입니다. 포털이 주기적으로 조회하지 않아도
+ * 상태를 받습니다.
  *
  * <p>{@code events} 가 비어 있으면 전부 보냅니다. 값은 {@code vm-cluster.ready},
  * {@code vm-cluster.failed}, {@code vm-cluster.blocked}, {@code vm-cluster.deleted} 입니다.

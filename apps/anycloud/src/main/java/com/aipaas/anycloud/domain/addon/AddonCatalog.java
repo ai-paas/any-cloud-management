@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-/** Addon catalog — addons.yaml 의 memoized lookup. */
+/** Addon catalog: addons.yaml 의 memoized lookup. */
 @Component
 @EnableConfigurationProperties(AddonCatalogProperties.class)
 public class AddonCatalog {
@@ -22,7 +22,7 @@ public class AddonCatalog {
                 .collect(Collectors.toUnmodifiableMap(AddonCatalogProperties.Entry::id, e -> e, (a, b) -> a));
     }
 
-    /** 전체 catalog list — UI 가 checkbox 표시용. */
+    /** 전체 catalog list: UI 가 checkbox 표시용. */
     public List<AddonCatalogProperties.Entry> list() {
         return addons;
     }

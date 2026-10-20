@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-/** {@link ImpersonationInterceptor} 등록 — {@code security.auth.enabled=true} 일 때만 활성. */
+/** {@link ImpersonationInterceptor} 등록: {@code security.auth.enabled=true} 일 때만 활성. */
 @Slf4j
 @Configuration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)

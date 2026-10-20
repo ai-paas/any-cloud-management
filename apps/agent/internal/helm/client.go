@@ -1,6 +1,6 @@
-// Package helm — agent 의 Helm SDK wrapping.
+// Package helm: agent 의 Helm SDK wrapping.
 //
-// AllowList 검증은 dispatcher 에서 수행 — 본 package 는 "통과된" 명령만 실행.
+// AllowList 검증은 dispatcher 에서 수행: 본 package 는 "통과된" 명령만 실행.
 //
 // 동작 모드:
 //   - In-cluster: kube config 를 cluster ServiceAccount token 으로 생성
@@ -24,39 +24,39 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
-// Client — agent 가 사용하는 helm 명령 surface.
+// Client: agent 가 사용하는 helm 명령 surface.
 type Client interface {
-	// Install — chart 를 namespace 에 설치. values 는 string→any map (helm Values 와 동일).
+	// Install: chart 를 namespace 에 설치. values 는 string→any map (helm Values 와 동일).
 	Install(ctx context.Context, opts InstallOptions) (*Release, error)
 
-	// Uninstall — release 제거. release 가 없으면 NotFoundError. opts 의 KeepHistory / Wait 가
+	// Uninstall: release 제거. release 가 없으면 NotFoundError. opts 의 KeepHistory / Wait 가
 	// helm CLI 의 --keep-history / --wait 옵션 등가.
 	Uninstall(ctx context.Context, opts UninstallOptions) error
 
-	// List — namespace 의 모든 release. namespace 빈 문자열이면 all-namespaces.
+	// List: namespace 의 모든 release. namespace 빈 문자열이면 all-namespaces.
 	List(ctx context.Context, namespace string) ([]Release, error)
 
-	// Status — 단일 release 의 현재 상태. helm CLI `helm status` 등가. release 가 없으면 NotFound.
+	// Status: 단일 release 의 현재 상태. helm CLI `helm status` 등가. release 가 없으면 NotFound.
 	Status(ctx context.Context, namespace, releaseName string) (*Release, error)
 
-	// History — release 의 revision 이력. max <= 0 이면 helm 기본 (10). release 미존재면 NotFound.
+	// History: release 의 revision 이력. max <= 0 이면 helm 기본 (10). release 미존재면 NotFound.
 	History(ctx context.Context, namespace, releaseName string, max int) ([]HistoryRevision, error)
 
-	// Rollback — release 를 지정 revision 으로 복원. revision == 0 이면 직전 성공 revision.
+	// Rollback: release 를 지정 revision 으로 복원. revision == 0 이면 직전 성공 revision.
 	// rollback 후 status 호출 결과를 같이 반환 (caller 가 2 RTT 없이 한 번에 처리).
 	Rollback(ctx context.Context, opts RollbackOptions) (*Release, error)
 
-	// Upgrade — 기존 release 를 새 chart version / values 로 업그레이드.
+	// Upgrade: 기존 release 를 새 chart version / values 로 업그레이드.
 	// helm SDK 의 action.NewUpgrade 위임. install 과 같은 release lock 공유 (dispatcher 측).
-	// release 가 미존재면 NotFoundError 와 유사 형태로 반환 — caller 는 먼저 install 안내.
+	// release 가 미존재면 NotFoundError 와 유사 형태로 반환: caller 는 먼저 install 안내.
 	Upgrade(ctx context.Context, opts UpgradeOptions) (*Release, error)
 
-	// Settings — helm SDK 의 EnvSettings 반환. 외부에서 RepositoryConfig path / cache 등 접근
+	// Settings: helm SDK 의 EnvSettings 반환. 외부에서 RepositoryConfig path / cache 등 접근
 	// 필요 시 사용. SyncRepositories 가 사용.
 	Settings() *cli.EnvSettings
 }
 
-// UpgradeOptions — Helm upgrade 파라미터. InstallOptions 와 거의 동일하지만 atomic /
+// UpgradeOptions: Helm upgrade 파라미터. InstallOptions 와 거의 동일하지만 atomic /
 // reuseValues / resetValues 가 upgrade 특화.
 type UpgradeOptions struct {
 	ReleaseName    string
@@ -69,22 +69,22 @@ type UpgradeOptions struct {
 	Values         map[string]interface{}
 	Timeout        time.Duration
 
-	// Atomic — 실패 시 자동 rollback. helm CLI 의 --atomic.
+	// Atomic: 실패 시 자동 rollback. helm CLI 의 --atomic.
 	Atomic bool
 
-	// ReuseValues — 기존 release 의 values 보존 + 새 values merge. helm CLI 의 --reuse-values.
+	// ReuseValues: 기존 release 의 values 보존 + 새 values merge. helm CLI 의 --reuse-values.
 	// false 이면 새 values 만 사용 (기존 values 폐기).
 	ReuseValues bool
 
-	// ResetValues — 기존 values 모두 reset (chart default 만). helm CLI 의 --reset-values.
-	// ReuseValues / ResetValues mutually exclusive — true 이면 ResetValues 우선.
+	// ResetValues: 기존 values 모두 reset (chart default 만). helm CLI 의 --reset-values.
+	// ReuseValues / ResetValues mutually exclusive: true 이면 ResetValues 우선.
 	ResetValues bool
 
-	// MaxHistory — revision 보관 개수. 0 이면 helm 기본 (10).
+	// MaxHistory: revision 보관 개수. 0 이면 helm 기본 (10).
 	MaxHistory int
 }
 
-// HistoryRevision — single revision of a release (helm history -o json 의 한 element 등가).
+// HistoryRevision: single revision of a release (helm history -o json 의 한 element 등가).
 type HistoryRevision struct {
 	Revision    int
 	Updated     time.Time
@@ -94,7 +94,7 @@ type HistoryRevision struct {
 	Description string
 }
 
-// RollbackOptions — release rollback 파라미터.
+// RollbackOptions: release rollback 파라미터.
 type RollbackOptions struct {
 	ReleaseName string
 	Namespace   string
@@ -103,7 +103,7 @@ type RollbackOptions struct {
 	Timeout     time.Duration
 }
 
-// UninstallOptions — backend 의 ChartService.uninstallRelease 와 1:1 매핑.
+// UninstallOptions: backend 의 ChartService.uninstallRelease 와 1:1 매핑.
 // 빈 Timeout 은 5분 default (chart hook 으로 분 단위 가능성 cushion).
 type UninstallOptions struct {
 	ReleaseName string
@@ -113,7 +113,7 @@ type UninstallOptions struct {
 	Timeout     time.Duration
 }
 
-// InstallOptions — minimal surface. CreateNamespace 는 installer SA 권한 필요.
+// InstallOptions: minimal surface. CreateNamespace 는 installer SA 권한 필요.
 type InstallOptions struct {
 	ReleaseName string
 	Namespace   string
@@ -133,7 +133,7 @@ type InstallOptions struct {
 	Timeout         time.Duration
 }
 
-// Release — Helm release 의 summary 표현.
+// Release: Helm release 의 summary 표현.
 type Release struct {
 	Name       string
 	Namespace  string
@@ -145,7 +145,7 @@ type Release struct {
 	Updated    time.Time
 }
 
-// helmClient — production 구현. RESTClientGetter 는 cluster connection 정보.
+// helmClient: production 구현. RESTClientGetter 는 cluster connection 정보.
 //
 // actionConfig 는 function field 로 분리되어 있어 test 에서 in-memory `storage.Memory` +
 // fake `PrintingKubeClient` 를 주입한 *action.Configuration 을 반환하는 fake factory 를 set 해
@@ -159,7 +159,7 @@ type helmClient struct {
 	actionConfigFactory func(namespace string) (*action.Configuration, error)
 }
 
-// NewClient — k8s.Client 가 사용하는 rest.Config 를 그대로 받아 helm 의 RESTClientGetter 로 변환.
+// NewClient: k8s.Client 가 사용하는 rest.Config 를 그대로 받아 helm 의 RESTClientGetter 로 변환.
 // in-cluster restConfig 가 있으면 그것, 없으면 KubeConfigFlags 가 KUBECONFIG fallback.
 func NewClient(restConfigGetter genericclioptions.RESTClientGetter) Client {
 	settings := cli.New() // helm 의 env 설정 (HELM_REPOSITORY_CONFIG 등).
@@ -169,7 +169,7 @@ func NewClient(restConfigGetter genericclioptions.RESTClientGetter) Client {
 	}
 }
 
-// NewClientFromKubeFlags — KUBECONFIG 또는 in-cluster auto-detect 의 가장 단순한 entry.
+// NewClientFromKubeFlags: KUBECONFIG 또는 in-cluster auto-detect 의 가장 단순한 entry.
 // 본 agent 는 in-cluster 이므로 actual deployment 에서는 settings.RESTClientGetter() 가 적절.
 func NewClientFromKubeFlags(kubeconfigPath string) Client {
 	settings := cli.New()
@@ -182,12 +182,12 @@ func NewClientFromKubeFlags(kubeconfigPath string) Client {
 	}
 }
 
-// Settings — helm SDK EnvSettings 노출. SyncRepositories 가 RepositoryConfig path 와 cache 사용.
+// Settings: helm SDK EnvSettings 노출. SyncRepositories 가 RepositoryConfig path 와 cache 사용.
 func (c *helmClient) Settings() *cli.EnvSettings {
 	return c.settings
 }
 
-// actionConfig — factory dispatch. test 에서 set 한 fake factory 우선, 없으면
+// actionConfig: factory dispatch. test 에서 set 한 fake factory 우선, 없으면
 // production 의 actionConfigReal.
 func (c *helmClient) actionConfig(namespace string) (*action.Configuration, error) {
 	if c.actionConfigFactory != nil {
@@ -196,7 +196,7 @@ func (c *helmClient) actionConfig(namespace string) (*action.Configuration, erro
 	return c.actionConfigReal(namespace)
 }
 
-// actionConfigReal — production default. K8s RESTClientGetter 로 cfg.Init.
+// actionConfigReal: production default. K8s RESTClientGetter 로 cfg.Init.
 func (c *helmClient) actionConfigReal(namespace string) (*action.Configuration, error) {
 	cfg := new(action.Configuration)
 	driver := c.settings.Debug // helm secrets 드라이버 (default) — 별도 storage backend 설정 안 함.
@@ -206,7 +206,7 @@ func (c *helmClient) actionConfigReal(namespace string) (*action.Configuration, 
 	if err := cfg.Init(c.restGetter, namespace, driverEnv(driver), logger); err != nil {
 		return nil, fmt.Errorf("helm action config init: %w", err)
 	}
-	// KubeClient 의 namespace 는 RESTClientGetter 에서 온다 — in-cluster 면 agent 가 사는
+	// KubeClient 의 namespace 는 RESTClientGetter 에서 온다: in-cluster 면 agent 가 사는
 	// namespace 다. manifest 에 namespace 가 없는 자원이 release namespace 가 아니라 거기로
 	// 간다. gpu-operator 의 컨트롤러 Deployment 가 실제로 aipaas-system 에 떨어져, 설치는
 	// 성공했는데 ClusterPolicy 를 조정할 주체가 없었다.
@@ -241,8 +241,8 @@ func (c *helmClient) Install(ctx context.Context, opts InstallOptions) (*Release
 	install.Version = opts.Version
 	install.CreateNamespace = opts.CreateNamespace
 	// Chart locator + RepoURL 우선순위:
-	//   1순위: LocalChartPath (backend push) — URL 완전 우회.
-	//   2순위: RepoURL 명시 (backend lookup) — alias resolve 우회.
+	//   1순위: LocalChartPath (backend push). URL 완전 우회.
+	//   2순위: RepoURL 명시 (backend lookup). alias resolve 우회.
 	//   3순위: alias resolve fallback (보통 실패).
 	var chartLocator string
 	if opts.LocalChartPath != "" {
@@ -320,8 +320,8 @@ func (c *helmClient) List(ctx context.Context, namespace string) ([]Release, err
 	return out, nil
 }
 
-// Status — helm SDK 의 action.NewStatus 호출. release 가 없으면 driver.ErrReleaseNotFound 가
-// 그대로 wrap 되어 반환 — dispatcher 가 HELM_NOT_FOUND 로 매핑.
+// Status: helm SDK 의 action.NewStatus 호출. release 가 없으면 driver.ErrReleaseNotFound 가
+// 그대로 wrap 되어 반환: dispatcher 가 HELM_NOT_FOUND 로 매핑.
 func (c *helmClient) Status(ctx context.Context, namespace, releaseName string) (*Release, error) {
 	if releaseName == "" {
 		return nil, errors.New("Status: releaseName required")
@@ -338,7 +338,7 @@ func (c *helmClient) Status(ctx context.Context, namespace, releaseName string) 
 	return toSummary(rel), nil
 }
 
-// History — helm SDK action.NewHistory. 최신 revision 이 앞에 오도록 sort.
+// History: helm SDK action.NewHistory. 최신 revision 이 앞에 오도록 sort.
 func (c *helmClient) History(ctx context.Context, namespace, releaseName string, max int) ([]HistoryRevision, error) {
 	if releaseName == "" {
 		return nil, errors.New("History: releaseName required")
@@ -374,7 +374,7 @@ func (c *helmClient) History(ctx context.Context, namespace, releaseName string,
 	return out, nil
 }
 
-// Rollback — helm SDK action.NewRollback. revision 0 이면 helm 의 default (직전 성공 revision).
+// Rollback: helm SDK action.NewRollback. revision 0 이면 helm 의 default (직전 성공 revision).
 // rollback 자체는 응답 본문이 없으므로 후속 Status 호출로 결과 보완.
 func (c *helmClient) Rollback(ctx context.Context, opts RollbackOptions) (*Release, error) {
 	if opts.ReleaseName == "" {
@@ -395,12 +395,12 @@ func (c *helmClient) Rollback(ctx context.Context, opts RollbackOptions) (*Relea
 	if err := rb.Run(opts.ReleaseName); err != nil {
 		return nil, fmt.Errorf("rollback %s: %w", opts.ReleaseName, err)
 	}
-	// rollback 후 status — caller 가 결과를 즉시 확인할 수 있도록.
+	// rollback 후 status: caller 가 결과를 즉시 확인할 수 있도록.
 	return c.Status(ctx, opts.Namespace, opts.ReleaseName)
 }
 
-// Upgrade — helm SDK action.NewUpgrade 위임.
-// release 가 미존재면 helm SDK 가 "release not found" error 반환 — caller 가 분류.
+// Upgrade: helm SDK action.NewUpgrade 위임.
+// release 가 미존재면 helm SDK 가 "release not found" error 반환: caller 가 분류.
 func (c *helmClient) Upgrade(ctx context.Context, opts UpgradeOptions) (*Release, error) {
 	if opts.ReleaseName == "" || opts.Version == "" {
 		return nil, errors.New("Upgrade: releaseName/version required")
@@ -433,7 +433,7 @@ func (c *helmClient) Upgrade(ctx context.Context, opts UpgradeOptions) (*Release
 		upgrade.Timeout = 5 * time.Minute
 	}
 
-	// Chart locator — Install 과 동일 우선순위 (LocalChartPath → RepoURL → alias resolve).
+	// Chart locator: Install 과 동일 우선순위 (LocalChartPath → RepoURL → alias resolve).
 	var chartLocator string
 	if opts.LocalChartPath != "" {
 		chartLocator = opts.LocalChartPath
@@ -463,7 +463,7 @@ func (c *helmClient) Upgrade(ctx context.Context, opts UpgradeOptions) (*Release
 	return toSummary(rel), nil
 }
 
-// repoURL — alias (예: "prometheus-community") 인지 URL 인지 판단. URL 이면 그대로, alias 면 helm
+// repoURL: alias (예: "prometheus-community") 인지 URL 인지 판단. URL 이면 그대로, alias 면 helm
 // repo file 에서 resolve.
 func repoURL(settings *cli.EnvSettings, raw string) string {
 	if startsWithScheme(raw) {
@@ -512,8 +512,8 @@ func toSummary(r *release.Release) *Release {
 	return rel
 }
 
-// ErrNotFound — release 가 없는 경우.
+// ErrNotFound: release 가 없는 경우.
 var ErrNotFound = errors.New("release not found")
 
-// helm 의 default getter providers — chart repo download 에 사용 (init 안 하면 nil).
+// helm 의 default getter providers: chart repo download 에 사용 (init 안 하면 nil).
 var _ = getter.Providers{} // import 유지.

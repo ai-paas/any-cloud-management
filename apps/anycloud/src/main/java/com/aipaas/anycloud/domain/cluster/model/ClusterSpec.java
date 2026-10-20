@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * Source 별 typed cluster spec — Jackson discriminator 로 deserialize.
+ * Source 별 typed cluster spec: Jackson discriminator 로 deserialize.
  *
  * <pre>
  * sealed interface ClusterSpec permits VmClusterSpec, RegisteredClusterSpec { }

@@ -31,7 +31,7 @@ public record AgentProperties(Grpc grpc, Manifest manifest, Helm helm, ApiManage
             String caCert,
             /** SNI override. 비우면 public-endpoint 의 host 부분 자동 사용. */
             String serverName,
-            /** dev 편의 — production 절대 사용 금지. */
+            /** dev 편의: production 절대 사용 금지. */
             boolean insecureSkipVerify) {
         public Tls {
             if (caCert == null) caCert = "";
@@ -61,7 +61,7 @@ public record AgentProperties(Grpc grpc, Manifest manifest, Helm helm, ApiManage
     public record Helm(
             /** helm repo add 의 alias. */
             String repoAlias,
-            /** helm chart repository URL. 빈 값 = 미설정 — 자동 install 에는 영향 없음. */
+            /** helm chart repository URL. 빈 값 = 미설정: 자동 install 에는 영향 없음. */
             String repoUrl,
             String chartName,
             String chartVersion) {
@@ -77,7 +77,7 @@ public record AgentProperties(Grpc grpc, Manifest manifest, Helm helm, ApiManage
             /** Pulumi-provisioned cluster 에 backend 가 자동 agent 설치 여부. */
             boolean enabled) {}
 
-    // Policy record 제거. ConfigMap 이 단일 source. backend defaults 없음.
+    // Policy record 제거. ConfigMap 이 단일 출처. backend defaults 없음.
 
     // constructor가 nested null 경우 fallback default 채워주도록.
     public AgentProperties {

@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Workflow controller — RabbitMQ + workflow 활성 환경에서만 실제 동작.
+ * Workflow controller: RabbitMQ + workflow 활성 환경에서만 실제 동작.
  *
  * <p>Service bean 들을 {@link ObjectProvider} 로 받아 nullable 주입. RabbitMQ 미설정 / 접속 실패
  * 환경에서도 부팅은 통과하고, 본 endpoint 호출 시점에만 503 Service Unavailable 반환.
@@ -44,7 +44,7 @@ public class VmClusterWorkflowController {
         this.logServiceProvider = logServiceProvider;
     }
 
-    /** Service bean 없으면 503 — RabbitMQ 미설정 환경에서 endpoint 호출 시 graceful fail. */
+    /** Service bean 없으면 503: RabbitMQ 미설정 환경에서 endpoint 호출 시 graceful fail. */
     private VmClusterWorkflowQueueService queueService() {
         VmClusterWorkflowQueueService s = queueServiceProvider.getIfAvailable();
         if (s == null) {

@@ -8,7 +8,7 @@ import com.aipaas.anycloud.domain.chart.api.response.ChartStatusResponse;
 import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 
-/** Cluster 의 Helm release lifecycle — install / status / history / rollback / uninstall. */
+/** Cluster 의 Helm release lifecycle: install / status / history / rollback / uninstall. */
 public interface ChartService {
 
     /**
@@ -121,7 +121,7 @@ public interface ChartService {
      * 클러스터의 helm 릴리즈 리소스 목록을 조회합니다.
      * <p>
      * 가벼운 ref (kind/apiVersion/namespace/name) 만 반환. full spec/status 가 필요하면
-     * 호출자가 ref 별로 별도 GET. agent-only path — fall-through
+     * 호출자가 ref 별로 별도 GET. agent-only path: fall-through
      * (HelmReleaseScanner) 는 제거됨. agent session 없거나 호출 실패 시 503 AGENT_UNAVAILABLE.
      *
      * @param clusterName 클러스터 이름
@@ -145,12 +145,12 @@ public interface ChartService {
             String clusterName, String releaseName, String namespace, boolean keepHistory, boolean waitForReady);
 
     /**
-     * 3 — Helm release 를 새 chart version / values 로 업그레이드.
+     * 3: Helm release 를 새 chart version / values 로 업그레이드.
      *
      * <p>Install 과 동일하게 helm_repo 의 URL lookup + chart .tgz pre-fetch (air-gapped 지원).
      * Agent 측 release lock 공유로 install/upgrade/uninstall 직렬화.
      *
-     * <p>release 미존재 시 503 AGENT_UNAVAILABLE 또는 400 HELM_NOT_FOUND — caller 는 install 먼저.
+     * <p>release 미존재 시 503 AGENT_UNAVAILABLE 또는 400 HELM_NOT_FOUND: caller 는 install 먼저.
      *
      * @param atomic       실패 시 자동 rollback (helm CLI 의 --atomic). production 권장.
      * @param reuseValues  기존 release 의 values 보존 + 새 values merge. 부분 변경 시 유용.

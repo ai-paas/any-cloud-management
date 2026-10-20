@@ -1,6 +1,6 @@
-// Package backup — backup-agent 의 etcd / PKI 백업 실행기.
+// Package backup: backup-agent 의 etcd / PKI 백업 실행기.
 //
-// etcd.go — `etcdctl snapshot save <tmpfile>` 실행 후 file 을 server-streaming chunk 로 전송.
+// etcd.go: `etcdctl snapshot save <tmpfile>` 실행 후 file 을 server-streaming chunk 로 전송.
 package backup
 
 import (
@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-// EtcdDefaults — kubeadm 기본 cert 경로.
+// EtcdDefaults: kubeadm 기본 cert 경로.
 const (
 	DefaultEtcdEndpoint = "https://127.0.0.1:2379"
 	DefaultEtcdCa       = "/etc/kubernetes/pki/etcd/ca.crt"
@@ -26,7 +26,7 @@ const (
 	MaxChunkSize        = 4 * 1024 * 1024 // 4 MB (gRPC default max msg size)
 )
 
-// EtcdBackupOptions — caller 가 채워서 RunEtcdBackup 에 전달.
+// EtcdBackupOptions: caller 가 채워서 RunEtcdBackup 에 전달.
 type EtcdBackupOptions struct {
 	Endpoint       string
 	CaCertPath     string
@@ -56,15 +56,15 @@ func (o *EtcdBackupOptions) applyDefaults() {
 	}
 }
 
-// ChunkSink — 한 chunk 를 caller 에게 push. last chunk 는 metadata 포함.
+// ChunkSink: 한 chunk 를 caller 에게 push. last chunk 는 metadata 포함.
 // gRPC server-streaming 의 stream.Send 에 wrapping.
 type ChunkSink func(seq int, payload []byte, isLast bool, totalSha256 string, totalSize int64, metadata string) error
 
-// RunEtcdBackup — etcdctl snapshot save 실행 후 결과 file 을 ChunkSink 로 chunk 전송.
+// RunEtcdBackup: etcdctl snapshot save 실행 후 결과 file 을 ChunkSink 로 chunk 전송.
 //
 // 절차:
 //  1. mktemp /tmp/etcd-backup-*.db
-//  2. etcdctl snapshot save <tmpfile>  — environment ETCDCTL_API=3 강제
+//  2. etcdctl snapshot save <tmpfile>: environment ETCDCTL_API=3 강제
 //  3. file 을 chunk 단위로 읽어 sink.Send
 //  4. last chunk 에 SHA-256 + size + etcd_version metadata
 //  5. tmpfile 삭제
@@ -81,7 +81,7 @@ func RunEtcdBackup(ctx context.Context, opts EtcdBackupOptions, sink ChunkSink) 
 	_ = tmpFile.Close()
 	defer os.Remove(tmpPath)
 
-	// 2. etcdctl snapshot save — V3 API 필수.
+	// 2. etcdctl snapshot save: V3 API 필수.
 	cmd := exec.CommandContext(ctx, "etcdctl",
 		"--endpoints", opts.Endpoint,
 		"--cacert", opts.CaCertPath,
@@ -113,7 +113,7 @@ func RunEtcdBackup(ctx context.Context, opts EtcdBackupOptions, sink ChunkSink) 
 	return streamFileChunks(f, opts.ChunkSize, totalSize, fmt.Sprintf("etcd_version=%s", etcdVersion), sink)
 }
 
-// streamFileChunks — 공통 헬퍼. file 을 chunk 별 sink 호출 + SHA 누적.
+// streamFileChunks: 공통 헬퍼. file 을 chunk 별 sink 호출 + SHA 누적.
 func streamFileChunks(r io.Reader, chunkSize int, totalSize int64, metadata string, sink ChunkSink) error {
 	hash := sha256.New()
 	buf := make([]byte, chunkSize)
@@ -143,7 +143,7 @@ func streamFileChunks(r io.Reader, chunkSize int, totalSize int64, metadata stri
 		}
 		if readErr != nil {
 			if readErr == io.EOF {
-				// payload 0 인 마지막 chunk — 빈 chunk 라도 last 표식만 전송.
+				// payload 0 인 마지막 chunk: 빈 chunk 라도 last 표식만 전송.
 				seq++
 				sha := hex.EncodeToString(hash.Sum(nil))
 				return sink(seq, nil, true, sha, totalSize, metadata)
@@ -153,7 +153,7 @@ func streamFileChunks(r io.Reader, chunkSize int, totalSize int64, metadata stri
 	}
 }
 
-// detectEtcdVersion — etcdctl version 또는 endpoint 자체에서 추출. 실패 시 "unknown".
+// detectEtcdVersion: etcdctl version 또는 endpoint 자체에서 추출. 실패 시 "unknown".
 func detectEtcdVersion(ctx context.Context, opts EtcdBackupOptions) string {
 	cmd := exec.CommandContext(ctx, "etcdctl",
 		"--endpoints", opts.Endpoint,
@@ -166,7 +166,7 @@ func detectEtcdVersion(ctx context.Context, opts EtcdBackupOptions) string {
 	if err != nil {
 		return "unknown"
 	}
-	// "127.0.0.1:2379, abc, 3.5.10, ..." — 3번째 token.
+	// "127.0.0.1:2379, abc, 3.5.10, ...": 3번째 token.
 	parts := strings.Split(strings.TrimSpace(string(out)), ",")
 	if len(parts) >= 3 {
 		return strings.TrimSpace(parts[2])
@@ -181,7 +181,7 @@ func truncateBytes(b []byte, max int) string {
 	return string(b[:max]) + "...(truncated)"
 }
 
-// EnsureControlPlane — 본 노드가 etcd 가 동작하는 control-plane 인지 best-effort 확인.
+// EnsureControlPlane: 본 노드가 etcd 가 동작하는 control-plane 인지 best-effort 확인.
 // /etc/kubernetes/manifests/etcd.yaml 존재 여부 + etcd cert 디렉토리 확인.
 func EnsureControlPlane() error {
 	if _, err := os.Stat("/etc/kubernetes/manifests/etcd.yaml"); err != nil {

@@ -16,7 +16,7 @@ public final class RequestedAddons {
         Map<String, AddonType> entries = new LinkedHashMap<>();
         /*
          * GPU 노드를 골랐으면 드라이버 스택도 함께 올린다. 화면이 보내는 플래그에만 기대면
-         * 실제로 그랬다 — GPU 인스턴스로 만들어도 operator 가 없어 GPU 를 쓸 수 없었다.
+         * 실제로 그랬다: GPU 인스턴스로 만들어도 operator 가 없어 GPU 를 쓸 수 없었다.
          * 명시로 끈 경우는 존중한다.
          */
         if (!Boolean.FALSE.equals(spec.getEnableGpuOperator())
@@ -26,7 +26,7 @@ public final class RequestedAddons {
         if (Boolean.TRUE.equals(spec.getEnableIngress())) {
             entries.put("ingress-nginx", AddonType.INGRESS_NGINX);
         }
-        // null 은 켜짐으로 읽지 않는다 — 이 값이 없던 시절의 클러스터가 "애드온 누락" 으로
+        // null 은 켜짐으로 읽지 않는다: 이 값이 없던 시절의 클러스터가 "애드온 누락" 으로
         // DEGRADED 가 된다. 새 요청에는 기본값이 채워져 들어온다.
         if (Boolean.TRUE.equals(spec.getEnableMonitoring())) {
             entries.put("kube-prometheus-stack", AddonType.MONITORING);

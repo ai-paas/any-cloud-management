@@ -350,7 +350,7 @@ public class AgentCommandRouter {
     /**
      * APPLY_AGENT_CONFIG — backend 가 새 allowlist + resource_policy snapshot 을 agent 의 ConfigMap
      * ({@code aipaas-agent-allowlist}) 으로 push. agent 가 K8s API 로 update → 기존 ConfigMap watch 가
-     * 자동 reload. backend 에는 DB 저장 안 함 (ConfigMap 이 single source of truth).
+     * 자동 reload. backend 에는 DB 저장 안 함 (ConfigMap 이 단일 출처).
      *
      * <p>4개 JSON array string + 1개 YAML string 파라미터 — agent dispatcher 가 parse 후 write.
      *

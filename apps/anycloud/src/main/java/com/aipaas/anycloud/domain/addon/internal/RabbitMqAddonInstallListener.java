@@ -32,19 +32,19 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "addon-workflow", name = "worker-enabled", havingValue = "true", matchIfMissing = true)
 // bootstrap-worker container 는 SPRING_MAIN_WEB_APPLICATION_TYPE=none 으로
-// servlet/gRPC 비활성 — agent session 부재라 helm command 송신 불가. servlet mode (= backend container)
+// servlet/gRPC 비활성: agent session 부재라 helm command 송신 불가. servlet mode (= backend container)
 // 에서만 listener 활성. -fix 와 동일 패턴. addon-workflow.worker-enabled toggle 보다 환경
-// (web vs non-web) 기반 자동 감지가 정합 — 운영자가 worker config 까지 신경 쓸 필요 없음.
+// (web vs non-web) 기반 자동 감지가 정합: 운영자가 worker config 까지 신경 쓸 필요 없음.
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class RabbitMqAddonInstallListener {
 
     private final ClusterAddonRepository addonRepository;
     private final AddonInstallerRegistry installerRegistry;
     private final OperationService operationService;
-    // optional webhook on state change. ObjectProvider 로 lazy 주입 — bean 부재 시 skip.
+    // optional webhook on state change. ObjectProvider 로 lazy 주입: bean 부재 시 skip.
     private final org.springframework.beans.factory.ObjectProvider<AddonWebhookPublisher> webhookProvider;
 
-    // @RabbitListener 의 placeholder 는 Spring property resolver — AddonWorkflowProperties
+    // @RabbitListener 의 placeholder 는 Spring property resolver: AddonWorkflowProperties
     // 의 Java default 와 별개. application.yaml 에 명시 안 되어 있어도 SpEL fallback (`: default`) 으로
     // resolve. fallback 값은 AddonWorkflowProperties default 와 동일 (drift 방지).
     @RabbitListener(queues = "${addon-workflow.install-queue:addon.install}")
@@ -78,7 +78,7 @@ public class RabbitMqAddonInstallListener {
         }
         ClusterAddonEntity addon = opt.get();
 
-        // idempotency — 동시 enqueue 또는 이미 SUCCEEDED 인 경우 skip.
+        // idempotency: 동시 enqueue 또는 이미 SUCCEEDED 인 경우 skip.
         if (addon.getState() == AddonState.SUCCEEDED) {
             log.info(
                     "AddonInstallListener: already SUCCEEDED cluster={} addon={} — skip",
@@ -122,7 +122,7 @@ public class RabbitMqAddonInstallListener {
                     addon.getReleaseName());
         } catch (RuntimeException e) {
             fail(addon, e.toString(), message.operationId());
-            // rethrow — retry interceptor 가 backoff 후 재시도, maxAttempts 초과 시 DLQ.
+            // rethrow: retry interceptor 가 backoff 후 재시도, maxAttempts 초과 시 DLQ.
             throw e;
         }
     }

@@ -62,7 +62,7 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
      * credentialId 가 주어지면 해당 credential 을 decrypt 하여 provider 에 전달, 없으면 빈 map 반환.
      * 빈 map 을 받은 provider 는 자체적으로 환경변수에서 키를 읽는 default 동작으로 fallback.
      *
-     * <p>credentialId 가 invalid (DB 미존재 / provider 불일치 / required 키 누락) 면 throw —
+     * <p>credentialId 가 invalid (DB 미존재 / provider 불일치 / required 키 누락) 면 throw:
      * 사용자가 잘못된 credentialId 를 보냈을 때 빠르게 알려야 한다 (silent fallback 보다 fail-fast).
      */
     private Map<String, String> resolveCredentials(String provider, String credentialId) {
@@ -101,7 +101,7 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
      * 이미지는 조회 경로가 따로 있어 선택지가 비어 있었다. 필수인데 고를 값이 없어 사용자가
      * OCID 나 빌드 날짜가 붙은 ID 를 직접 받아 적어야 했다.
      *
-     * <p>{@code id} 를 쓴다 — emitter 가 그대로 CSP 에 넘기는 값이다.
+     * <p>{@code id} 를 쓴다: emitter 가 그대로 CSP 에 넘기는 값이다.
      */
     private List<ConfigOption> osImageOptions(VmOptionsProvider provider, Map<String, String> creds, String region) {
         return provider.listImages(creds, region, UBUNTU_KEYWORD, null, null, OS_IMAGE_LIMIT).stream()
@@ -127,7 +127,7 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
         } catch (RuntimeException e) {
             /*
              * 조회 하나가 실패해도 스키마는 내려보낸다. 예외를 올리면 폼이 전부 비어
-             * "이 CSP 는 설정할 것이 없다"로 보인다 — OpenStack 이 그렇게 15개 필드를 통째로 잃었다.
+             * "이 CSP 는 설정할 것이 없다"로 보인다: OpenStack 이 그렇게 15개 필드를 통째로 잃었다.
              */
             log.warn("설정 선택지를 채우지 못했다 key={} region={}: {}", key.key(), region, e.toString());
             return key;

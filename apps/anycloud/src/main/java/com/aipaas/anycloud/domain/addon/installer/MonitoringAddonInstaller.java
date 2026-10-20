@@ -19,10 +19,10 @@ import org.springframework.stereotype.Component;
  * </ol>
  *
  * <p>kube-prometheus CRD (PrometheusRule, ServiceMonitor, Probe,
- * AlertmanagerConfig 등) 신규 등록 직후 KindResolver cache flush — {@link AbstractHelmAddonInstaller#install}
+ * AlertmanagerConfig 등) 신규 등록 직후 KindResolver cache flush: {@link AbstractHelmAddonInstaller#install}
  * 가 모든 addon 에 대해 공통으로 invalidate 처리하므로 별도 override 불필요.
  *
- * <p>두 starter bean 모두 optional — 부재 시 skip (release 자체는 정상 deployed).
+ * <p>두 starter bean 모두 optional: 부재 시 skip (release 자체는 정상 deployed).
  */
 @Slf4j
 @Component
@@ -66,7 +66,7 @@ public class MonitoringAddonInstaller extends AbstractHelmAddonInstaller {
                     addon.getClusterId(),
                     e.toString());
         }
-        // GPU dashboard 는 GPU 노드 보유 cluster 에만 의미 있음 — importer 측이 자체 detect 가정.
+        // GPU dashboard 는 GPU 노드 보유 cluster 에만 의미 있음. importer 측이 자체 detect 가정.
         try {
             importer.importGpuOverview(addon.getClusterId());
         } catch (RuntimeException e) {

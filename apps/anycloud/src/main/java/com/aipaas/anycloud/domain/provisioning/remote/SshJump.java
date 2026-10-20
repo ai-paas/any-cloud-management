@@ -8,7 +8,7 @@ import java.util.Map;
  * <p>백엔드 전역 설정이 아니라 자격증명에 딸린다. OpenStack 설치마다 bastion 이 다르고 AWS, OCI 는
  * 공인 IP 라 필요 없다. bastion 비밀번호는 비밀이라 yaml 평문이 아니라 암호화되는 자격증명에 둔다.
  *
- * <p>로컬 터널({@code ssh -L})로는 안 된다 — 백엔드는 Pulumi outputs 의 노드 IP 로 직접 붙어서
+ * <p>로컬 터널({@code ssh -L})로는 안 된다. 백엔드는 Pulumi outputs 의 노드 IP 로 직접 붙어서
  * 터널 포트를 모른다.
  */
 public record SshJump(String host, int port, String user, String password) {

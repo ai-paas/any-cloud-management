@@ -24,13 +24,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * VM cluster read-only query — list / status. preflight 검증은 {@link VmClusterPreflightService} 로 위임.
+ * VM cluster read-only query: list / status. preflight 검증은 {@link VmClusterPreflightService} 로 위임.
  *
  * <p>책임:
  * <ul>
- *   <li>{@link #listVmClusters} — filter spec + payload conversion</li>
- *   <li>{@link #getVmClusterStatus} — single cluster status</li>
- *   <li>{@link #preflightVmCluster} — delegate</li>
+ *   <li>{@link #listVmClusters}: filter spec + payload conversion</li>
+ *   <li>{@link #getVmClusterStatus}: single cluster status</li>
+ *   <li>{@link #preflightVmCluster}: delegate</li>
  * </ul>
  */
 @Service
@@ -72,7 +72,7 @@ public class VmClusterQueryServiceImpl implements VmClusterQueryService {
             String provider, String environment, String status, boolean includeDeleted) {
         VmClusterStatus normalizedStatus = normalizeStatus(status);
         // delete 가 audit/history 위해 row 를 보존하므로 기본 목록에서는 감춘다. includeDeleted 는
-        // "함께 보기" 다 — 삭제된 것만 남기면 살아 있는 것을 보려고 두 번 조회해야 한다.
+        // "함께 보기" 다: 삭제된 것만 남기면 살아 있는 것을 보려고 두 번 조회해야 한다.
         Specification<VmClusterEntity> baseSpec = Specification.where(equalsIgnoreCase("clusterProvider", provider))
                 .and(equalsIgnoreCase("environment", environment));
         Specification<VmClusterEntity> specification = normalizedStatus == null

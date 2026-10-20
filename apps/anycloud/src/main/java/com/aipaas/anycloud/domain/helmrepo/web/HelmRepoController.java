@@ -48,7 +48,7 @@ public class HelmRepoController {
                 @ApiResponse(responseCode = "500", description = "서버 오류")
             })
     public ResponseEntity<ApiSuccessResponse<PagedData<HelmRepoListResponse>>> getHelmRepos() {
-        // Domain method 사용 — JPA proxy / lazy loading 노출 제거.
+        // Domain method 사용: JPA proxy / lazy loading 노출 제거.
         return new ResponseEntity<>(
                 ApiSuccessResponse.of(
                         HttpStatus.OK.value(),
@@ -73,7 +73,7 @@ public class HelmRepoController {
             @Parameter(description = "Helm repository 이름", required = true, example = "chart-museum-external")
                     @PathVariable
                     String repoName) {
-        // Domain method 사용 — 미존재 시 404.
+        // Domain method 사용: 미존재 시 404.
         var domain = helmRepoService
                 .findDomainByName(repoName)
                 .orElseThrow(() -> new com.aipaas.anycloud.common.error.exception.EntityNotFoundException(

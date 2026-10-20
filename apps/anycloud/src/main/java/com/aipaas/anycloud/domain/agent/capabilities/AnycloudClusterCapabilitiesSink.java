@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
  * 에서 변경 감지 후에만 호출하지만, 이 구현도 추가 dirty check (DB 값 == 목표값 이면 skip) 로 race
  * 발생 시 redundant write 회피.
  *
- * <p>예외 발생 시 swallow + log — listener 의 try/catch 와 더불어 2 단계 안전망.
+ * <p>예외는 로그만 남기고 삼킵니다. listener 쪽 try/catch 와 합쳐 두 군데에서 막습니다.
  */
 @Slf4j
 @Component
@@ -49,7 +49,7 @@ public class AnycloudClusterCapabilitiesSink implements ClusterCapabilitiesSink 
             ClusterEntity entity = opt.get();
             Boolean current = entity.getHasGpuNodes();
             if (current != null && current.booleanValue() == value) {
-                // 이미 같은 값 — skip.
+                // 이미 같은 값: skip.
                 return;
             }
             entity.setHasGpuNodes(value);

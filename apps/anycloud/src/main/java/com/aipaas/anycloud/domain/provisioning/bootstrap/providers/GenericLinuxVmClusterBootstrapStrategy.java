@@ -10,14 +10,14 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
     private static final String CONFIG_JOIN_TOKEN = "anycloud-k8s:joinToken";
 
     /**
-     * 준비 대기 상한 — 5초 간격 60회로 유닛당 5분, 두 유닛 합쳐 최대 10분.
+     * 준비 대기 상한: 5초 간격 60회로 유닛당 5분, 두 유닛 합쳐 최대 10분.
      *
      * <p>RabbitMQ 의 delivery ack 타임아웃(30분)보다 충분히 짧아야 한다. 넘기면 채널이 끊기고
      * 메시지가 재전달되어 같은 노드에 부트스트랩이 중복으로 붙는다. 실제로 그렇게 됐다.
      */
     private static final int PREPARATION_WAIT_ATTEMPTS = 60;
 
-    /** apiserver 대기 상한 — 10초 간격 30회로 5분. 준비 대기와 같은 이유로 ack 타임아웃보다 짧게 둔다. */
+    /** apiserver 대기 상한: 10초 간격 30회로 5분. 준비 대기와 같은 이유로 ack 타임아웃보다 짧게 둔다. */
     private static final int API_SERVER_WAIT_ATTEMPTS = 30;
 
     private static final int API_SERVER_WAIT_INTERVAL_SEC = 10;
@@ -53,8 +53,8 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
         String podCidr = firstNonBlank(snapshot.getPodCidr(), DEFAULT_POD_CIDR);
         String serviceCidr = firstNonBlank(snapshot.getServiceCidr(), "10.96.0.0/12");
         String joinToken = requiredJoinToken(snapshot);
-        // HA mode (masterCount >= 2) — kubeadm init 에 --control-plane-endpoint + --upload-certs.
-        // lead master 의 IP 자체를 endpoint 로 사용 (LB/VIP 미적용 — 본 PoC 한계).
+        // HA mode (masterCount >= 2). kubeadm init 에 --control-plane-endpoint + --upload-certs.
+        // lead master 의 IP 자체를 endpoint 로 사용 (LB/VIP 미적용: 본 PoC 한계).
         boolean multiMaster = masterCount(snapshot) >= 2;
         StringBuilder cmd = new StringBuilder(512);
         cmd.append("if [ ! -f /etc/kubernetes/admin.conf ]; then ");
@@ -62,14 +62,14 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
         cmd.append("sudo kubeadm init ");
         cmd.append("--apiserver-advertise-address=\"${LOCAL_IP}\" ");
         if (multiMaster) {
-            // LB/VIP 미사용 — lead master IP 가 그대로 endpoint. 진짜 HA 는 LB 필요.
+            // LB/VIP 미사용: lead master IP 가 그대로 endpoint. 진짜 HA 는 LB 필요.
             cmd.append("--control-plane-endpoint=\"${LOCAL_IP}:6443\" ");
             cmd.append("--upload-certs ");
         }
         if (apiServerPublicIp != null && !apiServerPublicIp.isBlank()) {
             /*
              * 인증서 SAN 에는 advertise 주소만 들어간다. 내려받은 kubeconfig 가 공인 IP 를 가리키면
-             * 노드가 다 올라와 있어도 TLS 이름 검증에서 막힌다 — 발급 후에는 고칠 수 없어 여기서 넣는다.
+             * 노드가 다 올라와 있어도 TLS 이름 검증에서 막힌다: 발급 후에는 고칠 수 없어 여기서 넣는다.
              */
             cmd.append("--apiserver-cert-extra-sans=")
                     .append(shellWord(apiServerPublicIp))
@@ -159,7 +159,7 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
     }
 
     /**
-     * CNI 만 남긴다. GPU 와 ingress 는 컴포넌트가 소유한다 — 셸에서 설치하면 실패가 {@code || true}
+     * CNI 만 남긴다. GPU 와 ingress 는 컴포넌트가 소유한다. 셸에서 설치하면 실패가 {@code || true}
      * 로 사라지고, 재시도할 주체도 없다.
      */
     @Override
@@ -172,7 +172,7 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
     /**
      * Calico 의 stock manifest 는 pool CIDR 이 주석 처리돼 있고, 그 상태의 내장 기본값이
      * {@code 192.168.0.0/16} 이다. 온프레미스 망이 대부분 그 안에 들어가 파드가 게이트웨이와
-     * DNS 로 나가지 못한다 — kubeadm 에 넘긴 {@code --pod-network-cidr} 은 Calico 가 보지 않는다.
+     * DNS 로 나가지 못한다. kubeadm 에 넘긴 {@code --pod-network-cidr} 은 Calico 가 보지 않는다.
      *
      * <p>주석을 풀어 실제 pod CIDR 을 심는다. upstream 이 문구를 바꾸면 치환이 조용히 빗나가
      * 같은 장애가 재현되므로, 적용 전에 치환 결과를 확인하고 아니면 중단한다.
@@ -213,7 +213,7 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
      * 파드 트래픽을 IP-in-IP 대신 VXLAN 으로 감쌀지.
      *
      * <p>IBM VPC 는 프로토콜 4(IP-in-IP)를 전달하지 않는다. 보안그룹이 허용해도 패브릭이 버려서
-     * 노드 간 파드 통신만 조용히 끊긴다 — 노드 통신과 파드의 인터넷 접속은 멀쩡해 원인이 늦게 드러난다.
+     * 노드 간 파드 통신만 조용히 끊긴다: 노드 통신과 파드의 인터넷 접속은 멀쩡해 원인이 늦게 드러난다.
      */
     protected boolean usesVxlanEncapsulation() {
         return false;
@@ -229,7 +229,7 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
             "https://raw.githubusercontent.com/projectcalico/calico/v3.28.2/manifests/calico.yaml";
 
     /**
-     * Snapshot 의 joinToken — 없으면 fail-fast. 과거엔 공유 하드코딩 token
+     * Snapshot 의 joinToken: 없으면 fail-fast. 과거엔 공유 하드코딩 token
      * ({@code abcdef.0123456789abcdef}) 으로 silent fallback 했으나, 모든 cluster 가 같은 token 을
      * 공유하면 node 탈취 시 타 cluster join 이 가능해지는 보안 결함. 정상 생성 경로는 backend 가
      * 항상 random token 을 snapshot 에 영속화하므로 여기 도달 시 누락 = snapshot 손상.

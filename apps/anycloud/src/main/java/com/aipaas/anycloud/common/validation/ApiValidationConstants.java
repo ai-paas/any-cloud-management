@@ -31,10 +31,10 @@ public final class ApiValidationConstants {
     /** K8s resource kind (pods, services, deployments, ...). 소문자 알파벳. */
     public static final String K8S_KIND_PATTERN = "^[a-z][a-z0-9]{0,49}$";
 
-    /** credential ID — UUID 변형 또는 사람이 식별 가능한 prefix-postfix. */
+    /** credential ID: UUID 변형 또는 사람이 식별 가능한 prefix-postfix. */
     public static final String CREDENTIAL_ID_PATTERN = "^[A-Za-z0-9_-]{1,64}$";
 
-    /** Operation ID — {@code op-<base32 12 char>} 형식. OperationServiceImpl#generateId 와 일치. */
+    /** Operation ID: {@code op-<base32 12 char>} 형식. OperationServiceImpl#generateId 와 일치. */
     public static final String OPERATION_ID_PATTERN = "^op-[A-Za-z0-9]{1,32}$";
 
     /** description / 자유 텍스트 길이 상한. */

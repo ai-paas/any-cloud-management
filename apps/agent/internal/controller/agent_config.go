@@ -3,10 +3,10 @@
 // 본 파일이 처리하는 명령:
 //   - GET_AGENT_CONFIG : agent 의 in-memory allowlist + resource_policy snapshot 직렬화
 //
-// 운영자가 ConfigMap 을 edit 한 후 agent 가 watch 로 reload 했는지 검증할 때 사용 —
+// 운영자가 ConfigMap 을 edit 한 후 agent 가 watch 로 reload 했는지 검증할 때 사용:
 // last_reload_at 과 configmap_resource_version 으로 동기화 상태 확인 가능.
 //
-// AllowList: 명령 자체 allowlist 만 검사 (자기 정책 노출 — read-only).
+// AllowList: 명령 자체 allowlist 만 검사 (자기 정책 노출: read-only).
 //
 // helper:
 //   - buildResourcePolicyStruct : ResourcePolicy → wire shape (map) 변환
@@ -23,12 +23,12 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-// GET_AGENT_CONFIG — agent 의 in-memory allowlist + resource_policy snapshot 직렬화.
+// GET_AGENT_CONFIG: agent 의 in-memory allowlist + resource_policy snapshot 직렬화.
 //
-// 운영자가 ConfigMap 을 edit 한 후 agent 가 watch 로 reload 했는지 검증할 때 사용 — last_reload_at
+// 운영자가 ConfigMap 을 edit 한 후 agent 가 watch 로 reload 했는지 검증할 때 사용: last_reload_at
 // 과 configmap_resource_version 으로 동기화 상태 확인 가능.
 //
-// AllowList: 명령 자체 allowlist 만 검사 (자기 정책 노출 — read-only).
+// AllowList: 명령 자체 allowlist 만 검사 (자기 정책 노출: read-only).
 func (d *Dispatcher) getAgentConfig(_ context.Context, _ *agentv1.CommandRequest) *agentv1.CommandResponse {
 	if d.allowlist == nil {
 		return errorResponse(agentv1.Status_AGENT_UNAVAILABLE, "ALLOWLIST_NIL",
@@ -63,7 +63,7 @@ func (d *Dispatcher) getAgentConfig(_ context.Context, _ *agentv1.CommandRequest
 
 	allowedCharts := make([]interface{}, 0, len(snapshot.Charts))
 	for _, r := range snapshot.Charts {
-		// 직렬화 형식 — ConfigMap 의 입력 형식 그대로 (round-trip-able).
+		// 직렬화 형식: ConfigMap 의 입력 형식 그대로 (round-trip-able).
 		s := r.Repo + "/" + r.Chart + ":" + r.MinVersion
 		if r.MinVersion != r.MaxVersion {
 			s += "-" + r.MaxVersion
@@ -96,8 +96,8 @@ func (d *Dispatcher) getAgentConfig(_ context.Context, _ *agentv1.CommandRequest
 	return okResponse(data)
 }
 
-// buildResourcePolicyStruct — ResourcePolicy 를 GET_AGENT_CONFIG 의 wire shape (map) 로 변환.
-// nil 정책 (legacy) 은 mode="" + 빈 슬라이스로 노출 — UI 가 "정책 미설정" 으로 인지.
+// buildResourcePolicyStruct: ResourcePolicy 를 GET_AGENT_CONFIG 의 wire shape (map) 로 변환.
+// nil 정책 (legacy) 은 mode="" + 빈 슬라이스로 노출: UI 가 "정책 미설정" 으로 인지.
 func buildResourcePolicyStruct(rp *config.ResourcePolicy) map[string]interface{} {
 	out := map[string]interface{}{
 		"mode":  "",
@@ -125,7 +125,7 @@ func buildResourcePolicyStruct(rp *config.ResourcePolicy) map[string]interface{}
 	return out
 }
 
-// sortInterfaceStrings — interface{} slice 의 string value 만 정렬. map 의 set iteration 이
+// sortInterfaceStrings: interface{} slice 의 string value 만 정렬. map 의 set iteration 이
 // random order 이므로 응답 결정성을 위해 사용.
 func sortInterfaceStrings(s []interface{}) {
 	sortStable(s, func(i, j int) bool {

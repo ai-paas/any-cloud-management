@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
  * PATCH /v1/clusters/{name} body. 클러스터의 state 변경 (현재는 scale 만 지원).
  *
  * <pre>
- * # OK — 워커 수 조절
+ * # OK: 워커 수 조절
  * {"spec": {"workerCount": 5}}
  * </pre>
  */

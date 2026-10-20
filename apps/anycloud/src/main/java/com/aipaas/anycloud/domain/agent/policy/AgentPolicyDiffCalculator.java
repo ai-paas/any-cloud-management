@@ -61,7 +61,7 @@ public class AgentPolicyDiffCalculator {
     }
 
     /**
-     * Request → 가상 snapshot 구성 — validator 가 정책 적용 *전* 미리 검증할 수 있게.
+     * Request → 가상 snapshot 구성: validator 가 정책 적용 *전* 미리 검증할 수 있게.
      *
      * <p>{@code "*"} 가 있으면 {@code allowAllNamespaces / allowAllExecNamespaces} flag 도 true.
      */
@@ -93,7 +93,7 @@ public class AgentPolicyDiffCalculator {
 
     /**
      * {@link AgentPolicySnapshot.ResourcePolicy} → YAML string. mode 가 비어있으면 빈 string 반환
-     * (legacy 동작 — 정책 비활성).
+     * (legacy 동작: 정책 비활성).
      */
     public String toYamlOrEmpty(AgentPolicySnapshot.ResourcePolicy policy) {
         if (policy == null || policy.mode() == null || policy.mode().isBlank()) {
@@ -135,7 +135,7 @@ public class AgentPolicyDiffCalculator {
     // =================== DTO records ===================
 
     /**
-     * 한 list field 의 diff — added/removed 두 list.
+     * 한 list field 의 diff: added/removed 두 list.
      */
     public record FieldDiff(List<String> added, List<String> removed) {
 
@@ -154,7 +154,7 @@ public class AgentPolicyDiffCalculator {
     /**
      * 전체 policy diff. 4개 list field + resource_policy + allow-all flag 변경 여부.
      *
-     * <p>{@code missingBefore=true} — before snapshot fetch 실패. response 에 "diff 불가" 표시.
+     * <p>{@code missingBefore=true}: before snapshot fetch 실패. response 에 "diff 불가" 표시.
      */
     public record PolicyDiff(
             FieldDiff namespaces,

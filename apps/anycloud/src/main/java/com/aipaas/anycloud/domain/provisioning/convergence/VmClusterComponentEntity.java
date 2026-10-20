@@ -40,7 +40,7 @@ public class VmClusterComponentEntity implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
-    // "vmcc-" + UUID = 41자. Flyway 의 varchar(64) 와 반드시 같아야 한다 — ddl-auto 로 스키마를
+    // "vmcc-" + UUID = 41자. Flyway 의 varchar(64) 와 반드시 같아야 한다. ddl-auto 로 스키마를
     // 만드는 환경에서 값이 작으면 insert 가 항상 깨진다.
     @Column(name = "id", nullable = false, length = 64)
     private String id;

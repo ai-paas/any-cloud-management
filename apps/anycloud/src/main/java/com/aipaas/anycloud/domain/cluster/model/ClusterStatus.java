@@ -24,7 +24,7 @@ public enum ClusterStatus {
     /** 초기 상태 또는 health 정보 부재. */
     UNKNOWN,
 
-    /** Agent-first 등록 — agent backfill 대기 중. */
+    /** Agent-first 등록: agent backfill 대기 중. */
     AGENT_PENDING,
 
     /** agent ACTIVE. */
@@ -49,7 +49,7 @@ public enum ClusterStatus {
 
     static {
         Map<ClusterStatus, Set<ClusterStatus>> m = new EnumMap<>(ClusterStatus.class);
-        // 모든 transition 매우 lenient — registered cluster 의 health 는 빈번히 변동.
+        // 허용 범위를 넓게 잡는다. registered cluster 의 health 는 수시로 바뀐다.
         m.put(UNKNOWN, EnumSet.of(AGENT_PENDING, ACTIVE, INACTIVE));
         m.put(AGENT_PENDING, EnumSet.of(ACTIVE, INACTIVE, UNKNOWN));
         m.put(ACTIVE, EnumSet.of(INACTIVE, UNKNOWN));

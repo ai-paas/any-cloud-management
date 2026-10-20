@@ -27,10 +27,10 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Audited {
 
-    /** Audit log 의 action — 표준 명명: {@code <domain>.<verb>}. 예: {@code "agentCert.revoke"}. */
+    /** Audit log 의 action: 표준 명명: {@code <domain>.<verb>}. 예: {@code "agentCert.revoke"}. */
     String action();
 
-    /** Audit log 의 resourceType — 보통 domain (예: {@code "clusterAgent"}, {@code "backendCa"}). */
+    /** Audit log 의 resourceType: 보통 domain (예: {@code "clusterAgent"}, {@code "backendCa"}). */
     String resourceType();
 
     /** SpEL 표현. 보통 {@code "#clusterName"} 같은 path variable. blank 이면 null. */

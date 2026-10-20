@@ -16,8 +16,8 @@ import lombok.NoArgsConstructor;
  * <p>
  * values 입력은 다음 중 <b>최대 하나</b> 만 제공:
  * <ul>
- *   <li>{@code values} — JSON object (권장). 백엔드가 YAML 로 직렬화하여 helm 에 전달.</li>
- *   <li>{@code valuesYaml} — values.yaml 문자열 (짧은 케이스). 들여쓰기 escape 부담.</li>
+ *   <li>{@code values}: JSON object (권장). 백엔드가 YAML 로 직렬화하여 helm 에 전달.</li>
+ *   <li>{@code valuesYaml}: values.yaml 문자열 (짧은 케이스). 들여쓰기 escape 부담.</li>
  * </ul>
  * 큰 values 파일은 multipart/form-data 변형 endpoint 사용 권장.
  */

@@ -10,7 +10,7 @@ import org.springframework.data.repository.query.Param;
 public interface AuditLogRepository extends JpaRepository<AuditLogEntity, String> {
 
     /**
-     * TTL retention — 지정 시각 이전의 audit log 일괄 삭제. row 수 (UI 노출) 한정 + DB 디스크 사용량 cap.
+     * TTL retention: 지정 시각 이전의 audit log 일괄 삭제. row 수 (UI 노출) 한정 + DB 디스크 사용량 cap.
      * scheduler 가 호출.
      *
      * @return 삭제된 row 수.

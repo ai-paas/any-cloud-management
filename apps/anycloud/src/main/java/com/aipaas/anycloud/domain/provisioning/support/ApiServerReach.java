@@ -12,7 +12,7 @@ import java.net.URI;
 public enum ApiServerReach {
     /** 공인 주소이고 점프도 필요 없다. */
     DIRECT,
-    /** API 서버 주소가 사설 대역이다 — 같은 망이나 VPN 에서만 닿는다. */
+    /** API 서버 주소가 사설 대역이다. 같은 망이나 VPN 에서만 닿는다. */
     PRIVATE_NETWORK,
     /** 노드에 점프 호스트를 거쳐야 닿는다. API 서버도 같은 망 안에 있다. */
     VIA_BASTION;
@@ -38,7 +38,7 @@ public enum ApiServerReach {
     /**
      * RFC1918 과 링크로컬.
      *
-     * <p>이름으로 판단하지 않는다 — DNS 를 타면 조회 실패가 곧 "사설" 로 읽혀 공인 클러스터까지
+     * <p>이름으로 판단하지 않는다: DNS 를 타면 조회 실패가 곧 "사설" 로 읽혀 공인 클러스터까지
      * 경고가 붙는다. 숫자 주소일 때만 본다.
      */
     private static boolean isPrivate(String host) {

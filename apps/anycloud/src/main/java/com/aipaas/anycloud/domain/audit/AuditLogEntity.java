@@ -35,13 +35,13 @@ public class AuditLogEntity {
     private String clientIp;
 
     /**
-     * V25 — nullable. service-layer {@code @Audited} 가 HTTP context 없이 호출되는
+     * V25: nullable. service-layer {@code @Audited} 가 HTTP context 없이 호출되는
      * 경우 (scheduler / @Async / @AuditAspect 가 controller 외에서 호출) NULL 허용.
      */
     @Column(name = "http_method", length = 8)
     private String httpMethod;
 
-    /** V25 — nullable. 위와 동일 사유. */
+    /** V25: nullable. 위와 동일 사유. */
     @Column(name = "path", length = 512)
     private String path;
 

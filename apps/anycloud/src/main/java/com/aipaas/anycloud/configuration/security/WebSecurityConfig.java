@@ -13,14 +13,14 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
- * 정적 토큰 인증 SecurityFilterChain — {@code security.auth.enabled=true} 일 때만 활성.
+ * 정적 토큰 인증 SecurityFilterChain: {@code security.auth.enabled=true} 일 때만 활성.
  * OFF 일 때는 {@link WebSecurityDisabledConfig} 가 permitAll chain 으로 대체.
  */
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
 // (follow-up): worker mode (web-application-type=none) 에서 HttpSecurity bean
-// 없어 fail 회피 — servlet web 일 때만 활성.
+// 없어 fail 회피: servlet web 일 때만 활성.
 @org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication(
         type = org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnProperty(name = "security.auth.enabled", havingValue = "true")

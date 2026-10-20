@@ -34,12 +34,12 @@ public class AgentApiManagedInstaller {
     private final KubeService kubeService;
     private final MeterRegistry meterRegistry;
     private final AgentProperties agentProperties;
-    // VM(PULUMI) 프로비저닝 cluster 판별 — admin kubeconfig SA 를 그 cluster 에만 chart 로 생성.
+    // VM(PULUMI) 프로비저닝 cluster 판별: admin kubeconfig SA 를 그 cluster 에만 chart 로 생성.
     private final com.aipaas.anycloud.domain.cluster.ClusterRepository clusterRepository;
 
     /**
-     * agent.manifest.namespace — manifest sub-resource 들의 default namespace.
-     * 본 chart 는 모든 resource 의 namespace 가 명시되어 있어 사실상 fallback 용.
+     * manifest 안에서 namespace 가 비어 있는 resource 에만 적용합니다.
+     * 지금 chart 는 모든 resource 에 namespace 를 명시합니다.
      */
     @Value("${agent.manifest.namespace:aipaas-system}")
     private String agentNamespace;
@@ -140,7 +140,7 @@ public class AgentApiManagedInstaller {
     }
 
     /**
-     * VM(PULUMI) 프로비저닝 cluster 여부 — 전체 권한 admin SA(aipaas-admin)를 chart 에 포함할지 결정.
+     * VM(PULUMI) 프로비저닝 cluster 여부: 전체 권한 admin SA(aipaas-admin)를 chart 에 포함할지 결정.
      * registered/IMPORTED cluster 는 false (사용자 자격 사용, cluster-admin SA 미생성).
      * cluster 조회 실패 시 보수적으로 false.
      */
@@ -152,11 +152,11 @@ public class AgentApiManagedInstaller {
     }
 
     /**
-     * Agent-led registration 의 핵심 — token 만 발급하고 manifest apply 는 사용자에게 위임.
+     * Agent-led registration 의 핵심: token 만 발급하고 manifest apply 는 사용자에게 위임.
      * {@link #install} 의 JWT 발급 부분만 떼어 helm install / kubectl apply 명령 문자열을 함께 만든다.
      *
      * @param clusterName 대상 cluster (ClusterEntity.id)
-     * @return Bootstrap 정보 — POST /v1/clusters 응답에 포함되어 사용자가 즉시 install 실행 가능.
+     * @return Bootstrap 정보: POST /v1/clusters 응답에 포함되어 사용자가 즉시 install 실행 가능.
      */
     @com.aipaas.anycloud.domain.audit.Audited(
             action = "agent.bootstrap.prepare",
@@ -166,7 +166,7 @@ public class AgentApiManagedInstaller {
     public BootstrapInfo prepareBootstrap(String clusterName) {
         IssuedToken issued = bootstrapService.issueRegistrationToken(clusterName, "USER_MANAGED");
         String backendEndpoint = agentProperties.grpc().publicEndpoint();
-        // docker hub / OCI image registry 의 helm chart — backend image 와 동일 패턴.
+        // docker hub / OCI image registry 의 helm chart: backend image 와 동일 패턴.
         // 사용자가 BACKEND_DOCKER_USER / BACKEND_IMAGE_TAG override 한 경우 chart 도 같은 namespace.
         String helmInstallCommand = String.format(
                 "helm install cluster-agent \\\n" + "  --namespace aipaas-system --create-namespace \\\n"
@@ -188,10 +188,10 @@ public class AgentApiManagedInstaller {
     /**
      * kubectl apply 명령의 curl base URL 도출. 우선순위:
      * <ol>
-     *   <li>{@code anycloud.public-url} property — 운영에서 reverse-proxy / gateway 경유 URL 명시</li>
-     *   <li>현재 HTTP 요청의 scheme://host[:port] — dev / single-host 자동 해결 (X-Forwarded-* 헤더가
-     *       설정되어 있으면 framework 가 자동 반영 — server.forward-headers-strategy=FRAMEWORK 권장)</li>
-     *   <li>localhost:8888 — request context 외부 호출 (테스트 등) fallback</li>
+     *   <li>{@code anycloud.public-url} property: 운영에서 reverse-proxy / gateway 경유 URL 명시</li>
+     *   <li>현재 HTTP 요청의 scheme://host[:port]. dev / single-host 자동 해결 (X-Forwarded-* 헤더가
+     *       설정되어 있으면 framework 가 자동 반영: server.forward-headers-strategy=FRAMEWORK 권장)</li>
+     *   <li>localhost:8888: request context 외부 호출 (테스트 등) fallback</li>
      * </ol>
      */
     private String resolveBackendBaseUrl() {
@@ -205,7 +205,7 @@ public class AgentApiManagedInstaller {
                     .build()
                     .toUriString();
         } catch (IllegalStateException e) {
-            // request context 외부 (e.g., 비동기 worker) — fallback default
+            // request context 외부 (e.g., 비동기 worker). fallback default
             return "http://localhost:8888";
         }
     }

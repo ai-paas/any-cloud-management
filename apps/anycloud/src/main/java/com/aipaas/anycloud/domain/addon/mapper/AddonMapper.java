@@ -10,10 +10,10 @@ import org.mapstruct.Mapping;
 /**
  * ClusterAddonEntity → AddonStatusResponse 매핑.
  *
- * <p>Entity 의 {@code addonType} 만 response 의 {@code type} 으로 rename — wire 호환성 (frontend
+ * <p>Entity 의 {@code addonType} 만 response 의 {@code type} 으로 rename: wire 호환성 (frontend
  * 가 {@code type} 으로 분기) 때문. 나머지 필드는 동일 이름이라 MapStruct 자동 매핑.
  *
- * <p>{@code pendingReason} 은 entity 에 없는 계산 필드 — auto-map 에서 ignore 하고,
+ * <p>{@code pendingReason} 은 entity 에 없는 계산 필드: auto-map 에서 ignore 하고,
  * cluster status 를 받는 overload 가 사유를 계산해 주입한다 (가시성 보장).
  */
 @Mapper(componentModel = "spring")
@@ -33,7 +33,7 @@ public interface AddonMapper {
         if (reason == null) {
             return r;
         }
-        // record 불변 — pendingReason 만 채운 복사본 재구성.
+        // record 불변: pendingReason 만 채운 복사본 재구성.
         return new AddonStatusResponse(
                 r.id(),
                 r.clusterId(),

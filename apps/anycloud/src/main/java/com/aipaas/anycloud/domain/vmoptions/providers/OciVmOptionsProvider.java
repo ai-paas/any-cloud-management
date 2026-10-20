@@ -113,7 +113,7 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
                     && !s.shapeConfigOptions().isNull();
             /*
              * Flex shape 의 ocpus/memoryInGBs 는 최소값이다. 그대로 쓰면 VM.Standard.A1.Flex 가
-             * 1 vCPU 로 보고돼 "최소 2 vCPU" 조건에서 걸러진다 — 실제로는 올려 잡을 수 있는데도.
+             * 1 vCPU 로 보고돼 "최소 2 vCPU" 조건에서 걸러진다: 실제로는 올려 잡을 수 있는데도.
              */
             results.add(VmOptionSpec.builder()
                     .provider(getProvider().getCanonicalName())
@@ -159,7 +159,7 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
         String resolvedRegion = resolveRegion(region);
         /*
          * OCID 를 키워드로 받으면 목록을 뒤지지 않고 그 이미지를 바로 읽는다. 리전 카탈로그는
-         * 수백 건이라 한 페이지에 안 들어오고, 이름 검색으로는 OCID 가 걸리지 않는다 — 멀쩡한
+         * 수백 건이라 한 페이지에 안 들어오고, 이름 검색으로는 OCID 가 걸리지 않는다: 멀쩡한
          * 이미지가 "없는 이미지" 로 판정돼 생성이 막혔다.
          */
         if (isImageOcid(keyword)) {
@@ -224,7 +224,7 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
      * 쓰는 엔드포인트만 {@code {"items":[...]}} 로 감싼다. 감싼 형태만 읽으면 배열 응답이 빈 목록이
      * 되어 "자원이 없다" 로 잘못 보고된다.
      *
-     * <p>{@link ObjectMapper#convertValue} 로 element 단위 deserialize — schema mismatch 가
+     * <p>{@link ObjectMapper#convertValue} 로 element 단위 deserialize: schema mismatch 가
      * Jackson 의 명시적 에러로 잡힘 (JsonNode silent miss 와 대조적).
      */
     <T> List<T> listItems(JsonNode response, Class<T> type) {
@@ -245,7 +245,7 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     /**
      * compartment OCID 는 콘솔을 열어 베껴 와야 하는 값이다. 계정에서 읽어 이름과 함께 보여 준다.
      *
-     * <p>테넌시 자체도 compartment 다 — 루트에 바로 만드는 구성이 흔해 목록 맨 앞에 둔다.
+     * <p>테넌시 자체도 compartment 다: 루트에 바로 만드는 구성이 흔해 목록 맨 앞에 둔다.
      */
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsFallback")
@@ -320,7 +320,7 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
             HttpHeaders headers = buildHeaders(url);
             /*
              * URI 로 넘긴다. String 오버로드는 URI 템플릿으로 취급해 이미 인코딩된 값을 한 번 더
-             * 인코딩한다 — operatingSystem 의 %20 이 %2520 이 되어 아무것도 걸리지 않는다.
+             * 인코딩한다. operatingSystem 의 %20 이 %2520 이 되어 아무것도 걸리지 않는다.
              */
             ResponseEntity<String> response = restTemplate.exchange(
                     java.net.URI.create(url), HttpMethod.GET, new HttpEntity<>(headers), String.class);
@@ -546,7 +546,7 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
 
     /*
      * 조립이 끝난 URL 을 다시 확인한다. base 만 검사하면 뒤에 이어 붙인 식별자가 host 를
-     * 바꾸지 못한다는 보장이 URL 조립 코드에만 남는다 — 요청에는 서명이 붙으므로 목적지가
+     * 바꾸지 못한다는 보장이 URL 조립 코드에만 남는다: 요청에는 서명이 붙으므로 목적지가
      * 바뀌면 자격증명이 따라간다.
      */
     private String requireOciHost(String url) {
@@ -714,7 +714,7 @@ public class OciVmOptionsProvider extends AbstractVmOptionsProvider {
     @SuppressWarnings("unused")
     /**
      * 목록이 Windows 로 먼저 채워져 Ubuntu 가 첫 페이지에 오지 않는다. 이름으로만 거르면 결과가
-     * 비어 "이 리전엔 Ubuntu 가 없다" 로 보인다 — OCI 는 배포판을 operatingSystem 으로 준다.
+     * 비어 "이 리전엔 Ubuntu 가 없다" 로 보인다: OCI 는 배포판을 operatingSystem 으로 준다.
      */
     private String operatingSystemFor(String keyword) {
         return StringUtils.hasText(keyword)

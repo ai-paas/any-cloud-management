@@ -22,17 +22,17 @@ import (
 )
 
 const (
-	// helmResourcePolicyAnnotation — Helm 이 release uninstall 시 본 annotation 을 보면 K8s 자원을
+	// helmResourcePolicyAnnotation: Helm 이 release uninstall 시 본 annotation 을 보면 K8s 자원을
 	// 보존. ClusterAgent ConfigMap 이 사용자의 정책 (allowlist) 을 담고 있어 helm upgrade 사이클
 	// 에서 분실되면 안 됨.
 	helmResourcePolicyAnnotation = "helm.sh/resource-policy"
 	helmResourcePolicyKeep       = "keep"
 )
 
-// ensureAgentConfigAnnotations — annotation 만 멱등적으로 추가. data 미변경. 자세한 contract 는
+// ensureAgentConfigAnnotations: annotation 만 멱등적으로 추가. data 미변경. 자세한 contract 는
 // file header 참조.
 //
-// AllowList: 호출 진입 시 commandAllowed (dispatcher.Handle) 가 이미 검사 — 본 handler 에서 추가
+// AllowList: 호출 진입 시 commandAllowed (dispatcher.Handle) 가 이미 검사: 본 handler 에서 추가
 // 검사 불필요. 단 K8s client nil 은 production 빌드 sanity check (test 에선 mock 주입).
 func (d *Dispatcher) ensureAgentConfigAnnotations(ctx context.Context, _ *agentv1.CommandRequest) *agentv1.CommandResponse {
 	if d.kube == nil {
@@ -67,7 +67,7 @@ func (d *Dispatcher) ensureAgentConfigAnnotations(ctx context.Context, _ *agentv
 				fmt.Sprintf("get configmap: %s", err.Error()))
 		}
 
-		// 이미 적용된 경우 — Update API 호출 없이 즉시 성공. 멱등성 핵심.
+		// 이미 적용된 경우: Update API 호출 없이 즉시 성공. 멱등성 핵심.
 		if cm.Annotations != nil && cm.Annotations[helmResourcePolicyAnnotation] == helmResourcePolicyKeep {
 			alreadyPresent = true
 			newRV = cm.GetResourceVersion()

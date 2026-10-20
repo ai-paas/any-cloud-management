@@ -54,11 +54,11 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
 
     /*
      * 요청마다 달라지는 조건이라 필드로 두면 동시 요청이 서로를 덮는다. 아래 메서드 체인에만
-     * 쓰이므로 ThreadLocal 대신 인자로 넘긴다 — 여기서는 호출 깊이가 얕다.
+     * 쓰이므로 ThreadLocal 대신 인자로 넘긴다: 여기서는 호출 깊이가 얕다.
      */
 
     /**
-     * @param provider 비우면 전부. 하나만 주면 그 CSP 만 조회한다 — 화면이 CSP 별로 따로
+     * @param provider 비우면 전부. 하나만 주면 그 CSP 만 조회한다. 화면이 CSP 별로 따로
      *     물어 한 줄씩 채우려면 나머지를 같이 풀면 안 된다
      */
     @Override
@@ -182,12 +182,12 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
         }
         /*
          * 리전에 있다고 모든 존에 있는 것이 아니다. 존을 고르는 CSP 는 실제로 뜨는 존으로
-         * 바꿔 준다 — 그러지 않으면 기본값이 늘 실패하는 조합을 준다.
+         * 바꿔 준다: 그러지 않으면 기본값이 늘 실패하는 조합을 준다.
          */
         if (providerSpec.containsKey("zone")) {
             /*
              * 그 타입이 어느 존에도 없으면 다음 후보로 넘어간다. 한 번에 포기하면 리전에 쓸 수
-             * 있는 타입이 있는데도 "만들 수 없다" 가 된다 — Alibaba 서울은 ga1 이 없고 gn7i 가
+             * 있는 타입이 있는데도 "만들 수 없다" 가 된다. Alibaba 서울은 ga1 이 없고 gn7i 가
              * 있는데, 후보가 작은 것부터라 ga1 이 먼저 잡힌다.
              */
             Set<String> tried = new java.util.LinkedHashSet<>();
@@ -209,7 +209,7 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
         }
 
         /*
-         * control-plane 에는 GPU 가 필요 없다. worker 와 같은 타입으로 두면 값만 두 배가 된다 —
+         * control-plane 에는 GPU 가 필요 없다. worker 와 같은 타입으로 두면 값만 두 배가 된다.
          * GPU 인스턴스는 일반 타입의 10배가 넘는다.
          */
         String masterSpec = spec.specId();
@@ -231,7 +231,7 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
      * 권장 리전을 먼저 본다.
      *
      * <p>계정이 그 리전을 구독하지 않았을 수 있어, 실제 조회 결과에 있는지 확인하고 없으면 첫
-     * 번째로 내려간다 — OCI 권장은 서울인데 이 테넌시는 도쿄만 구독돼 있다.
+     * 번째로 내려간다: OCI 권장은 서울인데 이 테넌시는 도쿄만 구독돼 있다.
      */
     private String pickRegion(String provider, String credentialId, VmOptionProvider described) {
         List<VmOptionRegion> regions = vmOptionsService.getRegions(provider, credentialId);
@@ -347,7 +347,7 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
         List<VmOptionSpec> all = vmOptionsService.getSpecs(name, credentialId, region, null, false, SPEC_SCAN_LIMIT);
         if (all.isEmpty()) {
             /*
-             * Proxmox 는 인스턴스 타입 목록이 없다 — "코어-메모리MiB" 규약이라 권장값이 곧 값이다.
+             * Proxmox 는 인스턴스 타입 목록이 없다. "코어-메모리MiB" 규약이라 권장값이 곧 값이다.
              * 그래서 조건을 맞출 수도 없다. GPU 를 요청했는데 그냥 권장값을 주면 GPU 없는 노드를
              * 준비됨으로 보여주게 된다.
              */
@@ -379,7 +379,7 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
     /**
      * 최소 사양을 넘는 것 중 작은 것부터.
      *
-     * <p>가장 작은 것을 그냥 고르면 1vCPU 2GB 가 잡힌다 — kubeadm preflight 를 건너뛰게 해둬서
+     * <p>가장 작은 것을 그냥 고르면 1vCPU 2GB 가 잡힌다: kubeadm preflight 를 건너뛰게 해둬서
      * 생성은 되지만 control-plane 이 제대로 뜨지 않는다.
      */
     private List<String> orderedCandidates(List<VmOptionSpec> specs, SpecFilter filter) {
@@ -399,7 +399,7 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
      * 서버로 보낼 값.
      *
      * <p>OpenStack 은 {@code id} 가 UUID 이고 emitter 가 받는 것은 flavor 이름이다. 이름이 있으면
-     * 이름을 쓴다 — AWS 처럼 둘이 같은 CSP 는 어느 쪽을 써도 결과가 같다.
+     * 이름을 쓴다: AWS 처럼 둘이 같은 CSP 는 어느 쪽을 써도 결과가 같다.
      */
     private String specValue(VmOptionSpec spec) {
         return StringUtils.hasText(spec.getName()) ? spec.getName() : spec.getId();
@@ -430,7 +430,7 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
     /**
      * 기본 인스턴스 타입은 x86 이다. ARM 이미지를 얹으면 부팅하지 못한다.
      *
-     * <p>OCI 는 이름에 {@code aarch64} 를 쓴다 — arm 만 걸러서는 잡히지 않아, x86 shape 에
+     * <p>OCI 는 이름에 {@code aarch64} 를 쓴다: arm 만 걸러서는 잡히지 않아, x86 shape 에
      * aarch64 이미지가 기본값으로 붙었다.
      */
     private boolean isArmImage(String label) {

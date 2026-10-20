@@ -93,7 +93,7 @@ public class AdminAgentController {
     }
 
     /**
-     * Request body — {@code threshold} duration (e.g. "PT90S", "PT2M") 또는
+     * Request body: {@code threshold} duration (e.g. "PT90S", "PT2M") 또는
      * {@code thresholdSeconds} long. 둘 중 하나만 필요.
      */
     public record ThresholdRequest(String threshold, Long thresholdSeconds) {}

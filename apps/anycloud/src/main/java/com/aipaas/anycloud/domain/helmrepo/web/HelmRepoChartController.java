@@ -22,10 +22,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Helm repository 의 chart catalog. chart 는 repo 의 자식 — URL 가 계층을 표현.
+ * Helm repository 의 chart catalog. chart 는 repo 의 자식: URL 가 계층을 표현.
  * <ul>
- *   <li>GET /v1/helm-repos/{repo}/charts                — chart list</li>
- *   <li>GET /v1/helm-repos/{repo}/charts/{chart}        — detail</li>
+ *   <li>GET /v1/helm-repos/{repo}/charts: chart list</li>
+ *   <li>GET /v1/helm-repos/{repo}/charts/{chart}: detail</li>
  *   <li>GET /v1/helm-repos/{repo}/charts/{chart}/values</li>
  *   <li>GET /v1/helm-repos/{repo}/charts/{chart}/readme</li>
  * </ul>

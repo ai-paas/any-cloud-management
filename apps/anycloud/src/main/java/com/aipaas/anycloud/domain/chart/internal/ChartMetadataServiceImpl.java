@@ -21,7 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-/** Helm chart 메타데이터 조회 구현 — metadata 4 method + helper. */
+/** Helm chart 메타데이터 조회 구현: metadata 4 method + helper. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -64,7 +64,7 @@ public class ChartMetadataServiceImpl implements ChartMetadataService {
             String indexUrl = repository.getUrl().endsWith("/")
                     ? repository.getUrl() + "index.yaml"
                     : repository.getUrl() + "/index.yaml";
-            // decoding 강제 — getChartList 와 동일 회피 (ChartMuseum charset 미명시).
+            // decoding 강제: getChartList 와 동일 회피 (ChartMuseum charset 미명시).
             String body = fetchIndexYaml(indexUrl, repository);
             return chartParser.parseChartDetail(repositoryName, chartName, version, body);
 
@@ -121,7 +121,7 @@ public class ChartMetadataServiceImpl implements ChartMetadataService {
     /**
      * Helm repository 의 {@code index.yaml} 을 String 으로 download.
      *
-     * <p>{@code byte[]} 로 받은 후 로 명시 변환 — RestTemplate 의 StringHttpMessageConverter 가
+     * <p>{@code byte[]} 로 받은 후 로 명시 변환: RestTemplate 의 StringHttpMessageConverter 가
      * response Content-Type 에 charset 가 없으면 default -1 로 디코딩하는 RFC 2616 동작으로
      * 인해 multi-byte 문자 (예: ChartMuseum 의 em-dash {@code —} U+2014 = {@code 0xE2 0x80 0x94})
      * 가 깨져 SnakeYAML 이 "special characters are not allowed" 로 reject 하던 버그 회피.

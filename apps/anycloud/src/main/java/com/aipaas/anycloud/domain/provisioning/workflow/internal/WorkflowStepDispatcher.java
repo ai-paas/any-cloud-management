@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
  * <p>BOOTSTRAP 최악 예산이 170분인데 AMQP ack 창은 그보다 짧다. 소비자 스레드 위에서 끝까지 돌면
  * 창을 넘긴 순간 채널이 닫히고 메시지가 되돌아와 같은 작업이 처음부터 다시 시작한다.
  *
- * <p>여기서는 소유권만 잡고 바로 돌려준다 — 메시지는 즉시 ack 된다. 크래시로 실행이 사라지는 것은
+ * <p>여기서는 소유권만 잡고 바로 돌려준다: 메시지는 즉시 ack 된다. 크래시로 실행이 사라지는 것은
  * {@code StuckWorkflowStepReaper} 가 다시 민다.
  */
 @Slf4j

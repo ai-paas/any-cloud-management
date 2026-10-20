@@ -18,7 +18,7 @@ public interface WorkflowMessageLogRepository extends JpaRepository<WorkflowMess
     /**
      * 보관 기간이 지난 행을 지운다.
      *
-     * <p>{@code startedAt} 이 아니라 {@code createdAt} 기준이다 — startedAt 은 메시지가 만들어진
+     * <p>{@code startedAt} 이 아니라 {@code createdAt} 기준이다. startedAt 은 메시지가 만들어진
      * 시각이라 재전달이면 과거로 찍힌다.
      */
     @Modifying

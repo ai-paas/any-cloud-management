@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * Frontend 가 보내는 per-cluster addon spec — cluster 생성 시 또는 POST addon endpoint.
+ * Frontend 가 보내는 per-cluster addon spec: cluster 생성 시 또는 POST addon endpoint.
  *
  * @param type          installer strategy dispatch key (required).
  * @param catalogId     addons.yaml 의 id (optional, custom 일 때 null).

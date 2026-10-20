@@ -6,10 +6,10 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 
 /**
- * 진행 중인 채로 멈춘 단계를 다시 밀지 판단한다.
+ * 진행 중인 채로 멈춘 단계를 다시 실행할지 판단한다.
  *
- * <p>메시지를 즉시 ack 하면 크래시 때 되돌아올 것이 없다. 이 규칙이 즉시 ack 의 안전망이고,
- * 없으면 재전달 루프를 메시지 유실로 바꾼 것에 지나지 않는다.
+ * <p>메시지를 즉시 ack 하면 크래시 때 RabbitMQ 가 재전달하지 않는다. 이 규칙이 그 단계를
+ * 다시 실행할 대상으로 고른다.
  */
 public final class StuckStepRules {
 
@@ -38,7 +38,7 @@ public final class StuckStepRules {
             return false;
         }
         LocalDateTime startedAt = cluster.getProcessingStartedAt();
-        // 주인이 없는데 진행 중이면 ack 는 됐고 실행은 시작되지 못한 것이다 — 크래시나 풀 거부.
+        // 주인이 없는데 진행 중이면 ack 는 됐고 실행은 시작되지 못한 것이다. 크래시나 풀 거부.
         if (startedAt == null) {
             return true;
         }

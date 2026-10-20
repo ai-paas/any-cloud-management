@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>메시지마다 한 행씩 쌓이는데 정리하는 곳이 없었다. 다른 도메인은 모두 보관 기간이 있다.
  *
- * <p>이 표는 멱등성에도 쓰인다 — {@code existsByMessageId} 가 재처리를 건너뛴다. 보관 기간이
+ * <p>이 표는 멱등성에도 쓰인다: {@code existsByMessageId} 가 재처리를 건너뛴다. 보관 기간이
  * 재전달 창(AMQP ack 타임아웃 30분)보다 짧으면 지워진 뒤 도착한 재전달이 같은 단계를 두 번 돌린다.
  *
  * <p>설정

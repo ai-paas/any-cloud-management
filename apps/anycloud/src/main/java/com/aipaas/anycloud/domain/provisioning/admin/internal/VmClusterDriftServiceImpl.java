@@ -23,8 +23,8 @@ import org.springframework.stereotype.Service;
  * Drift detection + state refresh admin 기능.
  *
  * <ul>
- *   <li>{@code detectDrift} — Automation API preview 가 changeSummary 반환 (변경 0 이면 drift 없음).
- *   <li>{@code refreshState} — Automation API refresh 가 stack state 와 실 인프라 동기화.
+ *   <li>{@code detectDrift}: Automation API preview 가 changeSummary 반환 (변경 0 이면 drift 없음).
+ *   <li>{@code refreshState}: Automation API refresh 가 stack state 와 실 인프라 동기화.
  * </ul>
  */
 @Slf4j
@@ -50,7 +50,7 @@ public class VmClusterDriftServiceImpl implements VmClusterDriftService {
             ProvisioningPreview preview = provisioningService.preview(request);
             result.put("drifted", preview.hasChanges());
             result.put("changeSummary", preview.changeSummary());
-            // Automation API PreviewResult 가 step 단위 detail 미제공 — changeSummary op 별 count 만.
+            // Automation API PreviewResult 가 step 단위 detail 미제공: changeSummary op 별 count 만.
             result.put("steps", java.util.List.of());
         } catch (RuntimeException e) {
             log.warn("Drift detection failed for cluster {}: {}", clusterName, e.getMessage());

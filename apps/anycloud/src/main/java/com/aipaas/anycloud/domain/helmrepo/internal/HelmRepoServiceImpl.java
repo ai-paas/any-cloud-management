@@ -28,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class HelmRepoServiceImpl implements HelmRepoService {
 
     private final HelmRepoRepository helmRepoRepository;
-    // CRUD 후 broadcast event publish — Spring TransactionalEventListener 가 commit 후 dispatch
+    // CRUD 후 broadcast event publish: Spring TransactionalEventListener 가 commit 후 dispatch
     // (caller transaction commit 전 dispatch 로 인한 미커밋 row 조회 race 방지).
     private final org.springframework.context.ApplicationEventPublisher eventPublisher;
     private final HelmRepoMapper helmRepoMapper;
@@ -86,7 +86,7 @@ public class HelmRepoServiceImpl implements HelmRepoService {
                 .caFile(helmRepo.getCaFile())
                 .insecureSkipTlsVerify(helmRepo.isInsecureSkipTlsVerify())
                 .tags(helmRepo.getTags());
-        // source default = EXTERNAL (entity default 와 동일) — null 일 때만 entity default 적용.
+        // source default = EXTERNAL (entity default 와 동일). null 일 때만 entity default 적용.
         if (helmRepo.getSource() != null) {
             builder.source(helmRepo.getSource());
         }
@@ -116,7 +116,7 @@ public class HelmRepoServiceImpl implements HelmRepoService {
                         helmRepoName,
                         "HelmRepo with Name " + helmRepoName + " Not Found."));
         helmRepoRepository.delete(existing);
-        // delete 도 broadcast — agent 측 RepositoryFile 의 orphan 정리는 agent reconciler 가 담당.
+        // delete 도 broadcast: agent 측 RepositoryFile 의 orphan 정리는 agent reconciler 가 담당.
         eventPublisher.publishEvent(
                 new com.aipaas.anycloud.domain.helmrepo.model.HelmRepoChangedEvent(helmRepoName, "delete"));
         return HttpStatus.OK;
@@ -136,7 +136,7 @@ public class HelmRepoServiceImpl implements HelmRepoService {
                         helmRepoName,
                         "HelmRepo with Name " + helmRepoName + " Not Found."));
 
-        // null 필드 skip — partial update.
+        // null 필드 skip: partial update.
         if (update.getUrl() != null) entity.setUrl(update.getUrl());
         if (update.getUsername() != null) entity.setUsername(update.getUsername());
         if (update.getPassword() != null) entity.setPassword(update.getPassword());
@@ -148,7 +148,7 @@ public class HelmRepoServiceImpl implements HelmRepoService {
         if (update.getSource() != null) entity.setSource(update.getSource());
         if (update.getTags() != null) entity.setTags(update.getTags());
         helmRepoRepository.save(entity);
-        // 변경된 metadata 도 broadcast — url 변경이 가장 흔한 케이스.
+        // 변경된 metadata 도 broadcast: url 변경이 가장 흔한 케이스.
         eventPublisher.publishEvent(
                 new com.aipaas.anycloud.domain.helmrepo.model.HelmRepoChangedEvent(entity.getName(), "update"));
         return HttpStatus.OK;

@@ -82,7 +82,7 @@ public class AgentUpgradeServiceImpl implements AgentUpgradeService {
                         "No ACTIVE agent for cluster " + clusterName + " — fix connectivity first",
                         ErrorCode.AGENT_NOT_ACTIVE));
 
-        // 동시 trigger 방지 — 진행 중이면 거부.
+        // 동시 trigger 방지: 진행 중이면 거부.
         if (!primary.getUpgradeStatus().isTerminal()) {
             throw new CustomException(
                     "Upgrade already in flight (status=" + primary.getUpgradeStatus() + ", target="
@@ -111,7 +111,7 @@ public class AgentUpgradeServiceImpl implements AgentUpgradeService {
         try {
             kubeService.applyResource(clusterName, agentNamespace(), manifest);
         } catch (Exception e) {
-            // agent path 실패 — 즉시 FAILED 로 전환 (운영자 재시도 가능하도록 terminal state).
+            // agent path 실패: 즉시 FAILED 로 전환 (운영자 재시도 가능하도록 terminal state).
             primary.setUpgradeStatus(ClusterAgentUpgradeStatus.FAILED);
             primary.setUpgradeCompletedAt(LocalDateTime.now());
             primary.setUpgradeError("APPLY_MANIFEST failed: " + e.getMessage());
@@ -120,7 +120,7 @@ public class AgentUpgradeServiceImpl implements AgentUpgradeService {
             throw new CustomException("Agent upgrade failed: " + e.getMessage(), ErrorCode.AGENT_UNAVAILABLE);
         }
 
-        // 3) Mark IN_PROGRESS — 이제 K8s rolling update + 새 pod heartbeat 대기.
+        // 3) Mark IN_PROGRESS: 이제 K8s rolling update + 새 pod heartbeat 대기.
         primary.setUpgradeStatus(ClusterAgentUpgradeStatus.IN_PROGRESS);
         clusterAgentRepository.save(primary);
 
@@ -138,7 +138,7 @@ public class AgentUpgradeServiceImpl implements AgentUpgradeService {
      * 의 image 만 갱신하고 나머지 (env / volumes / resources / ...) 는 보존.
      *
      * <p>{@code apiVersion} + {@code kind} + {@code metadata.name/namespace} 는 server-side apply
-     * 가 식별자로 사용. {@code spec.selector} 와 {@code spec.template.metadata.labels} 도 필수 —
+     * 가 식별자로 사용. {@code spec.selector} 와 {@code spec.template.metadata.labels} 도 필수.
      * Deployment 가 immutable 한 selector 를 strategic merge 에서 검증하므로 동일 값 유지.
      */
     private String buildImagePatchManifest(String targetImage) {

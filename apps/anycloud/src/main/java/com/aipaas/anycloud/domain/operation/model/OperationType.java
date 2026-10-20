@@ -21,7 +21,7 @@ public enum OperationType {
     UNINSTALL_HELM_RELEASE,
 
     // Cluster addon.
-    // install/uninstall 별도 type — operation list 필터링 / SSE 구분 / metric labeling 용도.
+    // install/uninstall 별도 type: operation list 필터링 / SSE 구분 / metric labeling 용도.
     INSTALL_ADDON,
     UNINSTALL_ADDON,
 

@@ -92,7 +92,7 @@ public class AddonServiceImpl implements AddonService {
 
         // enqueue 조건: cluster 가 ACTIVE 이거나, agent gRPC 세션이 실제 active.
         // persisted ClusterStatus enum 이 stale 해도 (agent 등록 직후 status 미동기 등) 지금 agent 에
-        // 도달 가능하면 enqueue — addon 이 다음 reconnect/backfill 까지 PENDING 으로 막히는 것을 방지.
+        // 도달 가능하면 enqueue: addon 이 다음 reconnect/backfill 까지 PENDING 으로 막히는 것을 방지.
         // 아니면 listener 가 cluster ACTIVE 전환 시 enqueue, 또는 :enqueue 로 수동 backfill.
         boolean agentReachable = status == ClusterStatus.ACTIVE || helmReleaseService.isActiveFor(clusterId);
         if (Boolean.TRUE.equals(saved.getEnabled()) && agentReachable) {

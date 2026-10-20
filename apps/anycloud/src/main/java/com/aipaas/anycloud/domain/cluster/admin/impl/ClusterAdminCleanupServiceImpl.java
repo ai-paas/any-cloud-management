@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * #7 — {@link AdminClusterCleanupController} 의 Repository 직접 호출 로직을 service 로 이전.
+ * #7: {@link AdminClusterCleanupController} 의 Repository 직접 호출 로직을 service 로 이전.
  * 컨트롤러는 라우팅만 하고 트랜잭션 경계와 도메인 로직은 이 클래스가 맡습니다.
  */
 @Slf4j
@@ -32,10 +32,10 @@ public class ClusterAdminCleanupServiceImpl implements ClusterAdminCleanupServic
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("clusterName", clusterName);
 
-        // VmCluster row — latest 1 row 만 (history retention 위해 multi-row 가능).
+        // VmCluster row: latest 1 row 만 (history retention 위해 multi-row 가능).
         var vmCluster = vmClusterRepository.findFirstByClusterNameOrderByCreatedAtDesc(clusterName);
         if (vmCluster.isEmpty()) {
-            // Registered cluster path — vm_cluster 없이 cluster row 만 있을 수도.
+            // Registered cluster path: vm_cluster 없이 cluster row 만 있을 수도.
             var cluster = clusterRepository.findById(clusterName);
             if (cluster.isEmpty()) {
                 throw new ClusterNotFoundException(clusterName);
@@ -70,7 +70,7 @@ public class ClusterAdminCleanupServiceImpl implements ClusterAdminCleanupServic
     public Map<String, Object> cleanupOrphanState(String stackName) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("stackName", stackName);
-        // Automation API workspace.removeStack — state 파일만 제거, CSP 자원은 별도 정리 필요.
+        // Automation API workspace.removeStack: state 파일만 제거, CSP 자원은 별도 정리 필요.
         provisioningService.removeStack(stackName, Map.of());
         result.put("success", true);
         log.warn("Orphan state cleanup done for stack {}", stackName);

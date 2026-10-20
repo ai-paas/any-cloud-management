@@ -295,7 +295,7 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
         try {
             /*
              * URI 로 넘긴다. String 오버로드는 URI 템플릿으로 취급해 이미 인코딩된 값을 한 번 더
-             * 인코딩한다 — Timestamp 의 %3A 가 %253A 가 되어 "time stamp is not well formatted"
+             * 인코딩한다. Timestamp 의 %3A 가 %253A 가 되어 "time stamp is not well formatted"
              * 로 거절된다. 서명은 인코딩된 문자열로 계산했으므로 그대로 보내야 한다.
              */
             ResponseEntity<String> response = restTemplate.exchange(

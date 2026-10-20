@@ -24,7 +24,7 @@ public final class ProvisioningConfigRules {
     private static final String ENABLE_MONITORING = "anycloud-k8s:enableMonitoring";
 
     /**
-     * Boolean 의미 키들 — strict parser 대상. {@link Boolean#parseBoolean} 의 silent
+     * Boolean 의미 키들: strict parser 대상. {@link Boolean#parseBoolean} 의 silent
      * false (대문자 "True", "1", "yes" → false) 이 발견-안 되는 오타를 차단.
      */
     private static final List<String> BOOLEAN_FLAG_KEYS =
@@ -64,7 +64,7 @@ public final class ProvisioningConfigRules {
         config.putIfAbsent(KUBERNETES_VERSION, "1.31");
         config.putIfAbsent(POD_CIDR, "10.244.0.0/16");
         config.putIfAbsent(SERVICE_CIDR, "10.96.0.0/12");
-        // 정상 경로 (VmClusterProviderImpl.toProvisionDto) 는 항상 backend 생성 token 을 set —
+        // 정상 경로 (VmClusterProviderImpl.toProvisionDto) 는 항상 backend 생성 token 을 set:
         // 여기 도달 시점엔 이미 존재. 우회 경로 (직접 ProvisionClusterRequest 구성) 대비 방어선으로
         // 하드코딩 공유 token 대신 random 생성.
         config.putIfAbsent(JOIN_TOKEN, com.aipaas.anycloud.domain.provisioning.bootstrap.KubeadmJoinTokens.generate());
@@ -88,10 +88,10 @@ public final class ProvisioningConfigRules {
     public static void validateRequiredConfig(SupportedProvisioningProvider provider, Map<String, String> config) {
         List<String> missingKeys = new ArrayList<>();
 
-        // MasterCount sanity — etcd quorum 요구사항으로 odd-only, 합리적 범위 1..7 강제.
+        // MasterCount sanity: etcd quorum 요구사항으로 odd-only, 합리적 범위 1..7 강제.
         validateMasterCount(config);
 
-        // Boolean 키 strict — Boolean.parseBoolean 의 silent-false 회피.
+        // Boolean 키 strict: Boolean.parseBoolean 의 silent-false 회피.
         validateBooleanFlags(config);
 
         switch (provider) {
@@ -114,8 +114,8 @@ public final class ProvisioningConfigRules {
                     config, missingKeys, "anycloud-k8s:providerSpec.compartmentId", "anycloud-k8s:osImage");
             case PROXMOX -> requireConfigKeys(config, missingKeys, "anycloud-k8s:providerSpec.nodeName");
                 /*
-                 * zone — VSwitch 가 zone 단위다. 계정과 인스턴스 타입마다 쓸 수 있는 zone 이 다르다.
-                 * osImage — 이미지 ID 에 빌드 날짜가 붙어 주기적으로 갈리고 리전마다 다르다. 목록에서
+                 * zone: VSwitch 가 zone 단위다. 계정과 인스턴스 타입마다 쓸 수 있는 zone 이 다르다.
+                 * osImage: 이미지 ID 에 빌드 날짜가 붙어 주기적으로 갈리고 리전마다 다르다. 목록에서
                  * 고른 값을 그대로 받는다.
                  */
             case ALIBABA -> requireConfigKeys(

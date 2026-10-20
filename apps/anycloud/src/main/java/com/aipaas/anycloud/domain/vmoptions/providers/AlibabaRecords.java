@@ -75,7 +75,7 @@ final class AlibabaRecords {
         public record Zones(List<Zone> Zone) {}
     }
 
-    // Wrapper containers — Alibaba 의 nested {Regions:{Region:[]}} 패턴.
+    // Wrapper containers: Alibaba 의 nested {Regions:{Region:[]}} 패턴.
     @JsonIgnoreProperties(ignoreUnknown = true)
     record RegionsResponse(Regions Regions) {
         @JsonIgnoreProperties(ignoreUnknown = true)

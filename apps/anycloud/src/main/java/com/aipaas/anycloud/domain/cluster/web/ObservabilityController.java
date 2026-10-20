@@ -50,7 +50,7 @@ import org.springframework.web.bind.annotation.RestController;
  * Cluster Observability REST endpoint.
  *
  * <p>Cluster 내부 Prometheus/Alertmanager/Grafana 와의 모든 통신은 본 controller 가 cluster-agent
- * starter 의 reverse-tunnel 을 통해 routing — frontend 는 cluster API server 에 직접 접근하지 않음.
+ * starter 의 reverse-tunnel 을 통해 routing: frontend 는 cluster API server 에 직접 접근하지 않음.
  *
  * <p>모든 응답은 {@link ApiSuccessResponse} 로 wrap. 실패는 {@link ObservabilityException} 의
  * errorCode 가 HTTP status 로 매핑.
@@ -80,7 +80,7 @@ public class ObservabilityController {
      * Prometheus {@code /api/v1/query} 를 그대로 중계합니다.
      *
      * <p>응답은 {@code ApiSuccessResponse} 로 감싸지 않고 Prometheus 본문을 그대로 내보냅니다.
-     * 기존 Prometheus 클라이언트가 그대로 붙을 수 있게 하려는 것입니다.
+     * 감싸면 기존 Prometheus 클라이언트가 붙지 못합니다.
      *
      * <p>param 은 {@code query} 를 쓰세요. {@code promql} 은 옛 호출을 위한 alias 이고,
      * {@code timeoutSeconds} 는 {@code timeout="30s"} 로 대체됐습니다.
@@ -139,7 +139,7 @@ public class ObservabilityController {
         return ok("multi query", results);
     }
 
-    /** 개별 query 실패를 응답 자체로 전달 — 전체 batch 가 throw 하면 정상 query 도 lose. */
+    /** 개별 query 실패를 응답 자체로 전달: 전체 batch 가 throw 하면 정상 query 도 lose. */
     private JsonNode errorJson(String message) {
         try {
             return objectMapper.readTree(
@@ -196,7 +196,7 @@ public class ObservabilityController {
     /** 신규 timeout (string "30s") 우선, 없으면 deprecated timeoutSeconds. 둘 다 없으면 service default. */
     private static Duration resolveTimeout(String timeout, Long timeoutSeconds) {
         if (timeout != null && !timeout.isBlank()) {
-            // Prometheus duration string 은 service 가 extraParams 으로 직접 처리 — Duration 은 RPC level.
+            // Prometheus duration string 은 service 가 extraParams 으로 직접 처리: Duration 은 RPC level.
             // 여기서는 단순히 timeoutSeconds 가 있으면 우선, 없으면 null (service default 사용).
         }
         return timeoutSeconds == null ? null : Duration.ofSeconds(timeoutSeconds);
@@ -212,7 +212,7 @@ public class ObservabilityController {
         return extras;
     }
 
-    /** PromQLResult.raw 를 JsonNode 로 파싱 — 실패시 BAD_GATEWAY 매핑. */
+    /** PromQLResult.raw 를 JsonNode 로 파싱: 실패시 BAD_GATEWAY 매핑. */
     private JsonNode parseRaw(String raw) {
         try {
             return objectMapper.readTree(raw == null ? "{}" : raw);

@@ -14,10 +14,10 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface BackupHistoryRepository extends JpaRepository<BackupHistoryEntity, String> {
 
-    /** 한 cluster 의 최근 backup 이력 (UI 표시 — pageable 로 페이징). */
+    /** 한 cluster 의 최근 backup 이력 (UI 표시: pageable 로 페이징). */
     List<BackupHistoryEntity> findByClusterIdOrderByStartedAtDesc(String clusterId, Pageable pageable);
 
-    /** cluster + type 별 최신 1건 — "이 cluster 의 가장 최근 etcd backup 은?" 답변. */
+    /** cluster + type 별 최신 1건: "이 cluster 의 가장 최근 etcd backup 은?" 답변. */
     Optional<BackupHistoryEntity> findFirstByClusterIdAndBackupTypeOrderByStartedAtDesc(
             String clusterId, String backupType);
 }

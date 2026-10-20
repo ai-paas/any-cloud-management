@@ -25,7 +25,7 @@ func TestIsValid_NotExpired_ReturnsTrue(t *testing.T) {
 }
 
 func TestIsValid_WithinGrace_ReturnsFalse(t *testing.T) {
-	// 만료까지 1분 남았는데 grace 5분 — false 여야.
+	// 만료까지 1분 남았는데 grace 5분: false 여야.
 	m := &IdentityMaterial{
 		IdentityToken: "tok",
 		ExpiresAt:     time.Now().Add(1 * time.Minute).UTC().Format(time.RFC3339),
@@ -68,7 +68,7 @@ func TestIsValid_BadExpiresAt_ReturnsFalse(t *testing.T) {
 	}
 }
 
-// ---- K8sSecretIdentityStore — fake clientset ----
+// ---- K8sSecretIdentityStore: fake clientset ----
 
 func TestK8sSecret_LoadMissing_ReturnsNilNil(t *testing.T) {
 	cs := fake.NewSimpleClientset()

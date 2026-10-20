@@ -26,7 +26,7 @@ public interface OperationService {
 
     Optional<OperationEntity> findById(String operationId);
 
-    /** Step 2 (Entity → Domain) pilot — JPA-free immutable view. */
+    /** Step 2 (Entity → Domain) pilot: JPA-free immutable view. */
     Optional<Operation> findDomainById(String operationId);
 
     /**

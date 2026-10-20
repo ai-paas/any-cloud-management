@@ -21,7 +21,7 @@ import org.springframework.util.StringUtils;
  * <p>노드 이름, datastore, 브리지는 호스트마다 다르다. 사용자가 콘솔을 열어 베껴 적게 두면 오타가
  * 프로비저닝 직전까지 드러나지 않는다.
  *
- * <p>인스턴스 타입 카탈로그는 없다 — Proxmox 는 코어와 메모리를 직접 받는다. 그래서 스펙과 이미지
+ * <p>인스턴스 타입 카탈로그는 없다. Proxmox 는 코어와 메모리를 직접 받는다. 그래서 스펙과 이미지
  * 목록은 비워 두고, 화면이 직접 입력으로 그린다.
  */
 @Component
@@ -133,7 +133,7 @@ public class ProxmoxVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * 화면은 리전을 노드 이름으로 채운다. 아직 고르지 않았으면 첫 노드로 목록을 보여 준다 —
+     * 화면은 리전을 노드 이름으로 채운다. 아직 고르지 않았으면 첫 노드로 목록을 보여 준다:
      * 단일 노드 호스트가 대부분이라 그 편이 빈 목록보다 낫다.
      */
     private String nodeOr(String region, Map<String, String> env) {
