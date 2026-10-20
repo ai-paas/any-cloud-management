@@ -13,14 +13,7 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-/**
- * <pre>
- * ClassName : HelmRepoEntity
- * Type : class
- * Description : HelmRepository와 관련된 Entity를 구성하고 있는 클래스입니다.
- * Related : HelmRepoRepository, HelmRepoServiceImpl
- * </pre>
- */
+/** Helm repository 등록 정보 엔티티. */
 @Entity
 @Getter
 @Setter

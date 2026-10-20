@@ -33,7 +33,7 @@ public class VmClusterNodeResolverImpl implements VmClusterNodeResolver {
                 .toList();
     }
 
-    /** 예전 스택에는 sshPort 가 없다. 그때 만든 클러스터도 계속 접속돼야 한다. */
+    /** 구버전 스택에는 sshPort 부재. 해당 시점 생성 클러스터도 접속 유지 필요. */
     private int sshPortValue(Object value) {
         if (value instanceof Number number) {
             return number.intValue();
@@ -48,7 +48,7 @@ public class VmClusterNodeResolverImpl implements VmClusterNodeResolver {
         return VmClusterNodeResolver.DEFAULT_SSH_PORT;
     }
 
-    /** nodes 는 provisioner 에 따라 배열로도 JSON 문자열로도 온다. */
+    /** nodes 는 provisioner 에 따라 배열 또는 JSON 문자열로 수신. */
     private List<?> toNodeList(Object value) {
         if (value instanceof List<?> list) {
             return list;

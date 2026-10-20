@@ -33,5 +33,5 @@ public class UpdateClusterDto implements Serializable {
     private String clusterProvider;
 
     // apiServerUrl/IP, server/client CA, client key/token, monitServerURL
-    // 모두 update 대상에서 제거 — cluster-agent 가 모든 K8s 작업 대행.
+    // 모두 update 대상에서 제거: cluster-agent 가 모든 K8s 작업 대행.
 }

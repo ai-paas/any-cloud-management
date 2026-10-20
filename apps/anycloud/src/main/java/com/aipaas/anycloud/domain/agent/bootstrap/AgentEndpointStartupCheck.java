@@ -9,18 +9,19 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
- * 부팅 직후 {@code agent.grpc.public-endpoint} 설정이 운영 가능한 상태인지 1회 점검 후 로그.
- * <p>
- * 본 endpoint 는 원격 K8s cluster 의 agent pod 가 backend 로 outbound 접속하는 주소.
- * 잘못 설정되면 agent 가 CrashLoopBackOff 로 들어간 다음에야 발견 — 운영자가 사전에
- * 알 수 있도록 부팅 시점에 경고.
+ * 부팅 직후 {@code agent.grpc.public-endpoint} 설정의 운영 가능 여부 1회 점검 후 로그 기록.
+ *
+ * <p>이 endpoint 는 원격 K8s cluster 의 agent pod 가 backend 로 outbound 접속하는 주소.
+ * 설정 오류는 agent 가 CrashLoopBackOff 에 진입한 후에야 검출되므로 부팅 시점에 경고.
+ *
  * <ul>
- *   <li>{@code host.docker.internal} (dev 의 default) → docker-desktop 외부에선 NXDOMAIN. WARN.</li>
- *   <li>{@code localhost} / {@code 127.0.0.1} → 원격 cluster 에서 의미 없음. WARN.</li>
- *   <li>DNS resolve 실패 → typo / 인터넷 분리 의심. WARN.</li>
- *   <li>그 외 → INFO 로 resolved IP 까지 출력 (운영자 확인 편의).</li>
+ *   <li>{@code host.docker.internal} (dev 기본값): docker-desktop 외부에서 NXDOMAIN. WARN</li>
+ *   <li>{@code localhost}, {@code 127.0.0.1}: 원격 cluster 에서 무의미. WARN</li>
+ *   <li>DNS resolve 실패: 오타 또는 인터넷 분리 의심. WARN</li>
+ *   <li>그 외: INFO 로 resolved IP 출력</li>
  * </ul>
- * 이 점검은 부팅을 막지 않고 진단 로그만 남깁니다. 막아야 한다면 별도 flag 가 필요합니다.
+ *
+ * <p>점검은 부팅을 차단하지 않고 진단 로그만 기록. 차단이 필요하면 별도 flag 추가 필요.
  */
 @Slf4j
 @Component
@@ -78,7 +79,7 @@ public class AgentEndpointStartupCheck {
             return;
         }
 
-        // DNS preflight — typo / VPN 단절 / 사설 DNS 인지 부팅 시점에 잡아냄.
+        // DNS preflight: typo / VPN 단절 / 사설 DNS 인지 부팅 시점에 잡아냄.
         try {
             InetAddress resolved = InetAddress.getByName(host);
             log.info(
@@ -109,7 +110,7 @@ public class AgentEndpointStartupCheck {
 
     /**
      * "host:port" 또는 "host" 형식에서 host 부분만 추출.
-     * IPv6 zone-id 등 복잡 케이스는 의도적 단순화 — dev 친화 진단용.
+     * IPv6 zone-id 등 복잡 케이스는 의도적 단순화: dev 친화 진단용.
      */
     private static String extractHost(String endpoint) {
         if (endpoint == null) {

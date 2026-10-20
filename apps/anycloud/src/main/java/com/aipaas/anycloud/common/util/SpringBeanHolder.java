@@ -6,11 +6,11 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 /**
- * JPA entity 처럼 Spring 이 관리하지 않는 객체가 bean 을 꺼내 쓰기 위한 static holder 입니다.
- * 생성자 주입이 닿지 않는 자리에서만 쓰세요. 일반 bean 은 생성자 주입을 씁니다.
+ * JPA entity 처럼 Spring 이 관리하지 않는 객체의 bean 조회용 static holder.
+ * 생성자 주입이 불가한 지점에서만 사용. 일반 bean 은 생성자 주입 사용.
  *
- * <p>테스트에서는 ApplicationContext 가 아직 없을 수 있어 {@link #beanOrNull} 이 null 을
- * 돌려줍니다. 호출 측이 null 을 견뎌야 합니다.
+ * <p>테스트에서는 ApplicationContext 미초기화 상태가 있어 {@link #beanOrNull} 이 null 반환.
+ * 호출 측의 null 처리 필요.
  */
 @Component
 public class SpringBeanHolder implements ApplicationContextAware {

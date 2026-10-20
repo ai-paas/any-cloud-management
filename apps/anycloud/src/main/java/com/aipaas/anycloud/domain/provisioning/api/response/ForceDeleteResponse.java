@@ -3,8 +3,8 @@ package com.aipaas.anycloud.domain.provisioning.api.response;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
-/** 강제 삭제 결과. destroy 를 돌리지 않았으므로 무엇이 남을 수 있는지 함께 알린다. */
-@Schema(description = "강제 삭제 결과 — 기록만 삭제")
+/** 강제 삭제 결과. destroy 미실행이므로 잔존 가능 항목을 함께 제공. */
+@Schema(description = "강제 삭제 결과: 기록만 삭제")
 public record ForceDeleteResponse(
         @Schema(description = "지운 기록 수", example = "2") int removedRecords,
         @Schema(

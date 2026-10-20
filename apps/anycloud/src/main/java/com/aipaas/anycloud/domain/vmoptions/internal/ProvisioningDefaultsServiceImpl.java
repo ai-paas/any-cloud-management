@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-/** CSP 마다 "지금 통과하는" 생성 요청을 조립한다. */
+/** CSP 별로 현재 통과하는 생성 요청 조립. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -35,13 +35,13 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
 
     private static final String OS_IMAGE_KEY = CONFIG_PREFIX + "osImage";
 
-    /** 스펙 목록이 길어 전부 훑을 이유가 없다. 작은 것부터 몇 개만 본다. */
+    /** 스펙 목록 전수 조회 불필요. 하위 사양부터 일부만 조회. */
     private static final int SPEC_SCAN_LIMIT = 100;
 
     /** 존을 몇 개까지 두드릴지. 리전당 보통 서너 개다. */
     private static final int ZONE_SCAN_LIMIT = 6;
 
-    /** 존이 없는 타입을 몇 개까지 넘길지. 더 두드리면 폼을 여는 데 오래 걸린다. */
+    /** 존 부재 타입의 건너뛰기 상한. 초과 조회 시 폼 로딩 지연. */
     private static final int SPEC_ZONE_ATTEMPTS = 8;
 
     /*
@@ -53,13 +53,13 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
     private final CapacityProbe capacityProbe;
 
     /*
-     * 요청마다 달라지는 조건이라 필드로 두면 동시 요청이 서로를 덮는다. 아래 메서드 체인에만
-     * 쓰이므로 ThreadLocal 대신 인자로 넘긴다 — 여기서는 호출 깊이가 얕다.
+     * 요청마다 달라지는 조건. 필드로 두면 동시 요청끼리 값을 덮어씀. 호출 깊이가 얕아
+     * ThreadLocal 대신 인자로 전달.
      */
 
     /**
-     * @param provider 비우면 전부. 하나만 주면 그 CSP 만 조회한다 — 화면이 CSP 별로 따로
-     *     물어 한 줄씩 채우려면 나머지를 같이 풀면 안 된다
+     * @param provider 비우면 전체 CSP, 지정하면 해당 CSP 만 조회. 화면이 CSP 별로 나눠
+     *     요청하는 경우 나머지 CSP 조회 비용을 피하기 위함
      */
     @Override
     public List<ProvisioningDefaults> listDefaults(String provider) {
@@ -103,7 +103,7 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
         try {
             return fill(builder, provider, described, credential.get(), filter);
         } catch (RuntimeException e) {
-            // 한 CSP 조회가 실패해도 나머지는 내려보낸다. 목록 전체가 비면 원인을 알 수 없다.
+            // 한 CSP 조회 실패 시에도 나머지는 반환. 목록 전체가 비면 실패 원인 식별 불가.
             log.warn("{} 기본값을 만들지 못했다: {}", name, e.toString());
             return builder.ready(false)
                     .blockedReason("조회에 실패했습니다: " + shortMessage(e))
@@ -174,20 +174,20 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
             return builder.ready(false).blockedReason(spec.blockedReason()).build();
         }
         /*
-         * OpenStack 은 providerSpec.flavorName 이 우선이라 instanceType 이 무시된다. 두 값이
-         * 갈리면 화면에 보이는 사양과 실제로 뜨는 사양이 달라진다.
+         * OpenStack 은 providerSpec.flavorName 이 우선이라 instanceType 무시. 두 값 불일치 시
+         * 화면 표시 사양과 실제 생성 사양이 달라짐.
          */
         if (providerSpec.containsKey("flavorName")) {
             providerSpec.put("flavorName", spec.specId());
         }
         /*
-         * 리전에 있다고 모든 존에 있는 것이 아니다. 존을 고르는 CSP 는 실제로 뜨는 존으로
-         * 바꿔 준다 — 그러지 않으면 기본값이 늘 실패하는 조합을 준다.
+         * 리전 제공 여부와 존별 제공 여부는 별개. 존을 선택하는 CSP 는 실제 생성 가능한 존으로
+         * 치환. 미치환 시 기본값이 항상 실패하는 조합.
          */
         if (providerSpec.containsKey("zone")) {
             /*
              * 그 타입이 어느 존에도 없으면 다음 후보로 넘어간다. 한 번에 포기하면 리전에 쓸 수
-             * 있는 타입이 있는데도 "만들 수 없다" 가 된다 — Alibaba 서울은 ga1 이 없고 gn7i 가
+             * 있는 타입이 있는데도 "만들 수 없다" 가 된다. Alibaba 서울은 ga1 이 없고 gn7i 가
              * 있는데, 후보가 작은 것부터라 ga1 이 먼저 잡힌다.
              */
             Set<String> tried = new java.util.LinkedHashSet<>();
@@ -209,8 +209,8 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
         }
 
         /*
-         * control-plane 에는 GPU 가 필요 없다. worker 와 같은 타입으로 두면 값만 두 배가 된다 —
-         * GPU 인스턴스는 일반 타입의 10배가 넘는다.
+         * control-plane 은 GPU 불필요. worker 와 같은 타입 적용 시 GPU 인스턴스 비용이 중복
+         * 발생. GPU 인스턴스는 일반 타입 대비 10배 이상.
          */
         String masterSpec = spec.specId();
         if (filter.gpu()) {
@@ -228,10 +228,10 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
     }
 
     /**
-     * 권장 리전을 먼저 본다.
+     * 권장 리전 우선 선택.
      *
-     * <p>계정이 그 리전을 구독하지 않았을 수 있어, 실제 조회 결과에 있는지 확인하고 없으면 첫
-     * 번째로 내려간다 — OCI 권장은 서울인데 이 테넌시는 도쿄만 구독돼 있다.
+     * <p>계정이 해당 리전을 구독하지 않은 경우가 있어 조회 결과에 존재하는지 확인 후 없으면
+     * 첫 번째 리전 사용. 예: OCI 권장 리전은 서울이나 테넌시가 도쿄만 구독한 경우.
      */
     private String pickRegion(String provider, String credentialId, VmOptionProvider described) {
         List<VmOptionRegion> regions = vmOptionsService.getRegions(provider, credentialId);
@@ -247,10 +247,10 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
     }
 
     /**
-     * 고른 타입의 vCPU, 메모리, GPU 를 함께 싣는다.
+     * 선택한 타입의 vCPU, 메모리, GPU 수를 함께 반환.
      *
-     * <p>타입 이름만 보고 크기를 아는 사람은 없다. {@code bx2-2x8} 이 몇 코어인지 확인하려고
-     * 콘솔을 여는 순간, 값을 대신 골라 준 의미가 없어진다.
+     * <p>타입 이름만으로는 사양을 알 수 없음. {@code bx2-2x8} 의 코어 수를 확인하려 CSP 콘솔을
+     * 열어야 하면 기본값 제공 효과가 사라짐.
      */
     private ProvisioningDefaults.ProvisioningDefaultsBuilder withSpecDetail(
             ProvisioningDefaults.ProvisioningDefaultsBuilder builder,
@@ -269,7 +269,7 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
                     .memoryGb(detail.getMemoryGb())
                     .gpuCount(detail.getGpuCount() == null ? 0 : detail.getGpuCount());
         }
-        // Proxmox 는 목록이 없다. 값 자체가 "코어-메모리MiB" 규약이라 거기서 읽는다.
+        // Proxmox 는 인스턴스 타입 목록 없음. 값 자체가 "코어-메모리MiB" 규약이므로 값에서 파싱.
         return proxmoxSpecDetail(builder, specId);
     }
 
@@ -289,10 +289,10 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
     }
 
     /**
-     * 그 타입을 실제로 띄울 수 있는 존.
+     * 해당 타입을 생성할 수 있는 존 선택.
      *
-     * <p>존 목록의 첫 값을 그냥 쓰면 a2-highgpu-1g 가 asia-northeast3-a 에, ecs.ga1.xlarge 가
-     * ap-northeast-2a 에 잡혀 둘 다 생성 단계에서 거절된다.
+     * <p>존 목록의 첫 값을 그대로 쓰면 a2-highgpu-1g 가 asia-northeast3-a 로, ecs.ga1.xlarge 가
+     * ap-northeast-2a 로 지정되어 생성 단계에서 거절됨.
      */
     private String usableZone(
             SupportedProvisioningProvider provider,
@@ -321,7 +321,7 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
         return key.allowedValues() == null ? List.of() : key.allowedValues();
     }
 
-    /** 권장 스펙을 먼저 쓰고, 그 리전에 없으면 최소 사양을 넘는 것 중 가장 작은 것을 고른다. */
+    /** 권장 스펙 우선. 해당 리전에 없으면 최소 사양 이상 중 최소 항목 선택. */
     private CapacityProbe.SpecChoice pickSpec(
             SupportedProvisioningProvider provider,
             String credentialId,
@@ -332,11 +332,11 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
         String name = provider.getCanonicalName();
         String recommended = described == null ? null : described.getRecommendedVmSpec();
 
-        // 권장값은 keyword 로 직접 찾는다. 목록 앞쪽만 훑으면 권장값이 그 안에 없어 매번 밀린다.
+        // 권장값은 keyword 로 직접 조회. 목록 선두만 조회하면 권장값 미포함으로 매번 탈락.
         List<VmOptionSpec> matched = StringUtils.hasText(recommended)
                 ? vmOptionsService.getSpecs(name, credentialId, region, recommended, false, SPEC_SCAN_LIMIT)
                 : List.of();
-        // 권장값도 조건을 만족해야 쓴다. GPU 를 요청했는데 권장값이 일반 타입이면 맞지 않는다.
+        // 권장값도 필터 조건 통과 필요. GPU 요청 시 권장값이 일반 타입이면 사용 불가.
         String exact = matched.stream()
                 .filter(spec -> !orderedCandidates(List.of(spec), filter).isEmpty())
                 .map(this::specValue)
@@ -347,9 +347,9 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
         List<VmOptionSpec> all = vmOptionsService.getSpecs(name, credentialId, region, null, false, SPEC_SCAN_LIMIT);
         if (all.isEmpty()) {
             /*
-             * Proxmox 는 인스턴스 타입 목록이 없다 — "코어-메모리MiB" 규약이라 권장값이 곧 값이다.
-             * 그래서 조건을 맞출 수도 없다. GPU 를 요청했는데 그냥 권장값을 주면 GPU 없는 노드를
-             * 준비됨으로 보여주게 된다.
+             * Proxmox 는 인스턴스 타입 목록이 없고 "코어-메모리MiB" 규약이라 권장값이 곧 값.
+             * 필터 조건 검증 불가. GPU 요청에 권장값을 그대로 반환하면 GPU 없는 노드를
+             * 준비됨으로 표시하게 됨.
              */
             if (filter.gpu()) {
                 return new CapacityProbe.SpecChoice(null, "GPU 노드를 만들 수 없습니다 (인스턴스 타입 목록 없음).");
@@ -358,7 +358,7 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
                     ? new CapacityProbe.SpecChoice(recommended, null)
                     : new CapacityProbe.SpecChoice(null, "고를 수 있는 인스턴스 타입이 없습니다.");
         }
-        // 권장값을 맨 앞에 두되 나머지도 남긴다. 권장값에 자리가 없을 때 그냥 포기하면 안 된다.
+        // 권장값을 선두에 두고 나머지도 후보로 유지. 권장값의 용량이 부족한 경우를 대비.
         List<String> candidates = new java.util.ArrayList<>();
         if (exact != null) {
             candidates.add(exact);
@@ -377,17 +377,17 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
     }
 
     /**
-     * 최소 사양을 넘는 것 중 작은 것부터.
+     * 최소 사양 이상 중 작은 순.
      *
-     * <p>가장 작은 것을 그냥 고르면 1vCPU 2GB 가 잡힌다 — kubeadm preflight 를 건너뛰게 해둬서
-     * 생성은 되지만 control-plane 이 제대로 뜨지 않는다.
+     * <p>사양 조건 없이 가장 작은 값을 고르면 1vCPU 2GB 선택. kubeadm preflight 를 건너뛰도록
+     * 설정해 두어 생성은 되지만 control-plane 이 정상 기동하지 않음.
      */
     private List<String> orderedCandidates(List<VmOptionSpec> specs, SpecFilter filter) {
         return specs.stream()
                 .filter(spec -> specValue(spec) != null)
                 .filter(spec -> spec.getVcpu() != null && spec.getVcpu() >= filter.minVcpu())
                 .filter(spec -> spec.getMemoryGb() != null && spec.getMemoryGb() >= filter.minMemoryGb())
-                // GPU 를 원하지 않으면 제외하고, 원하면 GPU 가 붙은 것만 남긴다.
+                // GPU 미요청 시 제외, 요청 시 GPU 탑재 항목만 유지.
                 .filter(spec -> filter.gpu() == ((spec.getGpuCount() == null ? 0 : spec.getGpuCount()) > 0))
                 .sorted(Comparator.comparing(VmOptionSpec::getVcpu).thenComparing(VmOptionSpec::getMemoryGb))
                 .map(this::specValue)
@@ -396,20 +396,20 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
     }
 
     /**
-     * 서버로 보낼 값.
+     * 서버 전송 값.
      *
-     * <p>OpenStack 은 {@code id} 가 UUID 이고 emitter 가 받는 것은 flavor 이름이다. 이름이 있으면
-     * 이름을 쓴다 — AWS 처럼 둘이 같은 CSP 는 어느 쪽을 써도 결과가 같다.
+     * <p>OpenStack 은 {@code id} 가 UUID 이고 emitter 입력은 flavor 이름. 이름이 있으면 이름 사용.
+     * AWS 처럼 두 값이 동일한 CSP 는 결과 동일.
      */
     private String specValue(VmOptionSpec spec) {
         return StringUtils.hasText(spec.getName()) ? spec.getName() : spec.getId();
     }
 
     /**
-     * 같은 Ubuntu 라도 검증한 버전을 고른다.
+     * 같은 Ubuntu 중 검증된 버전 선택.
      *
-     * <p>목록은 최신순이라 그냥 첫 값을 쓰면 갓 나온 릴리스가 잡힌다. 부트스트랩이 설치하는
-     * kubeadm 패키지가 그 버전에 올라와 있다는 보장이 없다.
+     * <p>목록이 최신순이라 첫 값을 쓰면 출시 직후 릴리스가 선택됨. 부트스트랩이 설치하는
+     * kubeadm 패키지가 해당 버전을 지원하지 않을 수 있음.
      */
     private String preferredImage(ProviderConfigKey key) {
         List<ConfigOption> options = key.allowedOptions();
@@ -428,10 +428,10 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
     }
 
     /**
-     * 기본 인스턴스 타입은 x86 이다. ARM 이미지를 얹으면 부팅하지 못한다.
+     * 기본 인스턴스 타입은 x86. ARM 이미지를 지정하면 부팅 실패.
      *
-     * <p>OCI 는 이름에 {@code aarch64} 를 쓴다 — arm 만 걸러서는 잡히지 않아, x86 shape 에
-     * aarch64 이미지가 기본값으로 붙었다.
+     * <p>OCI 는 이름에 {@code aarch64} 사용. {@code arm} 만 검사하면 걸러지지 않아 x86 shape 에
+     * aarch64 이미지가 기본값으로 지정된 사례 있음.
      */
     private boolean isArmImage(String label) {
         if (!StringUtils.hasText(label)) {
@@ -441,7 +441,7 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
         return normalized.contains("arm") || normalized.contains("aarch64");
     }
 
-    /** {@code ubuntu-24.04}, {@code ubuntu_24_04}, {@code Ubuntu-24.04} 를 모두 같은 것으로 본다. */
+    /** {@code ubuntu-24.04}, {@code ubuntu_24_04}, {@code Ubuntu-24.04} 를 동일 값으로 처리. */
     private boolean matchesPreferredUbuntu(String label) {
         if (!StringUtils.hasText(label)) {
             return false;
@@ -452,10 +452,10 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
     }
 
     /**
-     * 스키마 기본값보다 계정에서 실제로 고를 수 있는 값이 우선이다.
+     * 스키마 기본값보다 계정에서 조회되는 값을 우선.
      *
-     * <p>OpenStack flavor 기본값 {@code m1.large} 는 설치본마다 있을 수도 없을 수도 있다. 없는
-     * 값을 그대로 보내면 생성 도중 거절된다.
+     * <p>OpenStack flavor 기본값 {@code m1.large} 는 설치본에 따라 존재 여부가 다름. 없는 값을
+     * 전달하면 생성 중 거절됨.
      */
     private String firstValue(ProviderConfigKey key) {
         List<ConfigOption> options = key.allowedOptions();

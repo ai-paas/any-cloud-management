@@ -6,7 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** WebSocket 경로에서 클러스터와 노드를 읽는다. */
+/** WebSocket 경로에서 클러스터와 노드 추출. */
 public record NodeSshTarget(String vmName, String host) {
 
     private static final Pattern PATH = Pattern.compile("/v1/vms/([^/]+)/nodes/([^/]+)/ssh/?$");

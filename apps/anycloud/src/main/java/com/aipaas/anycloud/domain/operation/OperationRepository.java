@@ -43,10 +43,10 @@ public interface OperationRepository extends JpaRepository<OperationEntity, Stri
     int deleteCompletedBefore(@Param("cutoff") LocalDateTime cutoff);
 
     /**
-     * 시작한 지 오래됐는데 아직 끝나지 않은 작업.
+     * 시작 후 장시간 미완료 상태인 작업.
      *
-     * <p>워커가 죽거나 워크플로가 멈추면 RUNNING 인 채로 남는다. 화면에서는 진행 중으로 보여
-     * 방치된 것과 구분되지 않는다.
+     * <p>워커 종료나 워크플로 정지 시 RUNNING 상태로 잔존. 화면에는 진행 중으로 표시돼 방치
+     * 상태와 구분 불가.
      */
     @Query("select o from OperationEntity o where o.state in :states "
             + "and coalesce(o.startedAt, o.createdAt) < :cutoff")

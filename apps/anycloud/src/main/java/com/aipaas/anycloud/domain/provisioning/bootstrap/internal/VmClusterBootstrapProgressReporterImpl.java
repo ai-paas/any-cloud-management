@@ -24,16 +24,16 @@ public class VmClusterBootstrapProgressReporterImpl implements VmClusterBootstra
                 if (op.getState() == OperationState.PENDING) {
                     operationService.markRunning(op.getId());
                 }
-                // stepIndex 는 BOOTSTRAP(2) 안의 sub-step 위치 — 2 그대로 두고 currentStep 으로
+                // stepIndex 는 BOOTSTRAP(2) 안의 sub-step 위치: 2 그대로 두고 currentStep 으로
                 // 세부 정보 전달. UI 가 percent + currentStep 둘 다 표시 가능.
                 operationService.updateProgress(op.getId(), subStep.label(), 2, subStep.percent());
             });
         } catch (Exception ex) {
-            // Best-effort — bootstrap 흐름은 멈추면 금지.
+            // Best-effort: bootstrap 흐름은 멈추면 금지.
             log.warn(
                     "Bootstrap progress report skipped (cluster {}, step {}): {}", clusterName, subStep, ex.toString());
         }
-        //  cluster entity 에도 sub-step 기록 — cluster list/get 의 workflowProgress 가
+        //  cluster entity 에도 sub-step 기록: cluster list/get 의 workflowProgress 가
         // operation 재조회 (N+1) 없이 sub-step 을 노출하도록. operation 갱신과 독립된 best-effort.
         try {
             vmClusterRepository

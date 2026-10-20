@@ -20,7 +20,7 @@ import com.aipaas.anycloud.domain.operation.OperationEntity;
  */
 public interface ClusterProvider {
 
-    /** 처리할 source — {@code "vm"} 또는 {@code "registered"}. */
+    /** 처리할 source: {@code "vm"} 또는 {@code "registered"}. */
     String source();
 
     /** source 별 cluster 생성 진입점. 반환은 시작된 Operation. */

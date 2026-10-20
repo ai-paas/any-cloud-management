@@ -30,11 +30,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * K8s 리소스 조회와 삭제입니다. 모든 호출이 {@link KubeResourceService} 를 통해 cluster-agent 로
- * 나갑니다. backend 는 K8s 클라이언트를 들고 있지 않습니다.
+ * K8s 리소스 조회와 삭제. 모든 호출이 {@link KubeResourceService} 를 거쳐 cluster-agent 로 전달.
+ * backend 는 K8s 클라이언트 미보유.
  *
- * <p>agent 호출 실패를 빈 결과로 돌려주지 않습니다. "조회 결과 없음" 과 구분되지 않아 200 으로
- * 나가기 때문입니다. 분류는 아래 {@code *Fallback} 메서드가 맡습니다.
+ * <p>agent 호출 실패를 빈 결과로 반환하지 않음. 조회 결과 없음과 구분되지 않아 200 응답이 됨.
+ * 분류는 아래 {@code *Fallback} 메서드 담당.
  */
 @Slf4j
 @Service("kubeServiceImpl")
@@ -44,18 +44,18 @@ public class KubeServiceImpl implements KubeService {
     /** runbook §6 metric. */
     private final ObjectMapper objectMapper;
     /**
-     * Day-2 K8s ops 를 agent stream 으로 routing — starter 측 facade. 부터 agent-only
+     * Day-2 K8s ops 를 agent stream 으로 routing: starter 측 facade. 부터 agent-only
      * path.
      */
     private final KubeResourceService kubeResourceService;
 
     private final KubeDegradedMetricsRecorder degradedMetricsRecorder;
 
-    /** Secret.data / stringData redact toggle.wildcard read RBAC 트레이드오프 mitigation. default ON — production 환경에서 secret base64 value 가 backend response 에 노출되지 않게. compliance 가 secret value 표시를 명시적으로 허용하는 환경에선 false 로 비활성. */
+    /** Secret.data / stringData redact toggle.wildcard read RBAC 트레이드오프 mitigation. default ON: production 환경에서 secret base64 value 가 backend response 에 노출되지 않게. compliance 가 secret value 표시를 명시적으로 허용하는 환경에선 false 로 비활성. */
     @org.springframework.beans.factory.annotation.Value("${security.kube.redact-secrets:true}")
     private boolean redactSecrets;
 
-    /** log marker — 모든 ops 가 agent 경유다. */
+    /** log marker: 모든 ops 가 agent 경유다. */
     private static final String SRC_AGENT = "AGENT";
     /**
      * managedFields strip + (optional) Secret redact 의 단일 진입점.
@@ -87,7 +87,7 @@ public class KubeServiceImpl implements KubeService {
                 clusterName,
                 cause == null ? "no active session" : cause.getMessage());
         CustomException ex = new CustomException(msg, ErrorCode.AGENT_UNAVAILABLE);
-        // cause chain 보존 — classifyDegradedCause 가 root cause 까지 unwrap 해 FORBIDDEN /
+        // cause chain 보존: classifyDegradedCause 가 root cause 까지 unwrap 해 FORBIDDEN /
         // RESOURCE_KIND_DENIED 등 정확한 라벨 산출. CustomException ctor 가 cause 미수용 →
         // Throwable.initCause 사용.
         if (cause != null) {
@@ -96,7 +96,7 @@ public class KubeServiceImpl implements KubeService {
         return ex;
     }
 
-    /** Day-2 agent path 가 활성인지 확인 — 미활성이면 즉시 {@link CustomException} throw. */
+    /** Day-2 agent path 가 활성인지 확인: 미활성이면 즉시 {@link CustomException} throw. */
     private void requireAgent(String operation, String clusterName) {
         if (!kubeResourceService.isActiveFor(clusterName)) {
             throw agentUnavailable(operation, clusterName, null);
@@ -104,7 +104,7 @@ public class KubeServiceImpl implements KubeService {
     }
 
     /**
-     * 지정 kind 의 자원 목록을 한 번에 모두 반환 — agent-only.
+     * 지정 kind 의 자원 목록을 한 번에 모두 반환: agent-only.
      *
      * <p>
      * legacy 경로 ({@link ResourceType} dispatcher) 제거. agent 의
@@ -113,7 +113,7 @@ public class KubeServiceImpl implements KubeService {
      * 의 페이지 미사용 시그니처를 유지하면서 day-2 path 통합.
      *
      * <p>
-     * CircuitBreaker fallback 은 빈 배열 — UI 일부 위젯이 5xx 로 무너지지 않도록 부분 가용성.
+     * CircuitBreaker fallback 은 빈 배열: UI 일부 위젯이 5xx 로 무너지지 않도록 부분 가용성.
      *
      * @throws CustomException {@code AGENT_UNAVAILABLE} agent session 없거나 호출 실패 시.
      */
@@ -157,7 +157,7 @@ public class KubeServiceImpl implements KubeService {
         }
     }
 
-    /** Manifest apply (server-side apply) — agent-only. multi-doc YAML / JSON 둘 다 agent 가 in-cluster 에서 parse + apply. backend 는 manifest 텍스트를 통과만 시킴. */
+    /** Manifest apply (server-side apply). agent-only. multi-doc YAML / JSON 둘 다 agent 가 in-cluster 에서 parse + apply. backend 는 manifest 텍스트를 통과만 시킴. */
     @Override
     public JsonNode applyResource(String clusterName, String namespace, String manifest) {
         return applyResource(clusterName, namespace, manifest, false);
@@ -214,7 +214,7 @@ public class KubeServiceImpl implements KubeService {
     // ============== Pod logs ==============
 
     /**
-     * Pod log tail 최댓값 cap — 응답 메모리 / 네트워크 폭주 방지. agent 의 로그 조회가 전체 string
+     * Pod log tail 최댓값 cap: 응답 메모리 / 네트워크 폭주 방지. agent 의 로그 조회가 전체 string
      * 을 메모리로 가져오므로 10000 줄 정도가 합리적 상한.
      */
     private static final int MAX_TAIL_LINES = 10000;
@@ -272,7 +272,7 @@ public class KubeServiceImpl implements KubeService {
     // ============== Server-side pagination ==============
 
     /**
-     * Pod 목록 페이지 조회 — agent-only. {@link #listResourcesPaginated} 의 pod 특화 wrapper.
+     * Pod 목록 페이지 조회: agent-only. {@link #listResourcesPaginated} 의 pod 특화 wrapper.
      *
      * <p>
      * 동일 paginated agent path 로 통합. legacy endpoint 의 separate "pods" 시그니처
@@ -465,7 +465,7 @@ public class KubeServiceImpl implements KubeService {
         String norm = plural.toLowerCase(Locale.ROOT);
         String mapped = PLURAL_TO_KIND.get(norm);
         if (mapped != null) return mapped;
-        // Fallback: trailing 's' strip + title-case ("widgets" → "Widget"). 미보장 — 호출자는
+        // Fallback: trailing 's' strip + title-case ("widgets" → "Widget"). 미보장: 호출자는
         // 알려진 kind 만 전달 가정.
         String singular = norm.endsWith("s") ? norm.substring(0, norm.length() - 1) : norm;
         if (singular.isEmpty()) {
@@ -505,9 +505,9 @@ public class KubeServiceImpl implements KubeService {
     }
 
     /**
-     * 호환성 alias —
+     * 호환성 alias:
      * {@link com.aipaas.anycloud.domain.kube.model.K8sKinds#CLUSTER_SCOPED} 가 단일
-     * 진실 소스. 신규 코드는 K8sKinds 를 직접 import.
+     * 단일 출처. 신규 코드는 K8sKinds 를 직접 import.
      */
     public static final java.util.Set<String> CLUSTER_SCOPED_KINDS =
             com.aipaas.anycloud.domain.kube.model.K8sKinds.CLUSTER_SCOPED;
@@ -647,7 +647,7 @@ public class KubeServiceImpl implements KubeService {
     }
 
     /**
-     * CircuitBreaker fallback — kind list 가 비어 있어도 caller (UI) 가 default 12 kind 로
+     * CircuitBreaker fallback: kind list 가 비어 있어도 caller (UI) 가 default 12 kind 로
      * degrade 가능. 빈 list 반환 + log.warn.
      */
     @SuppressWarnings("unused")
@@ -661,7 +661,7 @@ public class KubeServiceImpl implements KubeService {
 
     @Override
     public ResolvedResource resolveResource(String clusterName, String input) {
-        // CircuitBreaker / Retry 미적용 — UNSUPPORTED_KIND 는 정상 응답 (사용자 입력 오류),
+        // CircuitBreaker / Retry 미적용: UNSUPPORTED_KIND 는 정상 응답 (사용자 입력 오류),
         // retry 무의미. AGENT_UNAVAILABLE 만 즉시 throw.
         requireAgent("resolveResource", clusterName);
         try {
@@ -674,7 +674,7 @@ public class KubeServiceImpl implements KubeService {
                     resolved.plural());
             return resolved;
         } catch (UnsupportedKindException e) {
-            // suggestions 포함 — controller 가 propagate 해서 404 + suggestions 매핑.
+            // suggestions 포함. controller 가 propagate 해서 404 + suggestions 매핑.
             throw e;
         } catch (KubeRoutingException e) {
             throw agentUnavailable("resolveResource", clusterName, e);

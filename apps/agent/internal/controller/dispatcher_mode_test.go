@@ -70,7 +70,7 @@ func TestHandle_modeRejection_returnsCommandNotForMode(t *testing.T) {
 
 func TestHandle_modeAcceptance_installerInstallsAddon(t *testing.T) {
 	// installer 가 INSTALL_ADDON 받으면 mode level 은 통과. dependency nil 이라 AGENT_UNAVAILABLE
-	// (kube/helm client 부재) — mode 거부와 다른 에러 path.
+	// (kube/helm client 부재). mode 거부와 다른 에러 path.
 	d := New("instance-1", ModeInstaller, nil, nil, permissiveLoader(t))
 	cmd := &agentv1.CommandRequest{Type: agentv1.CommandType_INSTALL_ADDON}
 

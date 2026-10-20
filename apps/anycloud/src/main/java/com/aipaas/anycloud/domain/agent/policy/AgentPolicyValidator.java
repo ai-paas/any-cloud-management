@@ -10,18 +10,18 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 
 /**
- * Agent 의 현재 적용된 policy snapshot 에 대한 일관성/위험 검증. 운영자가 ConfigMap edit 후 즉시
- * 잘못된 설정을 발견할 수 있도록 backend 가 추가하는 layer.
+ * Agent 에 적용된 policy snapshot 의 일관성, 위험 검증. 운영자가 ConfigMap 수정 직후 설정
+ * 오류를 확인할 수 있도록 backend 가 추가하는 계층.
  *
  * <p>참고 룰북: {@code docs/runbooks/cluster-agent-resource-policy.md}.
  *
- * <p>severity 는 HIGH(secret 유출 같은 즉시 위험), MEDIUM(오타 등 설정 실수), LOW(기본값이 아닌
- * 선택), INFO(참고) 네 단계입니다.
+ * <p>severity 4단계. HIGH(secret 유출 등 즉시 위험), MEDIUM(오타 등 설정 실수),
+ * LOW(기본값 외 선택), INFO(참고).
  */
 @Component
 public class AgentPolicyValidator {
 
-    /** 권장 default deny — 운영 가이드 docs/runbooks/cluster-agent-resource-policy.md 참고. */
+    /** 권장 default deny: 운영 가이드 docs/runbooks/cluster-agent-resource-policy.md 참고. */
     private static final Set<String> RECOMMENDED_DENY = Set.of(
             "secrets",
             "roles",
@@ -34,18 +34,18 @@ public class AgentPolicyValidator {
     /**
      * backend 가 agent 의 ConfigMap 을 갱신하려면 반드시 살아있어야 하는 명령.
      * 사용자가 allowedCommands 에 이 셋 중 하나라도 빠뜨리면 다음 APPLY_AGENT_CONFIG 호출이
-     * PERMISSION_DENIED — 자기 발 잘라 backend 가 더 이상 정책을 못 고침 (kubectl patch 만 escape).
+     * PERMISSION_DENIED: 자기 발 잘라 backend 가 더 이상 정책을 못 고침 (kubectl patch 만 escape).
      *
      * <ul>
-     *   <li>APPLY_AGENT_CONFIG — admin PUT /agent-policy 의 핵심 RPC</li>
-     *   <li>GET_AGENT_CONFIG — diff 계산 (before-snapshot fetch)</li>
-     *   <li>ENSURE_AGENT_CONFIG_ANNOTATIONS — backend full-policy push 시 annotation 보장</li>
+     *   <li>APPLY_AGENT_CONFIG: admin PUT /agent-policy 의 핵심 RPC</li>
+     *   <li>GET_AGENT_CONFIG: diff 계산 (before-snapshot fetch)</li>
+     *   <li>ENSURE_AGENT_CONFIG_ANNOTATIONS: backend full-policy push 시 annotation 보장</li>
      * </ul>
      */
     public static final Set<String> REQUIRED_MANAGEMENT_COMMANDS =
             Set.of("APPLY_AGENT_CONFIG", "GET_AGENT_CONFIG", "ENSURE_AGENT_CONFIG_ANNOTATIONS");
 
-    /** Common plural 형태 (lowercase) — 정확한 list 가 아니라 휴리스틱 (RESTMapper 가 source-of-truth). */
+    /** Common plural 형태 (lowercase). 정확한 list 가 아니라 휴리스틱 (RESTMapper 가 단일 출처). */
     private static final Set<String> KNOWN_NON_PLURAL = Set.of(
             "pod",
             "service",
@@ -85,7 +85,7 @@ public class AgentPolicyValidator {
                 upper.add(c.trim().toUpperCase(Locale.ROOT));
             }
         }
-        // wildcard "*" 면 모든 명령 허용 — 통과.
+        // wildcard "*" 면 모든 명령 허용: 통과.
         if (upper.contains("*")) {
             return out;
         }
@@ -112,7 +112,7 @@ public class AgentPolicyValidator {
             return out;
         }
 
-        // 1. wildcard namespace — info 단계 (멀티테넌트 환경이면 위험)
+        // 1. wildcard namespace: info 단계 (멀티테넌트 환경이면 위험)
         if (snapshot.allowAllNamespaces()) {
             out.add(new PolicyWarning(
                     Severity.INFO,
@@ -155,7 +155,7 @@ public class AgentPolicyValidator {
                 deniedKinds.add(r.kind() == null ? "" : r.kind().toLowerCase(Locale.ROOT));
             }
         }
-        // HIGH — secrets 글로벌 deny 누락
+        // HIGH: secrets 글로벌 deny 누락
         if (!deniedKinds.contains("secrets")) {
             out.add(new PolicyWarning(
                     Severity.HIGH,
@@ -163,7 +163,7 @@ public class AgentPolicyValidator {
                     "secrets 가 global deny list 에 없습니다. allow_all_discovered 모드에서 모든 namespace 의 "
                             + "secrets 가 노출됩니다. 멀티 테넌트 또는 사용자 facing 환경에서는 'kind: secrets' 추가 권장."));
         }
-        // MEDIUM — RBAC kinds deny 누락 (있어야 하나 강제 아님)
+        // MEDIUM: RBAC kinds deny 누락 (있어야 하나 강제 아님)
         List<String> missingRbac = new ArrayList<>();
         for (String rbac : List.of("roles", "rolebindings", "clusterroles", "clusterrolebindings")) {
             if (!deniedKinds.contains(rbac)) {
@@ -177,7 +177,7 @@ public class AgentPolicyValidator {
                     "RBAC kinds (" + String.join(", ", missingRbac) + ") 가 deny list 에 없습니다. "
                             + "일반 사용자가 RBAC 변경 시 권한 escalation 가능."));
         }
-        // MEDIUM — webhook configs deny 누락
+        // MEDIUM: webhook configs deny 누락
         List<String> missingWebhooks = new ArrayList<>();
         for (String w : List.of("validatingwebhookconfigurations", "mutatingwebhookconfigurations")) {
             if (!deniedKinds.contains(w)) {
@@ -191,7 +191,7 @@ public class AgentPolicyValidator {
                     "webhook configs (" + String.join(", ", missingWebhooks) + ") 가 deny 에 없습니다. "
                             + "악의적 변조 시 admission control 우회 가능."));
         }
-        // INFO — kube-system 보호 누락
+        // INFO: kube-system 보호 누락
         boolean kubeSysProtected = policy.deny().stream().anyMatch(r -> "kube-system".equals(r.namespace()));
         if (!kubeSysProtected) {
             out.add(new PolicyWarning(
@@ -215,7 +215,7 @@ public class AgentPolicyValidator {
                     "STRICT_DENY_REDUNDANT",
                     "mode=strict 에서 deny 는 의미가 없습니다 (allow 외 모든 kind 가 자동 거부). " + "deny 항목 제거 권장 — 정책 의도를 명확히 표현."));
         }
-        // 권장 RBAC kinds 가 allow 에 포함되어 있는지 — 있으면 INFO (의도된 허용일 수 있음)
+        // 권장 RBAC kinds 가 allow 에 포함되어 있는지: 있으면 INFO (의도된 허용일 수 있음)
         Set<String> allowed = new java.util.HashSet<>();
         for (ResourceRule r : policy.allow()) {
             allowed.add(r.kind() == null ? "" : r.kind().toLowerCase(Locale.ROOT));

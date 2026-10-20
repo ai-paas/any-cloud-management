@@ -31,7 +31,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Table(
         name = "csp_credential",
         // 이름만으로는 구분이 안 돼 프로비저닝에서 어느 것을 고른 건지 알 수 없었다.
-        // provider 가 다르면 같은 이름을 허용한다 — "dev" 를 AWS 와 GCP 에 각각 쓰는 건 자연스럽다.
+        // provider 가 다르면 같은 이름을 허용한다. "dev" 를 AWS 와 GCP 에 각각 쓰는 건 자연스럽다.
         uniqueConstraints =
                 @UniqueConstraint(
                         name = "uk_csp_credential_provider_name",
@@ -59,8 +59,8 @@ public class CspCredentialEntity implements Serializable {
 
     @Size(max = 255)
     /**
-     * 마지막 확인 결과. 화면 상태로만 두면 새로고침하면 사라지고 사용자마다 각자 확인해야 한다.
-     * null 이면 한 번도 확인한 적이 없다는 뜻이다 — "정상" 과 구분되어야 한다.
+     * 마지막 확인 결과. 화면 상태로만 유지하면 새로고침 시 소실되고 사용자별 재확인 필요.
+     * null 은 미확인 상태이며 정상과 구분 필요.
      */
     @Column(name = "health_status", length = 20)
     private String healthStatus;

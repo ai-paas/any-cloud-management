@@ -7,10 +7,10 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 /**
- * 카탈로그의 values 는 YAML 이고 agent 의 INSTALL_ADDON 은 JSON 만 받는다.
+ * 카탈로그의 values 는 YAML 이고 agent 의 INSTALL_ADDON 은 JSON 만 수용.
  *
- * <p>YAML 을 그대로 보내면 주석 한 줄에 {@code invalid character '#'} 로 거절된다. gpu-operator
- * 처럼 values 가 있는 addon 만 걸려, 다른 addon 이 설치되는 동안 GPU 만 조용히 빠진다.
+ * <p>YAML 을 그대로 전송하면 주석 한 줄에서 {@code invalid character '#'} 로 거절. gpu-operator
+ * 처럼 values 를 보유한 addon 만 해당하므로 다른 addon 설치 중 GPU 만 무음 누락.
  */
 public final class AddonValues {
 

@@ -44,7 +44,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
-/** cluster 안의 Helm release lifecycle 입니다. 모든 호출은 agent 를 거칩니다. */
+/** cluster 내 Helm release lifecycle. 모든 호출은 agent 경유. */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/clusters/{clusterName}/helm-releases")
@@ -73,11 +73,11 @@ public class ClusterHelmReleaseController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
-            summary = "release 설치 (JSON — values 객체 또는 valuesYaml 문자열)",
+            summary = "release 설치 (JSON: values 객체 또는 valuesYaml 문자열)",
             description = "values 입력은 최대 하나만 제공. values (JSON object, 권장) 또는 valuesYaml (raw string). "
                     + "큰 values 파일은 multipart variant 사용 권장.")
     @ApiResponses({
-        @ApiResponse(responseCode = "202", description = "install accepted — Location: /v1/operations/{id}"),
+        @ApiResponse(responseCode = "202", description = "install accepted: Location: /v1/operations/{id}"),
         @ApiResponse(responseCode = "400", description = "chart 형식 위반 / values+valuesYaml 동시 지정 / YAML 직렬화 실패")
     })
     public ResponseEntity<ApiSuccessResponse<OperationResponse>> installJson(
@@ -138,7 +138,7 @@ public class ClusterHelmReleaseController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
-            summary = "release 설치 (multipart — values.yaml 파일 업로드)",
+            summary = "release 설치 (multipart: values.yaml 파일 업로드)",
             description = "UI 의 파일 업로드 / 큰 values 파일에 적합. valuesFile 미제공 시 default values 로 설치.")
     @ApiResponses({
         @ApiResponse(responseCode = "202", description = "install accepted"),
@@ -197,7 +197,7 @@ public class ClusterHelmReleaseController {
             operationService.markRunning(op.getId());
             var deployed =
                     chartService.deployChartFromYaml(repo, chart, releaseName, clusterName, ns, version, valuesYaml);
-            // 끝났다고 알리지 않으면 작업이 RUNNING 에 영영 남아 화면이 설치 중으로 보여 줍니다.
+            // 완료 통보 누락 시 작업이 RUNNING 에 잔존해 화면에 설치 중으로 표시.
             operationService.complete(
                     op.getId(),
                     "{\"status\":\"" + (deployed == null || deployed.getStatus() == null ? "" : deployed.getStatus())
@@ -338,19 +338,19 @@ public class ClusterHelmReleaseController {
     }
 
     /**
-     * 기존 release 를 새 chart version 이나 values 로 갱신합니다. release 가 없으면 400 입니다.
+     * 기존 release 를 새 chart version 또는 values 로 갱신. release 부재 시 400.
      *
-     * <p>{@code atomic} 은 기본 true 라 실패하면 자동으로 rollback 합니다.
+     * <p>{@code atomic} 기본값 true. 실패 시 자동 rollback.
      *
-     * <p>{@code reuseValues} 는 기존 values 를 남기고 병합하고, {@code resetValues} 는 chart 기본값
-     * 부터 다시 시작합니다. 둘 다 true 로 주면 {@code resetValues} 가 이깁니다.
+     * <p>{@code reuseValues} 는 기존 values 유지 후 병합, {@code resetValues} 는 chart 기본값부터
+     * 재구성. 둘 다 true 면 {@code resetValues} 적용.
      */
     @org.springframework.web.bind.annotation.PutMapping(
             value = "/{releaseName}",
             consumes = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "release 업그레이드 — 새 chart version / values 로 갱신")
+    @Operation(summary = "release 업그레이드: 새 chart version / values 로 갱신")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "upgrade OK — revision 증가, status=deployed"),
+        @ApiResponse(responseCode = "200", description = "upgrade OK: revision 증가, status=deployed"),
         @ApiResponse(responseCode = "400", description = "release 미존재 (HELM_NOT_FOUND), 또는 chart resolution 실패"),
         @ApiResponse(responseCode = "503", description = "Agent unreachable")
     })
@@ -489,12 +489,12 @@ public class ClusterHelmReleaseController {
 
     @DeleteMapping("/{releaseName}")
     @Operation(
-            summary = "release uninstall (LRO — helm uninstall)",
+            summary = "release uninstall (LRO: helm uninstall)",
             description = "지정 release 를 cluster 에서 제거. 기본은 history 도 같이 삭제 (idempotent 재설치 가능). "
                     + "`keepHistory=true` 면 helm 의 revision 이력을 보존 (롤백 추적용). "
                     + "`wait=true` 면 모든 K8s 자원이 실제로 사라질 때까지 대기.")
     @ApiResponses({
-        @ApiResponse(responseCode = "202", description = "uninstall accepted — Location: /v1/operations/{id}"),
+        @ApiResponse(responseCode = "202", description = "uninstall accepted: Location: /v1/operations/{id}"),
         @ApiResponse(responseCode = "404", description = "release 또는 cluster 미존재"),
         @ApiResponse(responseCode = "500", description = "helm CLI 실행 실패")
     })

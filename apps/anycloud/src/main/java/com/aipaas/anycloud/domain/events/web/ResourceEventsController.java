@@ -13,9 +13,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
- * 화면 하나당 스트림 하나. 자원별로 스트림을 늘리면 화면 수만큼 연결이 생긴다.
+ * 화면당 스트림 1개. 자원별 스트림 분리 시 화면 수만큼 연결 증가.
  *
- * <p>여기로는 "무엇이 바뀌었다"만 흐른다. 값은 REST 가 계속 책임진다.
+ * <p>이 경로로는 변경 발생 사실만 전달. 값 제공은 REST 담당.
  */
 @Slf4j
 @RestController

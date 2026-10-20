@@ -11,7 +11,7 @@ public interface VmClusterNodeLabelService {
 
     /**
      * outputs.nodes[] worker 들을 K8s 노드와 매칭해 pulumi-index 라벨 부착. idempotent
-     * ({@code kubectl label --overwrite}), best-effort — 매칭 실패 인덱스는 skip + log.
+     * ({@code kubectl label --overwrite}), best-effort: 매칭 실패 인덱스는 skip + log.
      *
      * @param vmCluster 대상 클러스터 entity
      * @param outputs   현재 Pulumi stack outputs

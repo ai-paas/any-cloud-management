@@ -24,13 +24,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * VM cluster read-only query — list / status. preflight 검증은 {@link VmClusterPreflightService} 로 위임.
+ * VM cluster read-only query: list / status. preflight 검증은 {@link VmClusterPreflightService} 로 위임.
  *
  * <p>책임:
  * <ul>
- *   <li>{@link #listVmClusters} — filter spec + payload conversion</li>
- *   <li>{@link #getVmClusterStatus} — single cluster status</li>
- *   <li>{@link #preflightVmCluster} — delegate</li>
+ *   <li>{@link #listVmClusters}: filter spec + payload conversion</li>
+ *   <li>{@link #getVmClusterStatus}: single cluster status</li>
+ *   <li>{@link #preflightVmCluster}: delegate</li>
  * </ul>
  */
 @Service
@@ -52,8 +52,8 @@ public class VmClusterQueryServiceImpl implements VmClusterQueryService {
                 .and(notEqualsEnum("provisioningStatus", VmClusterStatus.DELETED));
 
         /*
-         * 노드가 없는 클러스터의 줄을 앞에 세운다. 만들어지는 중이거나 실패한 것들이라 뒤
-         * 페이지로 밀리면 정작 봐야 할 줄을 못 본다.
+         * 노드가 없는 클러스터 행을 선두 배치. 생성 중이거나 실패한 항목이라 후순위 페이지로
+         * 밀리면 확인이 필요한 행이 노출되지 않음.
          */
         return vmClusterRepository.findAll(specification, Sort.by(Sort.Direction.DESC, "createdAt")).stream()
                 .flatMap(cluster -> VmClusterNodeRows.of(objectMapper, cluster).stream())
@@ -71,8 +71,8 @@ public class VmClusterQueryServiceImpl implements VmClusterQueryService {
     public List<VmClusterListItemResponse> listVmClusters(
             String provider, String environment, String status, boolean includeDeleted) {
         VmClusterStatus normalizedStatus = normalizeStatus(status);
-        // delete 가 audit/history 위해 row 를 보존하므로 기본 목록에서는 감춘다. includeDeleted 는
-        // "함께 보기" 다 — 삭제된 것만 남기면 살아 있는 것을 보려고 두 번 조회해야 한다.
+        // delete 가 audit, history 용으로 row 를 보존하므로 기본 목록에서는 숨김. includeDeleted
+        // 는 함께 조회 옵션. 삭제 항목만 반환하면 유효 항목 조회에 추가 요청 필요.
         Specification<VmClusterEntity> baseSpec = Specification.where(equalsIgnoreCase("clusterProvider", provider))
                 .and(equalsIgnoreCase("environment", environment));
         Specification<VmClusterEntity> specification = normalizedStatus == null

@@ -24,13 +24,13 @@ import org.springframework.stereotype.Service;
  * VM cluster BOOTSTRAP workflow step. 12 dependency 를 5 책임 group 으로 정리:
  *
  * <ol>
- *   <li>Repository / state — {@code vmClusterRepository}. step 진입 / 갱신.</li>
- *   <li>External lookup — {@code cspCredentialService}, {@code pulumiProvisioningService}. CSP env
+ *   <li>Repository / state: {@code vmClusterRepository}. step 진입 / 갱신.</li>
+ *   <li>External lookup: {@code cspCredentialService}, {@code pulumiProvisioningService}. CSP env
  *       + Pulumi stack outputs.</li>
- *   <li>Bootstrap execution — {@code vmClusterBootstrapService} (SSH 기반 kubeadm).</li>
- *   <li>Post-bootstrap registration — {@code vmClusterRegistrationService},
+ *   <li>Bootstrap execution: {@code vmClusterBootstrapService} (SSH 기반 kubeadm).</li>
+ *   <li>Post-bootstrap registration: {@code vmClusterRegistrationService},
  *       {@code clusterAgentInstaller}. cluster row insert + agent helm install.</li>
- *   <li>Workflow continuation — {@code vmClusterWorkflowPublisher},
+ *   <li>Workflow continuation: {@code vmClusterWorkflowPublisher},
  *       {@code vmClusterWorkflowSupportService}, {@code vmClusterPayloadService},
  *       {@code asyncTaskExecutor}. 다음 step (VERIFY) publish + state mutation.</li>
  * </ol>
@@ -65,7 +65,7 @@ public class VmClusterBootstrapStepServiceImpl implements VmClusterBootstrapStep
         try {
             workflowSupportService.markStepStarted(
                     vmCluster, VmClusterWorkflowStep.BOOTSTRAP, VmClusterStatus.BOOTSTRAPPING, false);
-            // Retry 시에도 이전 attempt 의 log 를 truncate 하지 않고 attempt 마커만 추가 — 디버깅용
+            // Retry 시에도 이전 attempt 의 log 를 truncate 하지 않고 attempt 마커만 추가: 디버깅용
             // 누적 가시성 보존. workflowRetryCount 는 0-based 라 +1 해서 attempt 번호로 표시.
             int attemptNumber = (vmCluster.getWorkflowRetryCount() == null ? 0 : vmCluster.getWorkflowRetryCount()) + 1;
             vmClusterBootstrapLogService.appendAttemptMarker(vmCluster, attemptNumber);
@@ -77,7 +77,7 @@ public class VmClusterBootstrapStepServiceImpl implements VmClusterBootstrapStep
                     provisioningService.stackOutputs(vmCluster.getStackName(), true, credentialEnvironment);
 
             vmClusterBootstrapService.bootstrap(vmCluster, outputs);
-            // ClusterEntity 를 agent helm install 직전에 생성 — prepareBootstrap (JWT mint) 이
+            // ClusterEntity 를 agent helm install 직전에 생성: prepareBootstrap (JWT mint) 이
             // cluster row 존재를 전제로 함. 동시에 vm_cluster.cluster_id FK backfill.
             vmClusterRegistrationService.createClusterEntity(vmCluster);
             vmCluster.setRawOutputs(vmClusterPayloadService.serializeSanitizedOutputs(outputs));

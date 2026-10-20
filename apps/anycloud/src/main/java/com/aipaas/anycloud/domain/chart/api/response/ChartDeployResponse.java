@@ -7,14 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * <pre>
- * ClassName : ChartDeployResponse
- * Type : class
- * Description : Helm 차트 배포 요청 접수 응답 DTO입니다.
- * Related : ChartController, ChartService
- * </pre>
- */
+/** Helm 차트 배포 접수 응답 DTO. */
 @Getter
 @Setter
 @Builder

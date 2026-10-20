@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
  * <p>cache key = {@code clusterName + "|" + lowercased(input)}. cluster 별 격리 + 입력 정규화
  * (대소문자, shortname 등 다양한 표기 모두 동일 entry hit).
  *
- * <p>TTL 30분 — schema 가 거의 불변이므로 staleness 무시 가능. CRD 변동 직후엔
+ * <p>TTL 30분: schema 가 거의 불변이므로 staleness 무시 가능. CRD 변동 직후엔
  * {@link #invalidate} 로 강제 refresh (addon install hook 등).
  */
 @Slf4j
@@ -72,7 +72,7 @@ public class CachedKindResolver implements KindResolver {
 
     /**
      * agent RESOLVE_RESOURCE 호출 → 응답 그대로 반환. RPC 실패 시 hardcoded fallback.
-     * 반환 null 안함 — 미지 kind 도 best-effort placeholder.
+     * 반환 null 안함. 미지 kind 도 best-effort placeholder.
      */
     private ResolvedResource resolveUncached(String clusterName, String input) {
         try {
@@ -96,17 +96,17 @@ public class CachedKindResolver implements KindResolver {
 
     /**
      * agent 무응답 시 hardcoded {@link K8sKinds#CLUSTER_SCOPED} 만으로 best-effort.
-     * namespaced flag 만 의미 있음 — plural/group/version 은 입력 그대로 (caller 가 그대로 forward).
+     * namespaced flag 만 의미 있음. plural/group/version 은 입력 그대로 (caller 가 그대로 forward).
      */
     private static ResolvedResource fallback(String input) {
         String lower = input.toLowerCase(Locale.ROOT);
         boolean clusterScoped = K8sKinds.isClusterScoped(lower);
         return new ResolvedResource(
-                lower, // plural — 입력 그대로 (정규화 미보장)
+                lower, // plural: 입력 그대로 (정규화 미보장)
                 null, // singular
                 null, // kind
-                "", // group — caller 가 명시 안하면 core
-                "v1", // version — best guess
+                "", // group: caller 가 명시 안하면 core
+                "v1", // version: best guess
                 !clusterScoped, // namespaced
                 List.of());
     }

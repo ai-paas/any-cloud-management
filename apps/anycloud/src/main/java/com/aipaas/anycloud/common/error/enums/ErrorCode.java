@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Getter;
 import lombok.ToString;
 
-/** 에러 코드와 사용자에게 보일 메시지. HTTP status 도 여기서 정합니다. */
+/** 에러 코드와 사용자 표시 메시지. HTTP status 도 함께 정의. */
 @Getter
 @ToString
 @JsonFormat(shape = JsonFormat.Shape.OBJECT)
@@ -38,7 +38,7 @@ public enum ErrorCode {
     CLUSTER_BOOTSTRAP_FAILED(500, "클러스터 부트스트랩 실패."),
     CLUSTER_PULUMI_FAILED(500, "Pulumi provisioning 실패."),
 
-    // Provisioning config (UX #7 — generic INVALID_INPUT_VALUE 보다 세분화)
+    // Provisioning config (UX #7: generic INVALID_INPUT_VALUE 보다 세분화)
     PROVISIONING_PROVIDER_UNSUPPORTED(400, "지원하지 않는 provider."),
     PROVISIONING_CONFIG_MISSING_KEY(400, "필수 provisioning config 키 누락."),
     PROVISIONING_CONFIG_INVALID_VALUE(400, "Provisioning config 값이 유효하지 않습니다."),
@@ -51,13 +51,13 @@ public enum ErrorCode {
     // 이 에러로 떨어진다. 운영자 점검 포인트: agent ACTIVE / cluster_agent 테이블 / heartbeat 신선도.
     AGENT_UNAVAILABLE(503, "Cluster agent 가 응답하지 않습니다. agent ACTIVE 상태 / heartbeat 확인 필요."),
 
-    // Fleet upgrade — 운영 의미가 명확한 도메인 코드. generic DUPLICATE / ENTITY_NOT_FOUND 보다
-    // runbook 매핑이 깔끔. monitoring 의 PromQL alert 도 이 코드로 분류할 수 있다.
+    // Fleet upgrade 전용 코드. DUPLICATE 나 ENTITY_NOT_FOUND 로 통합하면 runbook 과 PromQL
+    // alert 이 상황을 구분하지 못함.
     AGENT_NOT_ACTIVE(404, "ACTIVE 상태의 cluster agent 가 없습니다 — connectivity 복구 후 재시도."),
     UPGRADE_IN_PROGRESS(409, "이미 진행 중인 upgrade 가 있습니다. 완료/중단 후 재시도."),
 
-    // agent 의 RESTMapper 가 입력을 resolve 못한 케이스. 4xx — caller 가 retry 해도 같은 결과.
-    // 응답 metadata 에 suggestions (Levenshtein top-3) 포함 — type-ahead UI 활용.
+    // agent 의 RESTMapper 가 입력을 resolve 못한 케이스. 4xx: caller 가 retry 해도 같은 결과.
+    // 응답 metadata 에 suggestions (Levenshtein top-3) 포함. type-ahead UI 활용.
     UNSUPPORTED_KIND(404, "Cluster 가 해당 kind 를 지원하지 않습니다. CRD 설치 여부 / 오타 확인."),
 
     // Agent 의 allowlist 가 chart 또는 namespace 를 거부한 케이스. 503 (agent 비활성) 와 구분.

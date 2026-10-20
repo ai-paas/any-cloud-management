@@ -16,14 +16,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * cluster 한 곳의 agent upgrade 를 trigger 합니다.
+ * cluster 단위 agent upgrade trigger.
  *
- * <p>image 만 바꾼 Deployment manifest 를 apply 하고 끝냅니다. 성공 판정은 여기서 하지 않습니다.
- * 새 pod 가 떠서 heartbeat 로 새 {@code agent_version} 을 보고하면
- * {@link AgentUpgradeProgressMonitor} 가 SUCCEEDED 로 바꾸고, 60분 안에 못 보면 FAILED 로 둡니다.
+ * <p>image 만 변경한 Deployment manifest 를 apply 후 종료. 성공 판정은 이 지점에서 미수행.
+ * 새 pod 기동 후 heartbeat 로 새 {@code agent_version} 을 보고하면
+ * {@link AgentUpgradeProgressMonitor} 가 SUCCEEDED 로 전이, 60분 내 미보고 시 FAILED.
  *
- * <p>HA 로 row 가 여럿이면 upgrade 메타는 첫 row 에만 씁니다. {@code agent_version} 은 row 마다
- * 각자의 heartbeat 가 갱신합니다.
+ * <p>HA 로 row 가 여럿이면 upgrade 메타는 첫 row 에만 기록. {@code agent_version} 은 row 별
+ * heartbeat 가 갱신.
  */
 @Slf4j
 @Service
@@ -82,7 +82,7 @@ public class AgentUpgradeServiceImpl implements AgentUpgradeService {
                         "No ACTIVE agent for cluster " + clusterName + " — fix connectivity first",
                         ErrorCode.AGENT_NOT_ACTIVE));
 
-        // 동시 trigger 방지 — 진행 중이면 거부.
+        // 동시 trigger 방지: 진행 중이면 거부.
         if (!primary.getUpgradeStatus().isTerminal()) {
             throw new CustomException(
                     "Upgrade already in flight (status=" + primary.getUpgradeStatus() + ", target="
@@ -111,7 +111,7 @@ public class AgentUpgradeServiceImpl implements AgentUpgradeService {
         try {
             kubeService.applyResource(clusterName, agentNamespace(), manifest);
         } catch (Exception e) {
-            // agent path 실패 — 즉시 FAILED 로 전환 (운영자 재시도 가능하도록 terminal state).
+            // agent path 실패: 즉시 FAILED 로 전환 (운영자 재시도 가능하도록 terminal state).
             primary.setUpgradeStatus(ClusterAgentUpgradeStatus.FAILED);
             primary.setUpgradeCompletedAt(LocalDateTime.now());
             primary.setUpgradeError("APPLY_MANIFEST failed: " + e.getMessage());
@@ -120,7 +120,7 @@ public class AgentUpgradeServiceImpl implements AgentUpgradeService {
             throw new CustomException("Agent upgrade failed: " + e.getMessage(), ErrorCode.AGENT_UNAVAILABLE);
         }
 
-        // 3) Mark IN_PROGRESS — 이제 K8s rolling update + 새 pod heartbeat 대기.
+        // 3) Mark IN_PROGRESS: 이제 K8s rolling update + 새 pod heartbeat 대기.
         primary.setUpgradeStatus(ClusterAgentUpgradeStatus.IN_PROGRESS);
         clusterAgentRepository.save(primary);
 
@@ -138,7 +138,7 @@ public class AgentUpgradeServiceImpl implements AgentUpgradeService {
      * 의 image 만 갱신하고 나머지 (env / volumes / resources / ...) 는 보존.
      *
      * <p>{@code apiVersion} + {@code kind} + {@code metadata.name/namespace} 는 server-side apply
-     * 가 식별자로 사용. {@code spec.selector} 와 {@code spec.template.metadata.labels} 도 필수 —
+     * 가 식별자로 사용. {@code spec.selector} 와 {@code spec.template.metadata.labels} 도 필수.
      * Deployment 가 immutable 한 selector 를 strategic merge 에서 검증하므로 동일 값 유지.
      */
     private String buildImagePatchManifest(String targetImage) {

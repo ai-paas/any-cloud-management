@@ -14,7 +14,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-// generateKubeconfig — TokenRequest 발급 후 kubeconfig YAML 합성.
+// generateKubeconfig: TokenRequest 발급 후 kubeconfig YAML 합성.
 //
 // AllowList 검증:
 //   - GENERATE_KUBECONFIG command allowed
@@ -66,8 +66,8 @@ func (d *Dispatcher) generateKubeconfig(ctx context.Context, cmd *agentv1.Comman
 	if caErr != nil {
 		return errorResponse(agentv1.Status_FAILED, "CA_DATA_UNAVAILABLE", caErr.Error())
 	}
-	// 클러스터 안에서 본 주소는 서비스 IP 라 내려받은 kubeconfig 가 밖에서는 닿지 않는다.
-	// 백엔드가 외부 주소를 아는 경우에만 보내온다 — BYO 클러스터는 비어 있다.
+	// 클러스터 내부에서 조회한 주소는 서비스 IP 라 수신한 kubeconfig 의 외부 접근 불가.
+	// 백엔드는 외부 주소를 보유한 경우에만 전송. BYO 클러스터는 빈 값.
 	server := defaultStr(getStringParam(cmd, "api_server_url"), d.kube.APIServerURL())
 	if server == "" {
 		return errorResponse(agentv1.Status_FAILED, "API_SERVER_URL_UNAVAILABLE", "no API server URL")
@@ -85,7 +85,7 @@ func (d *Dispatcher) generateKubeconfig(ctx context.Context, cmd *agentv1.Comman
 	return okResponse(result)
 }
 
-// composeKubeconfigYAML — 표준 kubeconfig v1 YAML 합성. token 기반 user.
+// composeKubeconfigYAML: 표준 kubeconfig v1 YAML 합성. token 기반 user.
 func composeKubeconfigYAML(clusterName, server string, ca []byte, saName, token, contextNs string) string {
 	caB64 := base64.StdEncoding.EncodeToString(ca)
 	// 들여쓰기 2 spaces (kubectl 기본 형식과 동일).
@@ -110,7 +110,7 @@ current-context: aipaas-%s
 `, clusterName, server, caB64, saName, token, saName, clusterName, saName, contextNs, saName)
 }
 
-// isNotFound — K8s API 의 NotFound 에러 판정. errors.IsNotFound 와 동등 (의존성 회피용 string match).
+// isNotFound: K8s API 의 NotFound 에러 판정. errors.IsNotFound 와 동등 (의존성 회피용 string match).
 func isNotFound(err error) bool {
 	if err == nil {
 		return false
@@ -128,7 +128,7 @@ func contains(s, sub string) bool {
 	return false
 }
 
-// createNodeDebugPod — host namespace + privileged debug pod 생성. 반환된 (ns, pod) 으로 caller 가
+// createNodeDebugPod: host namespace + privileged debug pod 생성. 반환된 (ns, pod) 으로 caller 가
 // PodExec 호출.
 //
 // AllowList: CREATE_NODE_DEBUG_POD command + 대상 namespace 둘 다 통과 필요.
@@ -158,7 +158,7 @@ func (d *Dispatcher) createNodeDebugPod(ctx context.Context, cmd *agentv1.Comman
 		Image:      getStringParam(cmd, "image"),
 		PodName:    getStringParam(cmd, "pod_name"),
 		TTLSeconds: ttl,
-		// 터미널은 호스트가 아니라 클러스터를 본다. 기본은 기존 노드 셸이다.
+		// 터미널 대상은 호스트가 아닌 클러스터. 기본값은 기존 노드 셸.
 		ToolsShell:     toolsShell,
 		ServiceAccount: getStringParam(cmd, "service_account"),
 	})
@@ -175,10 +175,10 @@ func (d *Dispatcher) createNodeDebugPod(ctx context.Context, cmd *agentv1.Comman
 	return okResponse(result)
 }
 
-// debugPodNamespace — 파드가 뜰 namespace.
+// debugPodNamespace: 파드가 뜰 namespace.
 //
-// 도구 셸은 agent 의 SA 로 뜨는데 SA 는 자기 namespace 안에서만 참조된다. kube-system 에 만들면
-// "serviceaccount not found" 로 거부된다.
+// 도구 셸은 agent 의 SA 로 기동하며 SA 는 동일 namespace 내에서만 참조 가능. kube-system 에
+// 생성하면 "serviceaccount not found" 로 거부.
 func debugPodNamespace(requested string, toolsShell bool) string {
 	if requested != "" {
 		return requested

@@ -9,21 +9,20 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 /**
- * {@code cluster-agent} chart 를 설치할 때 values 에 backend 주소와 image 를 채워 넣습니다.
- * 빠뜨리면 agent 가 chart 기본값인 {@code host.docker.internal} 로 붙으려다 조용히 실패합니다.
- * 다른 chart 는 그대로 통과시킵니다.
+ * {@code cluster-agent} chart 설치 시 values 에 backend 주소와 image 주입. 누락 시 agent 가
+ * chart 기본값 {@code host.docker.internal} 로 접속을 시도하다 무음 실패. 다른 chart 는 통과.
  *
- * <p>사용자가 직접 지정한 값이 있으면 덮어쓰지 않습니다.
+ * <p>사용자 지정 값이 있으면 덮어쓰지 않음.
  *
- * <p>image 는 {@code <repo>:<tag>} 로 가릅니다. {@code registry:5000/img:v1} 처럼 registry 에
- * 포트가 붙는 경우가 있어 마지막 슬래시 뒤의 콜론만 구분자로 봅니다.
+ * <p>image 는 {@code <repo>:<tag>} 로 분리. {@code registry:5000/img:v1} 처럼 registry 에
+ * 포트가 포함될 수 있어 마지막 슬래시 뒤의 콜론만 구분자로 사용.
  */
 @Slf4j
 @Component
 public class ClusterAgentValueInjector {
 
     /**
-     * cluster-agent chart 의 식별 — repo/name 의 name 부분이 정확히 일치할 때만 주입.
+     * cluster-agent chart 의 식별: repo/name 의 name 부분이 정확히 일치할 때만 주입.
      * private chartmuseum 에 본 chart 가 다른 이름으로 publish 된 경우 별도 설정으로 확장 가능.
      */
     private static final String CLUSTER_AGENT_CHART_NAME = "cluster-agent";
@@ -108,7 +107,7 @@ public class ClusterAgentValueInjector {
     }
 
     /**
-     * backend.tls.* 자동 주입 — backend 의 agent.grpc.tls.enabled 가 true 일 때만 chart values 에 주입. 사용자가 명시한 키는 보존.
+     * backend.tls.* 자동 주입: backend 의 agent.grpc.tls.enabled 가 true 일 때만 chart values 에 주입. 사용자가 명시한 키는 보존.
      *
      * @return true 면 변경 발생.
      */
@@ -143,7 +142,7 @@ public class ClusterAgentValueInjector {
 
     /**
      * image.repository / image.tag 가 둘 다 비어있을 때만 주입.
-     * 사용자가 둘 중 하나만 명시했어도 그 의도 존중 — repository 만 주고 tag 미명시 면 chart default tag 사용.
+     * 사용자가 둘 중 하나만 명시했어도 그 의도 존중: repository 만 주고 tag 미명시 면 chart default tag 사용.
      *
      * @return true 면 새로 주입함.
      */
@@ -169,7 +168,7 @@ public class ClusterAgentValueInjector {
      * 뒤는 tag. {@code /} 가 없으면 전체에서 마지막 {@code :} 기준.
      * <p>
      * digest ({@code @sha256:...}) 형식은 tag 가 아니므로 tag 가 "latest" 로 떨어지고
-     * digest 부분은 repository 에 남는다 — 본 시점에서 sha digest 사용은 흔치 않아 의도적 단순화.
+     * digest 부분은 repository 에 남는다: 본 시점에서 sha digest 사용은 흔치 않아 의도적 단순화.
      */
     static ImageRef parseImageRef(String ref) {
         if (ref == null || ref.isBlank()) {
@@ -207,7 +206,7 @@ public class ClusterAgentValueInjector {
             return new LinkedHashMap<>();
         }
         if (parsed instanceof Map<?, ?> m) {
-            // SnakeYAML 은 보통 LinkedHashMap 을 반환 — 순서 보존.
+            // SnakeYAML 은 보통 LinkedHashMap 을 반환: 순서 보존.
             return (Map<String, Object>) m;
         }
         // scalar / list root 는 helm values 로 의미 없음 → 무시하고 빈 map.

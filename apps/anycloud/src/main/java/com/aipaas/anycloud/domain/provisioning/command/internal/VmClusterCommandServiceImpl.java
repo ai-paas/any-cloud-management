@@ -77,8 +77,8 @@ public class VmClusterCommandServiceImpl implements VmClusterCommandService {
 
         ResolvedCspCredential credential =
                 cspCredentialService.resolveForProvision(cluster.getClusterProvider(), cluster.getCredentialId());
-        // Sync controller 경로에서는 static 검증만 — provider/region/required config/credential value.
-        // Live selection 검증 (CSP API call — instance type/image 존재 여부) 은 provision step
+        // Sync controller 경로에서는 static 검증만: provider/region/required config/credential value.
+        // Live selection 검증 (CSP API call: instance type/image 존재 여부) 은 provision step
         // 의 첫 단계로 이동했다 (worker async). 잘못된 selection 이면 PROVISION step 이 즉시 FAIL.
         ProvisioningRequest request = provisioningProviderValidator.validateStaticAndBuildRequest(cluster, credential);
         String stackName = provisioningService.buildStackName(request);
@@ -87,7 +87,7 @@ public class VmClusterCommandServiceImpl implements VmClusterCommandService {
                 .clusterName(cluster.getClusterName())
                 .description(cluster.getDescription())
                 .clusterProvider(request.getProvider())
-                // provisioningStatus 는 transitionTo 통해 set — state history 의 첫 row 보존.
+                // provisioningStatus 는 transitionTo 통해 set: state history 의 첫 row 보존.
                 .stackName(stackName)
                 .region(cluster.getRegion())
                 .environment(cluster.getEnvironment())
@@ -98,7 +98,7 @@ public class VmClusterCommandServiceImpl implements VmClusterCommandService {
                 .requestedAt(LocalDateTime.now())
                 .clusterRegistered(false)
                 .build();
-        // 초기 transition (null → REQUESTED) — audit history 의 첫 row 생성.
+        // 초기 transition (null → REQUESTED). audit history 의 첫 row 생성.
         vmCluster.transitionTo(VmClusterStatus.REQUESTED, "vmcluster.create");
 
         try {
@@ -150,7 +150,7 @@ public class VmClusterCommandServiceImpl implements VmClusterCommandService {
             throw new StateConflictException("DESTROY 단계는 retry 가 아닌 일반 DELETE API 로 재시도하세요.");
         }
 
-        // Pulumi up 은 idempotent — 동일 stack state 에 missing 리소스만 생성, existing 은 skip/update.
+        // Pulumi up 은 idempotent: 동일 stack state 에 missing 리소스만 생성, existing 은 skip/update.
         // drift 가 심한 경우 destructive 변경 가능성 있으므로 회복 불가 시 DELETE + recreate 로 fallback.
 
         VmClusterStatus preStatus =
@@ -226,15 +226,15 @@ public class VmClusterCommandServiceImpl implements VmClusterCommandService {
         Optional<ClusterEntity> cluster = clusterRepository.findById(clusterName);
 
         // 같은 이름의 옛 세대까지 대상으로 삼는다. 최신 1건만 보면 재시도로 쌓인 FAILED 행이
-        // 목록에 남는데 삭제 버튼이 아무 일도 하지 않는다 — 최신 행이 이미 DELETED 면 멱등 분기가
+        // 목록에 남는데 삭제 버튼이 아무 일도 하지 않는다: 최신 행이 이미 DELETED 면 멱등 분기가
         // 먼저 걸려 옛 행에 닿지도 못했다.
         List<VmClusterEntity> generations = vmClusterRepository.findAllByClusterNameOrderByCreatedAtDesc(clusterName);
         List<VmClusterEntity> pending = VmClusterDeletionTargets.pending(generations);
-        // 이미 DELETING 인데 멈춘 세대도 다시 걸어야 한다 — destroy 가 죽으면 그대로 남는다.
+        // DELETING 상태로 정지한 세대도 재실행 대상. destroy 중단 시 그대로 잔존.
         boolean needsRun = VmClusterDeletionTargets.needsDestroyRun(generations);
 
         //  DELETE 멱등성. 이미 DELETED 인 history row 에 재삭제 요청이 오면 strict state
-        // machine 이 DELETED → DELETING 전환을 거부해 400 이 났었다 — REST DELETE 는 멱등이어야
+        // machine 이 DELETED → DELETING 전환을 거부해 400 이 났었다: REST DELETE 는 멱등이어야
         // 하므로 no-op 성공으로 처리. history row 는 보존, 잔존 cluster row 만 정리. sensitive 페이로드가
         // 남아 있으면 이번 호출에 sanitize (이전 빌드의 DELETED row 마이그레이션 대비).
         if (pending.isEmpty() && !needsRun) {
@@ -278,14 +278,14 @@ public class VmClusterCommandServiceImpl implements VmClusterCommandService {
             action = "vmCluster.forceDelete",
             resourceType = "cluster",
             resourceId = "#clusterName",
-            // 어떤 스택이 남을 수 있는지가 기록의 핵심이다.
+            // 잔존 가능 스택 식별이 기록의 목적.
             summary = "'removed=' + #result.removedRecords() + ', orphanedStacks=' + #result.orphanedStacks()")
     public ForceDeleteResult forceDeleteVmCluster(String clusterName) {
         List<VmClusterEntity> generations = vmClusterRepository.findAllByClusterNameOrderByCreatedAtDesc(clusterName);
         if (generations.isEmpty()) {
             throw new ClusterNotFoundException(clusterName);
         }
-        // destroy 를 돌리지 않으므로 무엇이 남을 수 있는지 먼저 계산한다. 지우고 나면 알 수 없다.
+        // destroy 미실행이므로 잔존 가능 항목을 선행 계산. 삭제 후에는 확인 불가.
         List<String> orphaned = VmClusterDeletionTargets.orphanedStacks(generations);
 
         clusterRepository.findById(clusterName).ifPresent(clusterRepository::delete);

@@ -33,17 +33,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * fleet 전체 agent 를 wave 단위로 올리는 endpoint 입니다.
+ * fleet 전체 agent 를 wave 단위로 업그레이드하는 endpoint.
  *
- * <p>{@code POST /v1/fleet/upgrade} 는 run 을 등록만 하고 바로 응답합니다. 실제 진행은
- * {@link FleetUpgradeOrchestrator} 가 주기 작업으로 밀기 때문에, 호출이 성공해도 upgrade 가 끝난
- * 것은 아닙니다. 진행 상황은 {@code GET /v1/fleet/upgrade/runs} 로 봅니다.
+ * <p>{@code POST /v1/fleet/upgrade} 는 run 등록 후 즉시 응답. 실제 진행은
+ * {@link FleetUpgradeOrchestrator} 의 주기 작업이 담당하므로 호출 성공과 upgrade 완료는 별개.
+ * 진행 상황은 {@code GET /v1/fleet/upgrade/runs} 로 조회.
  */
 @RestController
 @RequestMapping("/v1")
 @RequiredArgsConstructor
 @Validated
-@Tag(name = "Fleet Upgrade (v1)", description = "Staggered rollout — wave 기반 agent 신버전 배포 관리")
+@Tag(name = "Fleet Upgrade (v1)", description = "Staggered rollout: wave 기반 agent 신버전 배포 관리")
 public class FleetUpgradeController {
 
     private final FleetUpgradeService fleetUpgradeService;
@@ -83,7 +83,7 @@ public class FleetUpgradeController {
                 HttpStatus.OK.value(), "Wave updated to " + body.wave() + " for cluster " + clusterName, null));
     }
 
-    /** PATCH 요청 본문 — single field. */
+    /** PATCH 요청 본문: single field. */
     public record SetWaveRequest(@NotNull ClusterAgentUpgradeWave wave) {}
 
     @PostMapping("/clusters/{clusterName}/upgrade")
@@ -91,13 +91,13 @@ public class FleetUpgradeController {
             summary = "Cluster agent upgrade trigger",
             description = "단일 cluster 의 agent 를 target image 로 upgrade. Backend 가 최소 Deployment "
                     + "patch 를 agent path (APPLY_MANIFEST) 로 보내 K8s rolling update 트리거. "
-                    + "trigger 직후 IN_PROGRESS 응답 — 진행 감지는 heartbeat 기반 (별도 monitor 가 "
+                    + "trigger 직후 IN_PROGRESS 응답: 진행 감지는 heartbeat 기반 (별도 monitor 가 "
                     + "SUCCEEDED/FAILED 전환). 같은 image 면 NO_OP.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Upgrade triggered or no-op"),
         @ApiResponse(responseCode = "404", description = "ACTIVE 한 agent 없음"),
         @ApiResponse(responseCode = "409", description = "이미 진행 중인 upgrade"),
-        @ApiResponse(responseCode = "503", description = "Agent unavailable — manifest apply 실패")
+        @ApiResponse(responseCode = "503", description = "Agent unavailable: manifest apply 실패")
     })
     public ResponseEntity<ApiSuccessResponse<UpgradeResult>> upgrade(
             @PathVariable
@@ -110,7 +110,7 @@ public class FleetUpgradeController {
         return ResponseEntity.ok(ApiSuccessResponse.of(HttpStatus.OK.value(), "Upgrade " + r.status(), r));
     }
 
-    /** POST 본문 — target image 만. wave 는 cluster 의 upgrade_wave 컬럼에서 가져옴 (별도 patch). */
+    /** POST 본문: target image 만. wave 는 cluster 의 upgrade_wave 컬럼에서 가져옴 (별도 patch). */
     public record UpgradeRequest(
             @NotBlank
                     @Size(max = 256)
@@ -125,7 +125,7 @@ public class FleetUpgradeController {
     @Operation(
             summary = "Fleet-wide upgrade submit",
             description = "여러 wave 의 cluster 를 wave 순서 + concurrency limit + auto-abort 로 "
-                    + "순차 upgrade. PLANNED row 즉시 반환 — background scheduler 가 RUNNING 전환 후 진행.")
+                    + "순차 upgrade. PLANNED row 즉시 반환: background scheduler 가 RUNNING 전환 후 진행.")
     @ApiResponses({
         @ApiResponse(responseCode = "202", description = "Run accepted (PLANNED)"),
         @ApiResponse(responseCode = "400", description = "잘못된 wave / image / threshold")
@@ -149,7 +149,7 @@ public class FleetUpgradeController {
             description = "최근 20개 run (PLANNED / RUNNING / COMPLETED / ABORTED 모두). createdAt DESC.")
     public ResponseEntity<ApiSuccessResponse<List<com.aipaas.anycloud.domain.agent.upgrade.FleetUpgradeRun>>>
             listRuns() {
-        // Domain record 반환 — JPA proxy 없이 안전한 JSON serialize.
+        // Domain record 반환: JPA proxy 없이 안전한 JSON serialize.
         return ResponseEntity.ok(ApiSuccessResponse.of(
                 HttpStatus.OK.value(), "Fleet upgrade runs", runQueryService.listRecentRunsDomain()));
     }
@@ -157,7 +157,7 @@ public class FleetUpgradeController {
     @org.springframework.web.bind.annotation.PostMapping("/fleet/upgrade/{runId}/abort")
     @Operation(
             summary = "Fleet upgrade abort",
-            description = "운영자가 진행 중 run 을 강제 중단. ABORTED 로 전환 — 이미 IN_PROGRESS 인 "
+            description = "운영자가 진행 중 run 을 강제 중단. ABORTED 로 전환: 이미 IN_PROGRESS 인 "
                     + "cluster 는 그 자체로 SUCCEEDED/FAILED 까지 진행 (개별 K8s rolling update 는 못 멈춤).")
     public ResponseEntity<ApiSuccessResponse<FleetUpgradeRunEntity>> abortRun(
             @PathVariable @NotBlank @Pattern(regexp = "^[a-f0-9-]{36}$", message = "runId must be UUID") String runId,

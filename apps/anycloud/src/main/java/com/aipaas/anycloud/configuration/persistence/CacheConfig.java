@@ -9,10 +9,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Caffeine in-process cache 입니다. CSP catalog(regions, specs, images)처럼 호출 quota 가 있고 잘
- * 변하지 않는 데이터를 담습니다.
+ * Caffeine in-process cache. CSP catalog(regions, specs, images)처럼 호출 quota 가 있고 변경
+ * 빈도가 낮은 데이터 대상.
  *
- * <p>프로세스 메모리라 replica 끼리 공유하지 않습니다. 즉시 반영돼야 하는 값은 넣지 마세요.
+ * <p>프로세스 메모리라 replica 간 미공유. 즉시 반영이 필요한 값은 대상 외.
  */
 @Configuration
 @EnableCaching
@@ -22,7 +22,7 @@ public class CacheConfig {
     public static final String VM_OPTIONS_SPECS = "vmOptions.specs";
     public static final String VM_OPTIONS_IMAGES = "vmOptions.images";
 
-    /** config-schema 는 CSP API 를 여러 번 불러 조립합니다. 폼을 열 때마다 다시 할 이유가 없습니다. */
+    /** config-schema 는 CSP API 다중 호출로 조립. 폼 진입마다 재조립 불필요. */
     public static final String VM_OPTIONS_CONFIG_SCHEMA = "vmOptions.configSchema";
 
     public static final String HELM_CHART_VALUES = "helm.chartValues";

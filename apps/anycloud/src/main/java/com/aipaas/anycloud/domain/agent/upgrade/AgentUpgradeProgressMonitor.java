@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Fleet upgrade — IN_PROGRESS upgrade 의 진행 상태 추적.
+ * Fleet upgrade: IN_PROGRESS upgrade 의 진행 상태 추적.
  *
  * <p>30초 주기로 IN_PROGRESS row 들을 sweep:
  * <ul>
@@ -24,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
  *       원인 파악 후 재시도 또는 cluster PAUSED 처리.</li>
  * </ul>
  *
- * <p>{@link AgentUpgradeService} 가 trigger 만 책임지고 본 monitor 가 자동 detection — 두 책임 분리.
+ * <p>{@link AgentUpgradeService} 가 trigger 만 책임지고 본 monitor 가 자동 detection: 두 책임 분리.
  * Multi-instance 환경에서 한 노드만 sweep 하도록 ShedLock 사용.
  */
 @Slf4j
@@ -43,7 +43,7 @@ public class AgentUpgradeProgressMonitor {
     @SchedulerLock(name = "agentUpgradeMonitor", lockAtMostFor = "PT2M", lockAtLeastFor = "PT15S")
     @Transactional
     public void sweep() {
-        // DB index 활용 scoped finder (WHERE upgrade_status IN (...)) — agent 1000+ 환경에서도 heap 전송 최소화.
+        // DB index 활용 scoped finder (WHERE upgrade_status IN (...)). agent 1000+ 환경에서도 heap 전송 최소화.
         List<ClusterAgentEntity> inFlight = clusterAgentRepository.findByUpgradeStatusIn(
                 List.of(ClusterAgentUpgradeStatus.IN_PROGRESS, ClusterAgentUpgradeStatus.PENDING));
         if (inFlight.isEmpty()) {
@@ -55,7 +55,7 @@ public class AgentUpgradeProgressMonitor {
             String target = primary.getUpgradeTargetImage();
             String targetTag = extractTag(target);
             if (targetTag == null) {
-                continue; // 잘못된 target image — 추후 wait 만.
+                continue; // 잘못된 target image: 추후 wait 만.
             }
             // 같은 cluster 의 row 중 어느 하나라도 target version 으로 갱신됐으면 SUCCEEDED.
             List<ClusterAgentEntity> siblings = clusterAgentRepository.findByClusterName(primary.getClusterName());

@@ -45,9 +45,9 @@ public class VmClusterProvisionStepServiceImpl implements VmClusterProvisionStep
             workflowSupportService.markStepStarted(
                     vmCluster, VmClusterWorkflowStep.PROVISION, VmClusterStatus.PROVISIONING, true);
 
-            // Live selection 검증 — controller sync 경로에서 이쪽으로 이동됨.
+            // Live selection 검증: controller sync 경로에서 이쪽으로 이동됨.
             // Provider 별 CSP API (DescribeInstanceTypes 등) 호출로 instance type / image 존재 여부 확인.
-            // 잘못된 selection 이면 즉시 fail — Pulumi up 시도하지 않음.
+            // 잘못된 selection 이면 즉시 fail: Pulumi up 시도하지 않음.
             provisioningProviderValidator.validateLive(request);
 
             Map<String, Object> outputs = provisioningService.provision(request);

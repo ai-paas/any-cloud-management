@@ -11,7 +11,7 @@
 //   - LIST_RESOURCE_KINDS  : discovery API enumerate (UI resource picker)
 //   - RESOLVE_RESOURCE     : 단일 입력 (short/singular/plural) → ResolvedResource + fuzzy suggestion
 //
-// 공통 access 검사: checkResourceAccess(kind, namespace) — RESTMapper resolve →
+// 공통 access 검사: checkResourceAccess(kind, namespace). RESTMapper resolve →
 // namespace allowlist (namespaced 자원만) → ResourcePolicy. nil 반환 = 허용.
 
 package controller
@@ -136,7 +136,7 @@ func (d *Dispatcher) deleteResource(ctx context.Context, cmd *agentv1.CommandReq
 //
 // AllowList 검증:
 //  1. namespace allowlist (default namespace 또는 manifest 안 명시된 namespace 모두)
-//  2. cluster-scoped 자원 (Namespace, ClusterRole 등) 은 namespace allowlist 우회 — 추가 정책 권장
+//  2. cluster-scoped 자원 (Namespace, ClusterRole 등) 은 namespace allowlist 우회: 추가 정책 권장
 //
 // 응답: applied[] 배열 (각 자원의 metadata).
 func (d *Dispatcher) applyManifest(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {
@@ -149,10 +149,10 @@ func (d *Dispatcher) applyManifest(ctx context.Context, cmd *agentv1.CommandRequ
 	}
 	defaultNamespace := getStringParam(cmd, "namespace")
 	if defaultNamespace == "_all" || defaultNamespace == "-" {
-		defaultNamespace = "" // sentinel — cluster-scoped or all-namespaces.
+		defaultNamespace = "" // sentinel: cluster-scoped or all-namespaces.
 	}
 
-	// AllowList — default namespace 가 비어있지 않으면 검사.
+	// AllowList: default namespace 가 비어있지 않으면 검사.
 	// (cluster-scoped resource 만 있는 manifest 라면 namespace 빈 채로 보내야 함.)
 	if defaultNamespace != "" && d.allowlist != nil &&
 		!d.allowlist.Snapshot().IsNamespaceAllowed(defaultNamespace) {
@@ -173,7 +173,7 @@ func (d *Dispatcher) applyManifest(ctx context.Context, cmd *agentv1.CommandRequ
 	}
 
 	// Manifest 안의 각 자원이 namespaced 인데 allowlist 외 namespace 면 사후 검증 필요.
-	// (default ns 만 검사하면 manifest 가 명시한 다른 ns 를 우회 가능 — defense-in-depth.)
+	// (default ns 만 검사하면 manifest 가 명시한 다른 ns 를 우회 가능: defense-in-depth.)
 	if d.allowlist != nil {
 		policy := d.allowlist.Snapshot()
 		for _, r := range result.Applied {
@@ -217,7 +217,7 @@ func (d *Dispatcher) listResources(ctx context.Context, cmd *agentv1.CommandRequ
 	}
 	namespace := getStringParam(cmd, "namespace")
 	if namespace == "_all" {
-		namespace = "" // all-namespaces sentinel — backend convention 과 일치.
+		namespace = "" // all-namespaces sentinel: backend convention 과 일치.
 	}
 	if denied := d.checkResourceAccess(kind, namespace); denied != nil {
 		return denied
@@ -290,7 +290,7 @@ func (d *Dispatcher) getResource(ctx context.Context, cmd *agentv1.CommandReques
 	return okResponse(result)
 }
 
-// checkResourceAccess — LIST/GET/DELETE 명령의 공통 access 검사. resolveResource (RESTMapper)
+// checkResourceAccess: LIST/GET/DELETE 명령의 공통 access 검사. resolveResource (RESTMapper)
 // + namespace allowlist + ResourcePolicy 를 한 곳에서 평가. cluster-scoped 자원은 namespace
 // 검사 skip. ResourcePolicy 가 nil 이면 legacy allow-all (kind-level 정책 미설정).
 //
@@ -301,12 +301,12 @@ func (d *Dispatcher) checkResourceAccess(kind, namespace string) *agentv1.Comman
 		if errors.Is(err, k8s.ErrUnsupportedKind) {
 			return errorResponse(agentv1.Status_INVALID_PARAMS, "UNSUPPORTED_KIND", err.Error())
 		}
-		// Discovery / RESTMapper 자체 오류는 일시적 — FAILED 로 분류 (재시도 가능).
+		// Discovery / RESTMapper 자체 오류는 일시적: FAILED 로 분류 (재시도 가능).
 		return errorResponse(agentv1.Status_FAILED, "K8S_RESOLVE_FAILED", err.Error())
 	}
 
-	// Namespace allowlist — namespaced 자원 + 명시 namespace 인 경우만 검사.
-	// all-namespaces sentinel ("") 는 통과 — namespace allowlist 가 빈 문자열을 매칭하지 않으므로
+	// Namespace allowlist: namespaced 자원 + 명시 namespace 인 경우만 검사.
+	// all-namespaces sentinel ("") 는 통과: namespace allowlist 가 빈 문자열을 매칭하지 않으므로
 	// 별도 short-circuit (기존 동작 보존).
 	if resolved.Namespaced && namespace != "" && d.allowlist != nil &&
 		!d.allowlist.Snapshot().IsNamespaceAllowed(namespace) {
@@ -314,8 +314,8 @@ func (d *Dispatcher) checkResourceAccess(kind, namespace string) *agentv1.Comman
 			fmt.Sprintf("namespace %s not in allowlist", namespace))
 	}
 
-	// ResourcePolicy — Plural 정규화된 형태로 검사. cluster-scoped 자원은 namespace="" 로
-	// (ResourceRule 의 Namespace="" 는 "어떤 ns 든" 의미 — cluster-scoped 와 자연스럽게 호환).
+	// ResourcePolicy: Plural 정규화된 형태로 검사. cluster-scoped 자원은 namespace="" 로
+	// (ResourceRule 의 Namespace="" 는 "어떤 ns 든" 의미: cluster-scoped 와 자연스럽게 호환).
 	checkNs := namespace
 	if !resolved.Namespaced {
 		checkNs = ""
@@ -347,10 +347,10 @@ func (d *Dispatcher) clusterInfo(ctx context.Context) *agentv1.CommandResponse {
 	return okResponse(result)
 }
 
-// LIST_RESOURCE_KINDS — discovery API 로 cluster 가 지원하는 모든 API resource (kind) enumerate.
+// LIST_RESOURCE_KINDS: discovery API 로 cluster 가 지원하는 모든 API resource (kind) enumerate.
 // CRD 도 자연스럽게 포함. backend 는 UI 의 "resource kind picker" 채울 때 사용.
 //
-// AllowList: 명령 자체 allowlist 만 — cluster-wide discovery 라 namespace 검사 없음.
+// AllowList: 명령 자체 allowlist 만: cluster-wide discovery 라 namespace 검사 없음.
 // ResourcePolicy 도 미적용 (정책은 LIST/GET/DELETE 같은 행동에 적용. 목록 자체는 metadata).
 func (d *Dispatcher) listResourceKinds(ctx context.Context) *agentv1.CommandResponse {
 	if d.kube == nil {
@@ -387,10 +387,10 @@ func (d *Dispatcher) listResourceKinds(ctx context.Context) *agentv1.CommandResp
 	return okResponse(data)
 }
 
-// RESOLVE_RESOURCE — 입력 (단축이름/singular/plural/CRD 등) 을 정규화한 ResolvedResource 반환.
+// RESOLVE_RESOURCE: 입력 (단축이름/singular/plural/CRD 등) 을 정규화한 ResolvedResource 반환.
 //
 // LIST_RESOURCE_KINDS 는 cluster 가 지원하는 모든 kind 를 한 번에 enumerate (browser-friendly).
-// 본 명령은 그 보완 — UI 의 단일 입력 box 에서 사용자가 친 한 단어를 정규화.
+// 본 명령은 그 보완: UI 의 단일 입력 box 에서 사용자가 친 한 단어를 정규화.
 //
 // 실패 시 (RESTMapper 가 못 푸는 typo 등) Levenshtein fuzzy match top-3 suggestion 동봉.
 //
@@ -426,7 +426,7 @@ func (d *Dispatcher) resolveResource(ctx context.Context, cmd *agentv1.CommandRe
 		return okResponse(data)
 	}
 
-	// Resolution 실패 — fuzzy suggestion 으로 응답 보강. ListAPIResources 도 실패하면
+	// Resolution 실패: fuzzy suggestion 으로 응답 보강. ListAPIResources 도 실패하면
 	// suggestions 비워두고 UNSUPPORTED_KIND 만 반환 (best-effort).
 	suggestions := []interface{}{}
 	if kinds, derr := d.kube.ListAPIResources(ctx); derr == nil {

@@ -14,14 +14,13 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * 끝나지 않는 작업을 닫는다.
+ * 종료되지 않는 작업 종료 처리.
  *
- * <p>워커가 죽거나 워크플로가 멈추면 operation 이 RUNNING 인 채로 남는다. 실제로 8일 넘게 RUNNING
- * 인 항목이 쌓여 있었고, 화면에서는 아직 진행 중인 것처럼 보였다. 진행 중과 방치된 것을 구분할 수
- * 없으면 작업 이력 목록 자체를 믿을 수 없다.
+ * <p>워커 종료나 워크플로 정지 시 operation 이 RUNNING 상태로 잔존. 8일 이상 RUNNING 인 항목이
+ * 누적되고 화면에는 진행 중으로 표시. 진행 중과 방치 상태를 구분할 수 없으면 작업 이력 신뢰 불가.
  *
- * <p>여기서 닫는 것은 <b>기록</b>이지 인프라가 아니다. 실제 자원은 그대로이므로, 상태가 틀어졌다면
- * 조정 루프와 사용자의 재시도가 이어받는다.
+ * <p>종료 대상은 <b>기록</b>이며 인프라는 대상 외. 실제 자원은 유지되므로 상태 불일치는 조정
+ * 루프와 사용자 재시도가 처리.
  */
 @Slf4j
 @Component
@@ -59,13 +58,13 @@ public class StaleOperationReaper {
                         operation.getResourceId(),
                         operation.getCurrentStep());
             } catch (Exception e) {
-                // 하나가 실패해도 나머지는 닫아야 한다.
+                // 하나가 실패해도 나머지는 종료 처리.
                 log.warn("작업 정리 실패 id={}: {}", operation.getId(), e.toString());
             }
         }
     }
 
-    /** "FAILED" 만 남으면 진짜 실패와 방치를 구분할 수 없다. */
+    /** FAILED 만 기록하면 실제 실패와 방치 상태 구분 불가. */
     private String reasonFor(OperationEntity operation) {
         String step = operation.getCurrentStep() == null ? "알 수 없는 단계" : operation.getCurrentStep();
         return step + " 에서 " + staleAfter.toMinutes() + "분 넘게 응답이 없어 실패로 처리했습니다. " + "자원은 그대로이므로 상세에서 현재 상태를 확인해주세요.";

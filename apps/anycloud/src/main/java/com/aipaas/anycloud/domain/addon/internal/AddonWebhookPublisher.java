@@ -16,9 +16,9 @@ import org.springframework.web.client.RestClient;
 /**
  * Addon state-change webhook publisher.
  *
- * <p>URL 미설정 환경에서는 lookup 전에 short-circuit — 외부 호출 0. RestClient 는 boot 시 1회 생성.
+ * <p>URL 미설정 환경에서는 lookup 전에 short-circuit: 외부 호출 0. RestClient 는 boot 시 1회 생성.
  *
- * <p>실패는 swallow + warn — webhook 실패가 install path 자체를 affect 하지 않도록.
+ * <p>실패는 swallow + warn: webhook 실패가 install path 자체를 affect 하지 않도록.
  */
 @Slf4j
 @Component
@@ -36,7 +36,7 @@ public class AddonWebhookPublisher {
     /**
      * State 전이 시점 호출. SUCCEEDED/FAILED 외 상태는 무시 (config 별).
      *
-     * <p>property URL 비어있으면 즉시 return — 미설정 환경 비용 0.
+     * <p>property URL 비어있으면 즉시 return: 미설정 환경 비용 0.
      */
     public void notifyStateChange(ClusterAddonEntity addon, AddonState newState) {
         if (properties.getUrl() == null || properties.getUrl().isBlank()) {
@@ -62,7 +62,7 @@ public class AddonWebhookPublisher {
                     addon.getId(),
                     newState);
         } catch (Exception e) {
-            // non-fatal — install path 자체엔 영향 없음.
+            // non-fatal: install path 자체엔 영향 없음.
             log.warn(
                     "AddonWebhookPublisher: webhook call failed (non-fatal) cluster={} addon={}: {}",
                     addon.getClusterId(),

@@ -24,7 +24,7 @@ public final class ProvisioningConfigRules {
     private static final String ENABLE_MONITORING = "anycloud-k8s:enableMonitoring";
 
     /**
-     * Boolean 의미 키들 — strict parser 대상. {@link Boolean#parseBoolean} 의 silent
+     * Boolean 의미 키들: strict parser 대상. {@link Boolean#parseBoolean} 의 silent
      * false (대문자 "True", "1", "yes" → false) 이 발견-안 되는 오타를 차단.
      */
     private static final List<String> BOOLEAN_FLAG_KEYS =
@@ -64,21 +64,21 @@ public final class ProvisioningConfigRules {
         config.putIfAbsent(KUBERNETES_VERSION, "1.31");
         config.putIfAbsent(POD_CIDR, "10.244.0.0/16");
         config.putIfAbsent(SERVICE_CIDR, "10.96.0.0/12");
-        // 정상 경로 (VmClusterProviderImpl.toProvisionDto) 는 항상 backend 생성 token 을 set —
+        // 정상 경로 (VmClusterProviderImpl.toProvisionDto) 는 항상 backend 생성 token 을 set:
         // 여기 도달 시점엔 이미 존재. 우회 경로 (직접 ProvisionClusterRequest 구성) 대비 방어선으로
         // 하드코딩 공유 token 대신 random 생성.
         config.putIfAbsent(JOIN_TOKEN, com.aipaas.anycloud.domain.provisioning.bootstrap.KubeadmJoinTokens.generate());
         config.putIfAbsent(ENABLE_INGRESS, "false");
         /*
-         * GPU 타입을 골랐으면 드라이버 스택도 켠다. 무조건 false 로 두면 GPU 노드가 드라이버 없이
-         * READY 가 되고, 화면은 정상으로 보이는데 GPU 워크로드만 스케줄되지 않는다.
+         * GPU 타입 선택 시 드라이버 스택도 활성화. false 고정 시 GPU 노드가 드라이버 없이
+         * READY 전이하고, 화면은 정상이나 GPU 워크로드만 스케줄 실패.
          */
         config.putIfAbsent(ENABLE_GPU_OPERATOR, String.valueOf(gpuNodesRequested(provider, config)));
-        // 클러스터를 만든 직후 모니터링 화면을 여는 것이 보통이다. 없으면 빈 그래프만 나온다.
+        // 클러스터 생성 직후 모니터링 화면 진입이 일반적. 미설치 시 빈 그래프만 표시.
         config.putIfAbsent(ENABLE_MONITORING, "true");
     }
 
-    /** 고른 인스턴스 타입으로 판정한다. 화면 플래그에만 기대면 API 직접 호출에서 갈린다. */
+    /** 선택한 인스턴스 타입 기준 판정. 화면 플래그만 사용하면 API 직접 호출 시 결과 불일치. */
     private static boolean gpuNodesRequested(SupportedProvisioningProvider provider, Map<String, String> config) {
         String name = provider.getCanonicalName();
         return GpuInstanceClassifier.isGpu(name, config.get(MASTER_VM_SPEC))
@@ -88,10 +88,10 @@ public final class ProvisioningConfigRules {
     public static void validateRequiredConfig(SupportedProvisioningProvider provider, Map<String, String> config) {
         List<String> missingKeys = new ArrayList<>();
 
-        // MasterCount sanity — etcd quorum 요구사항으로 odd-only, 합리적 범위 1..7 강제.
+        // MasterCount sanity: etcd quorum 요구사항으로 odd-only, 합리적 범위 1..7 강제.
         validateMasterCount(config);
 
-        // Boolean 키 strict — Boolean.parseBoolean 의 silent-false 회피.
+        // Boolean 키 strict: Boolean.parseBoolean 의 silent-false 회피.
         validateBooleanFlags(config);
 
         switch (provider) {
@@ -102,25 +102,25 @@ public final class ProvisioningConfigRules {
                         missingKeys,
                         "anycloud-k8s:providerSpec.imageName",
                         "anycloud-k8s:providerSpec.flavorName");
-                // emitter 가 둘 다 요구한다. 하나만 검사하면 preflight 를 통과한 뒤 PROVISION 에서 죽는다.
+                // emitter 가 두 값 모두 요구. 한쪽만 검사하면 preflight 통과 후 PROVISION 에서 실패.
                 requireConfigKeys(
                         config,
                         missingKeys,
                         "anycloud-k8s:providerSpec.externalNetworkId",
                         "anycloud-k8s:providerSpec.floatingIpPool");
             }
-                // OCI 이미지 OCID 는 리전마다 따로 발급돼 추측할 수 없다.
+                // OCI 이미지 OCID 는 리전별 발급이라 추정 불가.
             case OCI -> requireConfigKeys(
                     config, missingKeys, "anycloud-k8s:providerSpec.compartmentId", "anycloud-k8s:osImage");
             case PROXMOX -> requireConfigKeys(config, missingKeys, "anycloud-k8s:providerSpec.nodeName");
                 /*
-                 * zone — VSwitch 가 zone 단위다. 계정과 인스턴스 타입마다 쓸 수 있는 zone 이 다르다.
-                 * osImage — 이미지 ID 에 빌드 날짜가 붙어 주기적으로 갈리고 리전마다 다르다. 목록에서
-                 * 고른 값을 그대로 받는다.
+                 * zone: VSwitch 가 zone 단위. 계정과 인스턴스 타입별로 사용 가능 zone 상이.
+                 * osImage: 이미지 ID 에 빌드 날짜가 포함돼 주기적으로 교체되고 리전별 상이.
+                 * 목록에서 선택한 값을 그대로 사용.
                  */
             case ALIBABA -> requireConfigKeys(
                     config, missingKeys, "anycloud-k8s:providerSpec.zone", "anycloud-k8s:osImage");
-                // 이미지 이름에 빌드 번호가 붙어 주기적으로 갈린다. 추측하면 생성 도중에 죽는다.
+                // 이미지 이름에 빌드 번호가 포함돼 주기적으로 교체. 추정 시 생성 도중 실패.
             case IBM -> requireConfigKeys(
                     config, missingKeys, "anycloud-k8s:providerSpec.zone", "anycloud-k8s:osImage");
             default -> {}
@@ -136,7 +136,7 @@ public final class ProvisioningConfigRules {
     private static void validateMasterCount(Map<String, String> config) {
         String raw = config.get(MASTER_COUNT);
         if (raw == null || raw.isBlank()) {
-            return; // putIfAbsent in applyDefaults — should not reach here.
+            return; // putIfAbsent in applyDefaults: should not reach here.
         }
         int value;
         try {

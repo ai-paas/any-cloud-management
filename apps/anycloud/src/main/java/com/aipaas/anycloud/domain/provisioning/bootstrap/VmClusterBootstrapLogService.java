@@ -19,7 +19,7 @@ public interface VmClusterBootstrapLogService {
     void appendAttemptMarker(VmClusterEntity vmCluster, int attemptNumber);
 
     /**
-     * Bootstrap 실패 진단 시점에 호출 — {@link #collectBootstrapLog} 결과를 기존 log 끝에
+     * Bootstrap 실패 진단 시점에 호출: {@link #collectBootstrapLog} 결과를 기존 log 끝에
      * append. 마커는 caller 가 {@link #appendAttemptMarker} 로 이미 추가한 상태필요.
      */
     void appendDiagnostics(VmClusterEntity vmCluster, Map<String, Object> outputs);

@@ -44,16 +44,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * agent policy snapshot 을 조회하고 바꾸는 admin endpoint 입니다.
+ * agent policy snapshot 조회, 변경 admin endpoint.
  *
- * <p>backend 는 정책을 DB 에 두지 않습니다. cluster 안의 ConfigMap
- * {@code aipaas-agent-allowlist} 가 단일 출처이고, 변경은 agent 에 push 해 ConfigMap 을 갱신하면
- * agent 의 watch 가 알아서 reload 합니다. DB 에는 audit 만 남습니다.
+ * <p>backend 는 정책을 DB 에 저장하지 않음. cluster 내 ConfigMap {@code aipaas-agent-allowlist}
+ * 가 단일 출처이며, 변경은 agent 에 push 해 ConfigMap 을 갱신하면 agent 의 watch 가 reload.
+ * DB 에는 audit 만 기록.
  *
- * <p>chart 의 ConfigMap 에는 {@code helm.sh/resource-policy: keep} 이 붙어 있습니다. 없으면 helm
- * upgrade 가 여기서 바꾼 정책을 덮어씁니다.
+ * <p>chart 의 ConfigMap 에는 {@code helm.sh/resource-policy: keep} 적용. 미적용 시 helm upgrade
+ * 가 변경된 정책을 덮어씀.
  *
- * <p>PUT 은 전체 교체라 필수 목록 셋이 다 있어야 하고, PATCH 는 null 필드를 현재 값으로 둡니다.
+ * <p>PUT 은 전체 교체이므로 필수 목록 3종 모두 필요. PATCH 는 null 필드를 현재 값으로 유지.
  */
 @Slf4j
 @RestController
@@ -69,9 +69,9 @@ public class AdminAgentPolicyController {
     private final ClusterService clusterService;
     /** fleet audit 의 parallel fetch logic 추출. */
     private final AgentPolicyAuditService policyAuditService;
-    /** refactor — RFC 7396 / legacy PATCH merge 책임 분리. */
+    /** refactor: RFC 7396 / legacy PATCH merge 책임 분리. */
     private final AgentPolicyMergeService mergeService;
-    /** refactor — diff 계산 + dry-run snapshot + agent param 직렬화 분리. */
+    /** refactor: diff 계산 + dry-run snapshot + agent param 직렬화 분리. */
     private final AgentPolicyDiffCalculator diffCalculator;
 
     // =================== Preview ===================
@@ -105,13 +105,13 @@ public class AdminAgentPolicyController {
                 HttpStatus.OK.value(), "Policy snapshot + " + warnings.size() + " warning(s)", body));
     }
 
-    // =================== zz — Fleet-wide audit ===================
+    // =================== zz: Fleet-wide audit ===================
 
     @GetMapping("/agent/policy/audit")
     @Operation(
             summary = "Fleet-wide policy audit",
             description = "모든 등록 cluster 의 agent policy snapshot + validator 결과 집계. "
-                    + "HIGH severity 우선 정렬 — 운영자가 즉시 문제 cluster 식별. "
+                    + "HIGH severity 우선 정렬: 운영자가 즉시 문제 cluster 식별. "
                     + "agent unreachable cluster 는 UNREACHABLE 표시.")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "Fleet audit 결과")})
     public ResponseEntity<ApiSuccessResponse<Map<String, Object>>> fleetAudit() {
@@ -121,7 +121,7 @@ public class AdminAgentPolicyController {
             body = policyAuditService.runFleetAudit();
         } catch (Exception e) {
             log.error("Failed to run fleet audit: {}", e.getMessage());
-            //  에러는 success-envelope 아닌 공통 ErrorResponse 로 — GlobalExceptionHandler 위임.
+            //  에러는 success-envelope 아닌 공통 ErrorResponse 로: GlobalExceptionHandler 위임.
             throw new com.aipaas.anycloud.common.error.exception.CustomException(
                     "Fleet audit failed: " + e.getMessage(),
                     com.aipaas.anycloud.common.error.enums.ErrorCode.INTERNAL_SERVER_ERROR);
@@ -136,7 +136,7 @@ public class AdminAgentPolicyController {
                 body));
     }
 
-    // =================== PUT — 전체 교체 ===================
+    // =================== PUT: 전체 교체 ===================
 
     @PutMapping("/clusters/{clusterName}/agent-policy")
     @Operation(
@@ -146,7 +146,7 @@ public class AdminAgentPolicyController {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "정책 적용 성공"),
         @ApiResponse(responseCode = "400", description = "필수 list 누락"),
-        @ApiResponse(responseCode = "422", description = "HIGH severity warning — force=true 필요"),
+        @ApiResponse(responseCode = "422", description = "HIGH severity warning: force=true 필요"),
         @ApiResponse(responseCode = "503", description = "Cluster agent 비활성")
     })
     public ResponseEntity<ApiSuccessResponse<Map<String, Object>>> putUpdate(
@@ -156,7 +156,7 @@ public class AdminAgentPolicyController {
                     @Size(max = ApiValidationConstants.K8S_NAME_MAX)
                     String clusterName,
             @Valid @RequestBody AgentPolicyUpdateRequest req) {
-        // PUT 의 필수 검증 — 3개 list 가 null 이면 400 (controller 내 explicit, DTO 의 @NotNull 제거됨)
+        // PUT 의 필수 검증: 3개 list 가 null 이면 400 (controller 내 explicit, DTO 의 @NotNull 제거됨)
         List<String> missing = new ArrayList<>();
         if (req.allowedNamespaces() == null) missing.add("allowedNamespaces");
         if (req.allowedCommands() == null) missing.add("allowedCommands");
@@ -167,7 +167,7 @@ public class AdminAgentPolicyController {
         return applyChange(clusterName, req, "PUT");
     }
 
-    // =================== PATCH — 부분 갱신 ===================
+    // =================== PATCH: 부분 갱신 ===================
 
     @PatchMapping(value = "/clusters/{clusterName}/agent-policy", consumes = "application/json")
     @Operation(
@@ -177,7 +177,7 @@ public class AdminAgentPolicyController {
                     + "CCC: RFC 7396 표준 따르려면 Content-Type: application/merge-patch+json 사용.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "부분 갱신 성공"),
-        @ApiResponse(responseCode = "422", description = "HIGH severity warning — force=true 필요"),
+        @ApiResponse(responseCode = "422", description = "HIGH severity warning: force=true 필요"),
         @ApiResponse(responseCode = "503", description = "Cluster agent 비활성")
     })
     public ResponseEntity<ApiSuccessResponse<Map<String, Object>>> patchUpdate(
@@ -187,7 +187,7 @@ public class AdminAgentPolicyController {
                     @Size(max = ApiValidationConstants.K8S_NAME_MAX)
                     String clusterName,
             @Valid @RequestBody AgentPolicyUpdateRequest req) {
-        // PATCH — 현재 snapshot fetch 후 null 필드 fill-in.
+        // PATCH: 현재 snapshot fetch 후 null 필드 fill-in.
         AgentPolicySnapshot current;
         try {
             current = kubeResourceService.getAgentConfig(clusterName);
@@ -198,7 +198,7 @@ public class AdminAgentPolicyController {
         return applyChange(clusterName, merged, "PATCH");
     }
 
-    // =================== CCC — RFC 7396 JSON Merge Patch ===================
+    // =================== CCC: RFC 7396 JSON Merge Patch ===================
 
     /**
      * RFC 7396 표준 JSON Merge Patch.
@@ -215,7 +215,7 @@ public class AdminAgentPolicyController {
      * <p>RFC 7396 의 "비우기" 의미:
      * <ul>
      *   <li>list 필드 (allowedNamespaces 등) → 빈 list {@code []}</li>
-     *   <li>resourcePolicy → null (legacy 동작 — 정책 비활성)</li>
+     *   <li>resourcePolicy → null (legacy 동작: 정책 비활성)</li>
      * </ul>
      *
      * <p>Jackson 의 일반 deserialize 는 absent / null 구분 불가 → JsonNode 로 raw parse 후
@@ -224,12 +224,12 @@ public class AdminAgentPolicyController {
     @PatchMapping(value = "/clusters/{clusterName}/agent-policy", consumes = "application/merge-patch+json")
     @Operation(
             summary = "Agent policy RFC 7396 merge patch",
-            description = "RFC 7396 표준 — field 명시 + null 값 = 그 필드 비우기 (legacy 의 'null=keep' 와 반대). "
+            description = "RFC 7396 표준: field 명시 + null 값 = 그 필드 비우기 (legacy 의 'null=keep' 와 반대). "
                     + "Content-Type: application/merge-patch+json 사용.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "부분 갱신 성공"),
         @ApiResponse(responseCode = "400", description = "잘못된 JSON 또는 schema"),
-        @ApiResponse(responseCode = "422", description = "HIGH severity warning — force=true 필요"),
+        @ApiResponse(responseCode = "422", description = "HIGH severity warning: force=true 필요"),
         @ApiResponse(responseCode = "503", description = "Cluster agent 비활성")
     })
     public ResponseEntity<ApiSuccessResponse<Map<String, Object>>> mergePatchUpdate(
@@ -251,7 +251,7 @@ public class AdminAgentPolicyController {
             return agentUnavailable(e);
         }
 
-        // RFC 7396 — 각 필드의 has(field) + isNull() 로 의미 결정.
+        // RFC 7396: 각 필드의 has(field) + isNull() 로 의미 결정.
         AgentPolicyUpdateRequest merged;
         try {
             merged = mergeService.applyMergePatch(body, current);
@@ -264,20 +264,20 @@ public class AdminAgentPolicyController {
     // =================== 공통 apply 흐름 ===================
 
     /**
-     * PUT / PATCH / MERGE_PATCH 의 공통 흐름 — before snapshot fetch → validate → apply → diff → audit.
+     * PUT / PATCH / MERGE_PATCH 의 공통 흐름: before snapshot fetch → validate → apply → diff → audit.
      *
      * <p>HIGH severity warning 이 있고 {@code force=false} 면 422 반환.
      */
     private ResponseEntity<ApiSuccessResponse<Map<String, Object>>> applyChange(
             String clusterName, AgentPolicyUpdateRequest req, String httpMethod) {
 
-        // 1) ww — 이전 snapshot fetch (diff 계산용). PATCH 는 이미 위에서 fetch 했지만 PUT 도 필요.
+        // 1) ww: 이전 snapshot fetch (diff 계산용). PATCH 는 이미 위에서 fetch 했지만 PUT 도 필요.
         AgentPolicySnapshot before;
         try {
             before = kubeResourceService.getAgentConfig(clusterName);
         } catch (KubeRoutingException e) {
             log.warn("Could not fetch before-snapshot for diff: {}", e.getMessage());
-            before = null; // diff 일부 정보 누락 가능 — apply 자체는 진행
+            before = null; // diff 일부 정보 누락 가능: apply 자체는 진행
         }
 
         // 2) request → 가상 snapshot 구성 (검증용)
@@ -307,12 +307,12 @@ public class AdminAgentPolicyController {
             return agentUnavailable(e);
         }
 
-        // 6) ww — diff 계산 (before vs new)
+        // 6) ww: diff 계산 (before vs new)
         PolicyDiff diff = diffCalculator.computeDiff(before, dryRun);
 
         /*
-         * 적용됐는지 되읽어 확인합니다. agent 가 OK 를 주면서 ConfigMap 을 바꾸지 않는 경우가
-         * 있어, 그때도 성공만 돌려주면 운영자는 정책이 바뀐 줄 압니다.
+         * 적용 여부 재조회 확인. agent 가 OK 응답 후에도 ConfigMap 을 변경하지 않는 경우가 있어,
+         * 성공만 반환하면 운영자가 정책 변경으로 오인.
          */
         String notApplied = verifyApplied(clusterName, req.allowedCommands());
 
@@ -336,13 +336,13 @@ public class AdminAgentPolicyController {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("clusterName", clusterName);
         body.put("method", httpMethod);
-        // 적용 여부를 응답에 담는다 — 실패를 성공처럼 읽고 넘어가지 않게.
+        // 적용 여부를 응답에 담는다: 실패를 성공처럼 읽고 넘어가지 않게.
         body.put("verified", notApplied == null);
         if (notApplied != null) {
             body.put("notApplied", notApplied);
         }
         body.put("appliedResourceVersion", newResourceVersion);
-        body.put("diff", diff.toMap()); // ww — 응답에 diff 포함
+        body.put("diff", diff.toMap()); // ww: 응답에 diff 포함
         body.put("warnings", warnings);
         body.put("highestSeverity", highestSeverity);
         body.put(
@@ -396,10 +396,10 @@ public class AdminAgentPolicyController {
     }
 
     /**
-     * 되읽어서 요청한 명령이 실제로 들어갔는지 봅니다.
+     * 재조회로 요청 명령의 반영 여부 확인.
      *
-     * <p>조회 자체가 실패하면 통과시킵니다. 적용은 됐는데 조회만 막힌 상황을 실패로 만들지 않기
-     * 위해서입니다. 돌려주는 값은 사람이 읽을 사유이고 이상이 없으면 {@code null} 입니다.
+     * <p>조회 실패 시 통과 처리. 적용 성공 후 조회만 차단된 상황을 실패로 판정하지 않기 위함.
+     * 반환값은 사용자 표시용 사유이며 이상이 없으면 {@code null}.
      */
     private String verifyApplied(String clusterName, java.util.List<String> requestedCommands) {
         if (requestedCommands == null || requestedCommands.isEmpty()) {

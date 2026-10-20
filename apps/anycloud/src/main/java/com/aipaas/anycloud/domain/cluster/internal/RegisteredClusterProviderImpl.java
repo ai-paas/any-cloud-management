@@ -24,7 +24,7 @@ public class RegisteredClusterProviderImpl implements ClusterProvider {
     private final ClusterService clusterService;
     private final OperationService operationService;
     private final ObjectMapper objectMapper;
-    // AgentApiManagedInstaller / AgentProperties 의존 제거 — auto-install
+    // AgentApiManagedInstaller / AgentProperties 의존 제거: auto-install
     // 흐름 삭제. install 은 사용자가 응답에 박힌 helm command 로 직접 실행.
 
     @Override

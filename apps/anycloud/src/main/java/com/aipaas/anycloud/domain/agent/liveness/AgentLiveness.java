@@ -5,22 +5,22 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 
 /**
- * ACTIVE 에서 내려오는 규칙.
+ * ACTIVE 하향 전이 규칙.
  *
- * <p>등록은 상태를 올리지만 내리는 길이 없습니다. 화면만의 문제가 아닙니다. 업그레이드 대상과
- * 카탈로그가 {@code status == ACTIVE} 로 걸러 죽은 agent 를 살아 있다고 셉니다.
+ * <p>등록은 상태를 상향하나 하향 경로 부재. 업그레이드 대상과 카탈로그가
+ * {@code status == ACTIVE} 로 필터링하므로 중단된 agent 가 정상으로 집계.
  */
 public final class AgentLiveness {
 
     private AgentLiveness() {}
 
-    /** 지우지 않고 상태만 내립니다. 지우면 무엇이 있었는지 알 수 없습니다. */
+    /** 삭제 없이 상태만 하향. 삭제 시 이력 확인 불가. */
     public static ClusterAgentStatus staleStatus() {
         return ClusterAgentStatus.DEGRADED;
     }
 
     /**
-     * @param lastSeenAt null 이면 등록만 되고 한 번도 붙은 적이 없다는 뜻입니다
+     * @param lastSeenAt null 이면 등록만 완료되고 접속 이력 없음
      */
     public static boolean isStale(
             ClusterAgentStatus status, LocalDateTime lastSeenAt, LocalDateTime now, Duration timeout) {

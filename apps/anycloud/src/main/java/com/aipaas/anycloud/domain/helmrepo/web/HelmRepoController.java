@@ -34,10 +34,7 @@ public class HelmRepoController {
     private final HelmRepoService helmRepoService;
 
     /**
-     * [HelmRepoController] 헬름 저장소 목록 조회 함수
-     *
-     * @return 헬름 저장소 전체 목록을 반환합니다.
-     *         <p>
+     * @return 헬름 저장소 전체 목록
      */
     @GetMapping("")
     @Operation(summary = "헬름 저장소 목록 조회", description = "헬름 저장소 전체 목록을 조회합니다.")
@@ -48,7 +45,7 @@ public class HelmRepoController {
                 @ApiResponse(responseCode = "500", description = "서버 오류")
             })
     public ResponseEntity<ApiSuccessResponse<PagedData<HelmRepoListResponse>>> getHelmRepos() {
-        // Domain method 사용 — JPA proxy / lazy loading 노출 제거.
+        // Domain method 사용: JPA proxy / lazy loading 노출 제거.
         return new ResponseEntity<>(
                 ApiSuccessResponse.of(
                         HttpStatus.OK.value(),
@@ -61,11 +58,8 @@ public class HelmRepoController {
     }
 
     /**
-     * [HelmRepoController] 헬름 저장소 단일 조회 함수
-     *
      * @param helmRepoName 헬름 저장소 이름
-     * @return 헬름 저장소 정보를 반환합니다.
-     *         <p>
+     * @return 헬름 저장소 정보
      */
     @GetMapping("/{repoName}")
     @Operation(summary = "헬름 저장소 조회", description = "헬름 저장소를 조회합니다.")
@@ -73,7 +67,7 @@ public class HelmRepoController {
             @Parameter(description = "Helm repository 이름", required = true, example = "chart-museum-external")
                     @PathVariable
                     String repoName) {
-        // Domain method 사용 — 미존재 시 404.
+        // Domain method 사용: 미존재 시 404.
         var domain = helmRepoService
                 .findDomainByName(repoName)
                 .orElseThrow(() -> new com.aipaas.anycloud.common.error.exception.EntityNotFoundException(
@@ -85,11 +79,8 @@ public class HelmRepoController {
     }
 
     /**
-     * [HelmRepoController] 헬름 저장소 생성 함수
-     *
      * @param cluster 헬름 저장소 생성 정보
-     * @return 헬름 저장소를 생성합니다.
-     *         <p>
+     * @return 생성된 헬름 저장소
      */
     @PostMapping("")
     @Operation(summary = "헬름 저장소 생성", description = "헬름 저장소를 생성합니다.")
@@ -139,11 +130,8 @@ public class HelmRepoController {
     }
 
     /**
-     * [HelmRepoController] 헬름 저장소 삭제 함수
-     *
      * @param clusterName 헬름 저장소 이름
-     * @return 헬름 저장소 삭제합니다.
-     *         <p>
+     * @return 삭제 결과
      */
     @DeleteMapping("/{repoName}")
     @Operation(summary = "헬름 저장소 정보 삭제", description = "헬름 저장소 정보를 삭제합니다.")
@@ -171,7 +159,7 @@ public class HelmRepoController {
             description = "변경 가능 필드: url / username / password / caFile / insecureSkipTlsVerify. "
                     + "null 필드는 현재 값 유지 (partial update). "
                     + "<br><br>"
-                    + "<b>name 변경 미지원</b> — repository 이름은 URL identity (path variable). "
+                    + "<b>name 변경 미지원</b>: repository 이름은 URL identity (path variable). "
                     + "이름 변경이 필요하면 DELETE + POST 패턴 사용.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "부분 갱신 성공"),

@@ -31,14 +31,14 @@ type mockK8sClient struct {
 	getFn      func(ctx context.Context, opts k8s.GetResourceOptions) (string, error)
 	listResFn  func(ctx context.Context, opts k8s.ListResourcesOptions) (*k8s.ListResourcesResult, error)
 	applyFn    func(ctx context.Context, opts k8s.ApplyManifestOptions) (*k8s.ApplyManifestResult, error)
-	// resolveFn — 테스트가 RESTMapper 동작을 흉내내기 위한 stub. nil 이면 mockResolveDefault 사용.
+	// resolveFn: 테스트가 RESTMapper 동작을 흉내내기 위한 stub. nil 이면 mockResolveDefault 사용.
 	resolveFn    func(input string) (k8s.ResolvedResource, error)
 	listAPIResFn func(ctx context.Context) ([]k8s.APIResourceInfo, error)
-	// clientset — APPLY_AGENT_CONFIG 등 raw clientset 을 필요로 하는 명령용. nil 이면 Clientset() 도 nil.
+	// clientset: APPLY_AGENT_CONFIG 등 raw clientset 을 필요로 하는 명령용. nil 이면 Clientset() 도 nil.
 	clientset kubernetes.Interface
 }
 
-// mockResolveDefault — RESTMapper 동작을 mock 으로 시뮬레이션. dispatcher 테스트에서 사용하는
+// mockResolveDefault: RESTMapper 동작을 mock 으로 시뮬레이션. dispatcher 테스트에서 사용하는
 // kind 들만 매핑. unknown kind 는 ErrUnsupportedKind 반환.
 func mockResolveDefault(input string) (k8s.ResolvedResource, error) {
 	type spec struct {
@@ -179,7 +179,7 @@ type mockHelmClient struct {
 	rollbackFn  func(ctx context.Context, opts helm.RollbackOptions) (*helm.Release, error)
 }
 
-// Settings — test 환경에서 helm.SyncRepositories 가 nil-deref 없이 동작하도록
+// Settings: test 환경에서 helm.SyncRepositories 가 nil-deref 없이 동작하도록
 // tmp dir 의 RepositoryConfig 가진 EnvSettings 반환. 단위 테스트가 helm SDK 의 RepositoryFile 까지
 // 직접 검증할 필요 없으면 nil 반환도 OK (apply_config.go 가 nil 체크).
 func (m *mockHelmClient) Settings() *cli.EnvSettings { return nil }
@@ -212,12 +212,12 @@ func (m *mockHelmClient) Rollback(ctx context.Context, opts helm.RollbackOptions
 	return m.rollbackFn(ctx, opts)
 }
 
-// Upgrade mock. 본 test suite 는 upgrade flow 검증 안 함 — minimal stub.
+// Upgrade mock. 본 test suite 는 upgrade flow 검증 안 함. minimal stub.
 func (m *mockHelmClient) Upgrade(ctx context.Context, opts helm.UpgradeOptions) (*helm.Release, error) {
 	return nil, fmt.Errorf("upgrade %s: not configured", opts.ReleaseName)
 }
 
-// resourcePolicyLoader — resource_policy 도 동시에 주입한 loader.
+// resourcePolicyLoader: resource_policy 도 동시에 주입한 loader.
 // permissiveLoader 와 동일한 commands/namespaces 를 갖지만 추가로 resource_policy 가 적용.
 func resourcePolicyLoader(t *testing.T, policyYAML string) *config.Loader {
 	t.Helper()
@@ -244,7 +244,7 @@ func resourcePolicyLoader(t *testing.T, policyYAML string) *config.Loader {
 	return l
 }
 
-// permissiveLoader — 모든 명령/namespace/chart 허용. K8s 명령 테스트용.
+// permissiveLoader: 모든 명령/namespace/chart 허용. K8s 명령 테스트용.
 func permissiveLoader(t *testing.T) *config.Loader {
 	t.Helper()
 	cm := &corev1.ConfigMap{
@@ -929,7 +929,7 @@ func TestHandle_ListResources_LimitClamped(t *testing.T) {
 }
 
 // resource_policy 의 deny 룰이 LIST_RESOURCES 를 차단.
-// secrets 를 모든 namespace 에서 deny — RESOURCE_KIND_DENIED 응답.
+// secrets 를 모든 namespace 에서 deny: RESOURCE_KIND_DENIED 응답.
 func TestHandle_ListResources_ResourcePolicy_DenyKind(t *testing.T) {
 	loader := resourcePolicyLoader(t, `
 mode: allow_all_discovered
@@ -960,7 +960,7 @@ deny:
 	}
 }
 
-// strict 모드 — allow 에 없는 kind 는 모두 거부.
+// strict 모드: allow 에 없는 kind 는 모두 거부.
 func TestHandle_GetResource_ResourcePolicy_StrictMode_NotInAllow(t *testing.T) {
 	loader := resourcePolicyLoader(t, `
 mode: strict
@@ -991,7 +991,7 @@ allow:
 	}
 }
 
-// strict 모드 — allow 에 있는 kind 는 정상 통과.
+// strict 모드: allow 에 있는 kind 는 정상 통과.
 func TestHandle_GetResource_ResourcePolicy_StrictMode_AllowedKind(t *testing.T) {
 	loader := resourcePolicyLoader(t, `
 mode: strict
@@ -1014,7 +1014,7 @@ allow:
 	}
 }
 
-// deny 룰의 namespace 제약 — kube-system 에서만 configmaps deny, web 에선 허용.
+// deny 룰의 namespace 제약: kube-system 에서만 configmaps deny, web 에선 허용.
 func TestHandle_ListResources_ResourcePolicy_NamespaceScopedDeny(t *testing.T) {
 	loader := resourcePolicyLoader(t, `
 mode: allow_all_discovered
@@ -1145,7 +1145,7 @@ func TestHandle_ApplyManifest_ResourceTargetsForbiddenNamespace_RejectPostApply(
 	d := New("instance-1", "", mock, nil, permissiveLoader(t))
 	params, _ := structpb.NewStruct(map[string]interface{}{
 		"manifest": "kind: Pod\nmetadata:\n  name: evil\n  namespace: production\n",
-		// default ns 는 비어있음 (또는 monitoring) — manifest 가 production 명시.
+		// default ns 는 비어있음 (또는 monitoring). manifest 가 production 명시.
 	})
 	resp := d.Handle(&agentv1.CommandRequest{Type: agentv1.CommandType_APPLY_MANIFEST, Params: params})
 
@@ -1179,7 +1179,7 @@ func TestHandle_ApplyManifest_ApplyFailure_PropagatesFailed(t *testing.T) {
 }
 
 func TestHandle_ApplyManifest_ClusterScopedOnly_NoNamespaceCheck(t *testing.T) {
-	// default ns 비어있고, manifest 의 자원도 cluster-scoped (Namespace) — allowlist 통과.
+	// default ns 비어있고, manifest 의 자원도 cluster-scoped (Namespace). allowlist 통과.
 	called := false
 	mock := &mockK8sClient{
 		applyFn: func(ctx context.Context, opts k8s.ApplyManifestOptions) (*k8s.ApplyManifestResult, error) {
@@ -1208,7 +1208,7 @@ func TestHandle_ApplyManifest_ClusterScopedOnly_NoNamespaceCheck(t *testing.T) {
 
 // ===== LIST_RESOURCE_KINDS  =====
 
-// TestHandle_ListResourceKinds_Success — discovery 결과가 kinds[] 배열로 정상 노출.
+// TestHandle_ListResourceKinds_Success: discovery 결과가 kinds[] 배열로 정상 노출.
 // Group / namespaced / short_names 의 wire shape 회귀 보장.
 func TestHandle_ListResourceKinds_Success(t *testing.T) {
 	called := false
@@ -1259,7 +1259,7 @@ func TestHandle_ListResourceKinds_Success(t *testing.T) {
 	if shortNames == nil || len(shortNames.Values) != 1 || shortNames.Values[0].GetStringValue() != "po" {
 		t.Errorf("kinds[0].short_names = %v, want [po]", shortNames)
 	}
-	// 마지막 entry — cluster-scoped CRD-ish (storageclasses) namespaced=false 검증.
+	// 마지막 entry: cluster-scoped CRD-ish (storageclasses) namespaced=false 검증.
 	third := kinds.Values[2].GetStructValue().GetFields()
 	if third["namespaced"].GetBoolValue() != false {
 		t.Errorf("storageclasses.namespaced = %v, want false", third["namespaced"].GetBoolValue())
@@ -1269,7 +1269,7 @@ func TestHandle_ListResourceKinds_Success(t *testing.T) {
 	}
 }
 
-// TestHandle_ListResourceKinds_NilClient — kube client 미초기화 시 AGENT_UNAVAILABLE.
+// TestHandle_ListResourceKinds_NilClient: kube client 미초기화 시 AGENT_UNAVAILABLE.
 func TestHandle_ListResourceKinds_NilClient(t *testing.T) {
 	d := New("instance-1", "", nil, nil, permissiveLoader(t))
 	resp := d.Handle(&agentv1.CommandRequest{Type: agentv1.CommandType_LIST_RESOURCE_KINDS})
@@ -1279,7 +1279,7 @@ func TestHandle_ListResourceKinds_NilClient(t *testing.T) {
 	}
 }
 
-// TestHandle_ListResourceKinds_DiscoveryFailed — discovery API 자체 실패 시 FAILED + DISCOVERY_FAILED.
+// TestHandle_ListResourceKinds_DiscoveryFailed: discovery API 자체 실패 시 FAILED + DISCOVERY_FAILED.
 func TestHandle_ListResourceKinds_DiscoveryFailed(t *testing.T) {
 	mock := &mockK8sClient{
 		listAPIResFn: func(ctx context.Context) ([]k8s.APIResourceInfo, error) {
@@ -1297,7 +1297,7 @@ func TestHandle_ListResourceKinds_DiscoveryFailed(t *testing.T) {
 	}
 }
 
-// TestHandle_ListResourceKinds_NotInAllowlist_PermissionDenied — operator 가 ConfigMap 에서
+// TestHandle_ListResourceKinds_NotInAllowlist_PermissionDenied: operator 가 ConfigMap 에서
 // LIST_RESOURCE_KINDS 를 제외하면 PERMISSION_DENIED + COMMAND_NOT_ALLOWED.
 func TestHandle_ListResourceKinds_NotInAllowlist_PermissionDenied(t *testing.T) {
 	// denyAllLoader 는 빈 ConfigMap → allowed_commands 비어있음 → 모든 명령 deny.
@@ -1324,7 +1324,7 @@ func TestHandle_ListResourceKinds_NotInAllowlist_PermissionDenied(t *testing.T) 
 
 // ===== RESOLVE_RESOURCE =====
 
-// 정상 — "pod" (singular) → plural="pods" + 기타 metadata.
+// 정상: "pod" (singular) → plural="pods" + 기타 metadata.
 func TestHandle_ResolveResource_Pods_Success(t *testing.T) {
 	mock := &mockK8sClient{
 		resolveFn: func(input string) (k8s.ResolvedResource, error) {
@@ -1368,7 +1368,7 @@ func TestHandle_ResolveResource_Pods_Success(t *testing.T) {
 	}
 }
 
-// 단축이름 "pvc" 도 정상 정규화 — plural=persistentvolumeclaims.
+// 단축이름 "pvc" 도 정상 정규화: plural=persistentvolumeclaims.
 func TestHandle_ResolveResource_PVC_Shortname(t *testing.T) {
 	mock := &mockK8sClient{
 		resolveFn: func(input string) (k8s.ResolvedResource, error) {
@@ -1395,7 +1395,7 @@ func TestHandle_ResolveResource_PVC_Shortname(t *testing.T) {
 	}
 }
 
-// Cluster-scoped (StorageClass) — namespaced=false 확인.
+// Cluster-scoped (StorageClass). namespaced=false 확인.
 func TestHandle_ResolveResource_StorageClass_ClusterScoped(t *testing.T) {
 	mock := &mockK8sClient{
 		resolveFn: func(input string) (k8s.ResolvedResource, error) {
@@ -1425,7 +1425,7 @@ func TestHandle_ResolveResource_StorageClass_ClusterScoped(t *testing.T) {
 	}
 }
 
-// Typo — ErrUnsupportedKind 응답 + fuzzy suggestion 동봉.
+// Typo: ErrUnsupportedKind 응답 + fuzzy suggestion 동봉.
 // "storageclas" (거리 3) → ["storageclasses"] suggestion.
 func TestHandle_ResolveResource_Typo_ReturnsFuzzyMatch(t *testing.T) {
 	mock := &mockK8sClient{
@@ -1467,7 +1467,7 @@ func TestHandle_ResolveResource_Typo_ReturnsFuzzyMatch(t *testing.T) {
 	}
 }
 
-// 빈 input — INVALID_PARAMS + MISSING_PARAM.
+// 빈 input: INVALID_PARAMS + MISSING_PARAM.
 func TestHandle_ResolveResource_NoInput_Rejected(t *testing.T) {
 	d := New("instance-1", "", &mockK8sClient{}, nil, permissiveLoader(t))
 	resp := d.Handle(&agentv1.CommandRequest{
@@ -1509,7 +1509,7 @@ func TestHandle_GetAgentConfig_ReturnsCurrentSnapshot(t *testing.T) {
 	}
 	fields := resp.GetResult().GetFields()
 
-	// allowed_namespaces — explicit (no wildcard) 라 "monitoring" 등 포함.
+	// allowed_namespaces: explicit (no wildcard) 라 "monitoring" 등 포함.
 	ns := fields["allowed_namespaces"].GetListValue()
 	if ns == nil {
 		t.Fatal("allowed_namespaces missing")
@@ -1527,7 +1527,7 @@ func TestHandle_GetAgentConfig_ReturnsCurrentSnapshot(t *testing.T) {
 		t.Error("allow_all_namespaces should be false for explicit list")
 	}
 
-	// allowed_commands — permissiveLoader 의 명령들 포함.
+	// allowed_commands: permissiveLoader 의 명령들 포함.
 	cmds := fields["allowed_commands"].GetListValue()
 	if cmds == nil || len(cmds.Values) == 0 {
 		t.Fatal("allowed_commands missing")
@@ -1542,18 +1542,18 @@ func TestHandle_GetAgentConfig_ReturnsCurrentSnapshot(t *testing.T) {
 		}
 	}
 
-	// allowed_charts — permissiveLoader 가 2 개 차트.
+	// allowed_charts: permissiveLoader 가 2 개 차트.
 	charts := fields["allowed_charts"].GetListValue()
 	if charts == nil || len(charts.Values) != 2 {
 		t.Errorf("allowed_charts len = %d, want 2: %v", len(charts.Values), charts)
 	}
 
-	// last_reload_at — LoadOnce 직후라 비어있지 않아야 함.
+	// last_reload_at: LoadOnce 직후라 비어있지 않아야 함.
 	if fields["last_reload_at"].GetStringValue() == "" {
 		t.Error("last_reload_at should be non-empty after LoadOnce")
 	}
 
-	// resource_policy — permissiveLoader 는 정책 미설정 → mode="".
+	// resource_policy: permissiveLoader 는 정책 미설정 → mode="".
 	rp := fields["resource_policy"].GetStructValue()
 	if rp == nil {
 		t.Fatal("resource_policy missing")
@@ -1564,9 +1564,9 @@ func TestHandle_GetAgentConfig_ReturnsCurrentSnapshot(t *testing.T) {
 	}
 }
 
-// resource_policy 가 있는 ConfigMap — deny/allow 가 wire 로 노출되는지.
+// resource_policy 가 있는 ConfigMap: deny/allow 가 wire 로 노출되는지.
 func TestHandle_GetAgentConfig_WithResourcePolicy(t *testing.T) {
-	// resourcePolicyLoader 는 GET_AGENT_CONFIG 를 allowed_commands 에 포함 안 함 — 추가 loader 작성.
+	// resourcePolicyLoader 는 GET_AGENT_CONFIG 를 allowed_commands 에 포함 안 함. 추가 loader 작성.
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{Name: "aipaas-agent-allowlist", Namespace: "aipaas-system"},
 		Data: map[string]string{
@@ -1605,7 +1605,7 @@ allow:
 	if deny == nil || len(deny.Values) != 2 {
 		t.Fatalf("deny len = %d, want 2: %v", len(deny.Values), deny)
 	}
-	// 첫 deny rule — kind: secrets, namespace: "".
+	// 첫 deny rule: kind: secrets, namespace: "".
 	first := deny.Values[0].GetStructValue().GetFields()
 	if first["kind"].GetStringValue() != "secrets" {
 		t.Errorf("deny[0].kind = %q", first["kind"].GetStringValue())
@@ -1616,15 +1616,15 @@ allow:
 	}
 }
 
-// last_reload_at — 초기 NewLoader 직후 (LoadOnce 호출 전) 는 빈 문자열.
+// last_reload_at: 초기 NewLoader 직후 (LoadOnce 호출 전) 는 빈 문자열.
 // LoadOnce 후엔 채워짐.
 func TestHandle_GetAgentConfig_LastReloadAt_AfterReload(t *testing.T) {
-	// LoadOnce 호출 전 — loader 가 emptyAllowList 만 가짐, meta 는 zero.
-	cs := fake.NewSimpleClientset() // 빈 — ConfigMap 미존재.
+	// LoadOnce 호출 전: loader 가 emptyAllowList 만 가짐, meta 는 zero.
+	cs := fake.NewSimpleClientset() // 빈: ConfigMap 미존재.
 	loader := config.NewLoader(cs, "aipaas-system", "aipaas-agent-allowlist")
-	// GET_AGENT_CONFIG 가 deny-all 정책에선 commandAllowed false — 별도 loader 로 강제 허용.
+	// GET_AGENT_CONFIG 가 deny-all 정책에선 commandAllowed false: 별도 loader 로 강제 허용.
 	// 대신 loader 의 LoadOnce 가 실패해도 GET_AGENT_CONFIG 통과시키는 별도 loader 가 필요.
-	// 간단히 — 우선 reload 전 상태 검증을 위해 별도 ConfigMap 으로 GET_AGENT_CONFIG 만 허용.
+	// 간단히: 우선 reload 전 상태 검증을 위해 별도 ConfigMap 으로 GET_AGENT_CONFIG 만 허용.
 	cmAllow := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{Name: "aipaas-agent-allowlist", Namespace: "aipaas-system"},
 		Data: map[string]string{

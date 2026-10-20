@@ -1,9 +1,9 @@
-// Package leader — cluster-side leader election (K8s Lease).
+// Package leader: cluster-side leader election (K8s Lease).
 //
 // Agent Deployment.replicas=N HA 구성에서 backend stream 은 leader 1 개만 유지. Non-leader 는
-// idle — 명령 중복 처리 방지 + backend 부하 ↓. lease holder identity = POD_NAME (또는 hostname).
+// idle: 명령 중복 처리 방지 + backend 부하 ↓. lease holder identity = POD_NAME (또는 hostname).
 //
-// Renewal: lease 15s / renew 10s / retry 2s — k8s 표준 권장값. control-plane 장애 시 1 renew
+// Renewal: lease 15s / renew 10s / retry 2s: k8s 표준 권장값. control-plane 장애 시 1 renew
 // cycle 안에 새 leader 등극.
 
 package leader
@@ -21,29 +21,29 @@ import (
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 )
 
-// Options — caller 가 채워 Run 에 전달.
+// Options: caller 가 채워 Run 에 전달.
 type Options struct {
 	// K8s 측 Lease 가 살 namespace + name. 매니페스트 생성 시 leader RBAC 도 같이 부여 필요.
 	Namespace string
 	LeaseName string
 
-	// Lease holder identity — pod 별 unique. 미설정 시 POD_NAME env 또는 hostname 으로 fallback.
+	// Lease holder identity: pod 별 unique. 미설정 시 POD_NAME env 또는 hostname 으로 fallback.
 	Identity string
 
-	// K8s clientset — agent 가 in-cluster 에서 이미 보유한 것.
+	// K8s clientset: agent 가 in-cluster 에서 이미 보유한 것.
 	Clientset kubernetes.Interface
 
 	OnStartedLeading func(ctx context.Context) // leader 획득 → 시작
 	OnStoppedLeading func()                    // leader 잃음 → 정리
-	OnNewLeader      func(leader string)       // 정보 — 다른 leader 등극
+	OnNewLeader      func(leader string)       // 정보: 다른 leader 등극
 
-	// Optional — default 15s / 10s / 2s 권장값.
+	// Optional: default 15s / 10s / 2s 권장값.
 	LeaseDuration time.Duration
 	RenewDeadline time.Duration
 	RetryPeriod   time.Duration
 }
 
-// Run — context 종료까지 leader election 유지. blocking call (caller 는 별도 goroutine 권장).
+// Run: context 종료까지 leader election 유지. blocking call (caller 는 별도 goroutine 권장).
 //
 // ctx.Done() 또는 leader 의 RenewDeadline 미달 시 자연스럽게 종료.
 func Run(ctx context.Context, opts Options) error {
@@ -96,7 +96,7 @@ func Run(ctx context.Context, opts Options) error {
 		LeaseDuration:   opts.LeaseDuration,
 		RenewDeadline:   opts.RenewDeadline,
 		RetryPeriod:     opts.RetryPeriod,
-		ReleaseOnCancel: true, // ctx cancel 시 lease 즉시 release — 다른 replica 가 빠르게 take.
+		ReleaseOnCancel: true, // ctx cancel 시 lease 즉시 release: 다른 replica 가 빠르게 take.
 		Callbacks: leaderelection.LeaderCallbacks{
 			OnStartedLeading: func(c context.Context) {
 				slog.Info("leader election: STARTED LEADING", slog.String("identity", identity))
@@ -112,7 +112,7 @@ func Run(ctx context.Context, opts Options) error {
 			},
 			OnNewLeader: func(other string) {
 				if other == identity {
-					return // 자기 자신 — OnStartedLeading 에서 이미 처리.
+					return // 자기 자신: OnStartedLeading 에서 이미 처리.
 				}
 				slog.Info("leader election: new leader observed",
 					slog.String("new_leader", other),

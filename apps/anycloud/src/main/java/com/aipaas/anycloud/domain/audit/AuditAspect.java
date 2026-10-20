@@ -26,7 +26,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 /**
  * {@link Audited} 처리 aspect.
  *
- * <p>Around advice — 성공 시 statusCode=200 + #result 평가, 예외 시 {@link AuditStatus} 가 고른
+ * <p>Around advice: 성공 시 statusCode=200 + #result 평가, 예외 시 {@link AuditStatus} 가 고른
  * statusCode + errorMessage 기록. SpEL 평가 실패는 swallow (audit 은 best-effort).
  *
  * <p>Method args 는 {@link DefaultParameterNameDiscoverer} 로 이름 추출 (Java 8+ {@code -parameters}
@@ -68,7 +68,7 @@ public class AuditAspect {
                 String summary = evalOrNull(audited.summary(), ctx);
 
                 // HTTP request 가 있으면 method/path/clientIp 추출 (controller-initiated).
-                // 없으면 null (scheduler / @Async 등 service-initiated audit — ).
+                // 없으면 null (scheduler / @Async 등 service-initiated audit: ).
                 HttpRequestSnapshot http = currentRequestSnapshot();
                 // Impersonation 활성화 시 ImpersonationInterceptor 가 ThreadLocal 에
                 // identity 를 set 한 상태. principal = user. toggle OFF 또는 system/async 경로면 null
@@ -134,7 +134,7 @@ public class AuditAspect {
      * 현재 thread 에 HTTP request attributes 가 binding 되어 있으면 method/path/clientIp 추출.
      * scheduler / @Async / gRPC 핸들러 등 controller 외에서 호출되면 null.
      *
-     * <p>X-Forwarded-For / X-Real-IP 헤더 우선 — gateway / LB 뒤 backend 에서 실제 client IP 보존.
+     * <p>X-Forwarded-For / X-Real-IP 헤더 우선: gateway / LB 뒤 backend 에서 실제 client IP 보존.
      */
     private static HttpRequestSnapshot currentRequestSnapshot() {
         RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
@@ -157,7 +157,7 @@ public class AuditAspect {
 
     /**
      * 현재 thread 에 impersonation identity 가 set 되어 있으면 user (= K8s username) 반환.
-     * toggle OFF / async 경로 / interceptor 미통과 시 null —  column.
+     * toggle OFF / async 경로 / interceptor 미통과 시 null: column.
      *
      * <p>fail-open: provider 부재나 current() 호출 실패 모두 swallow (audit 은 best-effort, 비즈니스
      * 흐름에 영향 X).

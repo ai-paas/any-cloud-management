@@ -10,14 +10,14 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
     private static final String CONFIG_JOIN_TOKEN = "anycloud-k8s:joinToken";
 
     /**
-     * 준비 대기 상한 — 5초 간격 60회로 유닛당 5분, 두 유닛 합쳐 최대 10분.
+     * 준비 대기 상한: 5초 간격 60회로 유닛당 5분, 두 유닛 합쳐 최대 10분.
      *
      * <p>RabbitMQ 의 delivery ack 타임아웃(30분)보다 충분히 짧아야 한다. 넘기면 채널이 끊기고
      * 메시지가 재전달되어 같은 노드에 부트스트랩이 중복으로 붙는다. 실제로 그렇게 됐다.
      */
     private static final int PREPARATION_WAIT_ATTEMPTS = 60;
 
-    /** apiserver 대기 상한 — 10초 간격 30회로 5분. 준비 대기와 같은 이유로 ack 타임아웃보다 짧게 둔다. */
+    /** apiserver 대기 상한: 10초 간격 30회로 5분. 준비 대기와 동일하게 ack 타임아웃보다 짧게 설정. */
     private static final int API_SERVER_WAIT_ATTEMPTS = 30;
 
     private static final int API_SERVER_WAIT_INTERVAL_SEC = 10;
@@ -31,9 +31,9 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
 
     @Override
     public String waitForPreparationCommand() {
-        // cloud-init 이 실패하면 containerd 와 kubelet 은 영영 오지 않는다. 상한이 없으면 SSH 세션이
-        // 살아 있는 채로 워크플로가 BOOTSTRAPPING 에 멈추고 로그도 남지 않아, 사람이 알아챌 때까지
-        // 원인을 알 수 없다. 포기할 때 cloud-init 상태를 같이 뱉어 원인을 바로 보여준다.
+        // cloud-init 실패 시 containerd 와 kubelet 미기동. 상한 부재 시 SSH 세션이 유지된 채
+        // 워크플로가 BOOTSTRAPPING 에 정지하고 로그도 없어 원인 파악 불가. 중단 시 cloud-init
+        // 상태를 함께 출력.
         return "sudo cloud-init status --wait || cloud-init status --wait || true; "
                 + "wait_unit() { "
                 + "  for _ in $(seq 1 " + PREPARATION_WAIT_ATTEMPTS + "); do "
@@ -53,8 +53,8 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
         String podCidr = firstNonBlank(snapshot.getPodCidr(), DEFAULT_POD_CIDR);
         String serviceCidr = firstNonBlank(snapshot.getServiceCidr(), "10.96.0.0/12");
         String joinToken = requiredJoinToken(snapshot);
-        // HA mode (masterCount >= 2) — kubeadm init 에 --control-plane-endpoint + --upload-certs.
-        // lead master 의 IP 자체를 endpoint 로 사용 (LB/VIP 미적용 — 본 PoC 한계).
+        // HA mode (masterCount >= 2). kubeadm init 에 --control-plane-endpoint + --upload-certs.
+        // lead master 의 IP 자체를 endpoint 로 사용 (LB/VIP 미적용: 본 PoC 한계).
         boolean multiMaster = masterCount(snapshot) >= 2;
         StringBuilder cmd = new StringBuilder(512);
         cmd.append("if [ ! -f /etc/kubernetes/admin.conf ]; then ");
@@ -62,14 +62,14 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
         cmd.append("sudo kubeadm init ");
         cmd.append("--apiserver-advertise-address=\"${LOCAL_IP}\" ");
         if (multiMaster) {
-            // LB/VIP 미사용 — lead master IP 가 그대로 endpoint. 진짜 HA 는 LB 필요.
+            // LB/VIP 미사용: lead master IP 가 그대로 endpoint. 진짜 HA 는 LB 필요.
             cmd.append("--control-plane-endpoint=\"${LOCAL_IP}:6443\" ");
             cmd.append("--upload-certs ");
         }
         if (apiServerPublicIp != null && !apiServerPublicIp.isBlank()) {
             /*
-             * 인증서 SAN 에는 advertise 주소만 들어간다. 내려받은 kubeconfig 가 공인 IP 를 가리키면
-             * 노드가 다 올라와 있어도 TLS 이름 검증에서 막힌다 — 발급 후에는 고칠 수 없어 여기서 넣는다.
+             * 인증서 SAN 에는 advertise 주소만 포함. 수신한 kubeconfig 가 공인 IP 를 가리키면
+             * 노드 정상 기동 상태에서도 TLS 이름 검증 실패. 발급 후 수정 불가하므로 여기서 지정.
              */
             cmd.append("--apiserver-cert-extra-sans=")
                     .append(shellWord(apiServerPublicIp))
@@ -119,11 +119,10 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
     }
 
     /**
-     * 마스터의 apiserver 가 열릴 때까지 기다린다.
+     * 마스터 apiserver 기동 대기.
      *
-     * <p>상한이 없으면 마스터가 영영 안 열릴 때 워커가 무한히 기다리고, SSH 세션이 살아 있어
-     * 워크플로가 멈춘다. AMQP delivery ack 타임아웃까지 가면 메시지가 재전달되어 같은 노드에
-     * 부트스트랩이 중복으로 붙는다.
+     * <p>상한 부재 시 마스터 기동 실패에서 워커가 무한 대기하고 SSH 세션이 유지돼 워크플로 정지.
+     * AMQP delivery ack 타임아웃 초과 시 메시지 재전달로 동일 노드에 부트스트랩 중복 실행.
      */
     private String waitForApiServer(String privateIp) {
         return "for _ in $(seq 1 " + API_SERVER_WAIT_ATTEMPTS + "); do "
@@ -159,8 +158,8 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
     }
 
     /**
-     * CNI 만 남긴다. GPU 와 ingress 는 컴포넌트가 소유한다 — 셸에서 설치하면 실패가 {@code || true}
-     * 로 사라지고, 재시도할 주체도 없다.
+     * CNI 만 유지. GPU 와 ingress 는 컴포넌트 소유. 셸 설치 시 실패가 {@code || true} 로 묻히고
+     * 재시도 주체 부재.
      */
     @Override
     public String buildAddonInstallCommand(VmClusterInternalRequestSnapshot snapshot) {
@@ -170,12 +169,12 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
     }
 
     /**
-     * Calico 의 stock manifest 는 pool CIDR 이 주석 처리돼 있고, 그 상태의 내장 기본값이
-     * {@code 192.168.0.0/16} 이다. 온프레미스 망이 대부분 그 안에 들어가 파드가 게이트웨이와
-     * DNS 로 나가지 못한다 — kubeadm 에 넘긴 {@code --pod-network-cidr} 은 Calico 가 보지 않는다.
+     * Calico stock manifest 는 pool CIDR 이 주석 처리 상태이며 내장 기본값은
+     * {@code 192.168.0.0/16}. 온프레미스 망 대부분이 이 대역에 포함돼 파드의 게이트웨이, DNS
+     * 접근 차단. kubeadm 에 전달한 {@code --pod-network-cidr} 은 Calico 미참조.
      *
-     * <p>주석을 풀어 실제 pod CIDR 을 심는다. upstream 이 문구를 바꾸면 치환이 조용히 빗나가
-     * 같은 장애가 재현되므로, 적용 전에 치환 결과를 확인하고 아니면 중단한다.
+     * <p>주석 해제 후 실제 pod CIDR 주입. upstream 문구 변경 시 치환이 무음으로 실패해 동일
+     * 장애가 재현되므로 적용 전 치환 결과 확인, 불일치 시 중단.
      */
     protected String cniInstallCommand(String podCidr) {
         String kubectl = "sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl";
@@ -192,7 +191,7 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
                 + "rm -f \"$CALICO_MANIFEST\"; }";
     }
 
-    /** upstream 문구에 의존하는 유일한 지점. 테스트가 실제 sed 로 이 인자를 검증한다. */
+    /** upstream 문구에 의존하는 유일한 지점. 테스트가 실제 sed 로 이 인자 검증. */
     static String calicoSedArgs(String podCidr) {
         return calicoSedArgs(podCidr, false);
     }
@@ -212,24 +211,24 @@ public class GenericLinuxVmClusterBootstrapStrategy implements VmClusterBootstra
     /**
      * 파드 트래픽을 IP-in-IP 대신 VXLAN 으로 감쌀지.
      *
-     * <p>IBM VPC 는 프로토콜 4(IP-in-IP)를 전달하지 않는다. 보안그룹이 허용해도 패브릭이 버려서
-     * 노드 간 파드 통신만 조용히 끊긴다 — 노드 통신과 파드의 인터넷 접속은 멀쩡해 원인이 늦게 드러난다.
+     * <p>IBM VPC 는 프로토콜 4(IP-in-IP) 미전달. 보안그룹 허용 상태에서도 패브릭이 폐기해
+     * 노드 간 파드 통신만 차단. 노드 통신과 파드 인터넷 접속은 정상이라 원인 파악 지연.
      */
     protected boolean usesVxlanEncapsulation() {
         return false;
     }
 
-    /** {@code Defaults.DEFAULT_POD_CIDR} 과 같은 값. 어긋나면 Calico 와 kubeadm 이 다른 대역을 쓴다. */
+    /** {@code Defaults.DEFAULT_POD_CIDR} 과 동일 값. 불일치 시 Calico 와 kubeadm 이 서로 다른 대역 사용. */
     protected static final String DEFAULT_POD_CIDR = "10.244.0.0/16";
 
-    /** {@code Defaults.DEFAULT_K8S_VERSION} 과 같은 값. 어긋나면 emitter 와 다른 버전이 깔린다. */
+    /** {@code Defaults.DEFAULT_K8S_VERSION} 과 동일 값. 불일치 시 emitter 와 다른 버전 설치. */
     protected static final String DEFAULT_K8S_VERSION = "1.31";
 
     private static final String CALICO_MANIFEST_URL =
             "https://raw.githubusercontent.com/projectcalico/calico/v3.28.2/manifests/calico.yaml";
 
     /**
-     * Snapshot 의 joinToken — 없으면 fail-fast. 과거엔 공유 하드코딩 token
+     * Snapshot 의 joinToken: 없으면 fail-fast. 과거엔 공유 하드코딩 token
      * ({@code abcdef.0123456789abcdef}) 으로 silent fallback 했으나, 모든 cluster 가 같은 token 을
      * 공유하면 node 탈취 시 타 cluster join 이 가능해지는 보안 결함. 정상 생성 경로는 backend 가
      * 항상 random token 을 snapshot 에 영속화하므로 여기 도달 시 누락 = snapshot 손상.

@@ -18,7 +18,7 @@ public class VmClusterBootstrapLogServiceImpl implements VmClusterBootstrapLogSe
 
     /**
      * MEDIUMTEXT 컬럼 cap. 한 cluster 의 누적 bootstrap log 가 이 길이를 넘으면 가장 오래된
-     * attempt 부터 잘라발신. 256KB — 보통 cluster 당 retry 5회 정도까지 보관 가능.
+     * attempt 부터 잘라발신. 256KB: 보통 cluster 당 retry 5회 정도까지 보관 가능.
      */
     private static final int MAX_LOG_BYTES = 256 * 1024;
 
@@ -93,7 +93,7 @@ public class VmClusterBootstrapLogServiceImpl implements VmClusterBootstrapLogSe
         }
         int dropFrom = value.length() - MAX_LOG_BYTES;
         String tail = value.substring(dropFrom);
-        // attempt 경계에서 자르도록 정렬 — 다음 "=== attempt" 부터 보존.
+        // attempt 경계에서 자르도록 정렬: 다음 "=== attempt" 부터 보존.
         int firstAttempt = tail.indexOf("=== attempt");
         if (firstAttempt > 0) {
             tail = tail.substring(firstAttempt);

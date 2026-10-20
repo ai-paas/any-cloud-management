@@ -87,7 +87,7 @@ public class OperationController {
             summary = "operation 취소 (best-effort)",
             description = "현재 RUNNING 인 operation 의 cancel 요청. 실제 백엔드 작업 중단은 best-effort.")
     @ApiResponses({
-        @ApiResponse(responseCode = "202", description = "취소 요청 수락 — state=CANCELLED 로 갱신"),
+        @ApiResponse(responseCode = "202", description = "취소 요청 수락: state=CANCELLED 로 갱신"),
         @ApiResponse(responseCode = "400", description = "operation id 형식 위반 또는 not found")
     })
     public ResponseEntity<ApiSuccessResponse<OperationResponse>> cancel(

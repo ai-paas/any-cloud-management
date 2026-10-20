@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// 만료된 등록 토큰은 Secret 에 그대로 남는다. 파드는 같은 값으로 CrashLoop 을 돌고,
-// 원인은 서버가 거부하는 메시지를 읽어야만 드러난다. 기동 시점에 먼저 짚어 준다.
+// 만료된 등록 토큰은 Secret 에 잔존. 파드가 동일 값으로 CrashLoop 을 반복하고, 원인은 서버
+// 거부 메시지 확인 후에야 파악 가능. 기동 시점에 선행 검출.
 
 func tokenWithExp(exp int64) string {
 	payload, _ := json.Marshal(map[string]int64{"exp": exp})
@@ -32,7 +32,7 @@ func TestValidTokenIsNotFlagged(t *testing.T) {
 }
 
 func TestUnreadableTokenIsNotCalledExpired(t *testing.T) {
-	// 멀쩡한 토큰을 만료라 부르면 진단이 더 꼬인다. 모르면 단정하지 않는다.
+	// 유효 토큰을 만료로 판정하면 진단 혼선. 불확실한 경우 단정 금지.
 	now := time.Now()
 	for _, token := range []string{"", "not-a-jwt", "a.b", "a.!!!.c", "a." + base64.RawURLEncoding.EncodeToString([]byte("{}")) + ".c"} {
 		if RegistrationTokenExpired(token, now) {

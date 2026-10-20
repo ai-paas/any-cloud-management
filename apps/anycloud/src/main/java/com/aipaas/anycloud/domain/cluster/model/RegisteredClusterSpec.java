@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 
 /** Registered-source cluster spec (외부 K8s cluster 등록). */
-@Schema(description = "외부 cluster 등록 spec — metadata 만 (인증/URL 입력 없음, agent-led registration)")
+@Schema(description = "외부 cluster 등록 spec: metadata 만 (인증/URL 입력 없음, agent-led registration)")
 public record RegisteredClusterSpec(
         @Schema(description = "CSP provider", example = "AWS") @NotBlank String provider,
         @Schema(description = "cluster type (EKS / GKE / AKS / Self-managed ...)", example = "EKS") String clusterType,

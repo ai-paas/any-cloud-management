@@ -30,7 +30,7 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
 
     private static final String OS_IMAGE_KEY = "osImage";
 
-    /** 노드는 Ubuntu 위에 kubeadm 을 올린다. 다른 배포판을 고르면 부트스트랩이 깨진다. */
+    /** 노드는 Ubuntu 기반 kubeadm 설치. 다른 배포판 선택 시 부트스트랩 실패. */
     private static final String UBUNTU_KEYWORD = "ubuntu";
 
     /** 목록이 길면 화면에서 고르기 어렵다. 최신 몇 개면 충분하다. */
@@ -62,7 +62,7 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
      * credentialId 가 주어지면 해당 credential 을 decrypt 하여 provider 에 전달, 없으면 빈 map 반환.
      * 빈 map 을 받은 provider 는 자체적으로 환경변수에서 키를 읽는 default 동작으로 fallback.
      *
-     * <p>credentialId 가 invalid (DB 미존재 / provider 불일치 / required 키 누락) 면 throw —
+     * <p>credentialId 가 invalid (DB 미존재 / provider 불일치 / required 키 누락) 면 throw:
      * 사용자가 잘못된 credentialId 를 보냈을 때 빠르게 알려야 한다 (silent fallback 보다 fail-fast).
      */
     private Map<String, String> resolveCredentials(String provider, String credentialId) {
@@ -101,7 +101,7 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
      * 이미지는 조회 경로가 따로 있어 선택지가 비어 있었다. 필수인데 고를 값이 없어 사용자가
      * OCID 나 빌드 날짜가 붙은 ID 를 직접 받아 적어야 했다.
      *
-     * <p>{@code id} 를 쓴다 — emitter 가 그대로 CSP 에 넘기는 값이다.
+     * <p>{@code id} 사용. emitter 가 CSP 에 그대로 전달하는 값.
      */
     private List<ConfigOption> osImageOptions(VmOptionsProvider provider, Map<String, String> creds, String region) {
         return provider.listImages(creds, region, UBUNTU_KEYWORD, null, null, OS_IMAGE_LIMIT).stream()
@@ -112,7 +112,7 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
                 .toList();
     }
 
-    /** 이미 허용값이 적힌 키는 그대로 둔다. 정적 제약을 조회 결과로 덮으면 안 된다. */
+    /** 허용값이 지정된 키는 유지. 정적 제약을 조회 결과로 덮어쓰기 금지. */
     private ProviderConfigKey withOptions(
             VmOptionsProvider vmOptionsProvider, Map<String, String> creds, ProviderConfigKey key, String region) {
         if (key.allowedValues() != null && !key.allowedValues().isEmpty()) {
@@ -127,7 +127,7 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
         } catch (RuntimeException e) {
             /*
              * 조회 하나가 실패해도 스키마는 내려보낸다. 예외를 올리면 폼이 전부 비어
-             * "이 CSP 는 설정할 것이 없다"로 보인다 — OpenStack 이 그렇게 15개 필드를 통째로 잃었다.
+             * "이 CSP 는 설정할 것이 없다"로 보인다: OpenStack 이 그렇게 15개 필드를 통째로 잃었다.
              */
             log.warn("설정 선택지를 채우지 못했다 key={} region={}: {}", key.key(), region, e.toString());
             return key;

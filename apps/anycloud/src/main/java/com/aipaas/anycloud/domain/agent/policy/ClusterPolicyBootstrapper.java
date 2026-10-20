@@ -15,17 +15,16 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 /**
- * cluster 가 ACTIVE 로 바뀐 직후 agent ConfigMap 의 {@code helm_repositories} 를 backend 의
- * helm_repo 테이블 내용으로 맞춥니다.
+ * cluster 가 ACTIVE 로 전이한 직후 agent ConfigMap 의 {@code helm_repositories} 를 backend 의
+ * helm_repo 테이블 값으로 동기화.
  *
- * <p>{@code @Async} 로 돕니다. 실패해도 로그만 남기고 삼킵니다. agent 등록 경로를 막지 않기
- * 위해서입니다. 반영이 안 됐으면 운영자가 admin endpoint 로 다시 밀면 됩니다.
+ * <p>{@code @Async} 실행. 실패 시 로그만 기록하고 예외 미전파. agent 등록 경로 차단 방지 목적.
+ * 미반영 시 운영자가 admin endpoint 로 재실행.
  *
- * <p>{@code applyAgentConfig} 가 부분 갱신을 받지 않아 기존 목록도 같은 값으로 다시 씁니다.
+ * <p>{@code applyAgentConfig} 가 부분 갱신을 지원하지 않아 기존 목록도 동일 값으로 재기록.
  *
- * <p>이 호출 자체가 {@code APPLY_AGENT_CONFIG} RPC 입니다. agent 의 allowed_commands 에 그 명령이
- * 없으면 PERMISSION_DENIED 가 나고 역시 조용히 넘어갑니다. 그때는 kubectl 로 ConfigMap 을 직접
- * 고쳐야 합니다.
+ * <p>이 호출은 {@code APPLY_AGENT_CONFIG} RPC. agent 의 allowed_commands 에 해당 명령이 없으면
+ * PERMISSION_DENIED 응답 후 동일하게 무시. 이 경우 kubectl 로 ConfigMap 직접 수정 필요.
  */
 @Slf4j
 @Component
@@ -38,7 +37,7 @@ public class ClusterPolicyBootstrapper {
     private final ClusterRepository clusterRepository;
     /**
      * RBAC starter 의 BindingTemplate catalog. cluster ACTIVE 시점에 binding apply.
-     * ObjectProvider lazy — starter 가 부재한 컨텍스트 (test, worker) 에서도 robust.
+     * ObjectProvider lazy: starter 가 부재한 컨텍스트 (test, worker) 에서도 robust.
      */
     private final org.springframework.beans.factory.ObjectProvider<
                     io.aipaas.cluster.agent.rbac.port.BindingTemplateCatalog>
@@ -48,7 +47,7 @@ public class ClusterPolicyBootstrapper {
             bindingApplyClientProvider;
     // per-cluster push 의 parallel 실행. KUBERNETES_EXECUTOR (core=4, max=8).
     // Lombok @RequiredArgsConstructor 가 field-level @Qualifier 를 constructor param 으로 propagate
-    // 안 하는 한계 회피 — @Resource(name=) 가 field-injection 시 Spring 이 직접 처리.
+    // 안 하는 한계 회피: @Resource(name=) 가 field-injection 시 Spring 이 직접 처리.
     @jakarta.annotation.Resource(name = com.aipaas.anycloud.configuration.properties.AsyncConfig.KUBERNETES_EXECUTOR)
     private org.springframework.core.task.AsyncTaskExecutor broadcastExecutor;
 
@@ -60,7 +59,7 @@ public class ClusterPolicyBootstrapper {
             String commandsJson = toJsonArray(current.allowedCommands());
             String chartsJson = toJsonArray(current.allowedCharts());
             String execNsJson = toJsonArray(current.allowedExecNamespaces());
-            // resource_policy YAML — getAgentConfig 가 record 형태로 반환. backend 가 다시 yaml 직렬화
+            // resource_policy YAML: getAgentConfig 가 record 형태로 반환. backend 가 다시 yaml 직렬화
             // 하기 까다로워 이 호출에서는 빈 문자열 (agent 측이 빈 = no-op 으로 treat). 사용자가 정책 세팅
             // 했다면 admin endpoint 로 별도 관리.
             String resourcePolicyYaml = "";
@@ -85,11 +84,11 @@ public class ClusterPolicyBootstrapper {
     /**
      * backend 의 helm_repo CRUD 이후 모든 ACTIVE cluster 에 fresh
      * helm_repositories 를 broadcast. 각 cluster 호출은 동기 (per-cluster) 이지만 broadcast 자체는
-     * @Async — caller (HelmRepoServiceImpl) 의 transaction 종료 후 background. 부분 실패는
+     * @Async: caller (HelmRepoServiceImpl) 의 transaction 종료 후 background. 부분 실패는
      * eventual consistency 로 swallow (next push 시 retry).
      */
     /**
-     * fix — caller transaction 의 commit 이후에 broadcast 시작. caller 의 @Async 직접
+     * fix: caller transaction 의 commit 이후에 broadcast 시작. caller 의 @Async 직접
      * 호출은 race (commit 전 다른 thread DB 조회 → 새 row 누락). TransactionalEventListener 가
      * commit phase 까지 기다린 후 dispatch + @Async 가 별도 thread 로.
      */
@@ -101,7 +100,7 @@ public class ClusterPolicyBootstrapper {
         broadcastHelmRepoChange();
     }
 
-    /** (+ +) — 모든 ACTIVE cluster 에 fresh helm_repositories broadcast. */
+    /** (+ +). 모든 ACTIVE cluster 에 fresh helm_repositories broadcast. */
     @Async
     public void broadcastHelmRepoChange() {
         List<com.aipaas.anycloud.domain.cluster.ClusterEntity> active =
@@ -174,7 +173,7 @@ public class ClusterPolicyBootstrapper {
         return false;
     }
 
-    /** {@link #pushOnActive} 의 sync 변형 — broadcast loop 안에서 호출. 외부에서는 async 호출 권장. */
+    /** {@link #pushOnActive} 의 sync 변형: broadcast loop 안에서 호출. 외부에서는 async 호출 권장. */
     void pushOnActiveSync(String clusterName) {
         AgentPolicySnapshot current = kubeResourceService.getAgentConfig(clusterName);
         String namespacesJson = toJsonArray(current.allowedNamespaces());

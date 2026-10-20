@@ -25,10 +25,10 @@ public final class CommandExecutionSupport {
     private CommandExecutionSupport() {}
 
     /**
-     * 실행 중인 프로세스에 SIGTERM 을 보내고 {@code grace} 만큼 기다린 뒤 남은 것은 SIGKILL 합니다.
+     * 실행 중인 프로세스에 SIGTERM 전송, {@code grace} 대기 후 잔존 프로세스에 SIGKILL.
      *
-     * <p>Pulumi 는 SIGTERM 을 받으면 checkpoint 를 저장하고 lock 을 풀고 나갑니다. 바로 SIGKILL 하면
-     * stale lock 이 남아 다음 실행이 막힙니다. {@code @PreDestroy} 에서 부르세요.
+     * <p>Pulumi 는 SIGTERM 수신 시 checkpoint 저장과 lock 해제 후 종료. 즉시 SIGKILL 하면
+     * stale lock 이 남아 다음 실행 차단. {@code @PreDestroy} 에서 호출.
      */
     public static void shutdownAll(Duration grace) {
         if (ACTIVE_PROCESSES.isEmpty()) {
@@ -100,10 +100,9 @@ public final class CommandExecutionSupport {
     }
 
     /**
-     * stdout 을 줄 단위로 {@code stdoutLine} 에 넘기면서 전체 dump 도 그대로 돌려줍니다.
+     * stdout 을 줄 단위로 {@code stdoutLine} 에 전달하면서 전체 dump 도 반환.
      *
-     * <p>consumer 가 던진 예외는 로그만 남기고 삼킵니다. 한 줄 처리 실패로 명령 전체를 중단시키지
-     * 않기 위해서입니다.
+     * <p>consumer 예외는 로그만 기록하고 미전파. 한 줄 처리 실패로 명령 전체를 중단시키지 않기 위함.
      */
     public static CommandExecutionResult executeStreaming(
             List<String> command,
@@ -159,7 +158,7 @@ public final class CommandExecutionSupport {
                     try {
                         lineConsumer.accept(line);
                     } catch (RuntimeException ex) {
-                        // consumer 예외는 swallow — 한 줄 처리 실패가 전체 명령을 중단시키면 금지.
+                        // consumer 예외는 swallow: 한 줄 처리 실패가 전체 명령을 중단시키면 금지.
                         // 호출자가 logger 를 가지므로 여기서 별도 log 없음.
                     }
                 }

@@ -4,6 +4,6 @@ package com.aipaas.anycloud.domain.provisioning.convergence.internal;
 enum ConvergenceVerdict {
     SATISFIED,
     UNSATISFIED,
-    /** 관측 실패가 섞여 확정할 수 없음. 상태를 바꾸지 않는다. */
+    /** 관측 실패 혼재로 확정 불가. 상태 변경 없음. */
     INCONCLUSIVE
 }

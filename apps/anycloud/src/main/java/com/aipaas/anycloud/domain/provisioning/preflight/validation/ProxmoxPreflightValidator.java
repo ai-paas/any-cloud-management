@@ -12,18 +12,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * Proxmox 요청이 가리키는 노드, datastore, 브리지가 실제로 있는지 확인한다.
+ * Proxmox 요청이 지정한 노드, datastore, 브리지의 존재 여부 확인.
  *
- * <p>이름이 틀리면 Pulumi 가 VM 을 만들기 시작한 뒤에야 실패해서, 이미 생성된 자원이 롤백 대상으로
- * 남는다. 특히 datastore 는 설치 유형마다 이름이 달라({@code local-lvm} / {@code local-zfs}) 기본값을
- * 그대로 쓰면 ZFS 호스트에서 매번 걸린다.
+ * <p>이름 불일치 시 Pulumi 의 VM 생성 시작 이후에 실패해 생성된 자원이 롤백 대상으로 잔존.
+ * datastore 는 설치 유형별로 이름이 달라({@code local-lvm}, {@code local-zfs}) 기본값 사용 시
+ * ZFS 호스트에서 항상 실패.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class ProxmoxPreflightValidator {
 
-    /** {@code Defaults.applyProviderDefaults} 와 같은 값. 어긋나면 검증이 실제 요청과 다른 것을 본다. */
+    /** {@code Defaults.applyProviderDefaults} 와 동일 값. 불일치 시 검증 대상과 실제 요청이 달라짐. */
     private static final String DEFAULT_DATASTORE = "local-lvm";
 
     private static final String DEFAULT_IMAGE_DATASTORE = "local";
@@ -48,7 +48,7 @@ public class ProxmoxPreflightValidator {
         String tokenSecret = trimmed(credentialEnv.get("PROXMOX_VE_API_TOKEN_SECRET"));
         String node = trimmed(config.get(KEY_NODE));
         if (endpoint.isEmpty() || tokenId.isEmpty() || tokenSecret.isEmpty() || node.isEmpty()) {
-            // 여기까지 오면 정적 검증이 이미 통과시킨 것이다. 중복으로 막지 않는다.
+            // 이 지점은 정적 검증 통과 후. 중복 차단 불필요.
             return;
         }
 
@@ -72,10 +72,10 @@ public class ProxmoxPreflightValidator {
     }
 
     /**
-     * 고정 주소는 개수가 맞아야 한다.
+     * 고정 주소 개수는 노드 수와 일치 필요.
      *
-     * <p>모자라면 남은 노드가 DHCP 로 떨어지는데, cloud 이미지에 {@code qemu-guest-agent} 가 없어
-     * 받은 주소를 알 수 없다. 부트스트랩이 붙을 곳을 잃고 BOOTSTRAP 에서야 드러난다.
+     * <p>부족하면 잔여 노드가 DHCP 로 전환되는데, cloud 이미지에 {@code qemu-guest-agent} 가 없어
+     * 할당 주소 확인 불가. 부트스트랩 대상 주소를 잃고 BOOTSTRAP 단계에서 드러남.
      */
     private void validateStaticAddressing(Map<String, String> config) {
         List<String> ips = csv(config.get(KEY_NODE_IPS));
@@ -130,8 +130,8 @@ public class ProxmoxPreflightValidator {
     }
 
     /**
-     * @param requiredContent {@code images} 는 디스크를 만들 블록 스토리지, {@code import} 는 내려받은
-     *     이미지를 둘 디렉터리 스토리지. 같은 datastore 가 둘 다 받는 경우는 없다
+     * @param requiredContent {@code images} 는 디스크 생성용 블록 스토리지, {@code import} 는 수신한
+     *     이미지 저장용 디렉터리 스토리지. 동일 datastore 가 둘 다 허용하는 경우 없음
      */
     private void requireStorage(JsonNode storages, String storage, String requiredContent, String field) {
         List<String> candidates = new ArrayList<>();

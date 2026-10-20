@@ -1,6 +1,6 @@
 // ClusterAgent 진입점.
 //
-// REGISTRATION_TOKEN env 는 첫 install 한 번만 필요 — bootstrap 후 K8s Secret 의 identity_token 으로
+// REGISTRATION_TOKEN env 는 첫 install 한 번만 필요: bootstrap 후 K8s Secret 의 identity_token 으로
 // 영구 재인증. Pod restart 시 Secret 재로딩, fresh install 시 self-heal 로 Secret 삭제 → 재발급.
 package main
 
@@ -33,9 +33,9 @@ import (
 //   - core      : read-only RPC 만 처리 (split mode 의 -core Deployment)
 //   - installer : mutating RPC 만 처리 (split mode 의 -installer Deployment)
 // dispatcher 의 modeAllowsCommand 가 RPC level 에서 분기. const 는 controller package
-// 의 단일 source 사용 — controller.ModeSingle / ModeCore / ModeInstaller.
+// 의 단일 출처 사용: controller.ModeSingle / ModeCore / ModeInstaller.
 
-// buildVersionStr — ldflags 로 주입. 기본값은 "dev".
+// buildVersionStr: ldflags 로 주입. 기본값은 "dev".
 var buildVersionStr = "dev"
 
 func main() {
@@ -60,14 +60,14 @@ func main() {
 		mode = controller.ModeSingle
 	}
 
-	// REGISTRATION_TOKEN validation 은 아래 LoadIdentityOrBootstrap 직전에서 — Secret 에서
+	// REGISTRATION_TOKEN validation 은 아래 LoadIdentityOrBootstrap 직전에서: Secret 에서
 	// 영구 token 로드에 성공하면 env 가 비어 있어도 Register 자체를 건너뛰므로 OK. Secret 미존재
 	// + env 비어 있는 경우만 명시 에러 (Os.Exit(3)).
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
-	// K8s client 초기화 — in-cluster (Pod 안) 또는 KUBECONFIG fallback. 실패 시 Dispatcher
+	// K8s client 초기화: in-cluster (Pod 안) 또는 KUBECONFIG fallback. 실패 시 Dispatcher
 	// 가 nil 받지만 K8s 명령은 AGENT_UNAVAILABLE 반환 (graceful degradation).
 	kubeClient, kubeErr := k8s.NewClient()
 	if kubeErr != nil {
@@ -106,7 +106,7 @@ func main() {
 		}
 		discoverCancel()
 	}
-	// Server CA — agent-first 등록 경로 (status=AGENT_PENDING) 의 ClusterEntity backfill 에 필요.
+	// Server CA: agent-first 등록 경로 (status=AGENT_PENDING) 의 ClusterEntity backfill 에 필요.
 	// kubeClient 가 없거나 CA 를 못 가져오면 비워서 보냄 (backend 가 알아서 skip).
 	if kubeClient != nil {
 		if caBytes, err := kubeClient.ServerCAData(); err == nil && len(caBytes) > 0 {
@@ -116,7 +116,7 @@ func main() {
 		}
 	}
 
-	// TLS config — env 에서 한 번 로드해서 모든 5 dial site (bootstrap/rotation/runtime/exec/logstream)
+	// TLS config: env 에서 한 번 로드해서 모든 5 dial site (bootstrap/rotation/runtime/exec/logstream)
 	// 에 동일하게 전달.
 	tlsCfg := tlsconfig.FromEnv()
 	if tlsCfg.Enabled {
@@ -150,8 +150,8 @@ func main() {
 		TLS:               tlsCfg,
 	}
 
-	// Identity store — Secret 에 영구 보관된 60일 opaque token. k8s client 가 없으면 nil
-	// (메모리 only — pod restart 시 re-register 필요). mTLS 폐기 후 bearer 단일 인증.
+	// Identity store: Secret 에 영구 보관된 60일 opaque token. k8s client 가 없으면 nil
+	// (메모리 only: pod restart 시 re-register 필요). mTLS 폐기 후 bearer 단일 인증.
 	var identityStore core.IdentityStore
 	if kubeClient != nil {
 		identityStore = core.NewK8sSecretIdentityStore(kubeClient.Clientset(),
@@ -170,18 +170,18 @@ func main() {
 			os.Exit(3)
 		}
 	} else if registrationToken == "" {
-		// k8s client 없음 + env 도 없음 — bootstrap 불가.
+		// k8s client 없음 + env 도 없음. bootstrap 불가.
 		slog.Error("REGISTRATION_TOKEN env required — exiting. " +
 			"Get token from: POST /v1/clusters/{clusterId}/agent-registration")
 		os.Exit(3)
 	}
 
-	// Bootstrap — identity_token 이 store 에 valid 면 Register skip, 아니면 backend 에 Register.
+	// Bootstrap: identity_token 이 store 에 valid 면 Register skip, 아니면 backend 에 Register.
 	result, err := core.BootstrapIdentity(ctx, cfg, identityStore, 5*time.Minute)
 	if err != nil {
 		/*
-		 * 만료된 등록 토큰으로 재시도하면 서버가 거부할 때까지 원인을 모른다. 토큰은 Secret 에
-		 * 남아 있어 파드는 계속 같은 값으로 CrashLoop 을 돈다. 만료를 먼저 짚어 준다.
+		 * 만료된 등록 토큰으로 재시도하면 서버 거부 시점까지 원인 파악 불가. 토큰이 Secret 에
+		 * 잔존해 파드가 동일 값으로 CrashLoop 반복. 만료를 선행 검출.
 		 */
 		if core.RegistrationTokenExpired(registrationToken, time.Now()) {
 			slog.Error("REGISTRATION_TOKEN 이 만료됐다 — Secret 을 새 토큰으로 바꾸고 파드를 다시 띄워야 한다",
@@ -203,7 +203,7 @@ func main() {
 
 	dialTlsCfg := tlsCfg
 
-	// runLeaderWork — leader 가 되었을 때 (또는 leader election off 일 때) 시작하는 핵심 작업.
+	// runLeaderWork: leader 가 되었을 때 (또는 leader election off 일 때) 시작하는 핵심 작업.
 	// backend stream, rotation timer, debug pod sweeper 모두 leader 만 실행.
 	runLeaderWork := func(leaderCtx context.Context) {
 		helmClient := initHelmClient()
@@ -259,7 +259,7 @@ func main() {
 	}
 
 	// AGENT_LEADER_ELECTION=true 시 K8s Lease 로 leader 1개 선출. non-leader 는 idle 대기.
-	// default false — 기존 동작 (모든 replica 가 backend 연결).
+	// default false: 기존 동작 (모든 replica 가 backend 연결).
 	if envOr("AGENT_LEADER_ELECTION", "false") == "true" {
 		clientset := buildK8sClientset()
 		if clientset == nil {
@@ -304,13 +304,13 @@ func envOr2(value, fallback string) string {
 	return fallback
 }
 
-// generateInstanceID — Pod 마다 unique. K8s downward API 의 pod UID 사용 권장.
+// generateInstanceID: Pod 마다 unique. K8s downward API 의 pod UID 사용 권장.
 // 현재는 PID + boot time 으로 간단 생성.
 func generateInstanceID() string {
 	return time.Now().Format("20060102T150405") + "-" + envOr("HOSTNAME", "local")
 }
 
-// initHelmClient — in-cluster restConfig 또는 KUBECONFIG fallback. 실패 시 nil 반환 (Helm
+// initHelmClient: in-cluster restConfig 또는 KUBECONFIG fallback. 실패 시 nil 반환 (Helm
 // 명령은 AGENT_UNAVAILABLE 로 graceful degradation).
 func initHelmClient() helm.Client {
 	if _, err := rest.InClusterConfig(); err == nil {
@@ -319,13 +319,13 @@ func initHelmClient() helm.Client {
 	}
 	kubeconfig := os.Getenv("KUBECONFIG")
 	if kubeconfig == "" {
-		// out-of-cluster but no KUBECONFIG — helm settings 가 ~/.kube/config 자동 시도.
+		// out-of-cluster but no KUBECONFIG: helm settings 가 ~/.kube/config 자동 시도.
 		kubeconfig = clientcmd.RecommendedHomeFile
 	}
 	return helm.NewClientFromKubeFlags(kubeconfig)
 }
 
-// initAllowList — kube-system 의 ServiceAccount 권한으로 aipaas-system/aipaas-agent-allowlist
+// initAllowList: kube-system 의 ServiceAccount 권한으로 aipaas-system/aipaas-agent-allowlist
 // ConfigMap 을 watch. ConfigMap 없으면 deny-all 유지. Watch 는 background goroutine.
 func initAllowList(ctx context.Context) *config.Loader {
 	cs := buildK8sClientset()

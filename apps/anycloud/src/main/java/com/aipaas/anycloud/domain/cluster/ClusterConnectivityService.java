@@ -3,14 +3,14 @@ package com.aipaas.anycloud.domain.cluster;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * cluster 의 연결 상태와 status 동기화입니다. 판정 근거는 agent heartbeat 뿐입니다.
+ * cluster 연결 상태와 status 동기화. 판정 근거는 agent heartbeat 단일.
  *
  * <p>Impl: {@link com.aipaas.anycloud.domain.cluster.internal.ClusterConnectivityServiceImpl}.
  */
 public interface ClusterConnectivityService {
 
     /**
-     * Cluster 연결 가능 여부 — agent 의 fresh heartbeat 유무.
+     * Cluster 연결 가능 여부: agent 의 fresh heartbeat 유무.
      *
      * @return true = reachable, false = unreachable (예외 throw 안 함, 단 cluster 가 없으면
      *         {@link com.aipaas.anycloud.common.error.exception.ClusterNotFoundException}).

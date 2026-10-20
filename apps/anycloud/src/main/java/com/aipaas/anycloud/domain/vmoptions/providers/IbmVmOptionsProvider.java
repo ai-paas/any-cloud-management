@@ -28,11 +28,11 @@ import org.springframework.web.client.RestTemplate;
 /**
  * IBM Cloud VPC 의 리전, 인스턴스 프로파일, 이미지 조회.
  *
- * <p>VPC API 는 리전마다 host 가 다르다({@code {region}.iaas.cloud.ibm.com}). 인증은 IAM 이 API 키를
- * 교환해 주는 단기 토큰으로 하며, 토큰 발급 host 는 리전과 무관하게 하나다.
+ * <p>VPC API host 는 리전별로 분리({@code {region}.iaas.cloud.ibm.com}). 인증은 IAM 이 API 키를
+ * 교환한 단기 토큰으로 수행하며, 토큰 발급 host 는 리전과 무관하게 단일.
  *
- * <p>프로비저닝이 요구하는 {@code providerSpec.zone} 은 리전이 아니라 존이다(예: {@code us-south-1}).
- * 존은 {@code VmOptionsProvider} 계약에 없어 provider config schema 가 따로 받는다.
+ * <p>프로비저닝이 요구하는 {@code providerSpec.zone} 은 리전이 아닌 존(예: {@code us-south-1}).
+ * 존은 {@code VmOptionsProvider} 계약에 없어 provider config schema 에서 처리.
  */
 @Component
 @RequiredArgsConstructor
@@ -48,12 +48,12 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
 
     private static final String API_KEY_ENV = "IBMCLOUD_API_KEY";
 
-    /** VPC API 는 날짜로 버전을 고정한다. 올리면 응답 필드가 바뀔 수 있어 코드와 함께 검토한다. */
+    /** VPC API 버전은 날짜로 고정. 상향 시 응답 필드 변경 가능하므로 코드와 함께 검토 필요. */
     private static final String API_VERSION = "2024-10-01";
 
     private static final String GENERATION = "2";
 
-    /** 리전 목록은 아무 리전 host 에서나 같은 답이 온다. 목록을 받기 전이라 하나를 고정해 쓴다. */
+    /** 리전 목록은 모든 리전 host 에서 동일 응답. 목록 조회 전이라 하나를 고정 사용. */
     private static final String DEFAULT_REGION = "jp-tok";
 
     /** 이미지가 1,200건을 넘어 전부 받으면 화면이 느려진다. 한 페이지 크기이자 페이징 상한. */
@@ -168,8 +168,8 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
                     }
                 }
             }
-            // next.href 는 응답 본문에서 온다. 이 URL 로 다시 요청할 때 IAM 토큰을 Bearer 로
-            // 붙이므로, host 를 확인하지 않으면 응답을 조작할 수 있는 상대에게 토큰을 넘긴다.
+            // next.href 는 응답 본문 유래. 이 URL 재요청 시 IAM 토큰을 Bearer 로 첨부하므로,
+            // host 미확인 시 응답 조작이 가능한 상대에게 토큰 전달.
             url = withVersion(
                     sameHostOrNull(body.next() == null ? null : body.next().href(), host));
         }
@@ -177,15 +177,15 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * providerSpec.zone 은 리전이 아니라 존이다. 계정마다 활성 zone 이 달라
-     * {@code {region}-1} 로 넘겨짚으면 만들다 실패하므로 목록을 받아 고르게 한다.
+     * providerSpec.zone 은 리전이 아닌 존. 계정별 활성 zone 이 달라 {@code {region}-1} 로
+     * 추정하면 생성 단계에서 실패하므로 목록 조회 후 선택.
      */
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsFallback")
     public List<String> listConfigOptions(String configKey, String region) {
         return switch (configKey) {
             case "providerSpec.zone" -> StringUtils.hasText(region) ? listZones(region) : List.of();
-                // 그룹 ID 는 콘솔을 열어 베껴 와야 하는 값이다. 계정에서 읽어 이름과 함께 준다.
+                // 그룹 ID 는 콘솔 확인이 필요한 값. 계정에서 조회해 이름과 함께 제공.
             case "providerSpec.resourceGroup" -> listResourceGroups().stream()
                     .map(com.aipaas.anycloud.domain.vmoptions.api.ConfigOption::value)
                     .toList();
@@ -209,7 +209,7 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
         return List.of();
     }
 
-    /** 리소스 그룹은 리전과 무관한 계정 단위 자원이라 VPC 가 아니라 resource controller 에 묻는다. */
+    /** 리소스 그룹은 리전 무관한 계정 단위 자원이라 VPC 대신 resource controller 에 조회. */
     private List<com.aipaas.anycloud.domain.vmoptions.api.ConfigOption> listResourceGroups() {
         String url = requireExpectedHost(
                 "https://" + RESOURCE_CONTROLLER_HOST + "/v2/resource_groups", RESOURCE_CONTROLLER_HOST);
@@ -293,7 +293,7 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
         return VmOptionImage.builder()
                 .provider(getProvider().getCanonicalName())
                 .region(region)
-                // 프로비저닝은 이미지 이름으로 조회한다. OCID 처럼 불투명한 식별자가 아니다.
+                // 프로비저닝은 이미지 이름으로 조회. OCID 같은 불투명 식별자 미사용.
                 .id(image.name())
                 .name(image.name())
                 .osType(os == null ? null : os.family())
@@ -333,8 +333,8 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * IBM 이 주는 {@code next.href} 에는 version 과 generation 이 빠져 있다. 그대로 다시 요청하면
-     * 400 이라 두 번째 페이지부터 조회가 끊긴다.
+     * IBM 이 반환하는 {@code next.href} 에는 version 과 generation 미포함. 그대로 재요청하면
+     * 400 응답이라 두 번째 페이지부터 조회 중단.
      */
     private String withVersion(String url) {
         if (!StringUtils.hasText(url) || url.contains("version=")) {
@@ -376,10 +376,10 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * API 키를 IAM 단기 토큰으로 바꾼다.
+     * API 키를 IAM 단기 토큰으로 교환.
      *
-     * <p>호출마다 새로 받는다. 토큰을 캐시하면 자격증명이 바뀌거나 회수됐을 때 만료까지 옛 권한으로
-     * 조회가 계속된다.
+     * <p>호출마다 재발급. 토큰 캐시 시 자격증명 변경이나 회수 후에도 만료 시점까지 이전 권한으로
+     * 조회 가능.
      */
     private String accessToken() {
         String apiKey = resolveCredential(API_KEY_ENV);
@@ -405,7 +405,7 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
             }
             return token;
         } catch (HttpClientErrorException e) {
-            // 응답 본문에는 키 일부가 그대로 담겨 오므로 상태 코드만 남긴다.
+            // 응답 본문에 키 일부가 포함되므로 상태 코드만 기록.
             throw new CustomException(
                     ErrorCode.RUNTIME_EXCEPTION,
                     "ibm",

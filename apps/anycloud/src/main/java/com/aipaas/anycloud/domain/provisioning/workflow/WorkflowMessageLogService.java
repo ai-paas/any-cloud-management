@@ -11,13 +11,13 @@ import java.util.List;
  */
 public interface WorkflowMessageLogService {
 
-    /** PROCESSED — 정상 실행 후 종료. */
+    /** PROCESSED: 정상 실행 후 종료. */
     void recordProcessed(VmClusterWorkflowMessage message, LocalDateTime startedAt);
 
-    /** SKIPPED_* — 가드에 의해 처리되지 않음. */
+    /** SKIPPED_*: 가드에 의해 처리되지 않음. */
     void recordSkipped(VmClusterWorkflowMessage message, WorkflowMessageLogResult skipReason);
 
-    /** FAILED — 실행 중 예외. error 메시지 보존. */
+    /** FAILED: 실행 중 예외. error 메시지 보존. */
     void recordFailed(VmClusterWorkflowMessage message, LocalDateTime startedAt, Throwable error);
 
     /**
@@ -30,7 +30,7 @@ public interface WorkflowMessageLogService {
 
     /**
      * 지정 log row 의 step 을 새 messageId 로 재발행. PROVISION 은 ProvisioningRequest
-     * 재구성이 필요해 unsupported — BOOTSTRAP / VERIFY / DESTROY 만 지원.
+     * 재구성이 필요해 unsupported: BOOTSTRAP / VERIFY / DESTROY 만 지원.
      *
      * @param logId workflow_message_log.id
      * @return 새로 발행된 messageId

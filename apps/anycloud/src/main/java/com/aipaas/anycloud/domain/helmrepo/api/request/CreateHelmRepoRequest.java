@@ -43,12 +43,12 @@ public class CreateHelmRepoRequest {
 
     /** Hybrid helm-repo source. 미지정 시 EXTERNAL (default). */
     @Schema(
-            description = "저장소 종류 (INTERNAL/EXTERNAL) — default EXTERNAL",
+            description = "저장소 종류 (INTERNAL/EXTERNAL). default EXTERNAL",
             example = "EXTERNAL",
             defaultValue = "EXTERNAL")
     private com.aipaas.anycloud.domain.helmrepo.model.HelmRepoSource source;
 
     /** Free-form comma-separated tags. UI filter 용도. */
-    @Schema(description = "tags (comma-separated) — UI filter", example = "monitoring,default")
+    @Schema(description = "tags (comma-separated). UI filter", example = "monitoring,default")
     private String tags;
 }

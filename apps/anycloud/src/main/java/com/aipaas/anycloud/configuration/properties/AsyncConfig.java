@@ -86,7 +86,7 @@ public class AsyncConfig implements AsyncConfigurer {
         };
     }
 
-    /** 파라미터 요약 (첫 5개, 각 80자까지). 민감값이 섞이지 않게 toString 만 씁니다. */
+    /** 파라미터 요약 (첫 5개, 각 80자 제한). 민감값 노출 방지를 위해 toString 만 사용. */
     private static String paramsSummary(Object[] params) {
         if (params == null || params.length == 0) return "";
         return Arrays.stream(params)
@@ -102,16 +102,16 @@ public class AsyncConfig implements AsyncConfigurer {
     }
 
     /**
-     * 풀 게이지를 {@link ThreadPoolTaskExecutor} 에 겁니다.
+     * 풀 게이지를 {@link ThreadPoolTaskExecutor} 에 등록.
      *
-     * <p>내부 {@code ThreadPoolExecutor} 에 직접 걸면 안 됩니다. 스프링이 InitializingBean 으로
-     * 초기화를 한 번 더 부르면서 그 객체를 새로 만들고, 버려진 객체는 회수됩니다. 게이지는 약한
-     * 참조라 그 순간 전부 NaN 이 됩니다.
+     * <p>내부 {@code ThreadPoolExecutor} 직접 등록 금지. 스프링이 InitializingBean 으로 초기화를
+     * 한 번 더 호출하면서 해당 객체를 재생성하고 기존 객체는 회수. 게이지는 약한 참조라 그 시점에
+     * 전부 NaN.
      */
     private void registerPoolGauges(ThreadPoolTaskExecutor executor, String poolName) {
         Tags tags = Tags.of("pool", poolName);
-        // 이름과 단위는 Micrometer ExecutorServiceMetrics 규약 그대로입니다. 대시보드와 기존 검사가
-        // 그 이름에 걸려 있습니다.
+        // 이름과 단위는 Micrometer ExecutorServiceMetrics 규약 준수. 대시보드와 기존 검사가
+        // 해당 이름에 의존.
         gauge("executor.pool.core", "threads", executor, tags, ThreadPoolExecutor::getCorePoolSize);
         gauge("executor.pool.max", "threads", executor, tags, ThreadPoolExecutor::getMaximumPoolSize);
         gauge("executor.pool.size", "threads", executor, tags, ThreadPoolExecutor::getPoolSize);
@@ -144,12 +144,12 @@ public class AsyncConfig implements AsyncConfigurer {
                 pool.isRunOnCallerWhenFull()
                         ? new CallerRunsPolicy()
                         : new java.util.concurrent.ThreadPoolExecutor.AbortPolicy());
-        // 큐가 가득 차야 core 를 넘어 늘어난다 — 실질 동시성은 coreSize 다
+        // 큐가 가득 차야 core 를 넘어 늘어난다: 실질 동시성은 coreSize 다
         executor.setAllowCoreThreadTimeOut(true);
         executor.setKeepAliveSeconds(pool.getKeepAliveSeconds());
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(pool.getAwaitTerminationSeconds());
-        // MDC 컨텍스트를 작업 스레드로 propagate — 작업 종료 시 원복 (pool reuse 누수 방지).
+        // MDC 컨텍스트를 작업 스레드로 propagate: 작업 종료 시 원복 (pool reuse 누수 방지).
         executor.setTaskDecorator(MDC_PROPAGATING_DECORATOR);
         executor.initialize();
         registerPoolGauges(executor, poolName);
@@ -163,7 +163,7 @@ public class AsyncConfig implements AsyncConfigurer {
         return executor;
     }
 
-    /** MDC propagation — 작업 종료 시 원복 (pool thread 재사용으로 인한 누수 차단). */
+    /** MDC propagation: 작업 종료 시 원복 (pool thread 재사용으로 인한 누수 차단). */
     private static final TaskDecorator MDC_PROPAGATING_DECORATOR = runnable -> {
         Map<String, String> caller = LoggingMdc.snapshot();
         return () -> {

@@ -1,8 +1,8 @@
-// Package core — agent 의 핵심 흐름 (bootstrap / runtime stream / event publish).
+// Package core: agent 의 핵심 흐름 (bootstrap / runtime stream / event publish).
 //
 // Bootstrap 은 short-lived registration_token (env) 으로 Register RPC 호출 → 60일 opaque
 // identity_token 수령 → K8s Secret 영구 저장. Rancher 와 동일한 bearer-over-TLS (mTLS 미사용)
-// — Secret 보관으로 pod restart 안정성 확보.
+// Secret 보관으로 pod restart 안정성 확보.
 
 package core
 
@@ -22,17 +22,17 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-// BootstrapConfig — agent main 이 env 에서 읽어 전달.
+// BootstrapConfig: agent main 이 env 에서 읽어 전달.
 type BootstrapConfig struct {
 	BackendAddr       string
 	RegistrationToken string
 
-	// 클러스터 식별 정보 — client-go 로 동적 수집하거나 env fallback.
+	// 클러스터 식별 정보: client-go 로 동적 수집하거나 env fallback.
 	KubernetesUID     string
 	KubernetesVersion string
 	Distribution      string
 	APIServerEndpoint string
-	// ServerCA — in-cluster service account ca.crt (PEM). backend 가 AGENT_PENDING placeholder
+	// ServerCA: in-cluster service account ca.crt (PEM). backend 가 AGENT_PENDING placeholder
 	// cluster row 에 backfill 하는 데 사용. 비어있어도 호환 (선택).
 	ServerCA string
 
@@ -52,26 +52,26 @@ type BootstrapConfig struct {
 	TLS tlsconfig.Config
 }
 
-// BootstrapResult — Register 성공 시 backend 가 돌려준 정보.
+// BootstrapResult: Register 성공 시 backend 가 돌려준 정보.
 type BootstrapResult struct {
 	ClusterID          string
 	AgentIdentityToken string
 	ExpiresAt          string
 	ClusterStatus      agentv1.ClusterStatus
 	/*
-	 * identity 가 Secret 에 남았는지. false 면 이 파드는 메모리 token 으로만 돌고, 다음 재시작
-	 * 때 새 등록 토큰이 없으면 기동하지 못한다.
+	 * identity 의 Secret 저장 여부. false 면 해당 파드는 메모리 token 으로만 동작하고, 다음
+	 * 재시작 시 신규 등록 토큰이 없으면 기동 불가.
 	 */
 	IdentityPersisted bool
 }
 
-// BootstrapIdentity — agent startup 의 single entry point.
+// BootstrapIdentity: agent startup 의 single entry point.
 //
 // Secret 에 valid identity 가 있으면 Register 건너뛰고 즉시 반환 (REGISTRATION_TOKEN env
 // 불필요). 없거나 만료 임박 (graceMin 이내) 이면 Run() 으로 새로 Register 후 Save.
 //
 // 동시성: startup 의 단일 goroutine 에서만 호출. rotation goroutine 은 (RunRotation →
-// onRotated → store.Save) 별도 경로로 같은 store 에 write — race 는 K8s API 의 optimistic
+// onRotated → store.Save) 별도 경로로 같은 store 에 write: race 는 K8s API 의 optimistic
 // concurrency 가 해결.
 func BootstrapIdentity(ctx context.Context, cfg BootstrapConfig, store IdentityStore,
 	graceMin time.Duration) (*BootstrapResult, error) {
@@ -79,7 +79,7 @@ func BootstrapIdentity(ctx context.Context, cfg BootstrapConfig, store IdentityS
 		existing, err := store.Load(ctx)
 		if err != nil {
 			// Load 실패 시 fail-safe = bootstrap 진행 (token 없는 상태로 간주). 단, Secret API 에러를
-			// 그대로 무시하지 않고 warn 로그 남김 — 운영자가 RBAC/연결 문제 발견.
+			// 그대로 무시하지 않고 warn 로그 남김: 운영자가 RBAC/연결 문제 발견.
 			slog.Warn("identity store Load failed — falling through to Register",
 				slog.String("error", err.Error()))
 		} else if existing.IsValid(time.Now(), graceMin) {
@@ -113,9 +113,9 @@ func BootstrapIdentity(ctx context.Context, cfg BootstrapConfig, store IdentityS
 		}
 		if saveErr := store.Save(ctx, material); saveErr != nil {
 			/*
-			 * 지금은 메모리 token 으로 잘 돈다. 문제는 다음 재시작 때 드러나는데, 그때는 등록
-			 * 토큰(10분 TTL)이 이미 만료돼 있어 파드가 CrashLoop 으로 빠진다. 지금 눈에 띄지
-			 * 않으면 아무도 모르므로 error 로 올린다.
+			 * 현재는 메모리 token 으로 정상 동작. 문제는 다음 재시작 시점에 드러나며, 그때는
+			 * 등록 토큰(10분 TTL)이 만료돼 파드가 CrashLoop 진입. 현 시점에 노출되지 않으면
+			 * 검출 불가하므로 error 레벨로 기록.
 			 */
 			slog.Error("identity store Save failed — 다음 재시작 때 새 REGISTRATION_TOKEN 이 없으면 기동하지 못한다",
 				slog.String("error", saveErr.Error()),
@@ -128,7 +128,7 @@ func BootstrapIdentity(ctx context.Context, cfg BootstrapConfig, store IdentityS
 	return result, nil
 }
 
-// Run 은 dial + Register 를 한 번 수행. 실패 시 error 반환 — caller 가 retry 정책 결정.
+// Run 은 dial + Register 를 한 번 수행. 실패 시 error 반환: caller 가 retry 정책 결정.
 func Run(ctx context.Context, cfg BootstrapConfig) (*BootstrapResult, error) {
 	if cfg.RegistrationToken == "" {
 		return nil, errors.New("REGISTRATION_TOKEN env required for bootstrap")
@@ -200,10 +200,10 @@ func Run(ctx context.Context, cfg BootstrapConfig) (*BootstrapResult, error) {
 	}, nil
 }
 
-// RegistrationTokenExpired — JWT 의 exp 가 지났는지.
+// RegistrationTokenExpired: JWT 의 exp 가 지났는지.
 //
-// 서명은 검증하지 않는다. 서버가 거부할 이유를 미리 알려 주려는 것이지 인증이 목적이 아니다.
-// 형식을 못 읽으면 만료로 단정하지 않는다 — 멀쩡한 토큰을 만료라 부르면 진단이 더 꼬인다.
+// 서명 미검증. 서버 거부 사유의 사전 안내가 목적이며 인증은 대상 외.
+// 형식 파싱 실패 시 만료로 단정하지 않음. 유효 토큰을 만료로 판정하면 진단 혼선.
 func RegistrationTokenExpired(token string, now time.Time) bool {
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {

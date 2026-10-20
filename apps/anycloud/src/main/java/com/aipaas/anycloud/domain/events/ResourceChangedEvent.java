@@ -1,12 +1,12 @@
 package com.aipaas.anycloud.domain.events;
 
 /**
- * 무언가 바뀌었다는 신호. 바뀐 값은 담지 않는다.
+ * 변경 발생 신호. 변경된 값은 미포함.
  *
- * <p>화면은 이 신호를 받아 해당 쿼리를 다시 부른다. 값을 스트림으로 실어 나르면 REST 응답과
- * 스트림이 서로 다른 답을 하게 되고, 어느 쪽이 맞는지 아무도 모르게 된다.
+ * <p>화면은 이 신호 수신 후 해당 쿼리 재호출. 값을 스트림으로 전달하면 REST 응답과 스트림의
+ * 결과가 달라지고 기준 판별 불가.
  *
  * @param type 'vmCluster', 'operation', 'credential', 'cluster'
- * @param name 바뀐 자원의 이름. 전체가 바뀌었으면 null
+ * @param name 변경된 자원 이름. 전체 변경 시 null
  */
 public record ResourceChangedEvent(String type, String name) {}

@@ -6,10 +6,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * 중첩 요청을 Pulumi stack config 의 평면 키로 편다.
+ * 중첩 요청을 Pulumi stack config 의 평면 키로 변환.
  *
- * <p>Pulumi 의 config 는 문자열 평면 맵이다. 그 제약이 HTTP 계약까지 올라오면 안 되므로 경계를
- * 여기 하나로 둔다. 이 위는 타입 있는 객체, 이 아래는 {@code anycloud-k8s:*} 문자열이다.
+ * <p>Pulumi 의 config 는 문자열 평면 맵. 해당 제약이 HTTP 계약까지 전파되지 않도록 경계를 이
+ * 클래스로 한정. 상위는 타입 보유 객체, 하위는 {@code anycloud-k8s:*} 문자열.
  */
 public final class ProvisioningConfigFlattener {
 
@@ -50,8 +50,8 @@ public final class ProvisioningConfigFlattener {
     }
 
     /**
-     * provider 별 스키마라 서버가 키를 모른다. Cluster API 의 {@code providerSpec} 과 같은 취급으로,
-     * 검증은 provider 를 아는 계층(preflight, emitter)이 한다.
+     * provider 별 스키마라 서버가 키를 인지하지 않음. Cluster API 의 {@code providerSpec} 과
+     * 동일 취급이며 검증은 provider 를 인지하는 계층(preflight, emitter) 담당.
      */
     private static void putProviderSpec(Map<String, String> out, Map<String, Object> providerSpec) {
         if (providerSpec == null) {
@@ -66,7 +66,7 @@ public final class ProvisioningConfigFlattener {
         }
         /*
          * 목록은 쉼표로 잇는다. String.valueOf 를 그대로 쓰면 "[2200, 2201]" 이 되어 파서가
-         * 대괄호를 숫자로 읽다 "숫자가 아닌 값: [2200" 으로 죽는다 — Proxmox 의 sshPorts 가 그랬다.
+         * 대괄호를 숫자로 읽다 "숫자가 아닌 값: [2200" 으로 죽는다: Proxmox 의 sshPorts 가 그랬다.
          */
         String text = value instanceof java.util.Collection<?> items
                 ? items.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","))

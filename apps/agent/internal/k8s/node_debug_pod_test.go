@@ -12,7 +12,7 @@ import (
 	k8stesting "k8s.io/client-go/testing"
 )
 
-// newFakeClientWithScheduledPods — 만든 파드를 kubelet 이 띄운 것처럼 Running 으로 채운다.
+// newFakeClientWithScheduledPods: 만든 파드를 kubelet 이 띄운 것처럼 Running 으로 채운다.
 //
 // fake clientset 은 상태를 채우지 않아 CreateNodeDebugPod 의 준비 대기가 상한까지 돈다. 실제
 // 클러스터에서는 곧 Running 이 되므로 그 쪽을 흉내내는 것이 맞다.
@@ -37,8 +37,8 @@ func newFakeClientWithScheduledPods() *realClient {
 	return c
 }
 
-// 노드 셸은 호스트 안으로 들어가야 한다. nsenter 와 host namespace 가 빠지면 컨테이너 안에
-// 갇혀 노드를 못 본다.
+// 노드 셸은 호스트 진입 필요. nsenter 와 host namespace 누락 시 컨테이너 내부에 격리돼
+// 노드 접근 불가.
 func TestNodeDebugPod_HostShellEntersTheHost(t *testing.T) {
 	c := newFakeClientWithScheduledPods()
 
@@ -56,8 +56,8 @@ func TestNodeDebugPod_HostShellEntersTheHost(t *testing.T) {
 	}
 }
 
-// kubectl, k9s 터미널은 호스트가 아니라 클러스터를 본다. 노드에 그 도구들이 깔려 있을 이유가
-// 없으므로 이미지가 들고 와야 하고, nsenter 로 호스트에 들어가면 그 이미지를 쓰지 못한다.
+// kubectl, k9s 터미널의 대상은 호스트가 아닌 클러스터. 노드의 도구 설치를 전제할 수 없어
+// 이미지가 제공해야 하며, nsenter 로 호스트에 진입하면 해당 이미지 사용 불가.
 func TestNodeDebugPod_ToolsShellRunsTheImage(t *testing.T) {
 	c := newFakeClientWithScheduledPods()
 
@@ -82,7 +82,7 @@ func TestNodeDebugPod_ToolsShellRunsTheImage(t *testing.T) {
 	}
 }
 
-// 도구 셸은 호스트를 건드릴 이유가 없다. privileged 로 띄우면 터미널 하나가 노드 전체 권한이 된다.
+// 도구 셸은 호스트 접근 불필요. privileged 기동 시 터미널 하나가 노드 전체 권한 보유.
 func TestNodeDebugPod_ToolsShellIsNotPrivileged(t *testing.T) {
 	c := newFakeClientWithScheduledPods()
 
@@ -95,7 +95,7 @@ func TestNodeDebugPod_ToolsShellIsNotPrivileged(t *testing.T) {
 	}
 }
 
-// 클러스터를 보려면 자격이 있어야 한다. SA 가 없으면 kubectl 이 모든 호출에서 forbidden 을 받는다.
+// 클러스터 조회에는 자격증명 필요. SA 부재 시 kubectl 의 모든 호출이 forbidden.
 func TestNodeDebugPod_ToolsShellCarriesAServiceAccount(t *testing.T) {
 	c := newFakeClientWithScheduledPods()
 

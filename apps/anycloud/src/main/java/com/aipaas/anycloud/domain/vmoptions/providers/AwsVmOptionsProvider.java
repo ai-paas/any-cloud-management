@@ -67,10 +67,10 @@ public class AwsVmOptionsProvider extends AbstractVmOptionsProvider {
 
     /**
      * EC2 API 장애 시 csp-api circuit breaker 가 30초 OPEN → 그 사이 호출 즉시 실패. fallback 은
-     * 빈 array — UI 가 5xx 로 무너지지 않게 부분 가용성 유지. failure-rate 50% 이상에서 OPEN.
+     * 빈 array: UI 가 5xx 로 무너지지 않게 부분 가용성 유지. failure-rate 50% 이상에서 OPEN.
      *
      * <p>credentials 없이 호출되면 SDK default provider chain (env / ~/.aws/credentials / EC2 instance
-     * role) — 백엔드 머신의 default credential. 운영에서는 listSpecs(creds, ...) overload 를 사용해
+     * role). 백엔드 머신의 default credential. 운영에서는 listSpecs(creds, ...) overload 를 사용해
      * 사용자가 등록한 credential 을 명시 주입해야 IAM 사용 audit 가 의미 있음.
      */
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listSpecsFallback")
@@ -80,8 +80,8 @@ public class AwsVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * Credential-aware overload — VmOptionsQueryServiceImpl 가 본 method 호출 (default 구현은 credentials 를
-     * 버리는 fallback 이라 backend 머신의 default credential 로 잘못 동작했었다 — fix).
+     * Credential-aware overload: VmOptionsQueryServiceImpl 가 본 method 호출 (default 구현은 credentials 를
+     * 버리는 fallback 이라 backend 머신의 default credential 로 잘못 동작했었다: fix).
      *
      * @param credentials decrypted credential map: {@code AWS_ACCESS_KEY_ID}, {@code AWS_SECRET_ACCESS_KEY}
      */
@@ -95,8 +95,8 @@ public class AwsVmOptionsProvider extends AbstractVmOptionsProvider {
     private List<VmOptionSpec> doListSpecs(
             Ec2Client clientArg, String region, String keyword, boolean gpuOnly, int limit) {
         try (Ec2Client client = clientArg) {
-            // DescribeInstanceTypes 만으로는 region availability 부정확 — AZ-level offering 까지 봐야
-            // launch 가능한 type 셋이 확정. DescribeInstanceTypeOfferings 가 source-of-truth.
+            // DescribeInstanceTypes 만으로는 region availability 부정확: AZ-level offering 까지 봐야
+            // launch 가능한 type 셋이 확정. DescribeInstanceTypeOfferings 가 단일 출처.
             // 두 API 모두 region endpoint 의존이지만 Offerings 만 "이 region 의 어느 AZ 에서든 launch 가능" 보장.
             Set<String> availableInRegion = fetchAvailableInstanceTypeNames(client, region);
             if (availableInRegion.isEmpty()) {
@@ -115,7 +115,7 @@ public class AwsVmOptionsProvider extends AbstractVmOptionsProvider {
                 for (InstanceTypeInfo instanceType : response.instanceTypes()) {
                     String name = instanceType.instanceTypeAsString();
                     if (!availableInRegion.contains(name)) {
-                        // region 에서 launch 불가 — UI 노출 / validation 모두에서 제외.
+                        // region 에서 launch 불가. UI 노출 / validation 모두에서 제외.
                         continue;
                     }
                     VmOptionSpec dto = toSpecDto(region, instanceType);
@@ -142,7 +142,7 @@ public class AwsVmOptionsProvider extends AbstractVmOptionsProvider {
 
     /**
      * DescribeInstanceTypeOfferings (LocationType=region) 으로 region 전체에서 launch 가능한 instance
-     * type names 의 합집합을 수집. Offerings 는 가벼운 API (per-page 1000) — 정상 region 은 1~2 page.
+     * type names 의 합집합을 수집. Offerings 는 가벼운 API (per-page 1000). 정상 region 은 1~2 page.
      */
     private Set<String> fetchAvailableInstanceTypeNames(Ec2Client client, String region) {
         Set<String> names = new HashSet<>();
@@ -169,7 +169,7 @@ public class AwsVmOptionsProvider extends AbstractVmOptionsProvider {
         return doListImages(buildClient(region, null), region, keyword, architecture, owner, limit);
     }
 
-    /** Credential-aware overload — fix. */
+    /** Credential-aware overload: fix. */
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listImagesFallback")
     @Override
     public List<VmOptionImage> listImages(
@@ -220,8 +220,8 @@ public class AwsVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * DescribeRegions 는 어느 리전에서 불러도 같은 답을 준다. 자격증명에 리전이 있으면 그것을 쓰고,
-     * 없으면 기본 리전으로 부른다 — 리전이 없다고 확인 자체를 못 하면 검증의 의미가 없다.
+     * DescribeRegions 는 호출 리전과 무관하게 동일한 응답. 자격증명에 리전이 있으면 사용하고
+     * 없으면 기본 리전으로 호출. 리전 미지정을 이유로 검증을 건너뛰지 않음.
      */
     private static final String DESCRIBE_REGIONS_DEFAULT_REGION = "us-east-1";
 
@@ -238,22 +238,22 @@ public class AwsVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * Ec2Client builder — credentials map 이 있으면 명시 주입, 없으면 SDK default chain.
+     * Ec2Client builder: credentials map 이 있으면 명시 주입, 없으면 SDK default chain.
      *
      * <p>credentials map 형식 (Bruno 2b. AWS Credential Create 의 body 와 동일):
      * <pre>{@code
      *   { "AWS_ACCESS_KEY_ID": "AKIA...", "AWS_SECRET_ACCESS_KEY": "..." }
      * }</pre>
      *
-     * <p>둘 중 하나라도 비어있으면 default chain 으로 fallback — env 변수 또는 EC2 instance role 활용.
+     * <p>둘 중 하나라도 비어있으면 default chain 으로 fallback: env 변수 또는 EC2 instance role 활용.
      * 외부 deploy 환경에서는 default chain 으로 충분히 동작 (호스트 머신에 권한 부여).
      */
     /**
-     * 등록된 자격증명으로 실제 AWS 에 묻는다.
+     * 등록된 자격증명으로 AWS 에 직접 조회.
      *
      * <p>{@link #listRegions()} 의 {@code Region.regions()} 는 SDK 에 컴파일된 목록이라 AWS 를
-     * 호출조차 하지 않는다 — 완전히 가짜인 키가 '정상'으로 나왔다. DescribeRegions 는 인증이
-     * 필요하고, 계정이 실제로 쓸 수 있는 리전만 돌려준다.
+     * 호출하지 않음. 유효하지 않은 키도 정상으로 판정됨. DescribeRegions 는 인증이 필요하고
+     * 계정이 사용 가능한 리전만 반환.
      */
     @Override
     public List<VmOptionRegion> listRegions(Map<String, String> credentials) {
@@ -263,7 +263,7 @@ public class AwsVmOptionsProvider extends AbstractVmOptionsProvider {
                             .provider(getProvider().getCanonicalName())
                             .id(region.regionName())
                             .name(region.regionName())
-                            // opt-in 리전은 활성화하지 않으면 못 쓴다. 목록에만 있으면 나중에 실패한다.
+                            // opt-in 리전은 활성화 전까지 사용 불가. 목록에만 있으면 생성 단계에서 실패.
                             .available(!"not-opted-in".equalsIgnoreCase(region.optInStatus()))
                             .build())
                     .sorted(Comparator.comparing(VmOptionRegion::getId))
@@ -300,7 +300,7 @@ public class AwsVmOptionsProvider extends AbstractVmOptionsProvider {
         if (!StringUtils.hasText(accessKey) || !StringUtils.hasText(secretKey)) {
             return null;
         }
-        // session token (STS) 도 지원 — backend 가 단기 credential 발급한 경우.
+        // session token (STS) 도 지원: backend 가 단기 credential 발급한 경우.
         String sessionToken = credentials.get("AWS_SESSION_TOKEN");
         if (StringUtils.hasText(sessionToken)) {
             return StaticCredentialsProvider.create(
@@ -419,11 +419,11 @@ public class AwsVmOptionsProvider extends AbstractVmOptionsProvider {
     @SuppressWarnings("unused")
     private List<VmOptionSpec> listSpecsFallback(
             String region, String keyword, boolean gpuOnly, int limit, Throwable e) {
-        // log 는 @CircuitBreaker 가 자체적으로 metric 으로 노출 — 여기서는 빈 결과만.
+        // log 는 @CircuitBreaker 가 자체적으로 metric 으로 노출: 여기서는 빈 결과만.
         return java.util.Collections.emptyList();
     }
 
-    /** Credential-aware overload 의 fallback — Resilience4j 가 parameter type 매칭으로 선택. */
+    /** Credential-aware overload 의 fallback: Resilience4j 가 parameter type 매칭으로 선택. */
     @SuppressWarnings("unused")
     private List<VmOptionSpec> listSpecsFallback(
             Map<String, String> credentials, String region, String keyword, boolean gpuOnly, int limit, Throwable e) {

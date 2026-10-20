@@ -2,9 +2,9 @@
 //
 // Backend 가 APPLY_AGENT_CONFIG 의 helm_repositories param 으로 보낸 list 를 agent 의 helm SDK
 // RepositoryFile (~/.config/helm/repositories.yaml) 에 sync. 같은 name 은 backend 가 overwrite
-// 하되 그 외 entry 는 보존 — 사용자가 helm CLI 로 직접 추가한 repo 가 안 지워지게.
+// 하되 그 외 entry 는 보존: 사용자가 helm CLI 로 직접 추가한 repo 가 안 지워지게.
 //
-// Best-effort: IO 실패는 caller (apply_config) 가 swallow. ConfigMap 이 single source of truth
+// Best-effort: IO 실패는 caller (apply_config) 가 swallow. ConfigMap 이 단일 출처
 // 이고 restart 시 boot loader 가 다시 sync 하므로 일시 실패는 self-heal.
 
 package helm
@@ -20,12 +20,12 @@ import (
 	"helm.sh/helm/v3/pkg/repo"
 )
 
-// RepoEntry — backend JSON 의 한 entry. helm SDK 의 repo.Entry 와 1:1.
+// RepoEntry: backend JSON 의 한 entry. helm SDK 의 repo.Entry 와 1:1.
 //
 //	{ "name": "...", "url": "...", "username": "...", "password": "...",
 //	  "ca_file": "...", "insecure_skip_tls_verify": false }
 //
-// 모든 field 는 omitempty — backend 가 빈 값을 보내면 빈 문자열.
+// 모든 field 는 omitempty: backend 가 빈 값을 보내면 빈 문자열.
 type RepoEntry struct {
 	Name                  string `json:"name"`
 	URL                   string `json:"url"`
@@ -35,7 +35,7 @@ type RepoEntry struct {
 	InsecureSkipTLSverify bool   `json:"insecure_skip_tls_verify,omitempty"`
 }
 
-// ParseRepoList — JSON array string 을 []RepoEntry 로. 빈 문자열은 빈 slice + nil error.
+// ParseRepoList: JSON array string 을 []RepoEntry 로. 빈 문자열은 빈 slice + nil error.
 //
 // Malformed JSON 은 error wrap.
 func ParseRepoList(raw string) ([]RepoEntry, error) {
@@ -49,7 +49,7 @@ func ParseRepoList(raw string) ([]RepoEntry, error) {
 	return out, nil
 }
 
-// SyncRepositories — backend list 를 helm SDK 의 RepositoryFile 에 merge. 같은 name 은 overwrite,
+// SyncRepositories: backend list 를 helm SDK 의 RepositoryFile 에 merge. 같은 name 은 overwrite,
 // 그 외 기존 entry 는 보존 (사용자가 helm CLI 로 직접 추가한 repo 보호). orphan removal 까지 필요하면
 // {@link SyncRepositoriesWithCleanup} 사용.
 func SyncRepositories(settings *cli.EnvSettings, repos []RepoEntry) (int, error) {
@@ -57,11 +57,11 @@ func SyncRepositories(settings *cli.EnvSettings, repos []RepoEntry) (int, error)
 		return 0, fmt.Errorf("helm settings is nil")
 	}
 	if len(repos) == 0 {
-		// 빈 array — caller 가 명시적으로 비웠을 수 있음. file 자체는 건드리지 않음.
+		// 빈 array: caller 가 명시적으로 비웠을 수 있음. file 자체는 건드리지 않음.
 		return 0, nil
 	}
 
-	// 1) 기존 file load (없어도 OK — fresh file 로 시작).
+	// 1) 기존 file load (없어도 OK: fresh file 로 시작).
 	cfgPath := settings.RepositoryConfig
 	if cfgPath == "" {
 		return 0, fmt.Errorf("helm settings.RepositoryConfig is empty")
@@ -76,7 +76,7 @@ func SyncRepositories(settings *cli.EnvSettings, repos []RepoEntry) (int, error)
 		rf = repo.NewFile()
 	}
 
-	// 2) merge — 같은 name 은 새 entry 가 win.
+	// 2) merge: 같은 name 은 새 entry 가 win.
 	count := 0
 	for _, r := range repos {
 		if r.Name == "" || r.URL == "" {
@@ -90,7 +90,7 @@ func SyncRepositories(settings *cli.EnvSettings, repos []RepoEntry) (int, error)
 			CAFile:                r.CAFile,
 			InsecureSkipTLSverify: r.InsecureSkipTLSverify,
 		}
-		// repo.File.Update — 동명 entry overwrite, 없으면 append.
+		// repo.File.Update: 동명 entry overwrite, 없으면 append.
 		rf.Update(e)
 		count++
 	}
@@ -101,23 +101,23 @@ func SyncRepositories(settings *cli.EnvSettings, repos []RepoEntry) (int, error)
 	return count, nil
 }
 
-// AnycloudManagedRepoPrefix — backend 에서 push 된 repo 의 식별자. agent 는 본 prefix 가
+// AnycloudManagedRepoPrefix: backend 에서 push 된 repo 의 식별자. agent 는 본 prefix 가
 // name 에 붙은 경우만 orphan 으로 판단 (사용자가 helm repo add 직접 한 것은 보호).
 //
-// 사용자가 비슷한 이름으로 명명 충돌하면 안 됨 — 운영 가이드에서 명시.
+// 사용자가 비슷한 이름으로 명명 충돌하면 안 됨. 운영 가이드에서 명시.
 const AnycloudManagedRepoPrefix = "anycloud-"
 
-// SyncRepositoriesWithCleanup — backend list 와 RepositoryFile 의 차이를 reconcile.
+// SyncRepositoriesWithCleanup: backend list 와 RepositoryFile 의 차이를 reconcile.
 //
 // 동작은 SyncRepositories 와 동일하되, 추가로:
 //   - 기존 RepositoryFile 의 entry 중 입력 list 에 없으면서 anycloud-managed 마커가 붙은 것을 제거.
-//   - "anycloud-managed" 판정: 현재는 단순 prefix ({@link AnycloudManagedRepoPrefix}) — 향후
+//   - "anycloud-managed" 판정: 현재는 단순 prefix ({@link AnycloudManagedRepoPrefix}). 향후
 //     별도 metadata 컬럼 또는 별도 lookup file 로 확장 가능.
 //
 // 입력 list 가 비면 (backend 가 모든 repo 제거 의도) anycloud-managed entry 만 전부 제거 +
 // 사용자 수동 추가 entry 는 보존.
 //
-// Caller (apply_config) 가 본 함수와 SyncRepositories 중 선택 — orphan cleanup 옵션 명시 위해.
+// Caller (apply_config) 가 본 함수와 SyncRepositories 중 선택: orphan cleanup 옵션 명시 위해.
 func SyncRepositoriesWithCleanup(settings *cli.EnvSettings, repos []RepoEntry) (added, removed int, err error) {
 	if settings == nil {
 		return 0, 0, fmt.Errorf("helm settings is nil")
@@ -149,7 +149,7 @@ func SyncRepositoriesWithCleanup(settings *cli.EnvSettings, repos []RepoEntry) (
 		if strings.HasPrefix(e.Name, AnycloudManagedRepoPrefix) {
 			if _, ok := desired[e.Name]; !ok {
 				removed++
-				continue // skip — orphan
+				continue // skip: orphan
 			}
 		}
 		keep = append(keep, e)

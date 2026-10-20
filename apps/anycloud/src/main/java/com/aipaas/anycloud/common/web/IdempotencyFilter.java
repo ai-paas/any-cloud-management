@@ -27,10 +27,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 
 /**
- * Idempotency-Key 헤더를 처리합니다 (Stripe 패턴).
+ * Idempotency-Key 헤더 처리 (Stripe 패턴).
  *
- * <p>24시간 안에 같은 key 가 다시 오면 첫 응답을 그대로 재현합니다. key 는 같은데 body 나 path 가
- * 다르면 409 입니다. {@code anycloud.idempotency.enabled=false} 로 끌 수 있습니다.
+ * <p>24시간 내 동일 key 재수신 시 첫 응답을 그대로 반환. key 는 동일하나 body 또는 path 가 다르면
+ * 409. {@code anycloud.idempotency.enabled=false} 로 비활성화 가능.
  */
 @Slf4j
 @Component
@@ -45,7 +45,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
 
     public static final String IDEMPOTENCY_HEADER = "Idempotency-Key";
     /**
-     * Replay 응답 식별 헤더 — 클라이언트가 첫 호출 vs 캐시 replay 구분 가능.
+     * Replay 응답 식별 헤더: 클라이언트가 첫 호출 vs 캐시 replay 구분 가능.
      * "true" / 없음.
      */
     public static final String IDEMPOTENCY_REPLAY_HEADER = "X-Idempotency-Replay";
@@ -58,8 +58,9 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     private static final Set<String> APPLIES_TO = Set.of("POST", "PATCH");
     private static final java.time.Duration TTL = java.time.Duration.ofHours(24);
     /**
-     * 캐시할 응답 body 상한입니다. 넘으면 status 와 fingerprint 만 저장해 중복은 계속 걸러내되
-     * body 재현은 포기합니다. chart deploy 같은 대용량 응답이 DB 를 부풀리지 않게 하려는 것입니다.
+     * 캐시 대상 응답 body 상한. 초과 시 status 와 fingerprint 만 저장해 중복 차단은 유지하고
+     * body 재현은 제외. chart deploy 응답을 전부 저장하면 해당 데이터가 idempotency_record 에
+     * 24시간 잔존.
      */
     private static final int MAX_CACHED_BODY_BYTES = 1_000_000;
 
@@ -107,7 +108,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                 response.setContentType("application/json");
                 response.setHeader(IDEMPOTENCY_REPLAY_HEADER, "true");
                 if (bodyTruncated) {
-                    // 빈 body 가 의도된 결과임을 명시 — 클라이언트는 빈 응답을 4xx 로 오인 X.
+                    // 빈 body 가 의도된 결과임을 명시: 클라이언트는 빈 응답을 4xx 로 오인 X.
                     response.setHeader(IDEMPOTENCY_BODY_TRUNCATED_HEADER, "true");
                 }
                 response.getWriter().write(bodyTruncated ? "" : cached.getResponseBody());
@@ -116,7 +117,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         }
 
         // 새 요청: 응답 캡처 후 저장. Spring 의 ContentCachingResponseWrapper 가 OutputStream / Writer
-        // 모두 정확히 capture — replay 시 body 보존 보장.
+        // 모두 정확히 capture: replay 시 body 보존 보장.
         ContentCachingResponseWrapper cap = new ContentCachingResponseWrapper(response);
         chain.doFilter(wrapped, cap); // wrapped.getInputStream() 이 controller 에서 재read 가능
 
@@ -126,7 +127,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             try {
                 String body = new String(cap.getContentAsByteArray(), StandardCharsets.UTF_8);
                 // 1MB 초과 body 는 메타데이터만 캐시. 같은 key 재시도 시 200 으로 short-circuit
-                // 하지만 body 는 비어 있게 됨 — caller 는 응답 본문이 필요하면 별도 GET 호출로 재조회.
+                // 하지만 body 는 비어 있게 됨. caller 는 응답 본문이 필요하면 별도 GET 호출로 재조회.
                 if (body != null && body.length() > MAX_CACHED_BODY_BYTES) {
                     log.warn(
                             "Idempotency body exceeds {} bytes (key={}, size={}). "
@@ -151,7 +152,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             }
         }
 
-        // ★ critical — ContentCachingResponseWrapper 는 buffer 만 — copyBodyToResponse() 호출해야
+        // ★ critical: ContentCachingResponseWrapper 는 buffer 만: copyBodyToResponse() 호출해야
         // 실제 client 에 전송됨. 누락하면 client 가 빈 응답 받음.
         cap.copyBodyToResponse();
     }

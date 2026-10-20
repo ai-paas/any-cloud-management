@@ -98,7 +98,7 @@ public class VmClusterRemoteAccessServiceImpl implements VmClusterRemoteAccessSe
             sshCommand.add("StrictHostKeyChecking=no");
             sshCommand.add("-o");
             sshCommand.add("UserKnownHostsFile=/dev/null");
-            // 노드가 사설망이면 직접 닿지 못한다. 켜져 있을 때만 붙는다.
+            // 사설망 노드는 직접 접근 불가. 활성 상태에서만 연결.
             SshJump jump = sshJumpResolver.resolve(vmCluster);
             sshCommand.addAll(SshJumpOptions.args(jump));
             sshCommand.add("-i");

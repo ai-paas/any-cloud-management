@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 
 /**
- * Fleet-wide cluster health 집계 — 모든 등록 cluster 의 agent health 통계 + per-cluster 상세.
+ * Fleet-wide cluster health 집계: 모든 등록 cluster 의 agent health 통계 + per-cluster 상세.
  *
  * <p>Impl: {@link com.aipaas.anycloud.domain.cluster.internal.ClusterFleetHealthServiceImpl}.
  */
@@ -18,7 +18,7 @@ public interface ClusterFleetHealthService {
 
     /**
      * Starter 의 immutable record → anycloud API 의 Swagger-annotated DTO.
-     * static — controller 의 single-cluster path 가 inject 없이 직접 호출.
+     * static: controller 의 single-cluster path 가 inject 없이 직접 호출.
      */
     static ClusterHealthResponse toDto(ClusterHealth h) {
         return ClusterHealthResponse.builder()

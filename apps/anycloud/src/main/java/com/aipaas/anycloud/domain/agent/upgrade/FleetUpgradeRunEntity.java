@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
-/** Fleet upgrade run — 운영자가 한 번 trigger 한 fleet-wide agent upgrade 의 진행 상태. */
+/** Fleet upgrade run: 운영자가 한 번 trigger 한 fleet-wide agent upgrade 의 진행 상태. */
 @Entity
 @Table(name = "fleet_upgrade_run")
 @Getter
@@ -31,7 +31,7 @@ public class FleetUpgradeRunEntity {
     @Column(name = "target_image", length = 256, nullable = false)
     private String targetImage;
 
-    /** 처리할 wave CSV (예: "CANARY,STAGING,GENERAL"). PAUSED 는 명시 안 됨 — orchestrator 가 skip. */
+    /** 처리할 wave CSV (예: "CANARY,STAGING,GENERAL"). PAUSED 는 명시 안 됨. orchestrator 가 skip. */
     @Column(name = "waves_csv", length = 128, nullable = false)
     private String wavesCsv;
 

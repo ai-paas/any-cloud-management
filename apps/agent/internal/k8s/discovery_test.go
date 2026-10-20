@@ -1,7 +1,7 @@
-// LIST_RESOURCE_KINDS — discovery API enumerate. UI 의 resource kind picker backend.
+// LIST_RESOURCE_KINDS: discovery API enumerate. UI 의 resource kind picker backend.
 //
 // Test 전략:
-//   - normalizeAPIResources 는 pure helper — fake discovery 의존 없이 단위 테스트.
+//   - normalizeAPIResources 는 pure helper: fake discovery 의존 없이 단위 테스트.
 //   - 정렬 (Group, Plural) / subresource 필터 ("pods/log") / list-verb 미지원 필터 / group-version
 //     split ("apps/v1" vs "v1") / shortNames defensive copy 등 회귀 검증.
 //   - ListAPIResources 는 fake clientset 의 FakeDiscovery 가 ServerPreferredResources 를
@@ -24,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// makeResource — test helper. ShortNames 는 nil 가능.
+// makeResource: test helper. ShortNames 는 nil 가능.
 func makeResource(name, singular, kind string, namespaced bool, verbs metav1.Verbs, short []string) metav1.APIResource {
 	return metav1.APIResource{
 		Name:         name,
@@ -36,7 +36,7 @@ func makeResource(name, singular, kind string, namespaced bool, verbs metav1.Ver
 	}
 }
 
-// TestNormalizeAPIResources_FilterAndSort — subresource / list-verb 필터링 + (Group, Plural) 정렬
+// TestNormalizeAPIResources_FilterAndSort: subresource / list-verb 필터링 + (Group, Plural) 정렬
 // + group-version split (core "v1" → group="", "apps/v1" → group="apps") 회귀.
 func TestNormalizeAPIResources_FilterAndSort(t *testing.T) {
 	lists := []*metav1.APIResourceList{
@@ -47,9 +47,9 @@ func TestNormalizeAPIResources_FilterAndSort(t *testing.T) {
 					metav1.Verbs{"get", "list", "watch", "create", "update", "patch", "delete"},
 					[]string{"deploy"}),
 				makeResource("deployments/scale", "", "Scale", true,
-					metav1.Verbs{"get", "update", "patch"}, nil), // subresource — must skip.
+					metav1.Verbs{"get", "update", "patch"}, nil), // subresource: must skip.
 				makeResource("deployments/status", "", "Deployment", true,
-					metav1.Verbs{"get", "update", "patch"}, nil), // subresource — must skip.
+					metav1.Verbs{"get", "update", "patch"}, nil), // subresource: must skip.
 			},
 		},
 		{
@@ -65,7 +65,7 @@ func TestNormalizeAPIResources_FilterAndSort(t *testing.T) {
 				// componentstatuses 는 list 가능하지만 historical로 verbs 가 list 빠진 경우도 있음.
 				// 본 케이스는 verbs 가 list 없으면 skip 되는지 회귀.
 				makeResource("bindings", "binding", "Binding", true,
-					metav1.Verbs{"create"}, nil), // no list verb — must skip.
+					metav1.Verbs{"create"}, nil), // no list verb: must skip.
 			},
 		},
 		{
@@ -75,7 +75,7 @@ func TestNormalizeAPIResources_FilterAndSort(t *testing.T) {
 					metav1.Verbs{"get", "list", "watch"}, []string{"sc"}),
 			},
 		},
-		nil, // defensive — nil list 도 skip.
+		nil, // defensive: nil list 도 skip.
 	}
 
 	got := normalizeAPIResources(lists)
@@ -99,7 +99,7 @@ func TestNormalizeAPIResources_FilterAndSort(t *testing.T) {
 	}
 }
 
-// TestNormalizeAPIResources_ShortNamesDefensiveCopy — 원본 ShortNames slice 가 mutate 돼도
+// TestNormalizeAPIResources_ShortNamesDefensiveCopy: 원본 ShortNames slice 가 mutate 돼도
 // 결과 entry 의 ShortNames 는 영향 없어야 함 (alias 회귀 방지).
 func TestNormalizeAPIResources_ShortNamesDefensiveCopy(t *testing.T) {
 	src := []string{"po"}
@@ -122,7 +122,7 @@ func TestNormalizeAPIResources_ShortNamesDefensiveCopy(t *testing.T) {
 	}
 }
 
-// TestNormalizeAPIResources_EmptyShortNames — ShortNames 가 nil 인 자원도 안전하게 처리
+// TestNormalizeAPIResources_EmptyShortNames: ShortNames 가 nil 인 자원도 안전하게 처리
 // (UI 의 picker 가 빈 슬라이스 / nil 차이로 깨지지 않게 빈 slice 보장).
 func TestNormalizeAPIResources_EmptyShortNames(t *testing.T) {
 	lists := []*metav1.APIResourceList{
@@ -144,7 +144,7 @@ func TestNormalizeAPIResources_EmptyShortNames(t *testing.T) {
 	}
 }
 
-// TestSplitGroupVersion — group-version split helper 경계 조건.
+// TestSplitGroupVersion: group-version split helper 경계 조건.
 func TestSplitGroupVersion(t *testing.T) {
 	cases := []struct {
 		in          string
@@ -166,7 +166,7 @@ func TestSplitGroupVersion(t *testing.T) {
 	}
 }
 
-// TestHasVerb — verb 매칭. case-sensitive (K8s discovery 는 모두 lowercase verb 사용).
+// TestHasVerb: verb 매칭. case-sensitive (K8s discovery 는 모두 lowercase verb 사용).
 func TestHasVerb(t *testing.T) {
 	if !hasVerb(metav1.Verbs{"get", "list", "watch"}, "list") {
 		t.Error("expected list verb to match")
@@ -177,7 +177,7 @@ func TestHasVerb(t *testing.T) {
 	if hasVerb(nil, "list") {
 		t.Error("nil verbs should not match")
 	}
-	// LIST (uppercase) 는 매칭 안 함 — discovery 는 lowercase 만 발급.
+	// LIST (uppercase) 는 매칭 안 함. discovery 는 lowercase 만 발급.
 	if hasVerb(metav1.Verbs{"LIST"}, "list") {
 		t.Error("case-sensitivity broken")
 	}

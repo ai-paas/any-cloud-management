@@ -5,14 +5,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.*;
 
-/**
- * <pre>
- * ClassName : ChartDetailResponse
- * Type : class
- * Description : Helm repository의 특정 차트 상세 정보를 반환하기 위한 DTO입니다.
- * Related : ChartController, ChartService
- * </pre>
- */
+/** Helm repository 차트 상세 응답 DTO. */
 @Getter
 @Setter
 @Builder

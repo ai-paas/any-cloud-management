@@ -16,15 +16,15 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * heartbeat 가 끊긴 ACTIVE agent 를 DEGRADED 로 내립니다.
+ * heartbeat 가 중단된 ACTIVE agent 를 DEGRADED 로 하향.
  *
- * <p>등록은 상태를 올리지만 내리는 길이 없어 cluster 를 지운 뒤에도 행이 ACTIVE 로 남습니다.
- * 화면만의 문제가 아닙니다. 업그레이드 대상과 카탈로그가 {@code status == ACTIVE} 로 거릅니다.
+ * <p>등록은 상태를 상향하나 하향 경로가 없어 cluster 삭제 후에도 행이 ACTIVE 로 잔존.
+ * 업그레이드 대상과 카탈로그가 {@code status == ACTIVE} 로 필터링.
  *
  * <p>설정
  * <ul>
  *   <li>{@code anycloud.agent.liveness.enabled} (default true)</li>
- *   <li>{@code anycloud.agent.liveness.timeout} (default 5m) — 이 시간 침묵하면 내린다</li>
+ *   <li>{@code anycloud.agent.liveness.timeout} (default 5m). 무응답 지속 시 하향</li>
  *   <li>{@code anycloud.agent.liveness.cron} (default 매분)</li>
  * </ul>
  */

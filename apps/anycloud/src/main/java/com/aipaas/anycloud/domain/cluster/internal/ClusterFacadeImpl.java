@@ -29,11 +29,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * {@code /v1/clusters} 컨트롤러의 단일 진입점입니다. VM 과 registered 두 source 를 한 목록으로
- *합쳐 보여 줍니다.
+ * {@code /v1/clusters} 컨트롤러의 단일 진입점. VM 과 registered 두 source 를 하나의 목록으로 병합.
  *
- * <p>source 별 분기는 {@link ClusterProvider} strategy 가 맡습니다. 새 source 를 추가할 때
- * 여기에 if 를 더하지 말고 provider 를 등록하세요.
+ * <p>source 별 분기는 {@link ClusterProvider} strategy 담당. source 추가 시 이 클래스에 분기를
+ * 추가하지 않고 provider 등록.
  */
 @Slf4j
 @Service
@@ -73,7 +72,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
     public PagedClusters listPaged(
             String source, String provider, String environment, String status, int pageSize, String pageToken) {
         // Source filter 가 있으면 그 source 만 fetch 하고 source-prefixed cursor 사용. 미명시 시 두 source
-        // 모두 fetch 한 뒤 createdAt 내림차순 merge — UI 의 "최신 cluster 가 위로" UX 충족. interleave
+        // 모두 fetch 한 뒤 createdAt 내림차순 merge: UI 의 "최신 cluster 가 위로" UX 충족. interleave
         // 결과는 단일 offset cursor 로 round-trip.
         if (source != null) {
             return pageSingleSource(source, provider, environment, status, pageSize, pageToken);
@@ -113,17 +112,16 @@ public class ClusterFacadeImpl implements ClusterFacade {
         return new PagedClusters(items.subList(from, to), nextToken, (long) items.size());
     }
 
-    /** 운영할 수 없는 상태. 여기 걸린 VM 시도만 있는 이름은 클러스터 목록에서 뺀다. */
+    /** 운영 불가 상태. 해당 상태의 VM 시도만 존재하는 이름은 클러스터 목록에서 제외. */
     private static final Set<String> DEAD_VM_STATUS = Set.of("FAILED", "DELETED", "BLOCKED");
 
     /**
-     * 이름이 같은 행을 한 줄로 합친다.
+     * 동일 이름 행 병합.
      *
-     * <p>VM 으로 만든 클러스터는 agent 가 등록하는 순간 vm 행과 registered 행을 동시에 갖고, 같은
-     * 이름으로 재시도하면 실패한 vm 행이 계속 남는다. 합치지 않으면 클러스터 하나가 화면에 여러 줄로
-     * 보인다.
+     * <p>VM 생성 클러스터는 agent 등록 시점에 vm 행과 registered 행을 동시 보유하고, 동일 이름
+     * 재시도 시 실패한 vm 행이 잔존. 미병합 시 클러스터 하나가 여러 행으로 표시.
      *
-     * @param hideDeadOnly status 필터가 없을 때만 true 입니다. FAILED 를 직접 조회하면 숨기지 않습니다.
+     * @param hideDeadOnly status 필터 부재 시에만 true. FAILED 직접 조회 시 미적용
      */
     private List<UnifiedClusterResponse> collapseByName(List<UnifiedClusterResponse> rows, boolean hideDeadOnly) {
         Map<String, List<UnifiedClusterResponse>> byName = rows.stream()
@@ -145,8 +143,8 @@ public class ClusterFacadeImpl implements ClusterFacade {
     }
 
     /**
-     * 대표 행은 살아 있는 VM 행을 우선하고, 없으면 최신 VM 행을 쓴다. agent 정보는 registered 행에만
-     * 있어 옮겨 담지 않으면 합치는 순간 사라진다.
+     * 대표 행은 유효한 VM 행 우선, 부재 시 최신 VM 행 사용. agent 정보는 registered 행에만
+     * 존재하므로 이전하지 않으면 병합 시점에 유실.
      */
     private UnifiedClusterResponse mergeGroup(List<UnifiedClusterResponse> group) {
         UnifiedClusterResponse vm = group.stream()
@@ -189,7 +187,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
 
     /**
      * VmClusterService listVmClusters 결과를 UnifiedClusterResponse 로 변환. list item 이 이미 step
-     * field 들을 포함 (single query) — per-cluster 재조회 (N+1) 금지.
+     * field 들을 포함 (single query). per-cluster 재조회 (N+1) 금지.
      */
     private List<UnifiedClusterResponse> listVm(String provider, String environment, String status) {
         return vmClusterService.listVmClusters(provider, environment, status).stream()
@@ -197,7 +195,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
                         .source("vm")
                         .sources(List.of("vm"))
                         .clusterName(item.getClusterName())
-                        // VM provision cluster 자체가 linked vm — UI cross-link 일관성.
+                        // VM provision cluster 자체가 linked vm: UI cross-link 일관성.
                         .linkedVmName(item.getClusterName())
                         .provider(item.getClusterProvider())
                         .region(item.getRegion())
@@ -229,7 +227,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
                 .toList();
     }
 
-    /** Cursor — pageToken 인코딩. invalid token 은 첫 페이지로 fallback. */
+    /** Cursor: pageToken 인코딩. invalid token 은 첫 페이지로 fallback. */
     private record Cursor(String source, int offset) {
         static Cursor parse(String token, String filterSource) {
             if (token == null || token.isBlank()) {
@@ -334,7 +332,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
     @Override
     public OperationEntity delete(String clusterName) {
         OperationEntity op = operationService.start(OperationType.DELETE_CLUSTER, "cluster", clusterName, null, 1);
-        // Source 분기 — list/getOne 처럼 vm 우선, 없으면 registered 로 위임.
+        // Source 분기: list/getOne 처럼 vm 우선, 없으면 registered 로 위임.
         boolean isVm = vmClusterRepository
                 .findFirstByClusterNameOrderByCreatedAtDesc(clusterName)
                 .isPresent();
@@ -344,7 +342,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
                 return operationService.complete(op.getId(), "{\"noop\":true}");
             }
         } else {
-            // registered (ClusterEntity) — clusterService 의 deleteCluster 가 ClusterNotFoundException
+            // registered (ClusterEntity). clusterService 의 deleteCluster 가 ClusterNotFoundException
             // 으로 404 처리. 정상 삭제 시 200 status code 이지만 unified 입장에선 LRO 형식 유지를
             // 위해 ACCEPTED + Operation 반환.
             clusterService.deleteCluster(clusterName);
@@ -412,7 +410,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
 
     private UnifiedClusterResponse toRegisteredDto(com.aipaas.anycloud.domain.cluster.model.Cluster c) {
         ClusterHealth health = agentHealthService.getHealth(c.id());
-        // 1:1 link — VmClusterEntity 가 같은 이름으로 존재하면 VM provision 으로 만들어진 cluster.
+        // 1:1 link: VmClusterEntity 가 같은 이름으로 존재하면 VM provision 으로 만들어진 cluster.
         // UI 가 cluster 상세에서 VM 메뉴로 cross-link 시 사용.
         String linkedVm = vmClusterRepository
                         .findFirstByClusterNameOrderByCreatedAtDesc(c.id())
@@ -427,7 +425,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
                 .provider(c.clusterProvider())
                 .environment(null)
                 .status(c.status())
-                // Chronological merge 동작 조건 — 두 source 모두 createdAt 필요. ZonedDateTime
+                // Chronological merge 동작 조건: 두 source 모두 createdAt 필요. ZonedDateTime
                 // → LocalDateTime 변환 시 zone 정보 손실해도 UI 정렬 / 표시 의미는 동일.
                 .createdAt(c.createdAt() == null ? null : c.createdAt().toLocalDateTime())
                 .hasGpuNodes(c.hasGpuNodes())
@@ -443,9 +441,9 @@ public class ClusterFacadeImpl implements ClusterFacade {
      *
      * <ul>
      *   <li>NOT_REGISTERED: ClusterAgent row 가 없습니다 (agent 를 안 깔았거나 등록 전).</li>
-     *   <li>CONNECTED — DB ACTIVE + gRPC stream live + heartbeat fresh (≤90s default)</li>
-     *   <li>DEGRADED — agent 등록되어 있고 stream 도 살아있으나 heartbeat 가 stale</li>
-     *   <li>DISCONNECTED — stream 끊김 또는 agent REVOKED/FAILED</li>
+     *   <li>CONNECTED: DB ACTIVE + gRPC stream live + heartbeat fresh (≤90s default)</li>
+     *   <li>DEGRADED: agent 등록되어 있고 stream 도 살아있으나 heartbeat 가 stale</li>
+     *   <li>DISCONNECTED: stream 끊김 또는 agent REVOKED/FAILED</li>
      * </ul>
      *
      * <p>JWT bug 시나리오 (agent CrashLoopBackOff) → stream 끊김 → DISCONNECTED 로 표기.
@@ -466,7 +464,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
 
     /**
      * VM cluster 의 in-flight workflow 단계를 UI 노출용으로 압축. cluster 의 latest row 를 조회해
-     * step / lastSuccessful / percent / stepStartedAt / retryCount 추출합니다. 없으면 null 입니다.
+     * step, lastSuccessful, percent, stepStartedAt, retryCount 추출. 대상 부재 시 null.
      */
     private UnifiedClusterResponse.WorkflowProgress buildWorkflowProgress(String clusterName) {
         return vmClusterRepository
@@ -501,7 +499,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
         return computePercentFromNames(lastSuccessful, status == null ? null : status.name());
     }
 
-    /** String 기반 변형 — list item (이미 String 으로 직렬화된 DTO) 에서 사용. */
+    /** String 기반 변형: list item (이미 String 으로 직렬화된 DTO) 에서 사용. */
     private static Integer computePercentFromNames(String lastSuccessful, String statusName) {
         if ("READY".equals(statusName)) {
             return 100;

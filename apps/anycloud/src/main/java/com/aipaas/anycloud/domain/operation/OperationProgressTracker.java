@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
  * Long-running workflow step 의 진행률 / 완료 / 실패 마킹을 위한 best-effort helper.
  *
  * <p>{@link OperationService#findLatestActiveByResource} 로 active operation 을 찾아 progress 를
- * push. Operation 자원이 없거나 이미 terminal 상태면 silent skip — 호출 측이 별도 try/catch 할 필요
+ * push. Operation 자원이 없거나 이미 terminal 상태면 silent skip: 호출 측이 별도 try/catch 할 필요
  * 없도록 본 helper 가 모든 예외를 흡수 (logging 만).
  */
 @Slf4j

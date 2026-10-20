@@ -14,13 +14,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * VM cluster async workflow facade — caller (Service/Controller) 의 단일 진입점.
+ * VM cluster async workflow facade: caller (Service/Controller) 의 단일 진입점.
  *
  * <p>본 클래스는 routing 만 담당:
  * <ul>
- *   <li><b>provision / destroy</b>: RabbitMQ 메시지 publish (afterCommit) — 실제 step 은 listener
+ *   <li><b>provision / destroy</b>: RabbitMQ 메시지 publish (afterCommit). 실제 step 은 listener
  *       (RabbitMqVmClusterOrchestratorListener / RabbitMqVmClusterWorkerListener) 에서 실행.</li>
- *   <li><b>scale</b>: 동기 step service ({@link VmClusterScaleStepService}) 에 위임 — 본 facade 는
+ *   <li><b>scale</b>: 동기 step service ({@link VmClusterScaleStepService}) 에 위임. 본 facade 는
  *       입력 검증만 ({@link ClusterNotFoundException}). step service 가 자체 {@code @Async} 로 별도
  *       thread 에서 실행.</li>
  * </ul>

@@ -37,23 +37,23 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
- * cluster 안의 K8s 리소스입니다. 계층을 URL 에 그대로 드러냅니다
- * ({@code clusters/{name}/namespaces/{ns}/{kind}/{name}}). list 응답은 모두 페이지 단위입니다.
+ * cluster 내 K8s 리소스. 계층 구조를 URL 에 그대로 반영
+ * ({@code clusters/{name}/namespaces/{ns}/{kind}/{name}}). list 응답은 전부 페이지 단위.
  *
- * <p>namespace 자리에는 sentinel 둘이 더 들어갑니다. {@code _all} 은 전체 namespace 조회고,
- * {@code -} 는 cluster-scoped kind 를 가리키는 K8s 관례입니다. cluster-scoped kind 는 어떤 값을
- * 넣어도 서버가 무시하므로 {@code -} 로 의도를 드러내세요.
+ * <p>namespace 자리에 sentinel 2종 사용 가능. {@code _all} 은 전체 namespace 조회,
+ * {@code -} 는 cluster-scoped kind 를 지칭하는 K8s 관례. cluster-scoped kind 는 입력값을 서버가
+ * 무시하므로 {@code -} 로 의도 표기.
  */
 @Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/clusters/{clusterName}/namespaces/{namespace}")
-@Tag(name = "Cluster Kubernetes Resources (v1)", description = "Cluster 의 K8s 리소스 — pods/services/deployments 등")
+@Tag(name = "Cluster Kubernetes Resources (v1)", description = "Cluster 의 K8s 리소스: pods/services/deployments 등")
 @Validated
 public class ClusterKubernetesController {
 
     private final KubeService kubeService;
-    // Agent-mediated pod log streaming (SSE). agent ACTIVE 일 때만 동작 — inactive 면 503.
+    // Agent-mediated pod log streaming (SSE). agent ACTIVE 일 때만 동작: inactive 면 503.
     private final PodLogStreamService podLogStreamService;
     // hardcoded K8sKinds.CLUSTER_SCOPED drift 해결. agent RESOLVE_RESOURCE
     // + Caffeine cache 로 동적 namespaced 판정. CRD 자동 cover. fallback 으로 static set 유지.
@@ -65,7 +65,7 @@ public class ClusterKubernetesController {
             description = "지원 kind: pods, services, deployments, statefulsets, daemonsets, replicasets, "
                     + "configmaps, secrets, persistentvolumeclaims, jobs, cronjobs (namespaced); "
                     + "nodes, namespaces, persistentvolumes, storageclasses, customresourcedefinitions "
-                    + "(cluster-scoped — {namespace} path 값 무시, 권장 `-`).")
+                    + "(cluster-scoped: {namespace} path 값 무시, 권장 `-`).")
     public ResponseEntity<ApiSuccessResponse<PagedKubeResourceResponse>> list(
             @PathVariable
                     @NotBlank
@@ -188,7 +188,7 @@ public class ClusterKubernetesController {
                     Integer sinceSeconds) {
         String ns = effectiveNamespace(clusterName, namespace, "pods");
         String logs = kubeService.getPodLogs(clusterName, ns, podName, container, tailLines, previous, sinceSeconds);
-        // Pod logs 는 의도적으로 ApiSuccessResponse envelope 없이 raw text — terminal pipe
+        // Pod logs 는 의도적으로 ApiSuccessResponse envelope 없이 raw text: terminal pipe
         // (예: `curl /v1/.../logs | grep ERROR`) 친화. 다른 모든 endpoint 는 JSON envelope 사용.
         return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(logs);
     }
@@ -200,7 +200,7 @@ public class ClusterKubernetesController {
     @Operation(
             summary = "Pod 로그 streaming (kubectl logs -f 등가, SSE)",
             description = "지정 pod 의 container log 를 SSE 로 chunk-by-chunk push. cluster agent ACTIVE "
-                    + "필수 — inactive 면 503 AGENT_UNAVAILABLE. follow=true 면 tail -f 처럼 실시간 push, "
+                    + "필수: inactive 면 503 AGENT_UNAVAILABLE. follow=true 면 tail -f 처럼 실시간 push, "
                     + "false 면 tail_lines 만큼 snapshot 전송 후 close. SSE event 이름 = 'log'.")
     public SseEmitter streamPodLogs(
             @PathVariable
@@ -246,7 +246,7 @@ public class ClusterKubernetesController {
 
         String ns = effectiveNamespace(clusterName, namespace, "pods");
 
-        // agent active 가 아니면 즉시 fail (snapshot endpoint 와 의도적으로 다름 — streaming 은 agent-only).
+        // agent active 가 아니면 즉시 fail (snapshot endpoint 와 의도적으로 다름: streaming 은 agent-only).
         if (!podLogStreamService.isActiveFor(clusterName)) {
             log.warn(
                     "streamPodLogs: agent not active cluster={} — caller should retry or use snapshot endpoint",
@@ -331,7 +331,7 @@ public class ClusterKubernetesController {
     @Operation(
             summary = "리소스 단건의 K8s Event 목록",
             description =
-                    "involvedObject.kind/name(/namespace) 로 fieldSelector 필터링. core/v1 Event 만 — events.k8s.io/v1 은 미지원.")
+                    "involvedObject.kind/name(/namespace) 로 fieldSelector 필터링. core/v1 Event 만: events.k8s.io/v1 은 미지원.")
     public ResponseEntity<ApiSuccessResponse<PagedKubeResourceResponse>> listEvents(
             @PathVariable
                     @NotBlank
@@ -439,7 +439,7 @@ public class ClusterKubernetesController {
      *
      * <p>기존 {@code KubeServiceImpl.isClusterScoped(kind)} 의 hardcoded
      * set 을 {@link KindResolver} 로 교체. RESOLVE_RESOURCE 결과 (agent 가 K8s discovery 로 동적 산출)
-     * 의 {@code namespaced} flag 를 사용 — CRD 까지 자동 cover. agent 실패 시 hardcoded fallback.
+     * 의 {@code namespaced} flag 를 사용: CRD 까지 자동 cover. agent 실패 시 hardcoded fallback.
      *
      * <ol>
      *   <li>cluster-scoped kind (namespaced=false) → 항상 {@code null} (path 값 무시).</li>
@@ -449,7 +449,7 @@ public class ClusterKubernetesController {
      */
     private String effectiveNamespace(String clusterName, String namespace, String kind) {
         ResolvedResource resolved = kindResolver.resolve(clusterName, kind);
-        // resolved 가 null 은 사실상 없지만 (input/cluster blank 만 null), defense-in-depth.
+        // resolved 는 input 또는 cluster 가 빈 경우에만 null. 방어 코드 유지.
         boolean namespaced = resolved == null || resolved.namespaced();
         if (!namespaced) {
             return null;

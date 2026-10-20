@@ -1,11 +1,11 @@
-// Package exec — PodExec orchestrator.
+// Package exec: PodExec orchestrator.
 //
-// 메인 runtime stream 과 별도 bidi gRPC 채널 (AgentRuntime/PodExec) 사용 — 사용자 터미널 I/O 가
+// 메인 runtime stream 과 별도 bidi gRPC 채널 (AgentRuntime/PodExec) 사용: 사용자 터미널 I/O 가
 // heartbeat / 다른 명령을 block 못 하도록. AllowList.ExecNamespaces 가 거부 시 즉시
-// PERMISSION_DENIED 로 close — backend 가 fan-out 후 검증해도 agent 측에서 한 번 더 차단.
+// PERMISSION_DENIED 로 close: backend 가 fan-out 후 검증해도 agent 측에서 한 번 더 차단.
 //
 // Concurrency:
-//   - Send 는 gRPC stream 제약상 동시 호출 불가 — sendMu 로 직렬화.
+//   - Send 는 gRPC stream 제약상 동시 호출 불가. sendMu 로 직렬화.
 //   - Recv 는 단일 goroutine (recvLoop).
 //   - pod stdout/stderr 는 각자 별도 goroutine 에서 read → ExecPacket 으로 send.
 package exec
@@ -28,7 +28,7 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 )
 
-// SessionConfig — Runner.Run 에 전달되는 한 exec 세션의 모든 입력.
+// SessionConfig: Runner.Run 에 전달되는 한 exec 세션의 모든 입력.
 type SessionConfig struct {
 	BackendAddr        string
 	AgentIdentityToken string
@@ -38,18 +38,18 @@ type SessionConfig struct {
 	TLS tlsconfig.Config
 }
 
-// Runner — exec 세션을 실행. K8s client + AllowList loader 를 보유.
+// Runner: exec 세션을 실행. K8s client + AllowList loader 를 보유.
 type Runner struct {
 	kube      k8s.Client
 	allowlist *config.Loader
 }
 
-// New — Runner 생성.
+// New: Runner 생성.
 func New(kube k8s.Client, allowlist *config.Loader) *Runner {
 	return &Runner{kube: kube, allowlist: allowlist}
 }
 
-// Run — context 종료 또는 exec 종료까지 블록. 호출은 별도 goroutine 권장.
+// Run: context 종료 또는 exec 종료까지 블록. 호출은 별도 goroutine 권장.
 //
 // 에러 케이스:
 //   - dial 실패 → 즉시 error 반환 (backend 측에 ExecStatus 전달 불가).
@@ -66,7 +66,7 @@ func (r *Runner) Run(ctx context.Context, cfg SessionConfig) error {
 		return errors.New("exec.Run: identity token required")
 	}
 
-	// AllowList 검증 — namespace 거부 시 stream 열기 전에 단순 로그 + skip 도 가능하지만,
+	// AllowList 검증: namespace 거부 시 stream 열기 전에 단순 로그 + skip 도 가능하지만,
 	// backend 가 user 에게 알리려면 stream 으로 ExecStatus 전달이 필요. 그래서 dial 후 first packet 으로 처리.
 	credsOpt, err := cfg.TLS.DialOption(cfg.BackendAddr)
 	if err != nil {
@@ -97,7 +97,7 @@ func (r *Runner) Run(ctx context.Context, cfg SessionConfig) error {
 		return fmt.Errorf("send first ExecRequest: %w", err)
 	}
 
-	// AllowList check — 거부 시 End packet + close. 짧은 경로 — server 가 buffered packet 처리할
+	// AllowList check: 거부 시 End packet + close. 짧은 경로: server 가 buffered packet 처리할
 	// 시간을 주기 위해 drainServerEOF 으로 io.EOF 까지 대기.
 	if r.allowlist != nil {
 		snap := r.allowlist.Snapshot()
@@ -120,27 +120,27 @@ func (r *Runner) Run(ctx context.Context, cfg SessionConfig) error {
 		}
 	}
 
-	// I/O pipes — k8s.ExecInPod 가 io.Reader/Writer 받아야 함.
+	// I/O pipes: k8s.ExecInPod 가 io.Reader/Writer 받아야 함.
 	stdinR, stdinW := io.Pipe()
 	stdoutR, stdoutW := io.Pipe()
 	stderrR, stderrW := io.Pipe()
 
 	resizeQ := newResizeQueue(streamCtx)
 	/*
-	 * remotecommand 는 exec 을 시작할 때 큐에서 첫 크기를 읽는다. 비어 있으면 PTY 가 0x0 으로
-	 * 열리고, tcell 로 만든 TUI(k9s)는 그릴 영역이 없어 화면을 지운 뒤 아무것도 그리지 않는다.
-	 * 사용자가 나중에 보내는 resize 로는 복구되지 않는다.
+	 * remotecommand 는 exec 시작 시 큐에서 첫 크기를 조회. 비어 있으면 PTY 가 0x0 으로 열리고,
+	 * tcell 기반 TUI(k9s)는 렌더링 영역이 없어 화면을 지운 뒤 출력하지 않음. 이후 사용자
+	 * resize 로는 복구 불가.
 	 */
 	if cfg.Request.GetTty() {
 		resizeQ.push(initialTerminalSize(cfg.Request.GetInitialSize()))
 	}
 
-	// Recv loop — backend → agent.
+	// Recv loop: backend → agent.
 	recvDone := make(chan struct{})
 	go func() {
 		defer close(recvDone)
 		sess.recvLoop(stdinW, resizeQ)
-		// stdin pipe close 시 ExecInPod 의 stdin reader 가 EOF — pod 가 자연 종료 가능.
+		// stdin pipe close 시 ExecInPod 의 stdin reader 가 EOF: pod 가 자연 종료 가능.
 		_ = stdinW.Close()
 	}()
 
@@ -149,7 +149,7 @@ func (r *Runner) Run(ctx context.Context, cfg SessionConfig) error {
 	go pumpToBackend(stdoutR, agentv1.ExecPacket_StdoutData{}, sess, pumpDone)
 	go pumpToBackend(stderrR, agentv1.ExecPacket_StderrData{}, sess, pumpDone)
 
-	// K8s exec — 블록.
+	// K8s exec: 블록.
 	execErr := r.kube.ExecInPod(streamCtx, k8s.PodExecOptions{
 		Namespace: cfg.Request.GetNamespace(),
 		Pod:       cfg.Request.GetPod(),
@@ -167,7 +167,7 @@ func (r *Runner) Run(ctx context.Context, cfg SessionConfig) error {
 	// Close write ends so pump goroutines see EOF.
 	_ = stdoutW.Close()
 	_ = stderrW.Close()
-	// Drain pumps BEFORE sendEnd — preserve packet ordering (no stdout after End).
+	// Drain pumps BEFORE sendEnd: preserve packet ordering (no stdout after End).
 	<-pumpDone
 	<-pumpDone
 
@@ -194,7 +194,7 @@ func (r *Runner) Run(ctx context.Context, cfg SessionConfig) error {
 	return nil
 }
 
-// initialTerminalSize — 0 이면 80x24. 백엔드가 크기를 못 실어 보낸 예전 세션도 화면이 떠야 한다.
+// initialTerminalSize: 0 이면 80x24. 백엔드가 크기를 전달하지 않는 구버전 세션도 렌더링 필요.
 func initialTerminalSize(size *agentv1.TerminalSize) remotecommand.TerminalSize {
 	cols, rows := size.GetCols(), size.GetRows()
 	if cols == 0 {
@@ -206,7 +206,7 @@ func initialTerminalSize(size *agentv1.TerminalSize) remotecommand.TerminalSize 
 	return remotecommand.TerminalSize{Width: uint16(cols), Height: uint16(rows)}
 }
 
-// pumpToBackend — io.Reader (pod stdout/stderr) 에서 읽어 ExecPacket 으로 backend 송신.
+// pumpToBackend: io.Reader (pod stdout/stderr) 에서 읽어 ExecPacket 으로 backend 송신.
 // flavor 는 stdout/stderr 구분용 zero-value (타입만 사용).
 func pumpToBackend(r io.Reader, flavor any, sess *session, done chan<- struct{}) {
 	defer func() { done <- struct{}{} }()
@@ -242,7 +242,7 @@ func pumpToBackend(r io.Reader, flavor any, sess *session, done chan<- struct{})
 	}
 }
 
-// session — 단일 PodExec stream 의 send-side mutex 보유.
+// session: 단일 PodExec stream 의 send-side mutex 보유.
 type session struct {
 	stream    agentv1.AgentRuntime_PodExecClient
 	sessionID string
@@ -272,7 +272,7 @@ func (s *session) sendEnd(exitCode int32, msg, code string) error {
 	})
 }
 
-// recvLoop — backend → agent ExecPacket 수신.
+// recvLoop: backend → agent ExecPacket 수신.
 //   - StdinData → stdinW.Write
 //   - Resize → resizeQ.push
 //   - Request/Stdout/Stderr/End → skip (client→agent 방향 무관)
@@ -300,12 +300,12 @@ func (s *session) recvLoop(stdinW io.Writer, resizeQ *resizeQueue) {
 				Height: uint16(p.Resize.GetRows()),
 			})
 		default:
-			// Request/Stdout/Stderr/End — agent 가 받을 일 없음. 무시.
+			// Request/Stdout/Stderr/End: agent 가 받을 일 없음. 무시.
 		}
 	}
 }
 
-// drainServerEOF — CloseSend 후 server-side 가 stream 닫을 때까지 읽기 (또는 timeout).
+// drainServerEOF: CloseSend 후 server-side 가 stream 닫을 때까지 읽기 (또는 timeout).
 //
 // Why: gRPC client 가 stream context 를 cancel 하면 server 가 buffered Send 들을 보기 전에
 // stream 이 abort 됨. CloseSend → server 가 io.EOF 받음 → Recv loop 종료 → server 가 stream
@@ -326,7 +326,7 @@ func drainServerEOF(stream agentv1.AgentRuntime_PodExecClient, max time.Duration
 	}
 }
 
-// classifyExecError — k8s exec 결과를 ExecStatus 필드로 매핑.
+// classifyExecError: k8s exec 결과를 ExecStatus 필드로 매핑.
 func classifyExecError(err error) (exitCode int32, message string, code string) {
 	if err == nil {
 		return 0, "", ""

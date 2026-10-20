@@ -12,13 +12,13 @@ import lombok.NoArgsConstructor;
 /**
  * Helm repository PATCH 요청 body.
  *
- * <p>Partial update — 모든 필드 nullable. 보내지 않은 필드는 현재 값 유지. primitive boolean 은
+ * <p>Partial update: 모든 필드 nullable. 보내지 않은 필드는 현재 값 유지. primitive boolean 은
  * Wrapper {@link Boolean} 으로 null 가능.
  *
  * <p><b>name 변경 미지원</b>:
  * <ul>
  *   <li>이유 1: name 은 URL identity (PATH variable). REST 의미상 resource identity 변경은 별도 op</li>
- *   <li>이유 2: agent allowlist 의 chart rule 식별자가 {@code <repo-name>/<chart>} 형식 — name 변경은
+ *   <li>이유 2: agent allowlist 의 chart rule 식별자가 {@code <repo-name>/<chart>} 형식: name 변경은
  *       모든 cluster 의 allowlist 와 unsync</li>
  *   <li>이유 3: 기존 helm release 들이 본 repo 이름으로 chart 를 reference</li>
  * </ul>
@@ -34,7 +34,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@Schema(description = "Helm repository 부분 갱신 요청. name 변경 미지원 — DELETE + POST 패턴 사용.")
+@Schema(description = "Helm repository 부분 갱신 요청. name 변경 미지원: DELETE + POST 패턴 사용.")
 public class UpdateHelmRepoRequest implements Serializable {
 
     @Serial

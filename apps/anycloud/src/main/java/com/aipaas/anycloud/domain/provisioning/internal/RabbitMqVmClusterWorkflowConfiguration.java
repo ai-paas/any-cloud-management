@@ -64,7 +64,7 @@ public class RabbitMqVmClusterWorkflowConfiguration {
     }
 
     /**
-     * ProvisioningException 의 isTransient() 가 false 면 재시도 무의미 — 입력 / 자격증명 / 상태가
+     * ProvisioningException 의 isTransient() 가 false 면 재시도 무의미: 입력 / 자격증명 / 상태가
      * 영구 실패라 동일 메시지를 다시 처리해도 동일 결과. ExceptionClassifierRetryPolicy 가 클래스 단위로
      * NeverRetryPolicy 를 적용해 즉시 DLQ 로 라우팅하도록 분기.
      *

@@ -12,11 +12,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 /**
- * {@link ApiSuccessResponse} 에 meta(requestId, timestamp, processingTimeMs)를 자동으로 붙입니다.
- * 컨트롤러는 데이터만 채우면 됩니다.
+ * {@link ApiSuccessResponse} 에 meta(requestId, timestamp, processingTimeMs) 자동 주입.
+ * 컨트롤러는 데이터만 설정.
  *
- * <p>처리 시간은 {@code REQUEST_START_NS} attribute 로 잽니다. 그 attribute 를 심는
- * {@link RequestMdcFilter} 를 타지 않은 요청이면 null 입니다.
+ * <p>처리 시간은 {@code REQUEST_START_NS} attribute 기준 측정. 해당 attribute 를 설정하는
+ * {@link RequestMdcFilter} 를 거치지 않은 요청은 null.
  */
 @RestControllerAdvice
 public class ResponseEnvelopeAdvice implements ResponseBodyAdvice<Object> {
@@ -52,7 +52,7 @@ public class ResponseEnvelopeAdvice implements ResponseBodyAdvice<Object> {
         if (existing == null) {
             return ResponseMeta.of(requestId, timestamp, processingTimeMs);
         }
-        // 컨트롤러가 직접 채운 값을 우선하되 비어 있으면 채워준다.
+        // 컨트롤러 설정 값 우선, 미설정 시에만 주입.
         return new ResponseMeta(
                 existing.requestId() != null ? existing.requestId() : requestId,
                 existing.timestamp() != null ? existing.timestamp() : timestamp,

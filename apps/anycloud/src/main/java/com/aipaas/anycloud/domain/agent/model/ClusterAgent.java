@@ -38,7 +38,7 @@ public record ClusterAgent(
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
 
-    /** ACTIVE — stream alive + heartbeat fresh. */
+    /** ACTIVE: stream alive + heartbeat fresh. */
     public boolean isActive() {
         return status == ClusterAgentStatus.ACTIVE && revokedAt == null;
     }

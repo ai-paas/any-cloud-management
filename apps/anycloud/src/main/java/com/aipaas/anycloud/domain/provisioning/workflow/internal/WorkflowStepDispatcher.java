@@ -14,13 +14,13 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 
 /**
- * 단계 실행을 소비자 스레드에서 떼어낸다.
+ * 단계 실행을 소비자 스레드에서 분리.
  *
- * <p>BOOTSTRAP 최악 예산이 170분인데 AMQP ack 창은 그보다 짧다. 소비자 스레드 위에서 끝까지 돌면
- * 창을 넘긴 순간 채널이 닫히고 메시지가 되돌아와 같은 작업이 처음부터 다시 시작한다.
+ * <p>BOOTSTRAP 최악 예산 170분, AMQP ack 창은 그보다 짧음. 소비자 스레드에서 완료까지 실행하면
+ * ack 창 초과 시점에 채널이 닫히고 메시지 재전달로 동일 작업이 처음부터 재실행.
  *
- * <p>여기서는 소유권만 잡고 바로 돌려준다 — 메시지는 즉시 ack 된다. 크래시로 실행이 사라지는 것은
- * {@code StuckWorkflowStepReaper} 가 다시 민다.
+ * <p>이 지점에서는 소유권만 획득하고 즉시 반환. 메시지는 즉시 ack. 크래시로 유실된 실행은
+ * {@code StuckWorkflowStepReaper} 가 재투입.
  */
 @Slf4j
 @Component
@@ -44,28 +44,28 @@ public class WorkflowStepDispatcher {
     }
 
     /**
-     * 가드와 소유권은 동기로 확인한다. 비동기로 미루면 두 메시지가 동시에 제출된다.
+     * 가드와 소유권은 동기 확인. 비동기 처리 시 두 메시지 동시 제출 가능.
      *
-     * @param onFailure 실패 기록. 호출부가 자기 맥락으로 남긴다
+     * @param onFailure 실패 기록. 호출부 맥락으로 기록
      */
     public void dispatch(VmClusterWorkflowMessage message, Runnable work, FailureRecorder onFailure) {
         if (!messageGuard.shouldProcess(message)) {
             return;
         }
-        // 삭제는 앞 단계 뒤에 줄을 서지 않는다. 사용자의 탈출구라 몇 시간을 기다리게 하면 안 된다.
+        // 삭제는 앞 단계 뒤에 대기하지 않음. 사용자의 복구 수단이라 수 시간 대기 금지.
         boolean acquired = message.getStep() == VmClusterWorkflowStep.DESTROY
                 ? processingLock.preempt(message.getVmClusterId(), message.getMessageId())
                 : processingLock.acquire(message.getVmClusterId(), message.getMessageId());
         if (!acquired) {
-            // 버리면 ack 되어 사라진다. 앞 단계가 자기 락을 쥔 채 다음 단계를 발행하므로
-            // 이 자리는 늘 걸리고, 워크플로가 그 자리에 멈춘다. 되돌리면 잠시 뒤 다시 온다.
+            // 폐기 시 ack 되어 소실. 앞 단계가 락을 보유한 채 다음 단계를 발행하므로 이 지점은
+            // 항상 충돌하고 워크플로 정지. 재큐하면 잠시 후 재도착.
             throw new WorkflowStepBusyException(message.getClusterName(), message.getStep());
         }
         LocalDateTime startedAt = LocalDateTime.now();
         try {
             executor.execute(() -> run(message, work, onFailure, startedAt));
         } catch (RejectedExecutionException e) {
-            // 자리가 없으면 잡은 것을 놓고 메시지를 되돌린다. 삼키면 아무도 이 단계를 돌리지 않는다.
+            // 큐 포화 시 획득한 락을 해제하고 메시지 재큐. 예외를 묻으면 해당 단계 미실행.
             processingLock.release(message.getVmClusterId(), message.getMessageId());
             log.warn("워크플로 실행 풀이 가득 차 메시지를 되돌린다 (cluster={})", message.getClusterName());
             throw e;

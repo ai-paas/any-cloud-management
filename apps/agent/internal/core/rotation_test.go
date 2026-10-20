@@ -38,7 +38,7 @@ func TestTokenStore_SetEmitsReconnectSignal(t *testing.T) {
 }
 
 func TestTokenStore_MultipleSets_SignalChannelBuffered(t *testing.T) {
-	// channel 가득차면 drop OK — 누락된 signal 도 다음 stream 가 받음.
+	// channel 가득차면 drop OK: 누락된 signal 도 다음 stream 가 받음.
 	s := NewTokenStore("v1", time.Now())
 	for i := 0; i < 10; i++ {
 		s.Set("v"+string(rune('0'+i)), time.Now())
@@ -186,7 +186,7 @@ func TestRunRotation_AppliesNewTokenToStore(t *testing.T) {
 	addr, cleanup := startBootstrapStub(t, stub)
 	defer cleanup()
 
-	// expiresAt 가 이미 임박 (1분 후) — 즉시 rotation 발화.
+	// expiresAt 가 이미 임박 (1분 후). 즉시 rotation 발화.
 	store := NewTokenStore("starter", time.Now().Add(time.Minute))
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

@@ -3,7 +3,7 @@
 // 전략: in-memory storage.Memory + fake PrintingKubeClient 로 fake *action.Configuration 을 만들어
 // actionConfigFactory 로 주입. 그 위에서 helm SDK 의 action.Install/Uninstall/Status/Rollback/Upgrade
 // 가 real K8s 없이 lifecycle 을 형성하는지 검증. helmClient 의 public method (Install / Upgrade)
-// 자체는 chart.tgz 파일 의존 (chart locator) 이라 unit test scope 밖 — actionConfig seam 만 검증.
+// 자체는 chart.tgz 파일 의존 (chart locator) 이라 unit test scope 밖: actionConfig seam 만 검증.
 package helm
 
 import (
@@ -22,9 +22,9 @@ import (
 	"helm.sh/helm/v3/pkg/storage/driver"
 )
 
-// newTestClient — actionConfigFactory 를 fake 로 set 한 helmClient. storage 는 caller 가 보유 / 검증.
+// newTestClient: actionConfigFactory 를 fake 로 set 한 helmClient. storage 는 caller 가 보유 / 검증.
 //
-// settings 도 cli.New() — chart locator 가 LocalChartPath 파일 경로 resolve 시 필요. test 에서
+// settings 도 cli.New(). chart locator 가 LocalChartPath 파일 경로 resolve 시 필요. test 에서
 // LocalChartPath 로 디스크에 쓴 chart 를 load 하는 path 도 cover.
 func newTestClient(t *testing.T) (*helmClient, *storage.Storage) {
 	t.Helper()
@@ -43,7 +43,7 @@ func newTestClient(t *testing.T) (*helmClient, *storage.Storage) {
 	return c, store
 }
 
-// writeChartToTmp — chart.Chart 를 디스크에 .tgz 로 저장 후 그 경로 반환. helmClient.Install 의
+// writeChartToTmp: chart.Chart 를 디스크에 .tgz 로 저장 후 그 경로 반환. helmClient.Install 의
 // LocalChartPath 흐름을 검증할 때 사용. t.TempDir() 가 정리 보장.
 func writeChartToTmp(t *testing.T, ch *chart.Chart) string {
 	t.Helper()
@@ -55,7 +55,7 @@ func writeChartToTmp(t *testing.T, ch *chart.Chart) string {
 	return tgzPath
 }
 
-// minimalChart — 빈 manifest 의 dummy chart. K8s apply 가 일어나도 fake KubeClient 가 noop.
+// minimalChart: 빈 manifest 의 dummy chart. K8s apply 가 일어나도 fake KubeClient 가 noop.
 func minimalChart(name, version string) *chart.Chart {
 	return &chart.Chart{
 		Metadata: &chart.Metadata{
@@ -67,7 +67,7 @@ func minimalChart(name, version string) *chart.Chart {
 	}
 }
 
-// installViaSDK — actionConfig 의 fake 를 직접 사용해 release 1 개 install.
+// installViaSDK: actionConfig 의 fake 를 직접 사용해 release 1 개 install.
 // helmClient.Install 은 chart .tgz 파일 의존이라 unit test 에선 SDK 직접 호출.
 func installViaSDK(t *testing.T, c *helmClient, name, namespace, version string) *release.Release {
 	t.Helper()
@@ -86,7 +86,7 @@ func installViaSDK(t *testing.T, c *helmClient, name, namespace, version string)
 }
 
 // --------------------------------------------------------------------------
-// Seam 검증 — actionConfigFactory dispatch
+// Seam 검증: actionConfigFactory dispatch
 // --------------------------------------------------------------------------
 
 func TestActionConfig_UsesFakeFactoryWhenSet(t *testing.T) {
@@ -119,7 +119,7 @@ func TestActionConfig_FactoryReceivesNamespace(t *testing.T) {
 }
 
 // --------------------------------------------------------------------------
-// SDK lifecycle on fake config — production path 의 hot 영역과 동일 SDK 호출
+// SDK lifecycle on fake config: production path 의 hot 영역과 동일 SDK 호출
 // --------------------------------------------------------------------------
 
 func TestSDK_InstallThenStatus_GoldenPath(t *testing.T) {
@@ -226,7 +226,7 @@ func TestSDK_List_ReturnsAllInstalledInNamespace(t *testing.T) {
 }
 
 // --------------------------------------------------------------------------
-// 입력 검증 — helmClient.Install 의 가드 (chart locator 없이도 도달하는 path)
+// 입력 검증: helmClient.Install 의 가드 (chart locator 없이도 도달하는 path)
 // --------------------------------------------------------------------------
 
 func TestInstall_MissingReleaseName_Error(t *testing.T) {
@@ -263,7 +263,7 @@ func TestInstall_MissingChartLocator_Error(t *testing.T) {
 		ReleaseName: "x",
 		Version:     "0.1.0",
 		Namespace:   "default",
-		// Repo / Chart / LocalChartPath 모두 비움 — 검증 path 에서 fail.
+		// Repo / Chart / LocalChartPath 모두 비움: 검증 path 에서 fail.
 	})
 	if err == nil {
 		t.Errorf("Install with no chart locator should error")
@@ -271,7 +271,7 @@ func TestInstall_MissingChartLocator_Error(t *testing.T) {
 }
 
 // --------------------------------------------------------------------------
-// helmClient.Install / Upgrade — LocalChartPath path (chart .tgz 디스크 로드)
+// helmClient.Install / Upgrade: LocalChartPath path (chart .tgz 디스크 로드)
 // --------------------------------------------------------------------------
 
 func TestInstall_LocalChartPath_GoldenPath(t *testing.T) {
@@ -355,7 +355,7 @@ func TestUninstall_ViaHelmClient_RemovesRelease(t *testing.T) {
 		t.Fatalf("Uninstall: %v", err)
 	}
 
-	// KeepHistory=false (default) — 모두 제거.
+	// KeepHistory=false (default). 모두 제거.
 	hist, _ := store.History("mu")
 	for _, r := range hist {
 		if r.Info != nil && r.Info.Status == release.StatusDeployed {
@@ -481,7 +481,7 @@ func TestRepoURL_UrlInputBypasses(t *testing.T) {
 
 func TestRepoURL_AliasNotRegistered_ReturnsInput(t *testing.T) {
 	settings := cli.New()
-	// non-existent repo file 경로 — best-effort 로 raw 반환.
+	// non-existent repo file 경로: best-effort 로 raw 반환.
 	settings.RepositoryConfig = "/nonexistent/repositories.yaml"
 	got := repoURL(settings, "unknown-alias")
 	if got != "unknown-alias" {
@@ -606,7 +606,7 @@ func TestInstall_DuplicateRelease_Error(t *testing.T) {
 		t.Fatalf("first Install: %v", err)
 	}
 
-	// 같은 이름 재 install 시도 — helm SDK 가 cannot re-use a name 에러.
+	// 같은 이름 재 install 시도: helm SDK 가 cannot re-use a name 에러.
 	_, err := c.Install(context.Background(), InstallOptions{
 		ReleaseName:    "dup-release",
 		Version:        "0.1.0",

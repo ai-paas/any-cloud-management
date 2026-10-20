@@ -3,7 +3,7 @@ package com.aipaas.anycloud.domain.vmoptions.providers;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 
-/** L1 — OCI REST API 응답의 typed projection. JsonNode 직접 접근 (path("foo").asText()) 을 record field 접근으로 교체해 컴파일 시점에 typo 차단. */
+/** L1: OCI REST API 응답의 typed projection. JsonNode 직접 접근 (path("foo").asText()) 을 record field 접근으로 교체해 컴파일 시점에 typo 차단. */
 final class OciRecords {
 
     private OciRecords() {}
@@ -21,11 +21,11 @@ final class OciRecords {
     /**
      * Compartment.
      *
-     * @param lifecycleState {@code ACTIVE} 가 아닌 것(DELETING/DELETED)에 자원을 만들 수 없다
+     * @param lifecycleState {@code ACTIVE} 가 아닌 상태(DELETING, DELETED)에는 자원 생성 불가
      */
     record Compartment(String id, String name, String lifecycleState) {}
 
-    /** GET /shapes 의 단일 item. {@code ocpus}/{@code memoryInGBs} 는 flex shape 면 응답에서 누락 가능 — record field 가 null 이면 처리 측에서 null 체크. */
+    /** GET /shapes 의 단일 item. {@code ocpus}/{@code memoryInGBs} 는 flex shape 면 응답에서 누락 가능: record field 가 null 이면 처리 측에서 null 체크. */
     @JsonIgnoreProperties(ignoreUnknown = true)
     record Shape(
             String shape,

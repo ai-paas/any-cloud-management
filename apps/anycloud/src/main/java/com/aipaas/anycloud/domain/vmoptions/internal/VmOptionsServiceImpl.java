@@ -15,11 +15,10 @@ import org.springframework.stereotype.Service;
 
 /** VmOptions API facade. CSP provider 의 외부 metadata API (regions/specs/images) 호출은 매 요청마다 quota / latency 부담이 크므로 Caffeine 캐시로 30분 TTL 적용 . */
 /*
- * 빈 결과는 캐시하지 않는다.
+ * 빈 결과 캐시 제외.
  *
- * <p>잘못된 자격증명이나 CSP 장애로 목록이 비면 그 상태가 TTL 동안 고정된다. 자격증명을 고쳐도
- * 화면은 계속 비어 있고, 원인이 캐시라는 사실이 드러나지 않는다 — 실제로 AWS 목록이 비어 보여
- * 코드 결함으로 오진한 적이 있다. 성공한 응답만 담으면 재시도가 바로 반영된다.
+ * <p>잘못된 자격증명이나 CSP 장애로 목록이 비면 TTL 동안 그 상태가 고정. 자격증명 수정 후에도
+ * 화면이 비어 있고 원인이 캐시임이 드러나지 않음. 성공 응답만 저장하면 재시도 결과가 즉시 반영.
  */
 @Service
 @RequiredArgsConstructor

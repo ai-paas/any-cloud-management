@@ -10,8 +10,8 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-// 파드 이름만 돌려주면 호출자가 곧바로 exec 을 걸고 container not found 로 끝난다.
-// 노드에 이미지가 없으면 pull 에 1분을 넘겨 거의 매번 걸린다.
+// 파드 이름만 반환하면 호출자가 즉시 exec 을 실행해 container not found 로 종료.
+// 노드에 이미지가 없으면 pull 에 1분 이상 소요돼 대부분 해당.
 
 func podWith(state corev1.ContainerState) *corev1.Pod {
 	return &corev1.Pod{
@@ -34,7 +34,7 @@ func TestRunningContainerReturnsImmediately(t *testing.T) {
 }
 
 func TestImagePullFailureIsReportedInsteadOfWaitingOut(t *testing.T) {
-	// 기다려도 낫지 않는다. 상한까지 붙잡고 있으면 사용자는 원인을 모른 채 3분을 본다.
+	// 대기로 해소되지 않는 상태. 상한까지 점유하면 사용자가 원인 없이 3분 대기.
 	c := &realClient{cs: fake.NewSimpleClientset(podWith(corev1.ContainerState{
 		Waiting: &corev1.ContainerStateWaiting{Reason: "ImagePullBackOff", Message: "manifest unknown"},
 	}))}

@@ -29,7 +29,7 @@ public final class ClusterSpecMapper {
                 provider, region, environment, credentialId, config, hasGpuNodes, useSpot, osImage, rootDiskSizeGb);
     }
 
-    /** config 의 master/worker instance type 으로 GPU 여부 derive 후 client 가 보낸 값과 OR — UI 우회 / 누락 방어. client 가 명시 true 보냈으면 그대로 유지, instance type 이 GPU 인데 false 보냈으면 true 로 override. */
+    /** config 의 master/worker instance type 으로 GPU 여부 derive 후 client 가 보낸 값과 OR: UI 우회 / 누락 방어. client 가 명시 true 보냈으면 그대로 유지, instance type 이 GPU 인데 false 보냈으면 true 로 override. */
     private static Boolean deriveHasGpu(String provider, Map<String, String> config, Boolean clientValue) {
         if (config == null) return clientValue;
         String master = config.get("anycloud-k8s:masterInstanceType");
@@ -45,7 +45,7 @@ public final class ClusterSpecMapper {
         String provider = requireString(spec, "provider");
         String clusterType = requireString(spec, "clusterType");
         // addons 는 Map → ClusterSpec 마이그레이션 전까지 쓰지 않는 경로.
-        // 본 mapper 는 weak-typed Map 진입점이므로 addons 는 null 로 둠 — frontend 가 typed body
+        // 본 mapper 는 weak-typed Map 진입점이므로 addons 는 null 로 둠: frontend 가 typed body
         // (RegisteredClusterSpec) 로 호출 시에만 addons 전달됨.
         return new RegisteredClusterSpec(
                 provider, clusterType, optionalString(spec, "description"), optionalBoolean(spec, "hasGpuNodes"), null);
@@ -85,7 +85,7 @@ public final class ClusterSpecMapper {
 
     /**
      * Integer field 추출. JSON number 또는 string {@code "50"} 수용. 키 없거나 null / 파싱 실패 → null
-     * (provider 기본값 사용). 음수/0 은 그대로 통과 — 하위(Go defaults)에서 정규화.
+     * (provider 기본값 사용). 음수/0 은 그대로 통과: 하위(Go defaults)에서 정규화.
      */
     private static Integer optionalInteger(Map<String, Object> map, String key) {
         Object v = map == null ? null : map.get(key);

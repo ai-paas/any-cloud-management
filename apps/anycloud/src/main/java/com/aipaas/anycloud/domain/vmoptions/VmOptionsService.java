@@ -13,7 +13,7 @@ public interface VmOptionsService {
 
     List<VmOptionRegion> getRegions(String provider, String credentialId);
 
-    /** config 키 schema. credentialId 를 주면 계정에서 고를 수 있는 값이 allowedValues 에 채워진다. */
+    /** config 키 schema. credentialId 지정 시 계정에서 선택 가능한 값이 allowedValues 에 설정. */
     List<ProviderConfigKey> getConfigSchema(String provider, String credentialId, String region);
 
     /** 그 존에 이 인스턴스 타입을 띄울 수 있는지. 판단할 수 없으면 true. */

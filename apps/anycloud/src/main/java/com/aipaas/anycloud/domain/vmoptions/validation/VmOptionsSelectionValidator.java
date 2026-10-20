@@ -16,8 +16,8 @@ import org.springframework.util.StringUtils;
 public class VmOptionsSelectionValidator {
 
     /*
-     * 캐시가 걸린 쪽을 쓴다. QueryService 를 직접 부르면 preflight 마다 CSP API 를 200건씩
-     * 새로 훑는다 — 생성 한 번에 수백 건이 나간다.
+     * 캐시 적용 경로 사용. QueryService 직접 호출 시 preflight 마다 CSP API 를 200건씩 재조회해
+     * 생성 1회당 수백 건 발생.
      */
     private final VmOptionsService vmOptionsService;
 
@@ -36,9 +36,9 @@ public class VmOptionsSelectionValidator {
     public void validateSelections(String provider, String credentialId, String region, Map<String, String> config) {
         if ("Proxmox".equalsIgnoreCase(provider)) {
             /*
-             * Proxmox 는 인스턴스 타입이 없다. "코어-메모리MiB" 를 사용자가 직접 정하므로 대조할
-             * 목록이 없다. 내려가 봐야 빈 목록을 받고 "조회 불가" 경고만 남으므로 여기서 끊는다.
-             * 노드, datastore, 브리지 존재 여부는 ProxmoxPreflightValidator 가 확인한다.
+             * Proxmox 는 인스턴스 타입 개념이 없음. "코어-메모리MiB" 를 사용자가 직접 지정하므로
+             * 대조할 목록이 없고, 진행해도 빈 목록과 "조회 불가" 경고만 남으므로 여기서 반환.
+             * 노드, datastore, 브리지 존재 여부는 ProxmoxPreflightValidator 가 확인.
              */
             return;
         }
@@ -48,15 +48,15 @@ public class VmOptionsSelectionValidator {
                 provider, credentialId, region, config.get("anycloud-k8s:workerInstanceType"), "workerInstanceType");
 
         /*
-         * 이미지 식별자는 리전마다 다르고 주기적으로 갈린다. 없는 값을 그대로 보내면 CSP 마다
-         * 다른 방식으로 죽는다 — IBM 은 pulumi-yaml 이 패닉해 Go 스택이 그대로 올라온다.
+         * 이미지 식별자는 리전별 상이, 주기적 교체. 존재하지 않는 값 전달 시 CSP 별로 다른
+         * 방식으로 실패. IBM 은 pulumi-yaml 패닉으로 Go 스택 노출.
          */
         validateImage(provider, credentialId, region, config.get("anycloud-k8s:osImage"), "osImage");
 
         /*
-         * 리전에 있다고 모든 존에 있는 것이 아니다. a2-highgpu-1g 는 asia-northeast3 에 있지만
-         * -a 존에는 없고, ecs.ga1.xlarge 는 ap-northeast-2a 에 없다. 리전 목록만 보고 통과시키면
-         * VPC 와 서브넷을 다 만든 뒤 인스턴스에서 403 으로 끝난다.
+         * 리전 제공 여부와 존별 제공 여부는 별개. a2-highgpu-1g 는 asia-northeast3 에 있으나
+         * -a 존에는 미제공, ecs.ga1.xlarge 는 ap-northeast-2a 에 미제공. 리전 목록만으로
+         * 통과시키면 VPC 와 서브넷 생성 후 인스턴스 단계에서 403.
          */
         String zone = config.get("anycloud-k8s:providerSpec.zone");
         validateZone(
@@ -112,7 +112,7 @@ public class VmOptionsSelectionValidator {
         }
         List<VmOptionSpec> candidates = vmOptionsService.getSpecs(provider, credentialId, region, value, false, 200);
         if (candidates.isEmpty()) {
-            // CSP API 가 빈 list 를 반환하는 경우 — circuit breaker fallback (CSP API 장애)
+            // CSP API 가 빈 list 를 반환하는 경우: circuit breaker fallback (CSP API 장애)
             // 또는 IAM 권한 부족. 사용자 선택을 hard reject 하기보다 Pulumi 의 실 launch 단계에 위임
             // (InvalidParameterValue 등 더 정확한 진단 받음). 정상 데이터로 못 찾는 경우는 다음 라인의
             // exists=false 분기에서 reject 유지.
@@ -142,16 +142,16 @@ public class VmOptionsSelectionValidator {
             return;
         }
         /*
-         * 키워드 검색은 이름으로만 걸린다. 화면이 고른 값은 식별자라, OCI 의 OCID 처럼 이름과
-         * 전혀 다른 값이면 자기 자신을 키워드로 찾다가 없는 이미지로 판정된다.
+         * 키워드 검색은 이름만 대상. 화면이 선택한 값은 식별자라 OCI 의 OCID 처럼 이름과 다른
+         * 형식이면 식별자를 키워드로 검색해 존재하지 않는 이미지로 판정됨.
          */
         if (containsImage(vmOptionsService.getImages(provider, credentialId, region, null, null, null, 200), value)) {
             return;
         }
         /*
-         * 키워드 조회가 비었다고 CSP 장애로 단정하면 없는 이미지가 그대로 통과한다. 조회 자체가
-         * 되는지 한 번 더 본다 — 목록이 나오면 그 값이 없는 것이고, 목록도 비면 CSP 를 못 읽는
-         * 상황이라 여기서 막지 않는다.
+         * 키워드 조회 결과가 비었다는 이유로 CSP 장애로 단정하면 존재하지 않는 이미지가 통과함.
+         * 조회 가능 여부를 한 번 더 확인. 목록이 반환되면 해당 값이 없는 것이고, 목록도 비면
+         * CSP 조회 자체가 불가능한 상황이므로 차단하지 않음.
          */
         if (vmOptionsService
                 .getImages(provider, credentialId, region, null, null, null, 1)

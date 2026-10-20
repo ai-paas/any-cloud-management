@@ -6,8 +6,8 @@ public interface NodeDebugPodService {
     DebugPodResult create(String clusterName, CreateRequest request);
 
     /**
-     * @param toolsShell 호스트가 아니라 클러스터를 보는 셸. kubectl, k9s 가 이미지에서 온다.
-     * @param serviceAccount toolsShell 이 cluster 를 볼 자격. 없으면 kubectl 이 forbidden 을 받습니다.
+     * @param toolsShell 호스트가 아닌 클러스터 대상 셸. kubectl, k9s 는 이미지 제공
+     * @param serviceAccount toolsShell 의 cluster 조회 자격. 부재 시 kubectl 호출이 forbidden
      */
     record CreateRequest(
             String nodeName,

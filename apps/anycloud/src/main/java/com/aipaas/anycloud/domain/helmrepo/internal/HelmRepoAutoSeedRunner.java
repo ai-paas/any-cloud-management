@@ -69,7 +69,7 @@ public class HelmRepoAutoSeedRunner {
                 seedProperties.repos().size());
     }
 
-    /** 설정에 이미 seeded 가 있으면 다시 붙이지 않는다 — 화면에 "seeded,seeded" 로 나온다. */
+    /** 설정에 seeded 가 이미 있으면 재추가 금지. 화면에 "seeded,seeded" 로 표시. */
     private static String withSeededTag(String tags) {
         if (tags == null || tags.isBlank()) {
             return "seeded";

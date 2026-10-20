@@ -11,7 +11,7 @@ import org.mapstruct.MappingTarget;
  *
  * <p>커스텀 룰:
  * <ul>
- *   <li>{@code insecureSkipTlsVerify} 는 entity 가 null 일 때 domain false 로 변환 — MapStruct 가
+ *   <li>{@code insecureSkipTlsVerify} 는 entity 가 null 일 때 domain false 로 변환: MapStruct 가
  *       Boolean → boolean primitive 처리 시 자동 처리 금지. {@link #normalizeFlag(Boolean)} default
  *       method 로 처리.</li>
  *   <li>{@code createdAt} / {@code updatedAt} 은 domain → entity 시 무시 (JPA lifecycle callback

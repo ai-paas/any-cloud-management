@@ -50,7 +50,7 @@ import org.springframework.web.bind.annotation.RestController;
  * Cluster Observability REST endpoint.
  *
  * <p>Cluster 내부 Prometheus/Alertmanager/Grafana 와의 모든 통신은 본 controller 가 cluster-agent
- * starter 의 reverse-tunnel 을 통해 routing — frontend 는 cluster API server 에 직접 접근하지 않음.
+ * starter 의 reverse-tunnel 을 통해 routing: frontend 는 cluster API server 에 직접 접근하지 않음.
  *
  * <p>모든 응답은 {@link ApiSuccessResponse} 로 wrap. 실패는 {@link ObservabilityException} 의
  * errorCode 가 HTTP status 로 매핑.
@@ -77,13 +77,13 @@ public class ObservabilityController {
     // ---- PromQL queries ----
 
     /**
-     * Prometheus {@code /api/v1/query} 를 그대로 중계합니다.
+     * Prometheus {@code /api/v1/query} 중계.
      *
-     * <p>응답은 {@code ApiSuccessResponse} 로 감싸지 않고 Prometheus 본문을 그대로 내보냅니다.
-     * 기존 Prometheus 클라이언트가 그대로 붙을 수 있게 하려는 것입니다.
+     * <p>응답은 {@code ApiSuccessResponse} 로 감싸지 않고 Prometheus 본문 그대로 전달. 감싸면
+     * 기존 Prometheus 클라이언트 연동 불가.
      *
-     * <p>param 은 {@code query} 를 쓰세요. {@code promql} 은 옛 호출을 위한 alias 이고,
-     * {@code timeoutSeconds} 는 {@code timeout="30s"} 로 대체됐습니다.
+     * <p>param 은 {@code query} 사용. {@code promql} 은 이전 호출 호환용 alias,
+     * {@code timeoutSeconds} 는 {@code timeout="30s"} 로 대체.
      */
     @GetMapping("/clusters/{clusterName}/metrics/query")
     @Operation(
@@ -139,7 +139,7 @@ public class ObservabilityController {
         return ok("multi query", results);
     }
 
-    /** 개별 query 실패를 응답 자체로 전달 — 전체 batch 가 throw 하면 정상 query 도 lose. */
+    /** 개별 query 실패를 응답 자체로 전달: 전체 batch 가 throw 하면 정상 query 도 lose. */
     private JsonNode errorJson(String message) {
         try {
             return objectMapper.readTree(
@@ -196,7 +196,7 @@ public class ObservabilityController {
     /** 신규 timeout (string "30s") 우선, 없으면 deprecated timeoutSeconds. 둘 다 없으면 service default. */
     private static Duration resolveTimeout(String timeout, Long timeoutSeconds) {
         if (timeout != null && !timeout.isBlank()) {
-            // Prometheus duration string 은 service 가 extraParams 으로 직접 처리 — Duration 은 RPC level.
+            // Prometheus duration string 은 service 가 extraParams 으로 직접 처리: Duration 은 RPC level.
             // 여기서는 단순히 timeoutSeconds 가 있으면 우선, 없으면 null (service default 사용).
         }
         return timeoutSeconds == null ? null : Duration.ofSeconds(timeoutSeconds);
@@ -212,7 +212,7 @@ public class ObservabilityController {
         return extras;
     }
 
-    /** PromQLResult.raw 를 JsonNode 로 파싱 — 실패시 BAD_GATEWAY 매핑. */
+    /** PromQLResult.raw 를 JsonNode 로 파싱: 실패시 BAD_GATEWAY 매핑. */
     private JsonNode parseRaw(String raw) {
         try {
             return objectMapper.readTree(raw == null ? "{}" : raw);
@@ -290,7 +290,7 @@ public class ObservabilityController {
     @DeleteMapping("/clusters/{clusterName}/observability/alert-silences/{silenceId}")
     @Operation(
             summary = "Alertmanager silence 삭제",
-            description = "Alertmanager /api/v2/silence/{id} DELETE — silenceId 는 create 시 발급된 UUID.")
+            description = "Alertmanager /api/v2/silence/{id} DELETE: silenceId 는 create 시 발급된 UUID.")
     public ResponseEntity<ApiSuccessResponse<Boolean>> deleteSilence(
             @PathVariable @NotBlank @Pattern(regexp = CLUSTER_REGEXP) @Size(max = CLUSTER_MAX) String clusterName,
             @PathVariable @NotBlank @Size(max = 128) String silenceId) {
@@ -338,7 +338,7 @@ public class ObservabilityController {
     @PostMapping("/clusters/{clusterName}/observability/alert-rules/install-all")
     @Operation(
             summary = "카탈로그 전체 설치",
-            description = "각 rule-set 별 결과 list 반환. 일부 실패해도 나머지 계속 — status='failed:<code>' 표시.")
+            description = "각 rule-set 별 결과 list 반환. 일부 실패해도 나머지 계속: status='failed:<code>' 표시.")
     public ResponseEntity<ApiSuccessResponse<List<AlertRuleApplyResult>>> installAllRuleSets(
             @PathVariable @NotBlank @Pattern(regexp = CLUSTER_REGEXP) @Size(max = CLUSTER_MAX) String clusterName,
             @RequestParam(required = false) String namespace,

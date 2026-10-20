@@ -8,7 +8,7 @@ import lombok.Builder;
 /** 통합 cluster 응답. source 가 vm 인지 registered 인지를 동일한 schema 로 표현. */
 @Deprecated
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@Schema(description = "통합 cluster 응답 (vm + registered 공통 schema) — deprecated, /v1/vms 와 /v1/clusters 분리")
+@Schema(description = "통합 cluster 응답 (vm + registered 공통 schema). deprecated, /v1/vms 와 /v1/clusters 분리")
 @Builder(toBuilder = true)
 public record UnifiedClusterResponse(
         @Schema(
@@ -24,7 +24,7 @@ public record UnifiedClusterResponse(
         @Schema(description = "클러스터 이름", example = "demo-aws-01") String clusterName,
         @Schema(
                         description = "연결된 VM 자원의 이름 (1:1). null 이면 manual 등록 cluster. VM provisioning 으로 "
-                                + "만들어진 cluster 는 동일 이름이 vm_cluster 테이블에도 존재 — UI 가 VM 메뉴로 cross-link 시 사용.",
+                                + "만들어진 cluster 는 동일 이름이 vm_cluster 테이블에도 존재: UI 가 VM 메뉴로 cross-link 시 사용.",
                         example = "demo-aws-01")
                 String linkedVmName,
         @Schema(description = "provider", example = "AWS") String provider,
@@ -44,7 +44,7 @@ public record UnifiedClusterResponse(
                         example = "false")
                 Boolean hasGpuNodes,
         @Schema(
-                        description = "cluster-agent 연결 상태 (K8s status 와 별개 — registered source 에서만 채워짐). "
+                        description = "cluster-agent 연결 상태 (K8s status 와 별개: registered source 에서만 채워짐). "
                                 + "CONNECTED=정상 / DEGRADED=stream 활성이지만 heartbeat stale / "
                                 + "DISCONNECTED=stream 끊김 또는 agent REVOKED/FAILED / NOT_REGISTERED=agent 등록 안됨.",
                         allowableValues = {"CONNECTED", "DEGRADED", "DISCONNECTED", "NOT_REGISTERED"},
@@ -53,16 +53,16 @@ public record UnifiedClusterResponse(
         @Schema(description = "마지막 agent heartbeat 으로부터 경과 초. null=한 번도 본 적 없음.", example = "8")
                 Long agentHeartbeatSecondsAgo,
         @Schema(
-                        description = "agent health 요약 (사람이 읽을 수 있는 한 줄 — UI tooltip 용).",
+                        description = "agent health 요약 (사람이 읽을 수 있는 한 줄: UI tooltip 용).",
                         example = "stream up, heartbeat 8s ago")
                 String agentHealthSummary,
         @Schema(
-                        description = "VM cluster workflow 진행 단계 (vm source 만 — registered 면 null). "
+                        description = "VM cluster workflow 진행 단계 (vm source 만: registered 면 null). "
                                 + "UI 가 PROVISIONING 같은 단일 status 대신 step 별 progress 노출 시 사용.")
                 WorkflowProgress workflowProgress) {
 
     /**
-     * VM cluster 의 workflow 단계 + percent. lastSuccessfulStep 기반 — currentStep 은 "지금 진행 중"
+     * VM cluster 의 workflow 단계 + percent. lastSuccessfulStep 기반: currentStep 은 "지금 진행 중"
      * 의미가 강해 step service 의 인생 주기와 race 가능. lastSuccessfulStep 은 commit 된 사실.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -88,7 +88,7 @@ public record UnifiedClusterResponse(
             @Schema(description = "workflow 재시도 횟수 (PROVISION step 실패 후 retry 누적).", example = "0") Integer retryCount,
             @Schema(
                             description = "BOOTSTRAP 단계 내부 sub-step. BOOTSTRAP 은 20~30분 걸려 "
-                                    + "큰 단계만으론 'stuck' 인식 — 어느 sub-step 인지 노출. null=BOOTSTRAP 아님 또는 완료.",
+                                    + "큰 단계만으론 'stuck' 인식: 어느 sub-step 인지 노출. null=BOOTSTRAP 아님 또는 완료.",
                             allowableValues = {
                                 "BOOTSTRAP_NODE_PREPARATION",
                                 "BOOTSTRAP_MASTER_INIT",
@@ -99,11 +99,11 @@ public record UnifiedClusterResponse(
                             },
                             example = "BOOTSTRAP_MASTER_INIT")
                     String subStep,
-            @Schema(description = "현재 sub-step 시작 시각 — 'N분째 이 단계' 진단용.", example = "2026-06-11T15:45:10")
+            @Schema(description = "현재 sub-step 시작 시각: 'N분째 이 단계' 진단용.", example = "2026-06-11T15:45:10")
                     LocalDateTime subStepStartedAt,
             @Schema(
                             description =
-                                    "마지막 실패 분류 코드 — ErrorResponse.code 와 동일 체계. " + "UI 가 lastError 메시지 대신 코드로 분기 가능.",
+                                    "마지막 실패 분류 코드: ErrorResponse.code 와 동일 체계. " + "UI 가 lastError 메시지 대신 코드로 분기 가능.",
                             example = "UPSTREAM_FAILED")
                     String lastErrorCode) {}
 }

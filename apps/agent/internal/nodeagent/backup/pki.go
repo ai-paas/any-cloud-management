@@ -1,6 +1,6 @@
-// Package backup — pki.go: /etc/kubernetes/pki 디렉토리 tar+gzip → server-streaming.
+// Package backup: pki.go: /etc/kubernetes/pki 디렉토리 tar+gzip → server-streaming.
 //
-// 보안 주의: PKI 는 cluster CA 비밀키 포함. 본 chunk 는 plaintext 로 stream — caller (cluster-agent
+// 보안 주의: PKI 는 cluster CA 비밀키 포함. 본 chunk 는 plaintext 로 stream: caller (cluster-agent
 // → backend) 가 storage 에 올리기 전 호스트의 KEK 로 반드시 encrypt.
 package backup
 
@@ -19,7 +19,7 @@ const (
 	DefaultPkiRoot = "/etc/kubernetes/pki"
 )
 
-// PkiBackupOptions — caller 가 채워서 RunPkiBackup 에 전달.
+// PkiBackupOptions: caller 가 채워서 RunPkiBackup 에 전달.
 type PkiBackupOptions struct {
 	// /etc/kubernetes/pki 기준 relative path. 비어 있으면 전체 tar.
 	// 예: ["ca.crt", "ca.key", "sa.key", "sa.pub", "etcd"]
@@ -37,7 +37,7 @@ func (o *PkiBackupOptions) applyDefaults() {
 	}
 }
 
-// RunPkiBackup — /etc/kubernetes/pki (또는 IncludePaths 부분) 을 tar.gz 으로 묶어 ChunkSink 로 stream.
+// RunPkiBackup: /etc/kubernetes/pki (또는 IncludePaths 부분) 을 tar.gz 으로 묶어 ChunkSink 로 stream.
 //
 // 절차:
 //  1. mktemp /tmp/pki-backup-*.tar.gz
@@ -97,7 +97,7 @@ func RunPkiBackup(ctx context.Context, opts PkiBackupOptions, sink ChunkSink) er
 	return streamFileChunks(f, opts.ChunkSize, totalSize, metadata, sink)
 }
 
-// tarPki — DefaultPkiRoot 또는 include_paths 의 각 항목을 tar 에 기록. 반환: (file 개수, 총 uncompressed size).
+// tarPki: DefaultPkiRoot 또는 include_paths 의 각 항목을 tar 에 기록. 반환: (file 개수, 총 uncompressed size).
 func tarPki(ctx context.Context, tw *tar.Writer, includePaths []string) (int, int64, error) {
 	roots := []string{DefaultPkiRoot}
 	if len(includePaths) > 0 {
@@ -121,7 +121,7 @@ func tarPki(ctx context.Context, tw *tar.Writer, includePaths []string) (int, in
 			if err != nil {
 				return err
 			}
-			// tar archive name 은 /etc/kubernetes/pki 기준 relative — restore 시 호환.
+			// tar archive name 은 /etc/kubernetes/pki 기준 relative: restore 시 호환.
 			rel, relErr := filepath.Rel("/etc/kubernetes/pki", path)
 			if relErr != nil {
 				rel = path

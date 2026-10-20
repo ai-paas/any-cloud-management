@@ -12,7 +12,7 @@
 //
 // Helm install/upgrade/uninstall concurrency lock:
 // 동일 (namespace, release) 의 lifecycle ops 를 per-key mutex 로 직렬화. helm SDK 자체는
-// serialize 안 함 — 두 caller 가 같은 key 로 동시 호출 시 "release already exists" 또는
+// serialize 안 함. 두 caller 가 같은 key 로 동시 호출 시 "release already exists" 또는
 // partial state 발생. install/upgrade/uninstall 모두 같은 mutex 공유.
 
 package controller
@@ -42,12 +42,12 @@ const (
 
 // Helm install/upgrade concurrency lock.
 //
-// 동일 release name 에 대한 동시 install/upgrade race 차단. Helm SDK 자체는 serialize 안 함 —
+// 동일 release name 에 대한 동시 install/upgrade race 차단. Helm SDK 자체는 serialize 안 함.
 // 두 caller 가 같은 (cluster, namespace, releaseName) 으로 동시 호출 시 "release already exists"
 // 또는 partial state 발생.
 //
 // per-key mutex pattern: releaseLocks map 이 string key → *sync.Mutex 보관. 동일 key 의 모든
-// 호출자가 같은 mutex 에 await. key 는 "namespace/release" — 다른 namespace 의 같은 이름은 OK.
+// 호출자가 같은 mutex 에 await. key 는 "namespace/release": 다른 namespace 의 같은 이름은 OK.
 //
 // releaseLocks lifetime 관리: entry 가 영구 잔존하면
 // dynamic release 이름 (tenant-prefixed, build-id 등) 환경에서 무한 증가 위험.
@@ -68,7 +68,7 @@ var (
 	cleanupOnce    sync.Once
 )
 
-// acquireReleaseLock — namespace/release 의 mutex 를 반환 (없으면 생성). 호출자는 즉시 Lock().
+// acquireReleaseLock: namespace/release 의 mutex 를 반환 (없으면 생성). 호출자는 즉시 Lock().
 // install/upgrade/uninstall 의 진입점에서 acquireReleaseLock(...).Lock() / defer Unlock() 사용.
 func acquireReleaseLock(namespace, release string) *sync.Mutex {
 	startReleaseLockCleanupOnce()
@@ -84,7 +84,7 @@ func acquireReleaseLock(namespace, release string) *sync.Mutex {
 	return &entry.mu
 }
 
-// dropReleaseLock — uninstall 성공 직후 호출. entry 제거. 다음 install 시 새 lock 생성 OK.
+// dropReleaseLock: uninstall 성공 직후 호출. entry 제거. 다음 install 시 새 lock 생성 OK.
 func dropReleaseLock(namespace, release string) {
 	key := namespace + "/" + release
 	releaseLocksMu.Lock()
@@ -92,8 +92,8 @@ func dropReleaseLock(namespace, release string) {
 	delete(releaseLocks, key)
 }
 
-// startReleaseLockCleanupOnce — 첫 acquireReleaseLock 호출 시 background goroutine 시작. TTL 초과한
-// entry 주기 정리. 단일 instance — 여러 호출 idempotent.
+// startReleaseLockCleanupOnce: 첫 acquireReleaseLock 호출 시 background goroutine 시작. TTL 초과한
+// entry 주기 정리. 단일 instance: 여러 호출 idempotent.
 func startReleaseLockCleanupOnce() {
 	cleanupOnce.Do(func() {
 		if releaseLockTTL <= 0 {
@@ -106,7 +106,7 @@ func startReleaseLockCleanupOnce() {
 				cutoff := time.Now().Add(-releaseLockTTL).UnixNano()
 				releaseLocksMu.Lock()
 				for k, e := range releaseLocks {
-					// Mutex 가 locked 인지 확인 불가 — lastUsedAt 만으로 판단. install 진행 중인 entry 는
+					// Mutex 가 locked 인지 확인 불가. lastUsedAt 만으로 판단. install 진행 중인 entry 는
 					// lastUsedAt 가 막 갱신됐으므로 TTL 미만 → 정리 안 됨. 진행 후엔 다음 cycle 에 정리.
 					if e.lastUsedAt < cutoff {
 						delete(releaseLocks, k)
@@ -127,7 +127,7 @@ func (d *Dispatcher) installAddon(ctx context.Context, cmd *agentv1.CommandReque
 	}
 	chartRef := getStringParam(cmd, "chart") // "repo/name" 형식.
 	// backend 가 helm_repo table 에서 미리 lookup 한 URL. 명시 시 helm SDK 의
-	// alias 검색 우회 — chart-museum-external 같이 agent ~/.config/helm/repositories.yaml 에
+	// alias 검색 우회: chart-museum-external 같이 agent ~/.config/helm/repositories.yaml 에
 	// 등록 안 된 backend-managed repo 도 정상 install.
 	repoUrlParam := getStringParam(cmd, "repoUrl")
 	// backend 가 chart .tgz 를 pre-fetch 해서 base64 로 push. agent 가 chartmuseum
@@ -152,7 +152,7 @@ func (d *Dispatcher) installAddon(ctx context.Context, cmd *agentv1.CommandReque
 	lock.Lock()
 	defer lock.Unlock()
 
-	// AllowList 통과 검사 — namespace + chart rule.
+	// AllowList 통과 검사: namespace + chart rule.
 	policy := d.allowlist.Snapshot()
 	if !policy.IsNamespaceAllowed(namespace) {
 		return errorResponse(agentv1.Status_PERMISSION_DENIED, "NAMESPACE_NOT_ALLOWED",
@@ -231,8 +231,8 @@ func (d *Dispatcher) installAddon(ctx context.Context, cmd *agentv1.CommandReque
 	return okResponse(result)
 }
 
-// upgradeAddon — 기존 release 를 새 chart version / values 로 업그레이드.
-// installAddon 과 거의 동일 logic — chart resolution + allowlist 검증 + release lock + helm SDK Upgrade.
+// upgradeAddon: 기존 release 를 새 chart version / values 로 업그레이드.
+// installAddon 과 거의 동일 logic: chart resolution + allowlist 검증 + release lock + helm SDK Upgrade.
 // release 미존재 시 helm SDK 가 error 반환 → caller 가 먼저 install 안내.
 func (d *Dispatcher) upgradeAddon(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {
 	if d.helm == nil {
@@ -261,7 +261,7 @@ func (d *Dispatcher) upgradeAddon(ctx context.Context, cmd *agentv1.CommandReque
 	lock.Lock()
 	defer lock.Unlock()
 
-	// AllowList — install 과 동일.
+	// AllowList: install 과 동일.
 	policy := d.allowlist.Snapshot()
 	if !policy.IsNamespaceAllowed(namespace) {
 		return errorResponse(agentv1.Status_PERMISSION_DENIED, "NAMESPACE_NOT_ALLOWED",
@@ -298,7 +298,7 @@ func (d *Dispatcher) upgradeAddon(ctx context.Context, cmd *agentv1.CommandReque
 		f.Close()
 	}
 
-	// values JSON string (optional) — installAddon 과 동일 패턴.
+	// values JSON string (optional). installAddon 과 동일 패턴.
 	var values map[string]interface{}
 	if valsRaw := getStringParam(cmd, "values"); valsRaw != "" {
 		if err := jsonUnmarshal(valsRaw, &values); err != nil {
@@ -367,13 +367,13 @@ func (d *Dispatcher) uninstallAddon(ctx context.Context, cmd *agentv1.CommandReq
 	}
 
 	// uninstall 도 동일 release lock.
-	// install / upgrade / uninstall 가 같은 mutex 공유 — 한 release 의 lifecycle ops 직렬화.
+	// install / upgrade / uninstall 가 같은 mutex 공유: 한 release 의 lifecycle ops 직렬화.
 	lock := acquireReleaseLock(namespace, releaseName)
 	lock.Lock()
 	defer lock.Unlock()
 
 	// backend 의 ChartService.uninstallRelease 가 보내는 옵션.
-	// 누락 / 잘못된 문자열은 안전한 default (false) 로 떨어짐 — 기존 caller 호환.
+	// 누락 / 잘못된 문자열은 안전한 default (false) 로 떨어짐: 기존 caller 호환.
 	keepHistory := parseBool(getStringParam(cmd, "keepHistory"))
 	wait := parseBool(getStringParam(cmd, "wait"))
 	if err := d.helm.Uninstall(ctx, helm.UninstallOptions{
@@ -428,10 +428,10 @@ func (d *Dispatcher) listHelmReleases(ctx context.Context, cmd *agentv1.CommandR
 	return okResponse(result)
 }
 
-// getHelmReleaseStatus — 단일 release 의 status. backend 의 ChartServiceImpl.getChartStatus
+// getHelmReleaseStatus: 단일 release 의 status. backend 의 ChartServiceImpl.getChartStatus
 // 가 helm CLI + kubeconfig fall-through 대신 사용. helm SDK 의 action.NewStatus 한 번 호출.
 //
-// AllowList — namespace 검증만 (read-only 명령). chart-level 검증은 install 에서만.
+// AllowList: namespace 검증만 (read-only 명령). chart-level 검증은 install 에서만.
 func (d *Dispatcher) getHelmReleaseStatus(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {
 	if d.helm == nil {
 		return errorResponse(agentv1.Status_AGENT_UNAVAILABLE, "HELM_CLIENT_NIL", "Helm client not initialized")
@@ -447,7 +447,7 @@ func (d *Dispatcher) getHelmReleaseStatus(ctx context.Context, cmd *agentv1.Comm
 	}
 	rel, err := d.helm.Status(ctx, namespace, release)
 	if err != nil {
-		// helm SDK 의 driver.ErrReleaseNotFound 는 error message 가 "release: not found" — distinguishable.
+		// helm SDK 의 driver.ErrReleaseNotFound 는 error message 가 "release: not found": distinguishable.
 		code := "HELM_STATUS_FAILED"
 		if strings.Contains(err.Error(), "not found") {
 			code = "HELM_NOT_FOUND"
@@ -468,10 +468,10 @@ func (d *Dispatcher) getHelmReleaseStatus(ctx context.Context, cmd *agentv1.Comm
 	return okResponse(result)
 }
 
-// getHelmReleaseHistory — release 의 revision 이력. backend 의 ChartServiceImpl.getReleaseHistory
+// getHelmReleaseHistory: release 의 revision 이력. backend 의 ChartServiceImpl.getReleaseHistory
 // 가 helm CLI + kubeconfig fall-through 대신 사용. helm SDK 의 action.NewHistory.
 //
-// AllowList — namespace 검증만 (read-only).
+// AllowList: namespace 검증만 (read-only).
 func (d *Dispatcher) getHelmReleaseHistory(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {
 	if d.helm == nil {
 		return errorResponse(agentv1.Status_AGENT_UNAVAILABLE, "HELM_CLIENT_NIL", "Helm client not initialized")
@@ -515,10 +515,10 @@ func (d *Dispatcher) getHelmReleaseHistory(ctx context.Context, cmd *agentv1.Com
 	return okResponse(result)
 }
 
-// rollbackHelmRelease — release 를 지정 revision 으로 복원. backend 의 ChartServiceImpl.rollbackRelease
+// rollbackHelmRelease: release 를 지정 revision 으로 복원. backend 의 ChartServiceImpl.rollbackRelease
 // 의 agent-side path. helm SDK action.NewRollback + 후속 status 호출.
 //
-// AllowList — namespace 검증만 (chart-level 은 install 에서만).
+// AllowList: namespace 검증만 (chart-level 은 install 에서만).
 func (d *Dispatcher) rollbackHelmRelease(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {
 	if d.helm == nil {
 		return errorResponse(agentv1.Status_AGENT_UNAVAILABLE, "HELM_CLIENT_NIL", "Helm client not initialized")
@@ -560,10 +560,10 @@ func (d *Dispatcher) rollbackHelmRelease(ctx context.Context, cmd *agentv1.Comma
 	return okResponse(result)
 }
 
-// listHelmReleaseResources — helm release (label app.kubernetes.io/instance=<release>) 가 만든
-// K8s 자원을 한 번에 enumerate. backend 가 11번 직렬 호출하던 HelmReleaseScanner 를 대체한다.
+// listHelmReleaseResources: helm release (label app.kubernetes.io/instance=<release>) 가 생성한
+// K8s 자원 일괄 enumerate. backend 의 11회 직렬 호출 방식 HelmReleaseScanner 대체.
 //
-// AllowList — namespace 만 검증 (read-only 명령 — chart-level 검증 불요).
+// AllowList: namespace 만 검증. read-only 명령이라 chart-level 검증 불필요.
 func (d *Dispatcher) listHelmReleaseResources(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {
 	if d.kube == nil {
 		return errorResponse(agentv1.Status_AGENT_UNAVAILABLE, "K8S_CLIENT_NIL", "K8s client not initialized")
@@ -604,8 +604,8 @@ func (d *Dispatcher) listHelmReleaseResources(ctx context.Context, cmd *agentv1.
 	return okResponse(result)
 }
 
-// isReleaseAbsent — 이미 없는 release 의 uninstall 은 성공으로 본다. 실패로 돌려주면 backend 의
-// addon row 가 DELETING 에서 빠져나오지 못해, 같은 이름으로 다시 설치할 수도 지울 수도 없다.
+// isReleaseAbsent: 존재하지 않는 release 의 uninstall 은 성공 처리. 실패 반환 시 backend 의
+// addon row 가 DELETING 에서 벗어나지 못해 동일 이름 재설치와 삭제 모두 불가.
 func isReleaseAbsent(err error) bool {
 	if err == nil {
 		return false

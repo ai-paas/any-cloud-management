@@ -1,4 +1,4 @@
-// Package server — node-agent 의 gRPC 서버 구현.
+// Package server: node-agent 의 gRPC 서버 구현.
 package server
 
 import (
@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// Service — Health + BackupEtcd / BackupPki 구현.
+// Service: Health + BackupEtcd / BackupPki 구현.
 type Service struct {
 	nav1.UnimplementedNodeAgentServer
 
@@ -25,7 +25,7 @@ type Service struct {
 	mu sync.Mutex
 }
 
-// New — production wiring. NodeName 은 K8s downward API 로 주입합니다 (env NODE_NAME).
+// New: production wiring. NodeName 은 K8s downward API 로 주입합니다 (env NODE_NAME).
 func New() *Service {
 	name := os.Getenv("NODE_NAME")
 	if name == "" {
@@ -37,7 +37,7 @@ func New() *Service {
 	}
 }
 
-// Register — gRPC server 에 본 service 를 등록합니다.
+// Register: gRPC server 에 이 service 등록.
 func (s *Service) Register(grpcServer *grpc.Server) {
 	nav1.RegisterNodeAgentServer(grpcServer, s)
 }
@@ -52,7 +52,7 @@ func (s *Service) Health(ctx context.Context, _ *nav1.HealthRequest) (*nav1.Heal
 	}, nil
 }
 
-// detectKubeletVersion — kubelet --version 출력의 두 번째 토큰. 실패 시 빈 문자열.
+// detectKubeletVersion: kubelet --version 출력의 두 번째 토큰. 실패 시 빈 문자열.
 func detectKubeletVersion(ctx context.Context) string {
 	out, err := exec.CommandContext(ctx, "kubelet", "--version").Output()
 	if err != nil {
@@ -86,7 +86,7 @@ func splitFields(s string) []string {
 	return out
 }
 
-// BackupEtcd — server-streaming. etcdctl snapshot save → chunk stream.
+// BackupEtcd: server-streaming. etcdctl snapshot save → chunk stream.
 // 본 노드가 control-plane 이 아니면 PERMISSION_DENIED. mu.TryLock 으로 중복 backup 차단.
 func (s *Service) BackupEtcd(req *nav1.BackupEtcdRequest, stream nav1.NodeAgent_BackupEtcdServer) error {
 	if err := backup.EnsureControlPlane(); err != nil {
@@ -121,8 +121,8 @@ func (s *Service) BackupEtcd(req *nav1.BackupEtcdRequest, stream nav1.NodeAgent_
 	return nil
 }
 
-// BackupPki — server-streaming. /etc/kubernetes/pki → tar.gz → chunk stream.
-// control-plane 검사 안 함 — 모든 노드에 PKI 일부가 있을 수 있음 (kubelet client cert 등).
+// BackupPki: server-streaming. /etc/kubernetes/pki → tar.gz → chunk stream.
+// control-plane 검사 안 함. 모든 노드에 PKI 일부가 있을 수 있음 (kubelet client cert 등).
 // caller (cluster-agent) 가 의미 있는 노드 (master) 만 선택할 책임.
 func (s *Service) BackupPki(req *nav1.BackupPkiRequest, stream nav1.NodeAgent_BackupPkiServer) error {
 	if !s.mu.TryLock() {
@@ -150,7 +150,7 @@ func (s *Service) BackupPki(req *nav1.BackupPkiRequest, stream nav1.NodeAgent_Ba
 	return nil
 }
 
-// ListenAddress — DaemonSet 의 hostPort 또는 podIP 에 바인딩될 주소. NODE_AGENT_PORT 환경변수 또는 default.
+// ListenAddress: DaemonSet 의 hostPort 또는 podIP 에 바인딩될 주소. NODE_AGENT_PORT 환경변수 또는 default.
 func ListenAddress() string {
 	port := os.Getenv("NODE_AGENT_PORT")
 	if port == "" {

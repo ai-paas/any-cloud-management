@@ -37,7 +37,7 @@ func agentModeOf(manifest string) []string {
 }
 
 // single 은 한 pod 가 모든 명령을 처리한다. core 로 선언하면 그 pod 가 스스로 쓰기 명령을
-// 거부해 파드 생성도 애드온 설치도 되지 않는다 — 실제로 그렇게 막혔다.
+// 거부해 파드 생성도 애드온 설치도 되지 않는다. 실제로 그렇게 막혔다.
 func TestSingleDeploymentDoesNotDeclareItselfCore(t *testing.T) {
 	modes := agentModeOf(render(t))
 
@@ -76,7 +76,7 @@ func installerRules(manifest string) string {
 	return rest
 }
 
-// 노드 셸은 임시 파드를 만들어 붙는다. 권한이 없으면 터미널 기능 전체가 forbidden 으로 죽는다 —
+// 노드 셸은 임시 파드를 만들어 붙는다. 권한이 없으면 터미널 기능 전체가 forbidden 으로 죽는다.
 // "cannot create resource pods in namespace kube-system" 으로 실제로 막혔다.
 func TestInstallerCanManageDebugPods(t *testing.T) {
 	rules := installerRules(render(t))

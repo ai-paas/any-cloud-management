@@ -13,18 +13,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Addon enqueue orchestration — 여러 caller (cluster ACTIVE hook, REST API add/retry, backfill
+ * Addon enqueue orchestration: 여러 caller (cluster ACTIVE hook, REST API add/retry, backfill
  * admin endpoint) 가 공유하는 single entry point.
  *
  * <p>책임:
  * <ol>
- *   <li>대상 addon state 검증 — 이미 INSTALLING/SUCCEEDED 면 skip (idempotency).</li>
- *   <li>OperationEntity 생성 (LRO) — frontend SSE 구독용 id 반환.</li>
+ *   <li>대상 addon state 검증: 이미 INSTALLING/SUCCEEDED 면 skip (idempotency).</li>
+ *   <li>OperationEntity 생성 (LRO). frontend SSE 구독용 id 반환.</li>
  *   <li>addon row state → ENQUEUED + lastOperationId set.</li>
  *   <li>{@link AddonInstallPublisher} 호출 → RabbitMQ broker 적재.</li>
  * </ol>
  *
- * <p>본 service 는 publisher 직접 호출 대신의 thin layer — caller 가 RabbitMQ 의존 / Operation DB
+ * <p>본 service 는 publisher 직접 호출 대신의 thin layer: caller 가 RabbitMQ 의존 / Operation DB
  * 의존을 모두 잊고 cluster/addon id 만 다루도록.
  */
 @Slf4j
@@ -55,7 +55,7 @@ public class AddonOrchestrator {
         return enqueued;
     }
 
-    /** 단일 addon enqueue — REST POST 또는 retry 시점에 호출. */
+    /** 단일 addon enqueue: REST POST 또는 retry 시점에 호출. */
     @Transactional
     public OperationEntity enqueueInstall(String addonId) {
         ClusterAddonEntity addon = addonRepository
@@ -68,7 +68,7 @@ public class AddonOrchestrator {
         return enqueueInstallSingle(addon);
     }
 
-    /** uninstall enqueue — DELETE endpoint 가 호출. */
+    /** uninstall enqueue: DELETE endpoint 가 호출. */
     @Transactional
     public OperationEntity enqueueUninstall(String addonId) {
         ClusterAddonEntity addon = addonRepository

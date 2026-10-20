@@ -1,12 +1,12 @@
-// Package cleanup — TTL annotation 기반 ephemeral resource sweeper.
+// Package cleanup: TTL annotation 기반 ephemeral resource sweeper.
 //
 // debug pod 같이 short-lived 자원이 잊혀지지 않도록 자기 cluster 안에서 주기적으로 만료된 pod 자동
-// 삭제 — 운영자 개입 0회. annotation parse 실패는 skip + log (보수적: 신뢰할 수 없으면 안 지움).
+// 삭제: 운영자 개입 0회. annotation parse 실패는 skip + log (보수적: 신뢰할 수 없으면 안 지움).
 //
 // 보호:
 //   - 권한은 agent SA 가 이미 보유한 pod list/delete 만 사용 (RBAC 추가 X).
 //   - label selector `app.kubernetes.io/managed-by=aipaas-cluster-agent` 로 본 agent 가 만든
-//     자원만 — 다른 워크로드 영향 X.
+//     자원만: 다른 워크로드 영향 X.
 
 package cleanup
 
@@ -20,17 +20,17 @@ import (
 )
 
 const (
-	// ManagedByLabel — CreateNodeDebugPod 가 부여하는 label 과 매칭.
+	// ManagedByLabel: CreateNodeDebugPod 가 부여하는 label 과 매칭.
 	ManagedByLabel = "app.kubernetes.io/managed-by=aipaas-cluster-agent"
 
-	// ExpiresAtAnnotation — 만료 시각 (RFC3339). 미존재 = skip.
+	// ExpiresAtAnnotation: 만료 시각 (RFC3339). 미존재 = skip.
 	ExpiresAtAnnotation = "aipaas.io/expires-at"
 
-	// DefaultInterval — 5 분 주기. cleanup 지연이 보안 critical 은 아님 — TTL 안에서 약간 늦는 OK.
+	// DefaultInterval: 5 분 주기. cleanup 지연이 보안 critical 은 아님: TTL 안에서 약간 늦는 OK.
 	DefaultInterval = 5 * time.Minute
 )
 
-// Sweeper — 주기적으로 만료된 pod 삭제. K8s client 만 의존 (backend 와 무관, agent 단독 동작).
+// Sweeper: 주기적으로 만료된 pod 삭제. K8s client 만 의존 (backend 와 무관, agent 단독 동작).
 type Sweeper struct {
 	kube     k8s.Client
 	interval time.Duration
@@ -43,8 +43,8 @@ func NewSweeper(kube k8s.Client, interval time.Duration) *Sweeper {
 	return &Sweeper{kube: kube, interval: interval}
 }
 
-// Run — context 종료까지 주기 sweep. ctx.Done() 시 return.
-// kube == nil 이면 즉시 return (k8s 미가용 cluster — 다른 명령들도 AGENT_UNAVAILABLE).
+// Run: context 종료까지 주기 sweep. ctx.Done() 시 return.
+// kube == nil 이면 즉시 return (k8s 미가용 cluster: 다른 명령들도 AGENT_UNAVAILABLE).
 func (s *Sweeper) Run(ctx context.Context) {
 	if s.kube == nil {
 		slog.Info("debug pod sweeper disabled: k8s client unavailable")
@@ -67,7 +67,7 @@ func (s *Sweeper) Run(ctx context.Context) {
 	}
 }
 
-// sweepOnce — 1 회 sweep 수행. 결과 통계는 log 로만.
+// sweepOnce: 1 회 sweep 수행. 결과 통계는 log 로만.
 func (s *Sweeper) sweepOnce(ctx context.Context) {
 	listCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -85,7 +85,7 @@ func (s *Sweeper) sweepOnce(ctx context.Context) {
 	for _, pod := range pods {
 		expStr, ok := pod.Annotations[ExpiresAtAnnotation]
 		if !ok {
-			// annotation 미존재 — 보수적으로 skip (다른 path 로 생성된 aipaas-managed pod 보호).
+			// annotation 미존재: 보수적으로 skip (다른 path 로 생성된 aipaas-managed pod 보호).
 			continue
 		}
 		exp, err := time.Parse(time.RFC3339, expStr)
@@ -118,7 +118,7 @@ func (s *Sweeper) sweepOnce(ctx context.Context) {
 	}
 }
 
-// deletePod — agent 의 기존 DeleteResource 재사용. zero-grace 로 즉시 삭제 (사용자 shell 이
+// deletePod: agent 의 기존 DeleteResource 재사용. zero-grace 로 즉시 삭제 (사용자 shell 이
 // 이미 만료된 debug pod 라 graceful drain 불필요).
 func (s *Sweeper) deletePod(ctx context.Context, namespace, name string) error {
 	deleteCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -133,5 +133,5 @@ func (s *Sweeper) deletePod(ctx context.Context, namespace, name string) error {
 	})
 }
 
-// _ — metav1 unused import 회피 (test 에서 ObjectMeta 작성 위해 노출).
+// _: metav1 unused import 회피 (test 에서 ObjectMeta 작성 위해 노출).
 var _ = metav1.ObjectMeta{}

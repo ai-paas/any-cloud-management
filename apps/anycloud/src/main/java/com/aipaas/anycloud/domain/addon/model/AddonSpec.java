@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * Frontend 가 보내는 per-cluster addon spec — cluster 생성 시 또는 POST addon endpoint.
+ * Frontend 가 보내는 per-cluster addon spec: cluster 생성 시 또는 POST addon endpoint.
  *
  * @param type          installer strategy dispatch key (required).
  * @param catalogId     addons.yaml 의 id (optional, custom 일 때 null).
@@ -37,7 +37,7 @@ public record AddonSpec(
         @Size(max = 32) @Schema(description = "Chart version override", example = "65.0.0") String chartVersion,
         @Size(max = 512)
                 @Schema(
-                        description = "M8 — explicit repo URL (alias resolve 우회)",
+                        description = "M8: explicit repo URL (alias resolve 우회)",
                         example = "https://prometheus-community.github.io/helm-charts")
                 String repoUrl,
         @Schema(description = "Values JSON/YAML override") String valuesYaml,

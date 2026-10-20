@@ -1,7 +1,7 @@
 // PodExec orchestrator 회귀 보호 (allowlist 거부 / namespace 화이트리스트).
 //
 // 본 테스트는 k8s.Client 를 stub 으로 주입하므로 실제 K8s API 호출 없음. Backend gRPC 도
-// in-process AgentRuntime stub server 로 대체 — 첫 ExecPacket 만 검증.
+// in-process AgentRuntime stub server 로 대체: 첫 ExecPacket 만 검증.
 package exec
 
 import (
@@ -86,7 +86,7 @@ func startExecServer(t *testing.T) (string, *execStub, func()) {
 	}
 }
 
-// ---- k8s.Client stub — ExecInPod 의 동작만 검증 ----
+// ---- k8s.Client stub: ExecInPod 의 동작만 검증 ----
 
 type kubeStub struct {
 	k8s.Client     // embed to inherit unused method nil-ptr behavior.

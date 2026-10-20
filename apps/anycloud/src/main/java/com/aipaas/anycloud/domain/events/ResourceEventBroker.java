@@ -9,7 +9,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-/** 열려 있는 모든 스트림에 변경 신호를 뿌린다. */
+/** 활성 스트림 전체에 변경 신호 전파. */
 @Slf4j
 @Component
 public class ResourceEventBroker {
@@ -36,8 +36,8 @@ public class ResourceEventBroker {
     }
 
     /**
-     * 조용한 스트림은 프록시가 끊는다 (nginx proxy_read_timeout 900s).
-     * comment 프레임이라 클라이언트의 message 핸들러를 건드리지 않는다.
+     * 유휴 스트림은 프록시가 종료 (nginx proxy_read_timeout 900s).
+     * comment 프레임이라 클라이언트의 message 핸들러 미호출.
      */
     @Scheduled(fixedDelayString = "${anycloud.events.heartbeat-ms:20000}")
     public void heartbeat() {

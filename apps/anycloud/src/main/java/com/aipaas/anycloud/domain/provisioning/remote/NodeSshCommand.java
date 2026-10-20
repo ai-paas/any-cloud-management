@@ -6,12 +6,12 @@ import java.util.regex.Pattern;
 /**
  * 웹 터미널이 노드에 붙을 때 쓰는 ssh 명령.
  *
- * <p>대화형 셸이라 원격에 TTY 를 붙인다. 비대화형 실행과 달리 명령을 붙이지 않는다 — 붙이면
- * 그것만 실행하고 끊긴다.
+ * <p>대화형 셸이므로 원격 TTY 할당. 비대화형 실행과 달리 명령 미첨부. 첨부 시 해당 명령만
+ * 실행하고 연결 종료.
  */
 public final class NodeSshCommand {
 
-    /** host 는 Pulumi outputs 에서 온다. 옵션처럼 생긴 값이 그대로 ssh 인자가 되면 안 된다. */
+    /** host 는 Pulumi outputs 유래. 옵션 형태 값의 ssh 인자 전달 금지. */
     private static final Pattern SAFE_HOST = Pattern.compile("[A-Za-z0-9][A-Za-z0-9.\\-]*");
 
     private static final Pattern SAFE_USER = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._\\-]*");
@@ -21,11 +21,10 @@ public final class NodeSshCommand {
     private NodeSshCommand() {}
 
     /**
-     * ssh 인자로 쓸 수 있는 host 만 통과시킨다.
+     * ssh 인자로 사용 가능한 host 만 통과.
      *
-     * <p>{@code ProcessBuilder} 는 셸을 거치지 않으므로 메타문자는 문제가 아니지만, {@code -}
-     * 로 시작하는 값은 ssh 가 옵션으로 읽는다. {@code -oProxyCommand=...} 가 들어오면 임의의
-     * 명령이 실행된다.
+     * <p>{@code ProcessBuilder} 는 셸을 경유하지 않아 메타문자는 무해하나, {@code -} 로 시작하는
+     * 값은 ssh 가 옵션으로 해석. {@code -oProxyCommand=...} 입력 시 임의 명령 실행.
      */
     public static String requireSafeHost(String host) {
         if (host == null || !SAFE_HOST.matcher(host).matches()) {
@@ -42,7 +41,7 @@ public final class NodeSshCommand {
         return build(privateKeyPath, sshUser, host, jump, DEFAULT_PORT);
     }
 
-    /** 노드가 사설망이면 점프 호스트를 거친다. 프로비저닝과 같은 길을 쓴다. */
+    /** 사설망 노드는 점프 호스트 경유. 프로비저닝과 동일 경로 사용. */
     public static List<String> build(String privateKeyPath, String sshUser, String host, SshJump jump, int port) {
         requireSafeHost(host);
         if (sshUser == null || !SAFE_USER.matcher(sshUser).matches()) {
@@ -50,7 +49,7 @@ public final class NodeSshCommand {
         }
         List<String> cmd = new java.util.ArrayList<>(List.of(
                 "ssh",
-                // 대화형 셸이라 원격 TTY 가 필요하다. -t 하나로는 stdin 이 파이프일 때 붙지 않는다.
+                // 대화형 셸이라 원격 TTY 필요. -t 단일 지정은 stdin 이 파이프일 때 미할당.
                 "-tt",
                 "-o",
                 "StrictHostKeyChecking=no",
@@ -65,7 +64,7 @@ public final class NodeSshCommand {
             cmd.add("-p");
             cmd.add(String.valueOf(port));
         }
-        // -J 는 대상 앞에 와야 한다. 대상 뒤에 붙이면 ssh 가 원격 명령으로 읽는다.
+        // -J 는 대상 앞에 배치. 대상 뒤 배치 시 ssh 가 원격 명령으로 해석.
         cmd.addAll(SshJumpOptions.args(jump));
         cmd.add(sshUser + "@" + host);
         return List.copyOf(cmd);

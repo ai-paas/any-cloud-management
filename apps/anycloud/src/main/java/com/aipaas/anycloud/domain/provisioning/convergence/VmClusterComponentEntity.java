@@ -26,8 +26,8 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-// ddl-auto 로 스키마를 만드는 환경(통합 테스트)과 Flyway 가 같은 제약을 갖도록 명시한다.
-// 엔티티에만 없으면 관측이 매 주기 중복 행을 만들어도 아무도 막지 못한다.
+// ddl-auto 로 스키마를 생성하는 환경(통합 테스트)과 Flyway 의 제약을 일치시키기 위한 명시.
+// 엔티티에 누락되면 관측이 매 주기 중복 행을 생성해도 차단 수단 부재.
 @Table(
         name = "vm_cluster_component",
         uniqueConstraints =
@@ -40,8 +40,8 @@ public class VmClusterComponentEntity implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
-    // "vmcc-" + UUID = 41자. Flyway 의 varchar(64) 와 반드시 같아야 한다 — ddl-auto 로 스키마를
-    // 만드는 환경에서 값이 작으면 insert 가 항상 깨진다.
+    // "vmcc-" + UUID = 41자. Flyway 의 varchar(64) 와 일치 필수. ddl-auto 로 스키마를 생성하는
+    // 환경에서 값이 작으면 insert 항상 실패.
     @Column(name = "id", nullable = false, length = 64)
     private String id;
 
@@ -73,7 +73,7 @@ public class VmClusterComponentEntity implements Serializable {
     @Column(name = "last_applied_at")
     private ZonedDateTime lastAppliedAt;
 
-    /** CSP stderr 는 수 KB 다. varchar 로 자르면 진단이 불가능해진다. */
+    /** CSP stderr 는 수 KB 규모. varchar 로 절단 시 진단 불가. */
     @Column(name = "last_error", columnDefinition = "TEXT")
     private String lastError;
 

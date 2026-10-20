@@ -5,17 +5,17 @@ import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
 public interface ClusterComponentRepairService {
 
     /**
-     * 구성 요소를 즉시 재적용. 백오프를 무시하고 시도 회계를 초기화한다.
+     * 구성 요소 즉시 재적용. 백오프 무시, 시도 횟수 초기화.
      *
-     * <p>운영자의 명시 요청 경로다. 조정 루프가 백오프 때문에 한 시간 뒤에나 다시 시도하는 상황에서
-     * 원인을 고친 직후 바로 확인할 수단이 필요하다.
+     * <p>운영자 명시 요청 경로. 조정 루프가 백오프로 1시간 후 재시도하는 상황에서 원인 조치
+     * 직후 확인할 수단 필요.
      */
     void repair(VmClusterEntity vmCluster, ComponentType type);
 
     /**
-     * 조정 루프용. {@link #repair} 와 달리 시도 회계를 누적하고 백오프를 건다. 예외를 던지지 않는다.
+     * 조정 루프용. {@link #repair} 와 달리 시도 횟수 누적, 백오프 적용. 예외 미전파.
      *
-     * @return 이번 주기에 적용을 시도했으면 true
+     * @return 이번 주기에 적용을 시도한 경우 true
      */
     boolean repairIfDue(VmClusterEntity vmCluster, ComponentType type);
 }

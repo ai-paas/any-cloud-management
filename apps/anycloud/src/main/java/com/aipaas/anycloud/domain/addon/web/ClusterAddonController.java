@@ -104,7 +104,7 @@ public class ClusterAddonController {
     // 에서도 안전.
     @PostMapping("/enqueue")
     @Operation(
-            summary = "Backfill — 모든 PENDING/FAILED enqueue",
+            summary = "Backfill: 모든 PENDING/FAILED enqueue",
             description = "ACTIVE 인 cluster 에 신규 addon 추가 직후 또는 운영 중 일괄 enqueue.")
     public ResponseEntity<ApiSuccessResponse<Integer>> enqueueAll(
             @PathVariable @NotBlank @Pattern(regexp = CLUSTER_REGEXP) @Size(max = CLUSTER_MAX) String clusterName) {
@@ -113,7 +113,7 @@ public class ClusterAddonController {
                 .body(ApiSuccessResponse.of(HttpStatus.ACCEPTED.value(), "enqueued " + count + " addon(s)", count));
     }
 
-    /** — Addon 의 현재 active operation 식별자 단축 lookup. */
+    /** Addon 의 현재 active operation 식별자 단축 lookup. */
     @GetMapping("/{addonId}/operation")
     @Operation(
             summary = "Addon 의 latest operation 식별자",
@@ -133,6 +133,6 @@ public class ClusterAddonController {
                 new OperationView(opId, "INSTALL_ADDON", addon.state().name())));
     }
 
-    /** Minimal projection — frontend SSE subscribe 용 operation id + type/state. */
+    /** Minimal projection: frontend SSE subscribe 용 operation id + type/state. */
     public record OperationView(String id, String type, String state) {}
 }

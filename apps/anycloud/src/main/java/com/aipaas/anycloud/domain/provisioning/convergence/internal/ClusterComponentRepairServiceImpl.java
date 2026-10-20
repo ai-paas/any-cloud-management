@@ -40,8 +40,8 @@ public class ClusterComponentRepairServiceImpl implements ClusterComponentRepair
 
         int attempt = (row.getAttempts() == null ? 0 : row.getAttempts()) + 1;
         row.setAttempts(attempt);
-        // 성공해도 백오프를 건다 — 적용이 곧 준비 완료가 아니라서 다음 probe 전에 다시 밀어 넣으면
-        // 같은 매니페스트를 5분마다 재적용하게 된다.
+        // 성공 시에도 백오프 적용. 적용과 준비 완료는 별개라 다음 probe 전에 재투입하면 동일
+        // 매니페스트를 5분마다 재적용.
         row.setNextAttemptAt(now.plus(backoff(attempt)));
         try {
             applyComponent(vmCluster, type);
@@ -61,7 +61,7 @@ public class ClusterComponentRepairServiceImpl implements ClusterComponentRepair
         return true;
     }
 
-    /** 지수 백오프. 상한을 두지 않으면 오래된 클러스터가 사실상 조정에서 빠진다. */
+    /** 지수 백오프. 상한 부재 시 재시도 간격이 일 단위가 되어 조정 정지와 구분 불가. */
     private Duration backoff(int attempt) {
         long minutes = 1L << Math.min(attempt - 1, BACKOFF_MAX_SHIFT);
         return Duration.ofMinutes(Math.min(minutes, BACKOFF_CAP.toMinutes()));
@@ -83,13 +83,13 @@ public class ClusterComponentRepairServiceImpl implements ClusterComponentRepair
     public void repair(VmClusterEntity vmCluster, ComponentType type) {
         applyComponent(vmCluster, type);
 
-        // 시도 회계를 초기화한다 — 운영자가 원인을 고쳤다는 전제이므로 이전 백오프를 끌고 가지 않는다.
+        // 시도 횟수 초기화. 운영자의 원인 조치를 전제하므로 이전 백오프 미승계.
         repository.findByVmClusterIdAndComponentType(vmCluster.getId(), type).ifPresent(row -> {
             row.setAttempts(0);
             row.setNextAttemptAt(null);
             row.setLastAppliedAt(ZonedDateTime.now(clock));
             row.setLastError(null);
-            // health 는 갱신하지 않는다. 적용 성공이 준비 완료는 아니며 다음 probe 가 판정한다.
+            // health 미갱신. 적용 성공과 준비 완료는 별개이며 판정은 다음 probe 담당.
             repository.save(row);
         });
         log.info("구성 요소 수동 재적용 cluster={} type={}", vmCluster.getClusterName(), type);

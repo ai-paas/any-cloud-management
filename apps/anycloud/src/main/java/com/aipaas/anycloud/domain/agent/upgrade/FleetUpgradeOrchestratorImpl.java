@@ -24,16 +24,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * fleet 전체 agent upgrade 를 wave 단위로 순서대로 진행합니다.
+ * fleet 전체 agent upgrade 를 wave 단위 순차 진행.
  *
- * <p>{@link #submit} 이 PLANNED row 만 만들고 끝납니다. 실제 진행은 15초 주기 {@link #drive} 가
- * 한 tick 에 한 걸음씩 밉니다. 한 wave 의 cluster 가 전부 SUCCEEDED 나 FAILED 가 돼야 다음 wave 로
- * 넘어가고, 그 wave 의 실패율이 {@code failureThreshold} 를 넘으면 run 전체를 중단합니다.
+ * <p>{@link #submit} 은 PLANNED row 생성까지만 수행. 실제 진행은 15초 주기 {@link #drive} 가
+ * 단계별로 처리. 한 wave 의 cluster 가 전부 SUCCEEDED 또는 FAILED 에 도달해야 다음 wave 진입,
+ * 해당 wave 실패율이 {@code failureThreshold} 초과 시 run 전체 중단.
  *
- * <p>cluster 마다 upgrade_wave 가 하나라 같은 cluster 가 두 wave 에 걸리지 않습니다.
+ * <p>cluster 당 upgrade_wave 는 하나라 동일 cluster 의 중복 wave 배정 없음.
  *
- * <p>{@link #drive} 에는 ShedLock 이 걸려 있습니다. 없으면 replica 수만큼 같은 wave 를 동시에
- * 밀어 concurrency 상한이 무의미해집니다.
+ * <p>{@link #drive} 에 ShedLock 적용. 미적용 시 replica 수만큼 동일 wave 를 동시 실행해
+ * concurrency 상한 무효화.
  */
 @Slf4j
 @Service
@@ -50,7 +50,7 @@ public class FleetUpgradeOrchestratorImpl implements FleetUpgradeOrchestrator {
      * @param targetImage    target docker image
      * @param waves          처리할 wave 목록 (예: [CANARY, STAGING, GENERAL])
      * @param concurrency    wave 안 동시 진행 cluster 수 (1-20)
-     * @param failureThreshold 단일 wave failure rate (%) — 초과 시 자동 abort (1-100)
+     * @param failureThreshold 단일 wave failure rate (%). 초과 시 자동 abort (1-100)
      * @param createdBy      audit (REST caller)
      */
     @Transactional
@@ -76,7 +76,7 @@ public class FleetUpgradeOrchestratorImpl implements FleetUpgradeOrchestrator {
         if (waves == null || waves.isEmpty()) {
             throw new CustomException("waves required", ErrorCode.INVALID_INPUT_VALUE);
         }
-        // dedup + 자동 정렬 (CANARY → STAGING → GENERAL — PAUSED 는 거부)
+        // dedup + 자동 정렬 (CANARY → STAGING → GENERAL: PAUSED 는 거부)
         LinkedHashSet<ClusterAgentUpgradeWave> ordered = new LinkedHashSet<>();
         waves.stream()
                 .sorted((a, b) -> Integer.compare(a.orderRank(), b.orderRank()))
@@ -129,7 +129,7 @@ public class FleetUpgradeOrchestratorImpl implements FleetUpgradeOrchestrator {
     }
 
     // ============================================================================
-    // Scheduler — 15초 주기로 active run 처리.
+    // Scheduler: 15초 주기로 active run 처리.
     // ============================================================================
 
     @Scheduled(
@@ -159,11 +159,11 @@ public class FleetUpgradeOrchestratorImpl implements FleetUpgradeOrchestrator {
     /**
      * 한 run 의 진행을 한 단계 전진시킨다. 5개 helper 로 분리:
      * <ol>
-     *   <li>{@link #transitionToRunningIfPlanned} — PLANNED → RUNNING, totalClusters 산정</li>
-     *   <li>{@link #resolveOrInitCurrentWave} — currentWave 결정 (또는 ABORT/COMPLETED 종결)</li>
-     *   <li>{@link #collectWavePrimaries} — wave 의 dedup cluster map</li>
-     *   <li>{@link #triggerIdleClusters} — concurrency-bounded trigger</li>
-     *   <li>{@link #advanceWaveOrFinishRun} — wave 완료 평가 + threshold + 다음 wave / COMPLETED</li>
+     *   <li>{@link #transitionToRunningIfPlanned}: PLANNED → RUNNING, totalClusters 산정</li>
+     *   <li>{@link #resolveOrInitCurrentWave}: currentWave 결정 (또는 ABORT/COMPLETED 종결)</li>
+     *   <li>{@link #collectWavePrimaries}: wave 의 dedup cluster map</li>
+     *   <li>{@link #triggerIdleClusters}: concurrency-bounded trigger</li>
+     *   <li>{@link #advanceWaveOrFinishRun}: wave 완료 평가 + threshold + 다음 wave / COMPLETED</li>
      * </ol>
      * 각 helper 는 own state-transition 직후 자체 save (durability checkpoint). main 은 trigger 후
      * 최종 save 만.
@@ -176,7 +176,7 @@ public class FleetUpgradeOrchestratorImpl implements FleetUpgradeOrchestrator {
 
         ClusterAgentUpgradeWave currentWave = resolveOrInitCurrentWave(run, waves, now);
         if (currentWave == null) {
-            return; // ABORT 또는 COMPLETED — helper 가 이미 save + return.
+            return; // ABORT 또는 COMPLETED: helper 가 이미 save + return.
         }
 
         Map<String, ClusterAgentEntity> primaryByCluster = collectWavePrimaries(currentWave);
@@ -185,7 +185,7 @@ public class FleetUpgradeOrchestratorImpl implements FleetUpgradeOrchestrator {
         runRepository.save(run);
     }
 
-    /** Step 1 — PLANNED 면 RUNNING 으로 전환 + totalClusters 계산 + save. */
+    /** Step 1: PLANNED 면 RUNNING 으로 전환 + totalClusters 계산 + save. */
     private void transitionToRunningIfPlanned(
             FleetUpgradeRunEntity run, List<ClusterAgentUpgradeWave> waves, LocalDateTime now) {
         if (run.getStatus() != FleetUpgradeRunStatus.PLANNED) {
@@ -193,7 +193,7 @@ public class FleetUpgradeOrchestratorImpl implements FleetUpgradeOrchestrator {
         }
         run.setStatus(FleetUpgradeRunStatus.RUNNING);
         run.setStartedAt(now);
-        // totalClusters — 모든 wave 의 cluster 합 (dedup). N 개 wave × per-wave query 가 N+1 이라
+        // totalClusters: 모든 wave 의 cluster 합 (dedup). N 개 wave × per-wave query 가 N+1 이라
         // IN 으로 한 번에 조회 (운영자가 wave 5+ 선언한 fleet 에서 측정 가능한 지연 회피).
         Set<String> allTargets = clusterAgentRepository.findByUpgradeWaveIn(waves).stream()
                 .map(ClusterAgentEntity::getClusterName)
@@ -204,7 +204,7 @@ public class FleetUpgradeOrchestratorImpl implements FleetUpgradeOrchestrator {
     }
 
     /**
-     * Step 2 — currentWave 결정.
+     * Step 2: currentWave 결정.
      * <ul>
      *   <li>이미 set + valid → 반환.</li>
      *   <li>이미 set + invalid (DB corruption) → ABORTED + save + return null.</li>
@@ -242,7 +242,7 @@ public class FleetUpgradeOrchestratorImpl implements FleetUpgradeOrchestrator {
         return first;
     }
 
-    /** Step 3 — 현재 wave 의 cluster 목록 — 중복 제거 (HA replica 의 첫 row 만). */
+    /** Step 3: 현재 wave 의 cluster 목록: 중복 제거 (HA replica 의 첫 row 만). */
     private Map<String, ClusterAgentEntity> collectWavePrimaries(ClusterAgentUpgradeWave wave) {
         Map<String, ClusterAgentEntity> primaryByCluster = new HashMap<>();
         for (ClusterAgentEntity e : clusterAgentRepository.findByUpgradeWave(wave)) {
@@ -252,7 +252,7 @@ public class FleetUpgradeOrchestratorImpl implements FleetUpgradeOrchestrator {
     }
 
     /**
-     * Step 4 — IDLE 인 cluster 중 최대 concurrency 개수 trigger. 자체 save 안 함 — main 의 final save
+     * Step 4: IDLE 인 cluster 중 최대 concurrency 개수 trigger. 자체 save 안 함. main 의 final save
      * 가 trigger 의 skippedCount / failedCount 누적분 함께 commit.
      */
     private void triggerIdleClusters(FleetUpgradeRunEntity run, Map<String, ClusterAgentEntity> primaryByCluster) {
@@ -269,7 +269,7 @@ public class FleetUpgradeOrchestratorImpl implements FleetUpgradeOrchestrator {
             if (e.getUpgradeStatus() == ClusterAgentUpgradeStatus.IDLE
                     || e.getUpgradeStatus() == ClusterAgentUpgradeStatus.SUCCEEDED
                     || e.getUpgradeStatus() == ClusterAgentUpgradeStatus.FAILED) {
-                // SUCCEEDED — 이미 target image 면 skip. 다른 image 면 (이전 run 의 result)
+                // SUCCEEDED: 이미 target image 면 skip. 다른 image 면 (이전 run 의 result)
                 // 재시도 가능. agentUpgradeService.upgradeCluster 가 same-image no-op 처리.
                 if (!isAlreadyOnTarget(e, run.getTargetImage())) {
                     idle.add(e);
@@ -293,7 +293,7 @@ public class FleetUpgradeOrchestratorImpl implements FleetUpgradeOrchestrator {
         }
     }
 
-    /** Step 5 — wave 종결 평가 + threshold 위반 시 ABORT + threshold OK 시 다음 wave / 마지막이면 COMPLETED. wave 진행 중이면 no-op (main 의 final save 가 trigger 변경분 commit). */
+    /** Step 5: wave 종결 평가 + threshold 위반 시 ABORT + threshold OK 시 다음 wave / 마지막이면 COMPLETED. wave 진행 중이면 no-op (main 의 final save 가 trigger 변경분 commit). */
     private void advanceWaveOrFinishRun(
             FleetUpgradeRunEntity run,
             Map<String, ClusterAgentEntity> primaryByCluster,
@@ -328,7 +328,7 @@ public class FleetUpgradeOrchestratorImpl implements FleetUpgradeOrchestrator {
             run.setCompletedAt(now);
             run.setLastError("Wave " + currentWave + " failure rate " + failurePct + "% >= threshold "
                     + run.getFailureThreshold() + "%");
-            runRepository.save(run); // ABORT 는 terminal — 즉시 commit.
+            runRepository.save(run); // ABORT 는 terminal: 즉시 commit.
             log.warn("Fleet upgrade ABORTED run_id={} wave={} failure_pct={}", run.getRunId(), currentWave, failurePct);
             return;
         }

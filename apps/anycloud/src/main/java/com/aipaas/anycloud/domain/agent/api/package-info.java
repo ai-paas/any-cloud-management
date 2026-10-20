@@ -3,8 +3,8 @@
  *
  * <p>Sub-package:
  * <ul>
- *   <li>{@link com.aipaas.anycloud.domain.agent.api.request} — AgentPolicyUpdateRequest</li>
- *   <li>{@link com.aipaas.anycloud.domain.agent.api.response} — AgentRegistrationTokenResponse,
+ *   <li>{@link com.aipaas.anycloud.domain.agent.api.request}: AgentPolicyUpdateRequest</li>
+ *   <li>{@link com.aipaas.anycloud.domain.agent.api.response}: AgentRegistrationTokenResponse,
  *       HelmInstallInstructionsResponse</li>
  * </ul>
  */

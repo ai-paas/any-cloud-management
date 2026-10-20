@@ -6,7 +6,7 @@ public interface AgentUpgradeService {
     /**
      * 단일 cluster 의 agent upgrade trigger.
      *
-     * @return {@link UpgradeResult} — status 가 {@code IN_PROGRESS} 또는 {@code NO_OP} (이미 target image)
+     * @return {@link UpgradeResult}: status 가 {@code IN_PROGRESS} 또는 {@code NO_OP} (이미 target image)
      * @throws com.aipaas.anycloud.common.error.exception.CustomException
      *         {@code AGENT_NOT_ACTIVE} ACTIVE row 없음 / {@code UPGRADE_IN_PROGRESS} 이미 진행 중 /
      *         {@code AGENT_UNAVAILABLE} APPLY_MANIFEST 호출 실패

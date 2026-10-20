@@ -4,14 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import lombok.*;
 
-/**
- * <pre>
- * ClassName : ChartReleasesResponse
- * Type : class
- * Description : Helm 릴리즈 목록 응답을 위한 DTO입니다.
- * Related : ChartController, ChartService
- * </pre>
- */
+/** Helm 릴리즈 목록 응답 DTO. */
 @Getter
 @Setter
 @Builder

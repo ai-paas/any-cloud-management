@@ -1,15 +1,15 @@
-// APPLY_AGENT_CONFIG 핸들러. backend 가 보낸 정책 snapshot 으로 agent 가 자기 ConfigMap 을
-// 고치고, config.Loader 의 watch 가 그 변경을 받아 메모리 정책을 교체한다. agent 재시작은 없다.
+// APPLY_AGENT_CONFIG 핸들러. backend 가 전송한 정책 snapshot 으로 agent 가 자체 ConfigMap 을
+// 수정하고, config.Loader 의 watch 가 변경을 감지해 메모리 정책 교체. agent 재시작 없음.
 //
-// 돌려주는 error_code 는 backend 가 분기에 쓰는 계약이다.
+// 반환하는 error_code 는 backend 분기 처리의 계약.
 //
-//	CONFIGMAP_NOT_FOUND  ConfigMap 이 없다
-//	FORBIDDEN            RBAC 이 거부했다
-//	INVALID_PAYLOAD      snapshot JSON 을 읽지 못했다
-//	K8S_API_ERROR        그 밖의 K8s API 실패
+//	CONFIGMAP_NOT_FOUND  ConfigMap 부재
+//	FORBIDDEN            RBAC 거부
+//	INVALID_PAYLOAD      snapshot JSON 파싱 실패
+//	K8S_API_ERROR        그 외 K8s API 실패
 //
-// 재시도는 ResourceVersion 충돌일 때만 한다. 다른 쪽이 동시에 고친 경우라 최신을 다시 받아
-// 합치면 된다. 나머지는 다시 해도 같은 결과다.
+// 재시도는 ResourceVersion 충돌에만 적용. 동시 수정 상황이므로 최신 값을 재조회해 병합.
+// 그 외 오류는 재시도해도 결과 동일.
 
 package controller
 
@@ -28,22 +28,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// applyConfigMaxRetries — Update 가 Conflict 로 실패할 때 재시도 횟수. ConfigMap 은 거의 동시
+// applyConfigMaxRetries: Update 가 Conflict 로 실패할 때 재시도 횟수. ConfigMap 은 거의 동시
 // update 가 발생하지 않으므로 3 회면 충분 (operator 가 kubectl edit 동시 수행 같은 희귀 케이스).
 const applyConfigMaxRetries = 3
 
-// allowlistConfigMapTarget — handler 가 patch 할 ConfigMap 위치.
+// allowlistConfigMapTarget: handler 가 patch 할 ConfigMap 위치.
 type allowlistConfigMapTarget struct {
 	namespace string
 	name      string
 }
 
-// resolveAllowlistTarget — env var 우선, 없으면 main.go 의 initAllowList 와 동일한 default.
+// resolveAllowlistTarget: env var 우선, 없으면 main.go 의 initAllowList 와 동일한 default.
 //
 //   - AGENT_NAMESPACE         ─ ConfigMap namespace      (default "aipaas-system")
 //   - ALLOWLIST_CONFIGMAP     ─ ConfigMap name           (default "aipaas-agent-allowlist")
 //
-// 별칭 (AIPAAS_ALLOWLIST_NAMESPACE / AIPAAS_ALLOWLIST_CONFIGMAP_NAME) 도 인식 — 운영 문서가
+// 별칭 (AIPAAS_ALLOWLIST_NAMESPACE / AIPAAS_ALLOWLIST_CONFIGMAP_NAME) 도 인식: 운영 문서가
 // 혼용된 케이스에서 둘 다 동작하도록 양쪽 lookup.
 func resolveAllowlistTarget() allowlistConfigMapTarget {
 	ns := firstNonEmpty(
@@ -68,7 +68,7 @@ func firstNonEmpty(vals ...string) string {
 	return ""
 }
 
-// applyAgentConfig — 5 개 param 을 받아 ConfigMap data 를 갱신. 자세한 contract 는 file header 참조.
+// applyAgentConfig: 5 개 param 을 받아 ConfigMap data 를 갱신. 자세한 contract 는 file header 참조.
 //
 // 비결정성 (cs 가 nil): production 빌드에서 Clientset() 이 nil 이면 AGENT_UNAVAILABLE.
 // 단위 테스트는 mockK8sClient.Clientset() 으로 fake clientset 주입.
@@ -90,17 +90,17 @@ func (d *Dispatcher) applyAgentConfig(ctx context.Context, cmd *agentv1.CommandR
 	allowedExecNamespacesRaw := getStringParam(cmd, "allowed_exec_namespaces")
 	resourcePolicyRaw := getStringParam(cmd, "resource_policy") // YAML pass-through
 	// hybrid helm-repo sync. JSON array of objects (name/url/username/password/...).
-	// ConfigMap 의 helm_repositories key 로 직접 write — agent 의 reconciler 가 본 key 변화 감지해 helm
-	// SDK RepositoryFile 갱신. 본 step 은 push 만 — 등록 자체는 reconciler 책임.
+	// ConfigMap 의 helm_repositories key 로 직접 write: agent 의 reconciler 가 본 key 변화 감지해 helm
+	// SDK RepositoryFile 갱신. 본 step 은 push 만: 등록 자체는 reconciler 책임.
 	helmRepositoriesRaw := getStringParam(cmd, "helm_repositories")
 	// fleet-wide OidcGroupBinding sync. JSON array of {name, spec}.
 	// ConfigMap 의 oidc_bindings key 로 직접 write. operator (per-cluster) 또는 agent 자체 reconciler
-	// 가 본 key 변화 감지해 ClusterRoleBinding / RoleBinding 으로 변환. operator path 가 default —
+	// 가 본 key 변화 감지해 ClusterRoleBinding / RoleBinding 으로 변환. operator path 가 default:
 	// per-cluster operator 가 미설치된 cluster 는 본 key 는 ConfigMap 에 저장만 됨 (noop).
 	// backward compat: 옛 backend 가 본 field 안 보내면 raw == "" → key 도 ConfigMap 에 빈 string 으로 저장.
 	oidcBindingsRaw := getStringParam(cmd, "oidc_bindings")
 
-	// 최소 하나는 명시되어야 함 — 전부 빈 경우 backend 의 잘못된 호출 가능성.
+	// 최소 하나는 명시되어야 함. 전부 빈 경우 backend 의 잘못된 호출 가능성.
 	if allowedNamespacesRaw == "" && allowedCommandsRaw == "" && allowedChartsRaw == "" {
 		return errorResponse(agentv1.Status_INVALID_PARAMS, "MISSING_PARAM",
 			"at least one of allowed_namespaces, allowed_commands, allowed_charts required")
@@ -124,7 +124,8 @@ func (d *Dispatcher) applyAgentConfig(ctx context.Context, cmd *agentv1.CommandR
 	}
 
 	// ─── 2. ConfigMap data 빌드 ───────────────────────────────────────────────
-	// allowlist.go 의 parseYAMLList 가 받아주는 형식: "- value\n" 의 YAML list. 안전을 위해 quote.
+	// allowlist.go 의 parseYAMLList 가 읽는 형식은 "- value\n" YAML list. 값에 콜론이나
+	// 선행 공백이 포함되면 YAML 구조가 깨지므로 quote 처리.
 	newData := map[string]string{
 		"allowed_charts":          yamlList(allowedCharts),
 		"allowed_namespaces":      yamlList(allowedNamespaces),
@@ -133,7 +134,7 @@ func (d *Dispatcher) applyAgentConfig(ctx context.Context, cmd *agentv1.CommandR
 		"resource_policy":         resourcePolicyRaw, // YAML pass-through (parser 가 빈 문자열을 nil 정책으로 인식).
 		// helm_repositories JSON pass-through. reconciler 가 본 key 의
 		// JSON array 를 parse 해 helm SDK 의 RepositoryFile 갱신. 빈 문자열이면 사용자가 명시적
-		// 으로 비운 의도 — agent 의 모든 등록 repo 가 unregister.
+		// 으로 비운 의도: agent 의 모든 등록 repo 가 unregister.
 		"helm_repositories": helmRepositoriesRaw,
 		// oidc_bindings JSON pass-through. operator / agent reconciler 가 본 key
 		// 의 JSON array 를 parse 해 ClusterRoleBinding/RoleBinding 으로 변환. 빈 문자열이면 모든 fleet
@@ -163,7 +164,7 @@ func (d *Dispatcher) applyAgentConfig(ctx context.Context, cmd *agentv1.CommandR
 				fmt.Sprintf("get configmap: %s", err.Error()))
 		}
 
-		// data 통째 교체 — partial update 의 모호성 회피. 빈 entry 도 ConfigMap 에 빈 문자열로 저장.
+		// data 통째 교체: partial update 의 모호성 회피. 빈 entry 도 ConfigMap 에 빈 문자열로 저장.
 		// 그래야 backend 가 의도적으로 "exec_namespaces 비움" 같은 reset 의도를 표현 가능.
 		cm.Data = newData
 		updated, uerr := cs.CoreV1().ConfigMaps(target.namespace).Update(ctx, cm, metav1.UpdateOptions{})
@@ -192,7 +193,7 @@ func (d *Dispatcher) applyAgentConfig(ctx context.Context, cmd *agentv1.CommandR
 			fmt.Sprintf("update configmap: %s", uerr.Error()))
 	}
 	if lastErr != nil {
-		// 모든 retry 가 Conflict 로 실패 — 너무 잦은 동시 업데이트.
+		// 모든 retry 가 Conflict 로 실패: 너무 잦은 동시 업데이트.
 		return errorResponse(agentv1.Status_FAILED, "K8S_API_ERROR",
 			fmt.Sprintf("update configmap: too many conflicts after %d retries: %s",
 				applyConfigMaxRetries, lastErr.Error()))
@@ -200,10 +201,10 @@ func (d *Dispatcher) applyAgentConfig(ctx context.Context, cmd *agentv1.CommandR
 
 	// ─── 3.5. Hybrid helm-repo sync ────────────────────────────────────────
 	// ConfigMap update 가 성공한 직후 helm SDK 의 RepositoryFile 도 갱신. agent restart 시에는
-	// boot loader 가 ConfigMap 의 helm_repositories key 보고 다시 sync — 그래서 본 inline sync 가
+	// boot loader 가 ConfigMap 의 helm_repositories key 보고 다시 sync: 그래서 본 inline sync 가
 	// 실패해도 영구 손상 없음 (best-effort, error 는 log + 응답에 포함).
 	//
-	// 빈 array 도 dispatch — anycloud-managed entry 의 orphan 정리. backend 에서 repo 가
+	// 빈 array 도 dispatch: anycloud-managed entry 의 orphan 정리. backend 에서 repo 가
 	// 삭제되면 ConfigMap 의 helm_repositories 가 빈 array 가 되고, agent 는 그것을 받아
 	// anycloud-* prefix entry 모두 RepositoryFile 에서 제거 (사용자 수동 추가는 보호).
 	helmReposSynced := 0
@@ -233,8 +234,8 @@ func (d *Dispatcher) applyAgentConfig(ctx context.Context, cmd *agentv1.CommandR
 	}
 
 	// Agent OIDC binding reconciler 폐기. RBAC starter (backend) 가 K8s API 직접 apply.
-	// oidcBindingsRaw 는 backend 가 빈 array 로 전송 (backward-compat — 옛 agent 호환). agent 는
-	// ConfigMap 에 그대로 저장만 — 별도 K8s mutation 없음.
+	// oidcBindingsRaw 는 backend 가 빈 array 로 전송 (backward-compat: 옛 agent 호환). agent 는
+	// ConfigMap 에 그대로 저장만: 별도 K8s mutation 없음.
 	_ = oidcBindingsRaw
 
 	// ─── 4. OK 응답 ───────────────────────────────────────────────────────────
@@ -254,7 +255,7 @@ func (d *Dispatcher) applyAgentConfig(ctx context.Context, cmd *agentv1.CommandR
 	return okResponse(result)
 }
 
-// parseJSONStringArray — backend 가 ParamsBuilder 로 보낸 JSON array string 을 []string 으로.
+// parseJSONStringArray: backend 가 ParamsBuilder 로 보낸 JSON array string 을 []string 으로.
 // 빈 문자열은 (값 미지정) → 빈 slice + nil error. malformed 면 wrap 된 error.
 func parseJSONStringArray(key, raw string) ([]string, error) {
 	raw = strings.TrimSpace(raw)
@@ -268,7 +269,7 @@ func parseJSONStringArray(key, raw string) ([]string, error) {
 	return out, nil
 }
 
-// yamlList — []string → "- \"v1\"\n- \"v2\"\n" 형식. allowlist.go 의 parseYAMLList 가
+// yamlList: []string → "- \"v1\"\n- \"v2\"\n" 형식. allowlist.go 의 parseYAMLList 가
 // sigs.k8s.io/yaml 로 unmarshal 하므로 정확히 동일한 표현. 빈 slice 면 빈 문자열.
 //
 // quote 처리 이유: ConfigMap 의 YAML list value 에 "*" 가 들어오면 YAML alias 로 오해될 수 있어
@@ -287,7 +288,7 @@ func yamlList(items []string) string {
 	return b.String()
 }
 
-// yamlQuote — 문자열을 YAML double-quoted scalar 로 escape. backslash + double-quote 만 escape.
+// yamlQuote: 문자열을 YAML double-quoted scalar 로 escape. backslash + double-quote 만 escape.
 // 다른 control char 는 ConfigMap data 에 보통 들어오지 않으므로 best-effort.
 func yamlQuote(s string) string {
 	escaped := strings.ReplaceAll(s, `\`, `\\`)

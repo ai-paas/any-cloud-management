@@ -21,9 +21,9 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 /**
- * Workflow 메시지 한 건이 어떻게 처리되었는지의 기록.
- * <p>
- * 멱등성 가드와 결합되어 운영 시점에서 RabbitMQ 재전달 / 단계 비정상 도착 / 실행 실패 분포를 보여준다.
+ * Workflow 메시지 단건의 처리 기록.
+ *
+ * <p>멱등성 가드와 결합해 운영 시점의 RabbitMQ 재전달, 단계 비정상 도착, 실행 실패 분포 제공.
  */
 @Entity
 @Getter

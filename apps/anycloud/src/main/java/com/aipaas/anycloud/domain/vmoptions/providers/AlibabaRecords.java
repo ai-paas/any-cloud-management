@@ -46,7 +46,7 @@ final class AlibabaRecords {
         public record AvailableInstanceTypes(List<String> InstanceTypes) {}
     }
 
-    /** DescribeAvailableResource 응답. 중첩이 깊어 필요한 것만 받는다. */
+    /** DescribeAvailableResource 응답. 중첩 깊이가 커서 필요한 필드만 수신. */
     @JsonIgnoreProperties(ignoreUnknown = true)
     record AvailableResourceResponse(AvailableZones AvailableZones) {
         @JsonIgnoreProperties(ignoreUnknown = true)
@@ -75,7 +75,7 @@ final class AlibabaRecords {
         public record Zones(List<Zone> Zone) {}
     }
 
-    // Wrapper containers — Alibaba 의 nested {Regions:{Region:[]}} 패턴.
+    // Wrapper containers: Alibaba 의 nested {Regions:{Region:[]}} 패턴.
     @JsonIgnoreProperties(ignoreUnknown = true)
     record RegionsResponse(Regions Regions) {
         @JsonIgnoreProperties(ignoreUnknown = true)

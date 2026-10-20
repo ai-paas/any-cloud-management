@@ -17,8 +17,8 @@ import org.springframework.stereotype.Component;
  *
  * <p>두 모드:
  * <ul>
- *   <li>catalog 기반: {@code spec.catalogId} 가 catalog 에 존재 — chart 모든 필드 catalog 에서 채움.</li>
- *   <li>custom: catalogId null — caller 가 chart 필드 모두 명시 (chartRepo/chartName/chartVersion 필수).</li>
+ *   <li>catalog 기반: {@code spec.catalogId} 가 catalog 에 존재: chart 모든 필드 catalog 에서 채움.</li>
+ *   <li>custom: catalogId null: caller 가 chart 필드 모두 명시 (chartRepo/chartName/chartVersion 필수).</li>
  * </ul>
  */
 @Component
@@ -28,7 +28,7 @@ public class AddonSpecResolver {
     private final AddonCatalog catalog;
 
     /**
-     * Spec → Entity. validation 포함 — required field 누락 시 IllegalArgumentException.
+     * Spec → Entity. validation 포함. required field 누락 시 IllegalArgumentException.
      *
      * @param spec      frontend 가 보낸 spec.
      * @param clusterId 대상 cluster id.
@@ -42,7 +42,7 @@ public class AddonSpecResolver {
             throw new IllegalArgumentException("clusterId is required");
         }
         // catalogId 명시했지만 catalog 에 없으면 fail-fast.
-        // silently custom mode 로 fallback 하면 chart 필드 missing 으로 모호한 에러 — 명시적 reject.
+        // silently custom mode 로 fallback 하면 chart 필드 missing 으로 모호한 에러: 명시적 reject.
         if (spec.catalogId() != null
                 && !spec.catalogId().isBlank()
                 && catalog.find(spec.catalogId()).isEmpty()) {

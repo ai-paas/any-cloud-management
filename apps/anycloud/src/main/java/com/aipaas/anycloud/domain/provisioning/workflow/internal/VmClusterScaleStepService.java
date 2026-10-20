@@ -27,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-/** VM cluster scale 작업 step service. Pulumi {@code up} 의 idempotency 활용 — 새 workerCount 로 {@link ProvisioningRequest} 재구성 → {@link ProvisioningService#provision(ProvisioningRequest)} 호출. master 는 변경 없고 worker 수만 reconcile. drain (scale-down) + label reconcile 동봉. */
+/** VM cluster scale 작업 step service. Pulumi {@code up} 의 idempotency 활용: 새 workerCount 로 {@link ProvisioningRequest} 재구성 → {@link ProvisioningService#provision(ProvisioningRequest)} 호출. master 는 변경 없고 worker 수만 reconcile. drain (scale-down) + label reconcile 동봉. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -55,7 +55,7 @@ public class VmClusterScaleStepService {
                 .findFirstByClusterNameOrderByCreatedAtDesc(clusterName)
                 .orElseThrow(() -> new ClusterNotFoundException(clusterName));
 
-        // status 일시적으로 SCALING 으로 — workflow 가드와 충돌하지 않게 명시 전환.
+        // status 일시적으로 SCALING 으로: workflow 가드와 충돌하지 않게 명시 전환.
         vmCluster.transitionTo(VmClusterStatus.SCALING, "scale.start");
         vmCluster.setLastError(null);
         vmCluster.setFailedAt(null);
@@ -71,7 +71,7 @@ public class VmClusterScaleStepService {
                         ErrorCode.PROVISIONING_REQUEST_MISSING);
             }
 
-            // 새 worker count 를 config 에 주입 — Pulumi program 이 ctx.config("anycloud-k8s:workerCount") 로 read.
+            // 새 worker count 를 config 에 주입: Pulumi program 이 ctx.config("anycloud-k8s:workerCount") 로 read.
             Map<String, String> newConfig = new LinkedHashMap<>(baseRequest.configOrEmpty());
             newConfig.put("anycloud-k8s:workerCount", String.valueOf(workerCount));
             ProvisioningRequest scaleRequest = ProvisioningRequest.builder()
@@ -85,7 +85,7 @@ public class VmClusterScaleStepService {
                     .credentialEnvironment(baseRequest.credentialEnvironmentOrEmpty())
                     .build();
 
-            // scale-down 감지 — 현 outputs 의 worker 수와 새 workerCount 비교 후 K8s drain.
+            // scale-down 감지: 현 outputs 의 worker 수와 새 workerCount 비교 후 K8s drain.
             Map<String, Object> currentOutputs = provisioningService.stackOutputs(
                     vmCluster.getStackName(), true, scaleRequest.credentialEnvironmentOrEmpty());
             int currentWorkerCount = countCurrentWorkers(currentOutputs);
@@ -101,7 +101,7 @@ public class VmClusterScaleStepService {
             }
             progress.updateProgress("cluster", clusterName, "DRAIN_WORKERS", 1, 50);
 
-            // Automation API up — idempotent. master 변경 없고 worker 수만 reconcile.
+            // Automation API up: idempotent. master 변경 없고 worker 수만 reconcile.
             Map<String, Object> outputs = provisioningService.provision(scaleRequest);
             progress.updateProgress("cluster", clusterName, "PULUMI_APPLY", 2, 90);
 

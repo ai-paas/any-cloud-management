@@ -16,7 +16,7 @@ import (
 // ---- fake k8s.Client ----
 
 type fakeKube struct {
-	k8s.Client // embed — 미구현 메서드는 nil panic 하지 않도록 default 메서드만 override.
+	k8s.Client // embed: 미구현 메서드는 nil panic 하지 않도록 default 메서드만 override.
 
 	mu        sync.Mutex
 	pods      []corev1.Pod
@@ -86,7 +86,7 @@ func TestSweepOnce_DeletesExpired(t *testing.T) {
 }
 
 func TestSweepOnce_SkipsPodsWithoutAnnotation(t *testing.T) {
-	// aipaas label 은 있지만 annotation 미존재 — 보수적으로 skip.
+	// aipaas label 은 있지만 annotation 미존재: 보수적으로 skip.
 	f := &fakeKube{
 		pods: []corev1.Pod{
 			pod("no-annotation", "kube-system", nil),
@@ -140,7 +140,7 @@ func TestSweepOnce_DeleteError_ContinuesWithOtherPods(t *testing.T) {
 	s := NewSweeper(f, time.Minute)
 	s.sweepOnce(context.Background())
 
-	// Both attempted, both failed — but no panic + logs.
+	// Both attempted, both failed: but no panic + logs.
 	if len(f.deleted) != 0 {
 		t.Errorf("delete error should yield zero successes, got %v", f.deleted)
 	}

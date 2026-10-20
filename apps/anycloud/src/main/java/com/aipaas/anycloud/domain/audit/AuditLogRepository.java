@@ -10,7 +10,7 @@ import org.springframework.data.repository.query.Param;
 public interface AuditLogRepository extends JpaRepository<AuditLogEntity, String> {
 
     /**
-     * TTL retention — 지정 시각 이전의 audit log 일괄 삭제. row 수 (UI 노출) 한정 + DB 디스크 사용량 cap.
+     * TTL retention: 지정 시각 이전의 audit log 일괄 삭제. row 수 (UI 노출) 한정 + DB 디스크 사용량 cap.
      * scheduler 가 호출.
      *
      * @return 삭제된 row 수.
@@ -30,7 +30,7 @@ public interface AuditLogRepository extends JpaRepository<AuditLogEntity, String
             + "  AND (:action IS NULL OR a.action = :action) "
             + "  AND (:principal IS NULL OR a.principal = :principal) "
             + "ORDER BY a.createdAt DESC")
-    // Page 로 받으면 Spring Data 가 count 쿼리를 함께 만들어 총 건수를 알 수 있다.
+    // Page 반환 시 Spring Data 가 count 쿼리를 함께 생성해 총 건수 제공.
     org.springframework.data.domain.Page<AuditLogEntity> search(
             @Param("since") LocalDateTime since,
             @Param("until") LocalDateTime until,

@@ -6,12 +6,12 @@ import io.aipaas.cluster.agent.runtime.HelmRoutingException;
 import java.util.Locale;
 
 /**
- * agent 의 helm 실패를 {@link ErrorCode} 로 분류해 {@link CustomException} 으로 바꿉니다.
+ * agent 의 helm 실패를 {@link ErrorCode} 로 분류해 {@link CustomException} 으로 변환.
  *
- * <p>{@code HELM_INSTALL_FAILED} 하나가 두 갈래로 갈립니다. {@code locate chart},
- * {@code protocol handler}, {@code no such repository} 가 보이면 chart 를 못 찾은 것이라 호출자가
- * 고칠 수 있는 400 이고, 그 밖에는 K8s apply 나 hook 이 실패한 500 입니다. 둘을 섞으면 운영자가
- * 자기 입력을 의심해야 할지 cluster 를 봐야 할지 알 수 없습니다.
+ * <p>{@code HELM_INSTALL_FAILED} 는 두 갈래로 분기. {@code locate chart},
+ * {@code protocol handler}, {@code no such repository} 포함 시 chart 미검출이므로 호출자가
+ * 수정 가능한 400, 그 외에는 K8s apply 또는 hook 실패인 500. 혼용 시 운영자가 입력 문제와
+ * cluster 문제를 구분 불가.
  */
 public final class HelmExceptionMapper {
 
@@ -23,7 +23,7 @@ public final class HelmExceptionMapper {
      * @param operation 사용자가 시도한 helm op (예: "install", "upgrade", "rollback")
      * @param context   error message 에 동봉할 추가 컨텍스트 (예: "release=foo, chart=bar/baz")
      * @param e         agent 가 throw 한 routing exception
-     * @return 분류된 CustomException — caller 가 throw
+     * @return 분류된 CustomException: caller 가 throw
      */
     public static CustomException toClassifiedException(String operation, String context, HelmRoutingException e) {
         String msg = e.getMessage() == null ? "" : e.getMessage();
@@ -51,7 +51,7 @@ public final class HelmExceptionMapper {
                     ErrorCode.AGENT_PERMISSION_DENIED);
         }
 
-        // HELM_INSTALL_FAILED — agent 정상 / helm SDK 실패. chart 해상 (locate/repo/protocol)
+        // HELM_INSTALL_FAILED: agent 정상 / helm SDK 실패. chart 해상 (locate/repo/protocol)
         // 단어가 보이면 caller-fixable 400. 그 외 K8s apply / hook 실패는 500.
         if (upper.contains("HELM_INSTALL_FAILED")) {
             if (upper.contains("LOCATE CHART")
@@ -67,7 +67,7 @@ public final class HelmExceptionMapper {
                                 + "원본 에러: " + msg,
                         ErrorCode.HELM_CHART_RESOLUTION_FAILED);
             }
-            // K8s apply / hook / timeout 실패 — agent 는 정상, install 의 K8s side 가 실패.
+            // K8s apply / hook / timeout 실패: agent 는 정상, install 의 K8s side 가 실패.
             return new CustomException(
                     "Helm install 이 K8s apply / hook 단계에서 실패 — " + context + ". "
                             + "values 검증 + 대상 namespace 의 RBAC / quota / 충돌 리소스 확인. "

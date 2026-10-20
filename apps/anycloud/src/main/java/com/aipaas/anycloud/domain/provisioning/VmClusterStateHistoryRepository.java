@@ -15,11 +15,11 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface VmClusterStateHistoryRepository extends JpaRepository<VmClusterStateHistoryEntity, String> {
 
-    /** 특정 cluster 의 transition history — 최신 → 과거 순. */
+    /** 특정 cluster 의 transition history: 최신 → 과거 순. */
     List<VmClusterStateHistoryEntity> findByClusterNameOrderByCreatedAtDesc(String clusterName, Pageable pageable);
 
     /**
-     * Retention cleanup — 지정 시각 이전의 row 일괄 삭제. state history 무한 증가 방지.
+     * Retention cleanup: 지정 시각 이전의 row 일괄 삭제. state history 무한 증가 방지.
      */
     @Modifying
     @Query("DELETE FROM VmClusterStateHistoryEntity h WHERE h.createdAt < :before")

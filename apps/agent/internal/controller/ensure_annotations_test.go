@@ -1,4 +1,4 @@
-// ENSURE_AGENT_CONFIG_ANNOTATIONS handler tests — backend 가 startup 시 legacy ConfigMap 의
+// ENSURE_AGENT_CONFIG_ANNOTATIONS handler tests: backend 가 startup 시 legacy ConfigMap 의
 // helm.sh/resource-policy=keep annotation 을 멱등적으로 backfill 호출하는 경로.
 package controller
 
@@ -16,14 +16,14 @@ import (
 	clienttesting "k8s.io/client-go/testing"
 )
 
-// existingAllowlistCMNoAnnotation — legacy ConfigMap (annotation 없음). HHH 의 §4 backfill 대상.
+// existingAllowlistCMNoAnnotation: legacy ConfigMap (annotation 없음). HHH 의 §4 backfill 대상.
 func existingAllowlistCMNoAnnotation() *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "aipaas-agent-allowlist",
 			Namespace:       "aipaas-system",
 			ResourceVersion: "1",
-			// Annotations 자체가 nil — handler 가 map 을 새로 만들어야 함.
+			// Annotations 자체가 nil: handler 가 map 을 새로 만들어야 함.
 		},
 		Data: map[string]string{
 			"allowed_commands": "- \"LIST_PODS\"\n",
@@ -31,7 +31,7 @@ func existingAllowlistCMNoAnnotation() *corev1.ConfigMap {
 	}
 }
 
-// existingAllowlistCMWithKeep — 이미 annotation 이 적용된 ConfigMap. handler 가 Update 를 호출하면
+// existingAllowlistCMWithKeep: 이미 annotation 이 적용된 ConfigMap. handler 가 Update 를 호출하면
 // 안 됨.
 func existingAllowlistCMWithKeep() *corev1.ConfigMap {
 	return &corev1.ConfigMap{
@@ -50,7 +50,7 @@ func existingAllowlistCMWithKeep() *corev1.ConfigMap {
 	}
 }
 
-// existingAllowlistCMOtherAnnotations — 다른 annotation 이 있지만 helm.sh/resource-policy 는 없음.
+// existingAllowlistCMOtherAnnotations: 다른 annotation 이 있지만 helm.sh/resource-policy 는 없음.
 // handler 가 기존 annotation 을 보존하면서 keep 만 추가해야 함.
 func existingAllowlistCMOtherAnnotations() *corev1.ConfigMap {
 	return &corev1.ConfigMap{
@@ -69,8 +69,8 @@ func existingAllowlistCMOtherAnnotations() *corev1.ConfigMap {
 	}
 }
 
-// ensureAnnotationsDispatcher — ENSURE_AGENT_CONFIG_ANNOTATIONS 가 허용된 dispatcher + fake CS.
-// applyConfigDispatcher 와 동일 패턴 — loader 는 별도 fake CS (의도적 분리).
+// ensureAnnotationsDispatcher: ENSURE_AGENT_CONFIG_ANNOTATIONS 가 허용된 dispatcher + fake CS.
+// applyConfigDispatcher 와 동일 패턴: loader 는 별도 fake CS (의도적 분리).
 func ensureAnnotationsDispatcher(t *testing.T, cs *fake.Clientset, loader *config.Loader) *Dispatcher {
 	t.Helper()
 	mock := &mockK8sClient{clientset: cs}
@@ -78,7 +78,7 @@ func ensureAnnotationsDispatcher(t *testing.T, cs *fake.Clientset, loader *confi
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AddsWhenMissing — annotation 없는 ConfigMap → handler 가 추가
+// AddsWhenMissing: annotation 없는 ConfigMap → handler 가 추가
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestHandle_EnsureAnnotations_AddsWhenMissing(t *testing.T) {
@@ -111,20 +111,20 @@ func TestHandle_EnsureAnnotations_AddsWhenMissing(t *testing.T) {
 	if got := updated.Annotations["helm.sh/resource-policy"]; got != "keep" {
 		t.Errorf("annotation helm.sh/resource-policy = %q, want %q", got, "keep")
 	}
-	// data 는 손대지 않았는지 확인 — 핵심 invariant.
+	// data 는 손대지 않았는지 확인: 핵심 invariant.
 	if updated.Data["allowed_commands"] != "- \"LIST_PODS\"\n" {
 		t.Errorf("data was modified, want untouched: %q", updated.Data["allowed_commands"])
 	}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NoOpWhenAlreadyPresent — 이미 annotation 이 있으면 Update API 호출 자체가 없어야 함 (멱등성)
+// NoOpWhenAlreadyPresent: 이미 annotation 이 있으면 Update API 호출 자체가 없어야 함 (멱등성)
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestHandle_EnsureAnnotations_NoOpWhenAlreadyPresent(t *testing.T) {
 	cs := fake.NewSimpleClientset(existingAllowlistCMWithKeep())
 
-	// Update reactor 가 호출되면 counter 증가 — no-op 검증용. PrependReactor 는 chain 의 앞에
+	// Update reactor 가 호출되면 counter 증가: no-op 검증용. PrependReactor 는 chain 의 앞에
 	// 끼어들어 호출을 count 한 뒤 false 반환해서 기본 동작에 위임 (true 반환하면 결과를 가로챔).
 	var updateCalls atomic.Int32
 	cs.PrependReactor("update", "configmaps", func(action clienttesting.Action) (bool, runtime.Object, error) {
@@ -152,7 +152,7 @@ func TestHandle_EnsureAnnotations_NoOpWhenAlreadyPresent(t *testing.T) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PreservesOtherAnnotations — 기존 annotation 보존 + keep 만 추가
+// PreservesOtherAnnotations: 기존 annotation 보존 + keep 만 추가
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestHandle_EnsureAnnotations_PreservesOtherAnnotations(t *testing.T) {
@@ -187,7 +187,7 @@ func TestHandle_EnsureAnnotations_PreservesOtherAnnotations(t *testing.T) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NotInAllowlist_PermissionDenied — allowlist 미포함 시 진입 자체 차단
+// NotInAllowlist_PermissionDenied: allowlist 미포함 시 진입 자체 차단
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestHandle_EnsureAnnotations_NotInAllowlist_PermissionDenied(t *testing.T) {
@@ -206,11 +206,11 @@ func TestHandle_EnsureAnnotations_NotInAllowlist_PermissionDenied(t *testing.T) 
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NotFound_ReturnsConfigMapNotFound — ConfigMap 자체가 없음
+// NotFound_ReturnsConfigMapNotFound: ConfigMap 자체가 없음
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestHandle_EnsureAnnotations_NotFound_ReturnsConfigMapNotFound(t *testing.T) {
-	cs := fake.NewSimpleClientset() // 빈 CS — ConfigMap 자체가 없음.
+	cs := fake.NewSimpleClientset() // 빈 CS: ConfigMap 자체가 없음.
 	d := ensureAnnotationsDispatcher(t, cs, permissiveLoader(t))
 
 	resp := d.Handle(&agentv1.CommandRequest{

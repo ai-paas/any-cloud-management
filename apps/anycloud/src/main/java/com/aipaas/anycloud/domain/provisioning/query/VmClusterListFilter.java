@@ -3,11 +3,11 @@ package com.aipaas.anycloud.domain.provisioning.query;
 import com.aipaas.anycloud.domain.provisioning.model.VmClusterStatus;
 
 /**
- * 목록에서 삭제 이력을 감출지 결정한다.
+ * 목록의 삭제 이력 표시 여부 결정.
  *
- * <p>삭제는 감사와 원인 분석을 위해 행을 남긴다. 기본 목록에 쌓이면 살아 있는 것을 찾기 어려워
- * 감추되, 함께 보고 싶을 때는 {@code includeDeleted} 로 연다. status 를 명시하면 그 필터가
- * 우선한다 — 토글이 뒤집으면 필터가 거짓말이 된다.
+ * <p>삭제 시 감사와 원인 분석용 행을 보존. 기본 목록에 누적되면 유효 항목 식별이 어려워 숨김
+ * 처리하고, 함께 조회할 때는 {@code includeDeleted} 사용. status 명시 시 해당 필터 우선.
+ * 토글이 필터를 덮으면 필터 결과가 요청과 불일치.
  */
 public final class VmClusterListFilter {
 

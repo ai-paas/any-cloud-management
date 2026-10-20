@@ -3,13 +3,13 @@ package com.aipaas.anycloud.domain.provisioning.remote;
 import java.util.Map;
 
 /**
- * 그 클라우드의 노드로 가는 길목에 있는 점프 호스트 (bastion).
+ * 클라우드 노드 접근 경로의 점프 호스트 (bastion).
  *
- * <p>백엔드 전역 설정이 아니라 자격증명에 딸린다. OpenStack 설치마다 bastion 이 다르고 AWS, OCI 는
- * 공인 IP 라 필요 없다. bastion 비밀번호는 비밀이라 yaml 평문이 아니라 암호화되는 자격증명에 둔다.
+ * <p>백엔드 전역 설정이 아닌 자격증명 종속. OpenStack 은 설치별 bastion 이 다르고 AWS, OCI 는
+ * 공인 IP 라 불필요. bastion 비밀번호는 비밀값이므로 yaml 평문이 아닌 암호화 자격증명에 저장.
  *
- * <p>로컬 터널({@code ssh -L})로는 안 된다 — 백엔드는 Pulumi outputs 의 노드 IP 로 직접 붙어서
- * 터널 포트를 모른다.
+ * <p>로컬 터널({@code ssh -L}) 사용 불가. 백엔드는 Pulumi outputs 의 노드 IP 로 직접 접속하므로
+ * 터널 포트 미인지.
  */
 public record SshJump(String host, int port, String user, String password) {
 
@@ -20,7 +20,7 @@ public record SshJump(String host, int port, String user, String password) {
 
     private static final int DEFAULT_PORT = 22;
 
-    /** 점프가 없으면 null. 별도 on/off 를 두면 host 를 넣고 켜는 것을 잊는다. */
+    /** 점프 호스트 부재 시 null. 별도 on/off 플래그 추가 시 host 입력 후 활성화 누락 발생. */
     public static SshJump from(Map<String, String> credentials) {
         if (credentials == null) {
             return null;

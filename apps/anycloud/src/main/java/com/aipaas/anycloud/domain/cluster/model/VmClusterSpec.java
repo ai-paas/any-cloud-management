@@ -7,7 +7,7 @@ import java.util.Map;
 /**
  * VM-source cluster spec (Pulumi provision).
  */
-@Schema(description = "VM provisioning spec — Pulumi 가 새 cluster 를 생성")
+@Schema(description = "VM provisioning spec: Pulumi 가 새 cluster 를 생성")
 public record VmClusterSpec(
         @Schema(
                         description = "CSP provider",
@@ -17,7 +17,7 @@ public record VmClusterSpec(
                 String provider,
         @Schema(description = "region", example = "ap-northeast-2") @NotBlank String region,
         @Schema(description = "환경 (dev/stage/prod)", example = "dev") String environment,
-        @Schema(description = "사전 등록한 CSP credential id (선택 — 미지정 시 ENV)") String credentialId,
+        @Schema(description = "사전 등록한 CSP credential id (선택: 미지정 시 ENV)") String credentialId,
         @Schema(description = "Pulumi config map. 키는 'anycloud-k8s:xxx' 형식 또는 단순 키 (workerCount 등). 값은 모두 문자열.")
                 Map<String, String> config,
 
@@ -38,7 +38,7 @@ public record VmClusterSpec(
          *   <li>Azure: Spot priority VM (eviction policy=Deallocate)</li>
          *   <li>GCP: preemptible VM (spot instance)</li>
          *   <li>Alibaba: PostPaid 의 SpotStrategy=SpotAsPriceGo</li>
-         *   <li>그 외 (OCI / OpenStack / DigitalOcean) — no-op (지원 X 또는 의미 없음)</li>
+         *   <li>그 외 (OCI / OpenStack / DigitalOcean). no-op (지원 X 또는 의미 없음)</li>
          * </ul>
          */
         @Schema(
@@ -48,17 +48,17 @@ public record VmClusterSpec(
                 Boolean useSpot,
 
         /**
-         * OS image 를 지정합니다. 비워 두면 provider 기본값(대개 Ubuntu 22.04 LTS)입니다.
+         * OS image 지정. 미지정 시 provider 기본값 (대개 Ubuntu 24.04 LTS).
          *
          * <p>provider 별 형식:
          * <ul>
-         *   <li>AWS: AMI ID (예: "ami-xxxxxxxx") 또는 SSM parameter</li>
-         *   <li>Azure: Image URN (publisher:offer:sku:version, 예: "Canonical:0001-com-ubuntu-server-jammy:22_04-lts-gen2:latest")</li>
-         *   <li>GCP: Image family (예: "ubuntu-2204-lts") 또는 full image self-link</li>
+         *   <li>AWS: AMI ID (예: "ami-xxxxxxxx") 또는 AMI 이름</li>
+         *   <li>GCP: Image family (예: "ubuntu-2404-lts") 또는 full image self-link</li>
          *   <li>Alibaba: ImageId</li>
          *   <li>OCI: Image OCID</li>
          *   <li>OpenStack: Image name 또는 UUID</li>
-         *   <li>DigitalOcean: Image slug 또는 ID</li>
+         *   <li>Proxmox: cloud 이미지 URL</li>
+         *   <li>IBM: Image 이름</li>
          * </ul>
          */
         @Schema(
@@ -75,7 +75,7 @@ public record VmClusterSpec(
                 Integer rootDiskSizeGb)
         implements ClusterSpec {
 
-    // Compact constructor — null Boolean 은 false 로 정규화 (config map 매핑 단순화).
+    // Compact constructor: null Boolean 은 false 로 정규화 (config map 매핑 단순화).
     public VmClusterSpec {
         if (hasGpuNodes == null) hasGpuNodes = false;
         if (useSpot == null) useSpot = false;

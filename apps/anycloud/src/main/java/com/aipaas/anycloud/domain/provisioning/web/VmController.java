@@ -61,7 +61,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/vms")
-@Tag(name = "Vms (v1)", description = "VM 인프라 자원 — Pulumi provisioned")
+@Tag(name = "Vms (v1)", description = "VM 인프라 자원: Pulumi provisioned")
 @Validated
 public class VmController {
 
@@ -85,7 +85,7 @@ public class VmController {
     @GetMapping
     @Operation(summary = "VM list", description = "Pulumi provisioned VM 목록. provider/environment/status filter.")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "성공 — VmClusterListItemResponse 배열"),
+        @ApiResponse(responseCode = "200", description = "성공: VmClusterListItemResponse 배열"),
         @ApiResponse(responseCode = "400", description = "filter 정규식 위반")
     })
     public ResponseEntity<ApiSuccessResponse<PagedData<VmClusterListItemResponse>>> list(
@@ -110,7 +110,7 @@ public class VmController {
     @GetMapping("/{vmName}")
     @Operation(summary = "단일 VM 상세 조회 (workflow / stack outputs / 진행 상태)")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "성공 — VmClusterStatusResponse"),
+        @ApiResponse(responseCode = "200", description = "성공: VmClusterStatusResponse"),
         @ApiResponse(responseCode = "400", description = "vmName 형식 위반"),
         @ApiResponse(responseCode = "404", description = "VM not found")
     })
@@ -127,13 +127,13 @@ public class VmController {
             description = "Pulumi 가 CSP VM 인프라를 생성하고 Kubernetes 를 자동 설치한다. 비동기 → 202 + Operation. "
                     + "K8s ClusterEntity 등록은 bootstrap 완료 후 cluster-agent self-register 로 자동.")
     @ApiResponses({
-        @ApiResponse(responseCode = "202", description = "수락 — Location: /v1/operations/{id}"),
+        @ApiResponse(responseCode = "202", description = "수락: Location: /v1/operations/{id}"),
         @ApiResponse(responseCode = "400", description = "spec 필드 누락 / vmName 형식 위반"),
         @ApiResponse(responseCode = "409", description = "이름 충돌 또는 동일 active VM 존재")
     })
     public ResponseEntity<ApiSuccessResponse<OperationResponse>> create(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                            description = "VM provision request — provider, region, credentialId 필수.",
+                            description = "VM provision request: provider, region, credentialId 필수.",
                             required = true,
                             content =
                                     @Content(
@@ -224,7 +224,7 @@ public class VmController {
     @ApiResponses({@ApiResponse(responseCode = "200", description = "검증 완료 (생성 불가도 200)")})
     public ResponseEntity<ApiSuccessResponse<VmClusterPreflightResponse>> preflight(
             @Valid @RequestBody VmCreateRequest request) {
-        // 검증 자체는 성공한 호출이다. 결과가 불가라고 HTTP 오류로 내보내면 화면이 오류 처리를 한다.
+        // 검증 호출 자체는 성공. 결과가 불가라고 HTTP 오류로 응답하면 화면이 오류로 처리.
         return ResponseEntity.ok(ApiSuccessResponse.of(
                 HttpStatus.OK.value(),
                 "VM preflight completed",
@@ -234,7 +234,7 @@ public class VmController {
     @PatchMapping("/{vmName}")
     @Operation(summary = "VM scale (workerCount 변경)")
     @ApiResponses({
-        @ApiResponse(responseCode = "202", description = "변경 수락 — Operation"),
+        @ApiResponse(responseCode = "202", description = "변경 수락: Operation"),
         @ApiResponse(responseCode = "400", description = "workerCount 범위 외 / spec 비어 있음"),
         @ApiResponse(responseCode = "404", description = "VM not found")
     })
@@ -257,7 +257,7 @@ public class VmController {
     @DeleteMapping("/{vmName}")
     @Operation(summary = "VM 삭제 (Pulumi destroy)")
     @ApiResponses({
-        @ApiResponse(responseCode = "202", description = "삭제 수락 — Operation"),
+        @ApiResponse(responseCode = "202", description = "삭제 수락: Operation"),
         @ApiResponse(responseCode = "404", description = "VM not found")
     })
     public ResponseEntity<ApiSuccessResponse<?>> delete(
@@ -269,7 +269,7 @@ public class VmController {
                     @RequestParam(required = false, defaultValue = "false")
                     boolean force) {
         if (force) {
-            // destroy 를 돌리지 않는다. Operation 도 만들지 않는다 — 진행할 작업이 없다.
+            // destroy 미실행. 진행할 작업이 없으므로 Operation 도 미생성.
             var result = vmClusterCommandService.forceDeleteVmCluster(vmName);
             return ResponseEntity.ok(ApiSuccessResponse.of(
                     HttpStatus.OK.value(),

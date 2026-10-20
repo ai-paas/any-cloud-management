@@ -22,14 +22,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * <pre>
- * ClassName : ClusterEntity
- * Type : class
- * Description : Kubernetes Cluster와 관련된 Entity를 구성하고 있는 클래스입니다.
- * Related : ClusterRepository, ClusterServiceImpl
- * </pre>
- */
+/** 쿠버네티스 클러스터 등록 정보 엔티티. */
 @Entity
 @Getter
 @Setter
@@ -37,8 +30,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "cluster")
-// K8s 접속 정보와 자격증명 컬럼은 없습니다. cluster-agent 가 cluster 안에서 모든 호출을 대신하므로
-// backend 는 admin 자격을 보관하지 않습니다. 권한의 출처는 agent 의 SA 입니다.
+// K8s 접속 정보와 자격증명 컬럼 없음. cluster-agent 가 cluster 내부에서 모든 호출을 수행하므로
+// backend 는 admin 자격 미보관. 권한 출처는 agent 의 SA.
 @JsonPropertyOrder({
     "id",
     "description",
@@ -67,7 +60,7 @@ public class ClusterEntity implements Serializable {
     @Column(name = "description")
     private String description;
 
-    /** Cluster lifecycle status. — type-safe enum 으로 마이그레이션 완료 ({@link ClusterStatus}). DB 컬럼은 VARCHAR(45) 유지 — {@code @Enumerated(STRING)} 가 enum.name() ↔ string 변환. {@link #transitionStatus} helper 사용 권장 (graph 검증). */
+    /** Cluster lifecycle status.: type-safe enum 으로 마이그레이션 완료 ({@link ClusterStatus}). DB 컬럼은 VARCHAR(45) 유지: {@code @Enumerated(STRING)} 가 enum.name() ↔ string 변환. {@link #transitionStatus} helper 사용 권장 (graph 검증). */
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 45)
     private ClusterStatus status;
@@ -77,7 +70,7 @@ public class ClusterEntity implements Serializable {
     private String version;
 
     // api_server_url / api_server_ip / server_ca / client_ca / client_key /
-    // client_token / monit_server_url 모두 제거. backend 가 cluster K8s API 직접 호출 안 함 —
+    // client_token / monit_server_url 모두 제거. backend 가 cluster K8s API 직접 호출 안 함.
     // cluster-agent dial-in 으로 대체. monitoring URL 은 agent 가 in-cluster service discover.
 
     @Size(max = 100)
@@ -109,15 +102,15 @@ public class ClusterEntity implements Serializable {
     private String stackName;
 
     /**
-     * Cluster label (K8s-style). 운영자가 free-form 으로 지정 — anycloud 가 의미 부여하는 것은
+     * Cluster label (K8s-style). 운영자가 free-form 으로 지정: anycloud 가 의미 부여하는 것은
      * 다음 사용처들:
      * <ul>
-     *   <li>{@code anycloud.io/tier=prod|stg|dev} — RBAC starter 의 tieredRoleRefs 매칭</li>
-     *   <li>{@code anycloud.io/region=us-west-1} — fleet view 의 grouping (선택)</li>
-     *   <li>{@code anycloud.io/customer=acme} — multi-tenant 환경의 ownership (선택)</li>
+     *   <li>{@code anycloud.io/tier=prod|stg|dev}: RBAC starter 의 tieredRoleRefs 매칭</li>
+     *   <li>{@code anycloud.io/region=us-west-1}: fleet view 의 grouping (선택)</li>
+     *   <li>{@code anycloud.io/customer=acme}: multi-tenant 환경의 ownership (선택)</li>
      * </ul>
      *
-     * <p>JSON column — Map&lt;String, String&gt; 형태로 직렬화. 빈 Map 으로 default.
+     * <p>JSON column: Map&lt;String, String&gt; 형태로 직렬화. 빈 Map 으로 default.
      *
      * <p>직렬화는 {@link ClusterTagsConverter} 가 담당한다. MariaDB 의 JSON 이 longtext 별칭인
      * 탓에 JdbcTypeCode 방식은 ddl-auto=validate 를 통과하지 못한다 (converter 주석 참고).
@@ -182,7 +175,7 @@ public class ClusterEntity implements Serializable {
     }
 
     /**
-     * VM(Pulumi) 프로비저닝 cluster 여부. {@code provisioning_type == "PULUMI"} 단일 진실 — VM 분기
+     * VM(Pulumi) 프로비저닝 cluster 여부. {@code provisioning_type == "PULUMI"} 단일 출처: VM 분기
      * (admin kubeconfig SA 자동 생성 등) 는 모두 이 메서드를 씁니다. registered/manual 은 "IMPORTED".
      */
     public boolean isVmProvisioned() {

@@ -94,7 +94,7 @@ public class StaticTokenAuthFilter extends OncePerRequestFilter {
                 .write("{\"code\":\"" + code + "\",\"status\":401,\"message\":\"" + message + "\",\"errors\":[]}");
     }
 
-    /** Spring Security 인증 마커 — 권한은 ROLE_INTERNAL 고정. */
+    /** Spring Security 인증 마커: 권한은 ROLE_INTERNAL 고정. */
     private static final class InternalAuthentication extends AbstractAuthenticationToken {
         private static final long serialVersionUID = 1L;
 

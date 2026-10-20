@@ -53,7 +53,7 @@ public class ClusterConnectivityServiceImpl implements ClusterConnectivityServic
                     clusterName);
             return true;
         }
-        // agent 가 유일한 경로입니다. backend 는 자격증명이 없어 직접 ping 할 수단이 없습니다.
+        // agent 가 유일한 경로. backend 는 자격증명 부재로 직접 ping 불가.
         log.info("Connection test failed (agent unhealthy): cluster={}, {}", clusterName, health.summary());
         return false;
     }
@@ -63,7 +63,7 @@ public class ClusterConnectivityServiceImpl implements ClusterConnectivityServic
     public void updateClusterVersionAndStatus(ClusterEntity clusterEntity) {
         log.info("Updating version and status for cluster: {}", clusterEntity.getId());
 
-        // Agent path 우선 — heartbeat 신선하면 K8s API 호출 없이 cluster_agent 테이블만으로 결정.
+        // Agent path 우선: heartbeat 신선하면 K8s API 호출 없이 cluster_agent 테이블만으로 결정.
         ClusterHealth health = agentHealthService.getHealth(clusterEntity.getId());
         if (health.healthy()) {
             String version = lookupAgentK8sVersion(clusterEntity.getId());
@@ -78,7 +78,7 @@ public class ClusterConnectivityServiceImpl implements ClusterConnectivityServic
             return;
         }
 
-        // agent 가 유일한 경로입니다. heartbeat 가 없으면 버전도 상태도 알 수 없습니다.
+        // agent 가 유일한 경로. heartbeat 부재 시 버전과 상태 확인 불가.
         log.warn("Cluster {} is not accessible: {}", clusterEntity.getId(), health.summary());
         clusterEntity.transitionStatus(ClusterStatus.INACTIVE, "health.fail");
         clusterEntity.setVersion("UNKNOWN");
@@ -102,13 +102,16 @@ public class ClusterConnectivityServiceImpl implements ClusterConnectivityServic
         return CompletableFuture.completedFuture(null);
     }
 
-    /** Periodic sweep 의 chunk 당 fan-out 수. 너무 크면 KUBERNETES_EXECUTOR pool (core 4 / max 8) 가 한 chunk 에 묶여 caller-runs backpressure 로 sweep 이 오히려 느려진다. */
+    /**
+     * 주기 sweep 의 chunk 당 fan-out 수. KUBERNETES_EXECUTOR 의 max 8 을 크게 초과하면 큐 포화로
+     * caller-runs 전환, 호출 스레드의 직접 실행으로 sweep 전체 지연.
+     */
     private static final int FAN_OUT_CHUNK_SIZE = 50;
 
     @Override
     public void updateAllClusterStatuses() {
         // updateClusterVersionAndStatusAsync (@Async KUBERNETES_EXECUTOR) 로 cluster-당 thread fan-out.
-        // outer @Transactional 사용 금지 — child 가 자체 tx 보유 + outer tx 가 child 결과 보장 못 함
+        // outer @Transactional 사용 금지. child 가 자체 tx 보유 + outer tx 가 child 결과 보장 못 함
         // (best-effort sweep). outer tx 가 모든 child 끝까지 connection 점유하면 pool 고갈.
         //
         log.info("Starting periodic cluster status update (page-by-page fan-out)");
@@ -127,8 +130,8 @@ public class ClusterConnectivityServiceImpl implements ClusterConnectivityServic
             for (ClusterEntity cluster : chunk.getContent()) {
                 chunkFutures.add(updateClusterVersionAndStatusAsync(cluster));
             }
-            // chunk 안의 모든 future 완료까지 대기 — pool 가 full 이면 caller-runs backpressure 로 자연
-            // throttling. chunk 사이에 쉴 필요가 없습니다. 모든 thread 가 비는 시점에 다음 chunk 를 가져옵니다.
+            // chunk 내 전체 future 완료까지 대기. pool 포화 시 caller-runs backpressure 로 throttling.
+            // chunk 사이 대기 불필요. 전체 thread 가 비는 시점에 다음 chunk 진입.
             CompletableFuture.allOf(chunkFutures.toArray(new CompletableFuture[0]))
                     .join();
             allFutures.addAll(chunkFutures);

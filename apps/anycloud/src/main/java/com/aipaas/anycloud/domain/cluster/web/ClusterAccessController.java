@@ -33,16 +33,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * cluster 에 직접 붙기 위한 보조 endpoint 입니다. kubeconfig 를 내려주고, 노드 디버그용 privileged
- * pod 를 띄웁니다.
+ * cluster 직접 접근용 보조 endpoint. kubeconfig 발급과 노드 디버그용 privileged pod 생성.
  *
- * <p>kubeconfig 를 누구 앞으로 발급할지는 {@link KubeconfigIdentityResolver} 가 정합니다. 여기서
- * 기본값을 따로 두지 마세요.
+ * <p>kubeconfig 발급 대상은 {@link KubeconfigIdentityResolver} 가 결정. 이 클래스에 기본값
+ * 별도 정의 금지.
  *
- * <p>debug-pod 는 (namespace, pod_name) 만 돌려줍니다. 접속은 그 값으로 기존 PodExec WebSocket 을
- * 여는 식입니다.
+ * <p>debug-pod 는 (namespace, pod_name) 만 반환. 접속은 해당 값으로 기존 PodExec WebSocket 연결.
  *
- * <p>둘 다 cluster 의 RBAC 와 agent allowlist 를 통과해야 합니다.
+ * <p>양쪽 모두 cluster 의 RBAC 와 agent allowlist 통과 필요.
  */
 @RestController
 @RequestMapping("/v1")
@@ -71,7 +69,7 @@ public class ClusterAccessController {
                     + "KubeconfigIdentityResolver 가 결정: serviceAccount 명시 시 그대로, 미지정 + VM(PULUMI) "
                     + "cluster 면 자동 생성 cluster-admin SA(기본 aipaas-admin / aipaas-system) 로 전체 권한 다운로드. "
                     + "registered/BYO 는 존재하는 serviceAccount(+namespace) 명시 필요 (미지정 시 400). "
-                    + "단일 발급 엔드포인트 — 이전 POST /kubeconfig 는 본 GET 으로 통합됐다.")
+                    + "단일 발급 엔드포인트: 이전 POST /kubeconfig 는 본 GET 으로 통합됐다.")
     public ResponseEntity<String> downloadKubeconfig(
             @PathVariable @NotBlank @Pattern(regexp = CLUSTER_REGEXP) @Size(max = CLUSTER_MAX) String clusterName,
             @RequestParam(name = "serviceAccount", required = false)
@@ -83,7 +81,7 @@ public class ClusterAccessController {
                     @Size(max = ApiValidationConstants.K8S_NAME_MAX)
                     String namespace,
             @RequestParam(name = "ttlSeconds", required = false) Long ttlSeconds) {
-        // identity(ns+SA) 해석은 KubeconfigIdentityResolver 단일 seam — VM admin 기본 / 명시 SA
+        // identity(ns+SA) 해석은 KubeconfigIdentityResolver 단일 seam: VM admin 기본 / 명시 SA
         // / 향후 per-user.
         var identity = kubeconfigIdentityResolver.resolve(clusterName, serviceAccount, namespace);
         IssuedKubeconfig result = kubeconfigExportService.issue(
@@ -136,16 +134,16 @@ public class ClusterAccessController {
         }
     }
 
-    // ===== VM SSH access (Deprecated alias — canonical 은 /v1/vms/{name}/ssh-key)
+    // ===== VM SSH access (Deprecated alias: canonical 은 /v1/vms/{name}/ssh-key)
     // =====
 
     @PostMapping("/clusters/{clusterName}/ssh-key")
     @Operation(
             summary = "VM cluster SSH private key 발급",
             description = "Pulumi 가 cluster 생성 시 만든 SSH keypair 의 private key (PEM) 를 state 에서 "
-                    + "복호화해 반환 — 노드 직접 접속용. format=pem 이면 .pem 파일 다운로드, 기본 json 은 "
+                    + "복호화해 반환: 노드 직접 접속용. format=pem 이면 .pem 파일 다운로드, 기본 json 은 "
                     + "key + 노드별 ssh 명령 포함. CSP 무관 동일 동작. "
-                    + "⚠ key 소지 = 전 노드 root 등가 — 전달/보관 주의.")
+                    + "⚠ key 소지 = 전 노드 root 등가: 전달/보관 주의.")
     public ResponseEntity<?> issueSshKey(
             @PathVariable @NotBlank @Pattern(regexp = CLUSTER_REGEXP) @Size(max = CLUSTER_MAX) String clusterName,
             @RequestParam(name = "format", defaultValue = "json") String format) {
@@ -160,7 +158,7 @@ public class ClusterAccessController {
     }
 
     // ===== Error mapping =====
-    // 에러는 전 API 공통의 ErrorResponse (RFC 9457) 한 가지 형태로 — 기존엔
+    // 에러는 전 API 공통의 ErrorResponse (RFC 9457) 한 가지 형태로: 기존엔
     // ApiSuccessResponse(success=false) 로 내려 frontend 가 에러 파싱을 두 벌 유지해야 했다.
     // 원래 module 별 errorCode 문자열은 metadata.sourceCode 로 보존.
 

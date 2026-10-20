@@ -48,11 +48,11 @@ public class CspCredentialServiceImpl implements CspCredentialService {
     @Override
     public CspCredentialResponse createCredential(CreateCspCredentialRequest request) {
         SupportedProvisioningProvider provider = SupportedProvisioningProvider.from(request.getProvider());
-        // 모든 credential 은 encrypt 경로로 통일 — 과거 ENV 분기 (sourceType) 제거됨.
+        // 모든 credential 은 encrypt 경로로 통일: 과거 ENV 분기 (sourceType) 제거됨.
         Map<String, String> payload =
                 new LinkedHashMap<>(request.getCredentials() == null ? Map.of() : request.getCredentials());
         ProvisioningProviderValidator.validateCredentialValues(provider, payload);
-        // DB 제약이 먼저 터지면 SQL 오류가 그대로 올라가 무엇이 문제인지 알 수 없다.
+        // DB 제약 위반이 선행하면 SQL 오류가 그대로 전파돼 원인 확인 불가.
         if (cspCredentialRepository.existsByProviderAndName(provider.getCanonicalName(), request.getName())) {
             throw new CustomException(
                     ErrorCode.INVALID_INPUT_VALUE,
@@ -80,7 +80,7 @@ public class CspCredentialServiceImpl implements CspCredentialService {
             action = "credential.update",
             resourceType = "credential",
             resourceId = "#credentialId",
-            // 무엇으로 바꿨는지는 남기지 않는다. 남기면 감사 로그가 비밀 저장소가 된다.
+            // 변경 값 미기록. 기록 시 감사 로그가 비밀값 저장소가 됨.
             summary = "'updated'")
     public CspCredentialResponse updateCredential(String credentialId, UpdateCspCredentialRequest request) {
         CspCredentialEntity entity = getEntity(credentialId);
@@ -125,7 +125,7 @@ public class CspCredentialServiceImpl implements CspCredentialService {
     @Override
     public ResolvedCspCredential resolveForProvision(String provider, String credentialId) {
         SupportedProvisioningProvider normalizedProvider = SupportedProvisioningProvider.from(provider);
-        // credentialId 필수 — 과거 ENV fallback 제거. 자격증명 등록을 사용자 명시 작업으로 강제.
+        // credentialId 필수. 과거 ENV fallback 제거. 자격증명 등록을 사용자 명시 작업으로 강제.
         if (credentialId == null || credentialId.isBlank()) {
             throw new CustomException("Credential ID is required for VM provisioning", ErrorCode.INVALID_INPUT_VALUE);
         }
@@ -143,7 +143,7 @@ public class CspCredentialServiceImpl implements CspCredentialService {
             action = "credential.reveal",
             resourceType = "credential",
             resourceId = "#credentialId",
-            // summary 에 #result 를 넣으면 감사 로그가 비밀 저장소가 된다. 어떤 키를 봤는지만 남긴다.
+            // summary 에 #result 포함 시 감사 로그가 비밀값 저장소가 됨. 조회 키만 기록.
             summary = "'revealed'")
     public Map<String, String> revealCredential(String credentialId) {
         CspCredentialEntity entity = getEntity(credentialId);
@@ -173,7 +173,7 @@ public class CspCredentialServiceImpl implements CspCredentialService {
 
     private void assertProviderMatches(SupportedProvisioningProvider provider, String entityProvider) {
         if (!provider.getCanonicalName().equalsIgnoreCase(entityProvider)) {
-            // Provider mismatch 는 영구 입력 오류 — async workflow 가 동일 (request, credential) 로
+            // Provider mismatch 는 영구 입력 오류: async workflow 가 동일 (request, credential) 로
             // 재시도해도 동일 결과. PermanentProvisioningFailure 는 RabbitMQ retry interceptor 가
             // 즉시 DLQ 로 라우팅 (ExceptionClassifierRetryPolicy → NeverRetryPolicy).
             throw new com.aipaas.anycloud.common.error.exception.provisioning.PermanentProvisioningFailure(

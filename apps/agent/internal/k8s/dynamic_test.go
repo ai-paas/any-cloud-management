@@ -3,7 +3,7 @@
 // Test 전략:
 //   - meta.NewDefaultRESTMapper 로 in-memory RESTMapper 구성. discovery (실 API 호출) 없이 결정적.
 //   - dynamic/fake 의 NewSimpleDynamicClient 로 unstructured.Unstructured 기반 fake K8s 객체 주입.
-//   - realClient 의 dyn / mapper 필드를 sync.Once 우회로 직접 set — production path 와 동일한
+//   - realClient 의 dyn / mapper 필드를 sync.Once 우회로 직접 set: production path 와 동일한
 //     코드를 타지만 외부 의존 없이 검증 가능.
 //
 // Coverage:
@@ -28,7 +28,7 @@ import (
 	dynfake "k8s.io/client-go/dynamic/fake"
 )
 
-// newTestRESTMapper — dispatcher 가 다루는 자원들로 RESTMapper 구성.
+// newTestRESTMapper: dispatcher 가 다루는 자원들로 RESTMapper 구성.
 // production 에선 discovery 기반 deferred mapper 가 사용되지만, test 에선 결정적 매핑이 필요.
 func newTestRESTMapper() *meta.DefaultRESTMapper {
 	gvs := []schema.GroupVersion{
@@ -52,7 +52,7 @@ func newTestRESTMapper() *meta.DefaultRESTMapper {
 	return m
 }
 
-// newTestDynamicScheme — fake dynamic client 가 사용할 scheme + List kind 등록.
+// newTestDynamicScheme: fake dynamic client 가 사용할 scheme + List kind 등록.
 //
 // Scheme 에 singular GVK 도 등록해야 ObjectTracker.Add(unstructured) 가 정상 동작
 // (tracker 가 scheme.ObjectKinds(obj) 로 GVK 를 역추적하기 때문).
@@ -82,7 +82,7 @@ func newTestDynamicScheme() (*runtime.Scheme, map[schema.GroupVersionResource]st
 	return scheme, gvrToListKind
 }
 
-// newPreparedClient — realClient 의 dyn / mapper 를 미리 채워서 ensureDynamic 우회.
+// newPreparedClient: realClient 의 dyn / mapper 를 미리 채워서 ensureDynamic 우회.
 // production 의 sync.Once 와 동일한 lifecycle 을 따르지만 init 비용 없이 즉시 사용 가능.
 func newPreparedClient(t *testing.T, objects ...runtime.Object) *realClient {
 	t.Helper()
@@ -98,7 +98,7 @@ func newPreparedClient(t *testing.T, objects ...runtime.Object) *realClient {
 	return c
 }
 
-// uobj — unstructured.Unstructured helper.
+// uobj: unstructured.Unstructured helper.
 func uobj(apiVersion, kind, name, namespace string) *unstructured.Unstructured {
 	u := &unstructured.Unstructured{}
 	u.SetAPIVersion(apiVersion)
@@ -110,7 +110,7 @@ func uobj(apiVersion, kind, name, namespace string) *unstructured.Unstructured {
 	return u
 }
 
-// TestResolveResource_ClusterScopedCRD — storageclasses / customresourcedefinitions 가
+// TestResolveResource_ClusterScopedCRD: storageclasses / customresourcedefinitions 가
 // plural 로 정확히 정규화되고 namespaced=false 로 표시되는지.
 func TestResolveResource_ClusterScopedCRD(t *testing.T) {
 	c := newPreparedClient(t)
@@ -144,7 +144,7 @@ func TestResolveResource_ClusterScopedCRD(t *testing.T) {
 	}
 }
 
-// TestResolveResource_UnknownKind — RESTMapper 가 매핑 못 찾으면 ErrUnsupportedKind sentinel.
+// TestResolveResource_UnknownKind: RESTMapper 가 매핑 못 찾으면 ErrUnsupportedKind sentinel.
 func TestResolveResource_UnknownKind(t *testing.T) {
 	c := newPreparedClient(t)
 	_, err := c.ResolveResource("unicornresource")
@@ -156,7 +156,7 @@ func TestResolveResource_UnknownKind(t *testing.T) {
 	}
 }
 
-// TestListResources_StorageClasses — 하드코딩되지 않은 CRD-ish cluster-scoped
+// TestListResources_StorageClasses: 하드코딩되지 않은 CRD-ish cluster-scoped
 // 자원도 정상 list 되는지.
 func TestListResources_StorageClasses(t *testing.T) {
 	scObj := uobj("storage.k8s.io/v1", "StorageClass", "standard-rwo", "")
@@ -179,7 +179,7 @@ func TestListResources_StorageClasses(t *testing.T) {
 	}
 }
 
-// TestListResources_PodsNamespaced — namespaced 자원의 namespace 필터링.
+// TestListResources_PodsNamespaced: namespaced 자원의 namespace 필터링.
 func TestListResources_PodsNamespaced(t *testing.T) {
 	c := newPreparedClient(t,
 		uobj("v1", "Pod", "nginx-web", "web"),
@@ -199,7 +199,7 @@ func TestListResources_PodsNamespaced(t *testing.T) {
 	}
 }
 
-// TestListResources_UnsupportedKind — 알 수 없는 kind 는 ErrUnsupportedKind sentinel 반환.
+// TestListResources_UnsupportedKind: 알 수 없는 kind 는 ErrUnsupportedKind sentinel 반환.
 // 본 sentinel 은 dispatcher 가 INVALID_PARAMS/UNSUPPORTED_KIND 응답으로 매핑.
 func TestListResources_UnsupportedKind(t *testing.T) {
 	c := newPreparedClient(t)
@@ -212,7 +212,7 @@ func TestListResources_UnsupportedKind(t *testing.T) {
 	}
 }
 
-// TestGetResource_Pod — namespaced get → JSON 응답.
+// TestGetResource_Pod: namespaced get → JSON 응답.
 func TestGetResource_Pod(t *testing.T) {
 	c := newPreparedClient(t, uobj("v1", "Pod", "nginx", "web"))
 	got, err := c.GetResource(context.Background(), GetResourceOptions{
@@ -229,7 +229,7 @@ func TestGetResource_Pod(t *testing.T) {
 	}
 }
 
-// TestDeleteResource_StorageClass — cluster-scoped CRD-ish 자원 삭제. namespace 무시.
+// TestDeleteResource_StorageClass: cluster-scoped CRD-ish 자원 삭제. namespace 무시.
 func TestDeleteResource_StorageClass(t *testing.T) {
 	scObj := uobj("storage.k8s.io/v1", "StorageClass", "gp3", "")
 	c := newPreparedClient(t, scObj)
@@ -239,7 +239,7 @@ func TestDeleteResource_StorageClass(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("DeleteResource: %v", err)
 	}
-	// 삭제 확인 — get 으로 NotFound 검증.
+	// 삭제 확인: get 으로 NotFound 검증.
 	_, err := c.GetResource(context.Background(), GetResourceOptions{
 		Kind: "storageclasses", Name: "gp3",
 	})
@@ -248,7 +248,7 @@ func TestDeleteResource_StorageClass(t *testing.T) {
 	}
 }
 
-// TestDeleteResource_RequiresName — 명시적 가드 회귀 방지.
+// TestDeleteResource_RequiresName: 명시적 가드 회귀 방지.
 func TestDeleteResource_RequiresName(t *testing.T) {
 	c := newPreparedClient(t)
 	err := c.DeleteResource(context.Background(), DeleteResourceOptions{Kind: "pods"})
@@ -257,8 +257,8 @@ func TestDeleteResource_RequiresName(t *testing.T) {
 	}
 }
 
-// TestEnsureDynamicConcurrency — sync.Once 의 race-safety 회귀. ResolveResource 를 동시에
-// 여러 고루틴이 호출해도 dyn/mapper 가 한 번만 초기화되어야 한다.
+// TestEnsureDynamicConcurrency: sync.Once 의 race-safety 회귀 검증. 여러 고루틴이
+// ResolveResource 를 동시 호출해도 dyn, mapper 는 1회만 초기화.
 //
 // concurrency 다이어그램:
 //
@@ -266,8 +266,8 @@ func TestDeleteResource_RequiresName(t *testing.T) {
 //	goroutine 2 ┼─► ResolveResource("pods") ─► ensureDynamic (sync.Once)
 //	goroutine 3 ┘                              └─► dyn / mapper 단일 초기화
 //
-// preparedClient 는 이미 dynOnce.Do(func(){}) 로 무력화돼 있으나, 동시 ResolveResource 호출이
-// 결정적으로 같은 결과를 반환하는지만 검증 (실 init path 는 production 에서 검증).
+// preparedClient 는 dynOnce.Do(func(){}) 로 무력화된 상태이므로, 동시 ResolveResource 호출의
+// 결과 일관성만 검증 (실제 init path 는 production 에서 검증).
 func TestEnsureDynamicConcurrency(t *testing.T) {
 	c := newPreparedClient(t)
 	const N = 16
@@ -293,5 +293,5 @@ func TestEnsureDynamicConcurrency(t *testing.T) {
 	}
 }
 
-// 컴파일 보증 — dynamic.Interface 가 우리가 가정하는 타입과 일치하는지.
+// 컴파일 보증: dynamic.Interface 가 우리가 가정하는 타입과 일치하는지.
 var _ dynamic.Interface = (*dynfake.FakeDynamicClient)(nil)

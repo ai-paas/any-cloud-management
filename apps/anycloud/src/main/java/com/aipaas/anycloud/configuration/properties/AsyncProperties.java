@@ -6,8 +6,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
- * 도메인별 비동기 풀 설정입니다. 풀을 나눠 한 도메인의 부하가 다른 도메인의 작업을 굶기지 않게
- * 합니다. 기본값은 아래 필드 선언이 단일 출처이고 {@code async.pools.*} 로 덮어씁니다.
+ * 도메인별 비동기 풀 설정. 풀 분리로 한 도메인의 부하가 다른 도메인 작업을 고갈시키지 않도록
+ * 처리. 기본값은 아래 필드 선언이 단일 출처이고 {@code async.pools.*} 로 재정의.
  */
 @Getter
 @Setter
@@ -18,14 +18,14 @@ public class AsyncProperties {
     private Pool helm = Pool.defaults("helm-", 5, 10, 50);
     private Pool kubernetes = Pool.defaults("k8s-", 4, 8, 100);
     /*
-     * AMQP 를 끈 로컬 경로(LocalVmClusterWorkflowPublisherImpl)에서 워크플로 4단계가 여기로 간다.
-     * AMQP 를 켜면 쓰이지 않는다. 두 경로의 동시성이 다르면 로컬에서만 재현되는 포화가 생긴다.
+     * AMQP 비활성 로컬 경로(LocalVmClusterWorkflowPublisherImpl)에서 워크플로 4단계가 사용.
+     * AMQP 활성 시 미사용. 두 경로의 동시성이 다르면 로컬에서만 재현되는 포화 발생.
      */
     private Pool provisioning = Pool.rejecting("pulumi-", 16, 24, 8);
     /*
-     * 워크플로 4단계(PROVISION/BOOTSTRAP/VERIFY/DESTROY)가 이 풀 하나를 같이 씁니다. 한 단계가
-     * 최악 170분까지 스레드를 잡으므로 동시 프로비저닝 수가 곧 필요한 스레드 수입니다.
-     * 큐는 max 이하로 둡니다. 큐가 크면 core 를 넘겨 늘지 않아 max 가 쓰이지 않습니다.
+     * 워크플로 4단계(PROVISION/BOOTSTRAP/VERIFY/DESTROY)가 단일 풀 공유. 한 단계가 최대 170분간
+     * 스레드를 점유하므로 동시 프로비저닝 수가 필요 스레드 수와 동일.
+     * 큐 크기는 max 이하. 큐가 크면 core 초과 확장이 일어나지 않아 max 미사용.
      */
     private Pool bootstrap = Pool.rejecting("bootstrap-", 16, 24, 8);
 
@@ -42,15 +42,15 @@ public class AsyncProperties {
         private int keepAliveSeconds = 60;
 
         /**
-         * 넘쳤을 때 호출자 스레드에서 실행할지 여부입니다.
+         * 큐 포화 시 호출 스레드 실행 여부.
          *
-         * <p>워크플로 풀은 false 여야 합니다. 호출자가 AMQP 리스너라 거기서 170분짜리 작업을 돌리면
-         * 그 큐의 소비가 멈추고 ack 를 못 해 재전달 루프에 빠집니다. 거부하면 dispatcher 가 락을
-         * 반납하고 메시지를 되돌립니다.
+         * <p>워크플로 풀은 false 고정. 호출자가 AMQP 리스너이므로 170분 작업 실행 시 해당 큐의
+         * 소비가 정지하고 ack 불가로 재전달 루프 진입. 거부 시 dispatcher 가 락을 반납하고
+         * 메시지 재큐.
          */
         private boolean runOnCallerWhenFull = true;
 
-        /** 넘치면 거부하는 풀 — 호출자를 붙잡으면 안 되는 자리. */
+        /** 넘치면 거부하는 풀: 호출자를 붙잡으면 안 되는 자리. */
         public static Pool rejecting(String prefix, int core, int max, int queue) {
             Pool p = defaults(prefix, core, max, queue);
             p.runOnCallerWhenFull = false;

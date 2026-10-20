@@ -4,7 +4,7 @@ import com.aipaas.anycloud.domain.agent.model.ClusterAgentUpgradeWave;
 import java.util.List;
 import java.util.Map;
 
-/** Fleet upgrade staggered rollout — agent 신버전 배포의 wave-based 순차 처리. */
+/** Fleet upgrade staggered rollout: agent 신버전 배포의 wave-based 순차 처리. */
 public interface FleetUpgradeService {
 
     /** Fleet upgrade 가시화. wave 별 cluster 분포 + agent_version 분포 + per-cluster 상세. */
@@ -14,7 +14,7 @@ public interface FleetUpgradeService {
      * 단일 cluster 의 upgrade_wave 변경. HA replica 가 여러 row 인 경우 모두 같은 wave 로 sync.
      *
      * @throws com.aipaas.anycloud.common.error.exception.CustomException
-     *         ENTITY_NOT_FOUND — cluster 의 agent row 가 0건.
+     *         ENTITY_NOT_FOUND: cluster 의 agent row 가 0건.
      */
     void setWave(String clusterName, ClusterAgentUpgradeWave wave);
 
@@ -32,6 +32,6 @@ public interface FleetUpgradeService {
             Map<String, Long> versionCounts,
             Map<ClusterAgentUpgradeWave, List<ClusterEntry>> byWave) {}
 
-    /** Preview 의 cluster 단위 entry — wave + 현재 active versions. */
+    /** Preview 의 cluster 단위 entry: wave + 현재 active versions. */
     record ClusterEntry(String clusterName, ClusterAgentUpgradeWave wave, List<String> versions) {}
 }

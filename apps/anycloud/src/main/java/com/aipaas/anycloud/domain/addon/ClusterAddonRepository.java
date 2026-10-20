@@ -12,9 +12,9 @@ import org.springframework.stereotype.Repository;
  *
  * <p>쿼리 패턴:
  * <ul>
- *   <li>findByClusterId — frontend addon 목록 + cluster ACTIVE listener.</li>
- *   <li>findByClusterIdAndState — listener 가 PENDING 만 enqueue.</li>
- *   <li>findByClusterIdAndNamespaceAndReleaseName — idempotency 검증 + update lookup.</li>
+ *   <li>findByClusterId: frontend addon 목록 + cluster ACTIVE listener.</li>
+ *   <li>findByClusterIdAndState: listener 가 PENDING 만 enqueue.</li>
+ *   <li>findByClusterIdAndNamespaceAndReleaseName: idempotency 검증 + update lookup.</li>
  * </ul>
  */
 @Repository

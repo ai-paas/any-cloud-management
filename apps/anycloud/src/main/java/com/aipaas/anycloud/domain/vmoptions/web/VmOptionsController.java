@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/providers")
-@Tag(name = "Providers (v1)", description = "VM provisioning 카탈로그 — providers / regions / specs / images")
+@Tag(name = "Providers (v1)", description = "VM provisioning 카탈로그: providers / regions / specs / images")
 public class VmOptionsController {
 
     private final VmOptionsService vmOptionsService;
@@ -57,7 +57,7 @@ public class VmOptionsController {
     public ResponseEntity<ApiSuccessResponse<PagedData<VmOptionRegion>>> listRegions(
             @Parameter(description = "클라우드 제공자", example = "AWS") @PathVariable String provider,
             @Parameter(
-                            description = "사용자가 등록한 credential ID (MANUAL sourceType) — 미지정 시 환경변수 fallback",
+                            description = "사용자가 등록한 credential ID (MANUAL sourceType). 미지정 시 환경변수 fallback",
                             example = "cred-uuid")
                     @RequestParam(required = false)
                     String credentialId) {
@@ -75,7 +75,7 @@ public class VmOptionsController {
     @ApiResponses({@ApiResponse(responseCode = "200", description = "VM 스펙 목록 조회 성공")})
     public ResponseEntity<ApiSuccessResponse<PagedData<VmOptionSpec>>> listSpecs(
             @Parameter(description = "클라우드 제공자", example = "AWS") @PathVariable String provider,
-            @Parameter(description = "사용자가 등록한 credential ID — 미지정 시 환경변수 fallback", example = "cred-uuid")
+            @Parameter(description = "사용자가 등록한 credential ID: 미지정 시 환경변수 fallback", example = "cred-uuid")
                     @RequestParam(required = false)
                     String credentialId,
             @Parameter(description = "리전", example = "ap-northeast-2") @RequestParam(required = false) String region,
@@ -97,7 +97,7 @@ public class VmOptionsController {
     @GetMapping("/{provider}/credential-schema")
     @Operation(
             summary = "자격증명 입력 필드 schema",
-            description = "프로바이더별로 자격증명에 무엇을 받아야 하는지 — key, label, required, secret, "
+            description = "프로바이더별로 자격증명에 무엇을 받아야 하는지: key, label, required, secret, "
                     + "multiline, group 포함. 화면이 KEY=VALUE 를 직접 받지 않도록 입력 폼을 만드는 데 쓴다.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Schema 조회 성공"),
@@ -137,7 +137,7 @@ public class VmOptionsController {
     @GetMapping("/{provider}/config-schema")
     @Operation(
             summary = "Provisioning config 키 schema",
-            description = "spec.config 에 사용할 수 있는 모든 'anycloud-k8s:*' 키 목록 — type, required, default, "
+            description = "spec.config 에 사용할 수 있는 모든 'anycloud-k8s:*' 키 목록: type, required, default, "
                     + "description, allowedValues 포함. 클라이언트 form generation / validation 미리보기에 사용.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Schema 조회 성공"),
@@ -146,12 +146,11 @@ public class VmOptionsController {
     public ResponseEntity<ApiSuccessResponse<PagedData<ProviderConfigKey>>> getConfigSchema(
             @Parameter(description = "클라우드 제공자", example = "AWS") @PathVariable String provider,
             @Parameter(
-                            description = "사용자가 등록한 credential ID — 주면 계정에서 고를 수 있는 값을 allowedValues 에 채운다",
+                            description = "사용자가 등록한 credential ID: 주면 계정에서 고를 수 있는 값을 allowedValues 에 채운다",
                             example = "cred-uuid")
                     @RequestParam(required = false)
                     String credentialId,
-            @Parameter(description = "리전 — 리전마다 고를 수 있는 값이 다른 키에 필요", example = "jp-tok")
-                    @RequestParam(required = false)
+            @Parameter(description = "리전: 리전마다 고를 수 있는 값이 다른 키에 필요", example = "jp-tok") @RequestParam(required = false)
                     String region) {
         List<ProviderConfigKey> schema = vmOptionsService.getConfigSchema(provider, credentialId, region);
         return new ResponseEntity<>(
@@ -165,7 +164,7 @@ public class VmOptionsController {
     @ApiResponses({@ApiResponse(responseCode = "200", description = "OS 이미지 목록 조회 성공")})
     public ResponseEntity<ApiSuccessResponse<PagedData<VmOptionImage>>> listImages(
             @Parameter(description = "클라우드 제공자", example = "AWS") @PathVariable String provider,
-            @Parameter(description = "사용자가 등록한 credential ID — 미지정 시 환경변수 fallback", example = "cred-uuid")
+            @Parameter(description = "사용자가 등록한 credential ID: 미지정 시 환경변수 fallback", example = "cred-uuid")
                     @RequestParam(required = false)
                     String credentialId,
             @Parameter(description = "리전", example = "ap-northeast-2") @RequestParam(required = false) String region,

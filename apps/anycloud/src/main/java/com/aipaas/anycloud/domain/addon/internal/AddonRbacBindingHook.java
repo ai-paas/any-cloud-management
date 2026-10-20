@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
  * starter 의 {@link BindingApplyClient#apply} 호출. uninstall 시 label
  * {@code aipaas.io/addon=<catalogId>} 매칭 binding 일괄 cleanup.
  *
- * <p>{@link BindingApplyClient} bean 부재 (test, starter 미설치) 환경 호환 — {@link ObjectProvider}
+ * <p>{@link BindingApplyClient} bean 부재 (test, starter 미설치) 환경 호환: {@link ObjectProvider}
  * lazy.
  */
 @Slf4j

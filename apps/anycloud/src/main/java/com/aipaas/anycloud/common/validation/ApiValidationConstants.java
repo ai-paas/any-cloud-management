@@ -9,8 +9,8 @@ public final class ApiValidationConstants {
     public static final int K8S_NAME_MAX = 63;
 
     /**
-     * namespace path 값. RFC 1123 label 에 sentinel 둘을 더 받습니다. {@code -} 는 cluster-scoped
-     * kind 라 namespace 가 의미 없을 때, {@code _all} 은 전체 namespace 조회입니다.
+     * namespace path 값. RFC 1123 label 에 sentinel 2종 추가 허용. {@code -} 는 cluster-scoped
+     * kind 로 namespace 가 무의미한 경우, {@code _all} 은 전체 namespace 조회.
      */
     public static final String NAMESPACE_PATTERN = "^(-|_all|[a-z0-9]([-a-z0-9]*[a-z0-9])?)$";
 
@@ -31,10 +31,10 @@ public final class ApiValidationConstants {
     /** K8s resource kind (pods, services, deployments, ...). 소문자 알파벳. */
     public static final String K8S_KIND_PATTERN = "^[a-z][a-z0-9]{0,49}$";
 
-    /** credential ID — UUID 변형 또는 사람이 식별 가능한 prefix-postfix. */
+    /** credential ID: UUID 변형 또는 사람이 식별 가능한 prefix-postfix. */
     public static final String CREDENTIAL_ID_PATTERN = "^[A-Za-z0-9_-]{1,64}$";
 
-    /** Operation ID — {@code op-<base32 12 char>} 형식. OperationServiceImpl#generateId 와 일치. */
+    /** Operation ID: {@code op-<base32 12 char>} 형식. OperationServiceImpl#generateId 와 일치. */
     public static final String OPERATION_ID_PATTERN = "^op-[A-Za-z0-9]{1,32}$";
 
     /** description / 자유 텍스트 길이 상한. */

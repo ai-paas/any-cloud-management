@@ -8,7 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/** PUT /v1/clusters/{cluster}/helm-releases/{releaseName} body — -3. */
+/** PUT /v1/clusters/{cluster}/helm-releases/{releaseName} body: -3. */
 @Data
 @Builder
 @NoArgsConstructor
@@ -21,13 +21,13 @@ public class UpgradeHelmReleaseRequest {
     private String chart;
 
     @NotBlank
-    @Schema(description = "차트 버전 (반드시 명시 — latest 는 추적성/예측가능성 측면에서 거부)", example = "15.4.0")
+    @Schema(description = "차트 버전 (반드시 명시: latest 는 추적성/예측가능성 측면에서 거부)", example = "15.4.0")
     private String version;
 
     @Schema(description = "네임스페이스 (생략 시 default)", example = "web")
     private String namespace;
 
-    @Schema(description = "values (JSON object — backend 가 YAML 로 직렬화). reuseValues=false 일 때 적용.")
+    @Schema(description = "values (JSON object: backend 가 YAML 로 직렬화). reuseValues=false 일 때 적용.")
     private Map<String, Object> values;
 
     @Schema(description = "values.yaml 문자열 (대안). values + valuesYaml 동시 지정 시 400.")

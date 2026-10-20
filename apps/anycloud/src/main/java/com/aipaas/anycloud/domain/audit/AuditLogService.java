@@ -10,7 +10,7 @@ import org.springframework.data.domain.Pageable;
 public interface AuditLogService {
 
     /**
-     * 시간 윈도우 + 필터 검색. service 가 DTO 변환까지 수행 — controller 는 entity 모름.
+     * 시간 윈도우 + 필터 검색. service 가 DTO 변환까지 수행: controller 는 entity 모름.
      */
     org.springframework.data.domain.Page<AuditLogResponse> search(
             LocalDateTime since,

@@ -9,7 +9,7 @@ import lombok.Builder;
  * Agent 에 전달할 JWT + 보조 정보 (api endpoint, helm values 등) 포함.
  */
 @Builder
-@Schema(description = "Cluster Agent bootstrap 정보 — registration_token + control plane endpoint")
+@Schema(description = "Cluster Agent bootstrap 정보: registration_token + control plane endpoint")
 public record AgentRegistrationTokenResponse(
         @Schema(description = "Cluster 의 플랫폼 내부 ID", example = "demo-aws-01") String clusterId,
         @Schema(

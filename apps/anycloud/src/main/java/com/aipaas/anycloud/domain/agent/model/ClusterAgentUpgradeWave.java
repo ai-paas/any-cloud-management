@@ -5,14 +5,14 @@ package com.aipaas.anycloud.domain.agent.model;
  *
  * <p>운영 의도:
  * <ul>
- *   <li>{@link #CANARY} — 1-2 cluster 만 골라 신버전 빠른 검증.</li>
- *   <li>{@link #STAGING} — dev / staging 환경. 자동화된 e2e 가 돌아가는 클러스터.</li>
- *   <li>{@link #GENERAL} — production. canary + staging 안정화 확인 후 적용.</li>
- *   <li>{@link #PAUSED} — 의도적 제외. 특정 cluster 가 신버전과 호환 안 되거나 운영 freeze 중.</li>
+ *   <li>{@link #CANARY}: 1-2 cluster 만 골라 신버전 빠른 검증.</li>
+ *   <li>{@link #STAGING}: dev / staging 환경. 자동화된 e2e 가 돌아가는 클러스터.</li>
+ *   <li>{@link #GENERAL}: production. canary + staging 안정화 확인 후 적용.</li>
+ *   <li>{@link #PAUSED}: 의도적 제외. 특정 cluster 가 신버전과 호환 안 되거나 운영 freeze 중.</li>
  * </ul>
  *
  * <p>{@code FleetUpgradeService} 가 wave 순서 (CANARY → STAGING → GENERAL) 로 차례대로 처리.
- * PAUSED 는 항상 skip — 운영자가 별도 toggle 해야 다시 들어옴.
+ * PAUSED 는 항상 skip: 운영자가 별도 toggle 해야 다시 들어옴.
  */
 public enum ClusterAgentUpgradeWave {
     CANARY,

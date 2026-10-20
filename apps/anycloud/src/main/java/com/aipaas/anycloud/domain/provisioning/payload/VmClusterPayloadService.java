@@ -19,7 +19,7 @@ public interface VmClusterPayloadService {
      * provisioningRequest 가 비어있는 상태) 경로 전용.
      *
      * <p>스냅샷이 비어있거나 필수 필드(provider) 가 없으면 null 반환. 호출자는 null guard 후
-     * 4xx 응답을 던져야 한다 — silently 작업 진행 시 worker NPE 폭발.
+     * 4xx 응답을 던져야 한다. silently 작업 진행 시 worker NPE 폭발.
      */
     ProvisioningRequest restoreProvisioningRequest(VmClusterEntity vmCluster, ResolvedCspCredential credential);
 

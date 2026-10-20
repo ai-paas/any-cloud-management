@@ -5,16 +5,15 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 
 /**
- * K8s 응답에서 {@code metadata.managedFields} 를 떼고 Secret 값을 가립니다.
+ * K8s 응답에서 {@code metadata.managedFields} 제거, Secret 값 마스킹.
  *
- * <p>managedFields 는 Server-Side Apply 추적용인데 자원 하나의 70~90% 를 차지하는 일이 흔하고
- * 화면에서는 쓰지 않습니다.
+ * <p>managedFields 는 Server-Side Apply 추적용이며 자원 하나의 70~90% 를 차지하는 경우가 많고
+ * 화면에서 미사용.
  *
- * <p>Secret 의 {@code data} 와 {@code stringData} 는 기본으로 가립니다. agent 의 read 권한이
- * wildcard 라 값이 그대로 응답에 실리기 때문입니다. {@code security.kube.redact-secrets=false} 로
- * 끌 수 있습니다.
+ * <p>Secret 의 {@code data} 와 {@code stringData} 는 기본 마스킹. agent 의 read 권한이
+ * wildcard 라 값이 그대로 응답에 포함. {@code security.kube.redact-secrets=false} 로 비활성화 가능.
  *
- * <p>입력 트리를 제자리에서 고칩니다. ObjectMapper 가 만든 mutable 트리를 넘기세요.
+ * <p>입력 트리를 in-place 수정. ObjectMapper 가 생성한 mutable 트리 전달 필요.
  */
 public final class K8sResponseSanitizer {
 
@@ -39,7 +38,7 @@ public final class K8sResponseSanitizer {
             return;
         }
         if (!node.isObject()) {
-            return; // scalar — 흥미 없음
+            return; // scalar: 흥미 없음
         }
         // object 시작.
         // 1) metadata.managedFields 제거 (단일 자원 형태).
@@ -47,15 +46,15 @@ public final class K8sResponseSanitizer {
         if (metadata instanceof ObjectNode metaObj) {
             metaObj.remove("managedFields");
         }
-        // 2) items 배열 — K8s List wrapper (PodList/Deployment List 등) 케이스.
+        // 2) items 배열: K8s List wrapper (PodList/Deployment List 등) 케이스.
         JsonNode items = node.get("items");
         if (items != null && items.isArray()) {
             for (JsonNode item : items) {
                 walk(item);
             }
         }
-        // 3) Multi-doc apply 응답 — 단일 객체가 아닌 array 가 루트인 경우는 isArray() 가 위에서
-        //    이미 처리. 객체 안의 추가 nested resource 는 K8s 표준 응답엔 없음 — 더 파지 않음.
+        // 3) Multi-doc apply 응답: 단일 객체가 아닌 array 가 루트인 경우는 isArray() 가 위에서
+        //    이미 처리. 객체 안의 추가 nested resource 는 K8s 표준 응답엔 없음. 더 파지 않음.
     }
 
     /**
@@ -89,10 +88,10 @@ public final class K8sResponseSanitizer {
         if (isSecret) {
             redactDataMaps((ObjectNode) node);
         }
-        // SecretList 또는 items wrapper — 각 item 의 kind 가 Secret 이면 자동 redact (재귀).
+        // SecretList 또는 items wrapper: 각 item 의 kind 가 Secret 이면 자동 redact (재귀).
         JsonNode items = node.get("items");
         if (items != null && items.isArray()) {
-            // SecretList 일 때 items 의 각 entry 가 kind 필드 없을 수도 있음 — list wrapper 가 SecretList
+            // SecretList 일 때 items 의 각 entry 가 kind 필드 없을 수도 있음. list wrapper 가 SecretList
             // 이면 items 의 entry 는 모두 Secret 으로 간주.
             for (JsonNode item : items) {
                 if (item.isObject()) {

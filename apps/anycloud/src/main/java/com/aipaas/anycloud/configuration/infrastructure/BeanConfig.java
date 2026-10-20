@@ -23,7 +23,7 @@ import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
-/** 외부 라이브러리 Bean 등록 — 보안 기본값 집중 (YAML SafeConstructor, TLS truststore 등). */
+/** 외부 라이브러리 Bean 등록: 보안 기본값 집중 (YAML SafeConstructor, TLS truststore 등). */
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
@@ -81,7 +81,7 @@ public class BeanConfig {
 
             RestTemplate restTemplate = new RestTemplate(factory);
 
-            // User-Agent = "anycloud-backend/<version>" — build info 기반, 없으면 dev fallback.
+            // User-Agent = "anycloud-backend/<version>": build info 기반, 없으면 dev fallback.
             String userAgent = buildUserAgent(buildPropertiesProvider.getIfAvailable());
             restTemplate.getInterceptors().add((request, body, execution) -> {
                 if (!request.getHeaders().containsKey("User-Agent")) {
@@ -99,9 +99,9 @@ public class BeanConfig {
     }
 
     /**
-     * CSP API 전용 RestTemplate 입니다. timeout 을 기본 {@code restTemplate} 보다 짧게 잡습니다.
-     * 자격증명이 틀렸거나 CSP 가 일시 장애일 때 controller 응답 시간이 누적되지 않게 하려는 것입니다.
-     * metadata 조회뿐이라 짧아도 충분합니다.
+     * CSP API 전용 RestTemplate. timeout 을 기본 {@code restTemplate} 보다 짧게 설정.
+     * 자격증명 오류나 CSP 무응답 시 해당 시간만큼 controller 응답 지연. metadata 조회 전용이라
+     * 짧은 timeout 으로 충분.
      */
     @Bean("cspRestTemplate")
     public RestTemplate cspRestTemplate(

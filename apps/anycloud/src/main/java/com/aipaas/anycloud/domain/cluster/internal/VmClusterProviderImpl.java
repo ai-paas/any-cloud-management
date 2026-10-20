@@ -54,8 +54,8 @@ public class VmClusterProviderImpl implements ClusterProvider {
     }
 
     /**
-     * 요청은 {@code anycloud-k8s:} 접두를 붙여 옵니다. 접두 없이 확인하면 운영자가 명시한 값을
-     * 못 보고 덮어씁니다.
+     * 요청 키에는 {@code anycloud-k8s:} 접두 포함. 접두 없이 조회하면 운영자 명시 값을 인식하지
+     * 못해 덮어씀.
      */
     private static void putIfAbsentNs(java.util.Map<String, String> config, String key, String value) {
         if (value == null || value.isBlank()) return;
@@ -82,14 +82,14 @@ public class VmClusterProviderImpl implements ClusterProvider {
         }
         // typed VmClusterSpec 필드를 config map 에 주입.
         // Pulumi provider 가 config map 의 key 로 읽음. 운영자가 직접 config 에 명시한 값이 있으면
-        // 보존 (typed 필드는 보조 — 운영자 입력 우선).
+        // 보존 (typed 필드는 보조: 운영자 입력 우선).
         putIfAbsentNs(config, "useSpot", Boolean.TRUE.equals(spec.useSpot()) ? "true" : null);
         putIfAbsentNs(config, "osImage", spec.osImage());
         // root 디스크 크기 (GB). null/0 이하면 미주입 → Pulumi provider 가 model.defaults 의 기본(50GB) 적용.
         if (spec.rootDiskSizeGb() != null && spec.rootDiskSizeGb() > 0) {
             putIfAbsentNs(config, "rootDiskSizeGb", String.valueOf(spec.rootDiskSizeGb()));
         }
-        // joinToken 은 backend 가 cluster 별 random 생성 — 사용자 입력은 항상 무시.
+        // joinToken 은 backend 가 cluster 별 random 생성: 사용자 입력은 항상 무시.
         // 약한/공유 token 입력을 허용하면 node 탈취 시 타 cluster join 가능. 생성 시점이
         // validateStatic 이전이므로 requestConfig snapshot 에 영속화 → retry 도 같은 token 재사용.
         if (config.containsKey(CONFIG_JOIN_TOKEN)) {

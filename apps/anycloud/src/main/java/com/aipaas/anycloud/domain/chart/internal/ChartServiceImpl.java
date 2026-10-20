@@ -29,11 +29,11 @@ import org.springframework.web.multipart.MultipartFile;
  * Helm release / chart operations entry. 10+ dependency 를 3 책임 group 으로 정리 :
  *
  * <ol>
- *   <li>Release lifecycle — {@code helmReleaseService} (agent), {@code chartAgentInteractions},
+ *   <li>Release lifecycle: {@code helmReleaseService} (agent), {@code chartAgentInteractions},
  *       {@code clusterAgentValueInjector}. install / upgrade / rollback / uninstall.</li>
- *   <li>Chart artifact handling — {@code chartArchiveFetcher}, {@code chartParser}. 이미
- *       {@code service/chart/support/} 로 분리됨 — service 는 위임만.</li>
- *   <li>Operation tracking + audit — {@code operationService}, {@code agentCommandRouter}.</li>
+ *   <li>Chart artifact handling: {@code chartArchiveFetcher}, {@code chartParser}. 이미
+ *       {@code service/chart/support/} 로 분리됨. service 는 위임만.</li>
+ *   <li>Operation tracking + audit: {@code operationService}, {@code agentCommandRouter}.</li>
  * </ol>
  *
  * <p>support/ helper 가 이미 추출되어 있으므로 향후 facade 분해 시 1 의 release lifecycle 만
@@ -65,7 +65,7 @@ public class ChartServiceImpl implements ChartService {
 
     private final io.aipaas.cluster.agent.runtime.KubeResourceService kubeResourceService;
 
-    /** Helm chart 설치 — agent 의 INSTALL_ADDON 전용. agent 없으면 503. */
+    /** Helm chart 설치: agent 의 INSTALL_ADDON 전용. agent 없으면 503. */
     @Override
     public ChartDeployResponse deployChartFromYaml(
             String repositoryName,
@@ -88,8 +88,8 @@ public class ChartServiceImpl implements ChartService {
         // Chart 다운로드 전략 우선순위 (air-gapped agent 권장 경로):
         //   1순위: backend 가 chart .tgz 를 fetch → base64 로 agent 에 push (chartTarballBase64).
         //          agent 가 chartmuseum 도달 불가한 사내망 / private K8s 에서 정답.
-        //   2순위: URL 만 전달 — agent 가 helm SDK 로 직접 다운로드. URL 이 agent 측에서 도달 가능해야.
-        //   3순위: 둘 다 안 됨 — agent 의 alias resolve fallback (보통 실패).
+        //   2순위: URL 만 전달: agent 가 helm SDK 로 직접 다운로드. URL 이 agent 측에서 도달 가능해야.
+        //   3순위: 둘 다 안 됨. agent 의 alias resolve fallback (보통 실패).
         String resolvedRepoUrl = null;
         String chartTarballB64 = null;
         HelmRepoEntity repoEntity = null;
@@ -103,7 +103,7 @@ public class ChartServiceImpl implements ChartService {
         }
 
         if (repoEntity != null) {
-            // 1순위 — backend 가 직접 fetch 해 push.
+            // 1순위: backend 가 직접 fetch 해 push.
             try {
                 byte[] tgz = chartArchiveFetcher.fetchArchive(repoEntity, chartName, version);
                 chartTarballB64 = Base64.getEncoder().encodeToString(tgz);
@@ -115,7 +115,7 @@ public class ChartServiceImpl implements ChartService {
                         tgz.length,
                         chartTarballB64.length());
             } catch (Exception fetchFail) {
-                // Pre-fetch 실패 — 2순위 (URL only) 로 fallback.
+                // Pre-fetch 실패: 2순위 (URL only) 로 fallback.
                 log.warn(
                         "Chart pre-fetch failed for {}/{} v{} — falling back to URL-only path: {}",
                         repositoryName,
@@ -140,7 +140,7 @@ public class ChartServiceImpl implements ChartService {
                         version == null ? "" : version,
                         ns,
                         valuesJson,
-                        true)); // createNamespace — chart 가 명시 ns 가 없으면 만들어줌
+                        true)); // createNamespace: chart 가 명시 ns 가 없으면 만들어줌
 
         log.info(
                 "Helm install OK (source=AGENT): cluster={}, release={}, revision={}, status={}",
@@ -171,17 +171,17 @@ public class ChartServiceImpl implements ChartService {
             }
             return objectMapper.writeValueAsString(parsed);
         } catch (Exception e) {
-            // 잘못된 YAML 이면 그대로 보낸다 — agent 가 INVALID_VALUES 로 반환할 것.
+            // 잘못된 YAML 이면 그대로 보낸다: agent 가 INVALID_VALUES 로 반환할 것.
             log.warn("yamlValuesToJson: parse failed, sending raw — {}", e.getMessage());
             return yamlOrEmpty;
         }
     }
 
-    // InMemoryMultipartFile 어댑터 제거됨 — deployChartFromYaml/deployChartFromFile 가
+    // InMemoryMultipartFile 어댑터 제거됨. deployChartFromYaml/deployChartFromFile 가
     // 모두 agent-only path 로 통합되어 String ↔ MultipartFile 우회가 불필요.
 
     /**
-     * Helm chart 설치 (multipart file variant) — agent-only.
+     * Helm chart 설치 (multipart file variant). agent-only.
      *
      * <p>file 내용을 string 으로 읽어 {@link #deployChartFromYaml} 에 위임.
      */
@@ -215,7 +215,7 @@ public class ChartServiceImpl implements ChartService {
         return deployChartFromYaml(repositoryName, chartName, releaseName, clusterName, namespace, version, valuesYaml);
     }
 
-    /** Helm release status — agent 의 GET_HELM_RELEASE_STATUS 전용. agent 없거나 release 미존재면 503. */
+    /** Helm release status: agent 의 GET_HELM_RELEASE_STATUS 전용. agent 없거나 release 미존재면 503. */
     @Override
     public ChartStatusResponse getChartStatus(String releaseName, String clusterName, String namespace) {
         log.info("Getting chart status for release: {} in cluster: {}", releaseName, clusterName);
@@ -223,7 +223,7 @@ public class ChartServiceImpl implements ChartService {
 
         agentInteractions.requireHelmAgent(clusterName, "read helm release status for " + releaseName);
 
-        // getChartStatus 는 release 미존재 시 throw 가 아니라 UNKNOWN DTO 반환 — 다른 메서드와 다른
+        // getChartStatus 는 release 미존재 시 throw 가 아니라 UNKNOWN DTO 반환: 다른 메서드와 다른
         // 시맨틱이라 wrapHelmRouting 미사용. classifyException 대신 즉시 DTO build.
         HelmReleaseService.ReleaseStatus status;
         try {
@@ -256,7 +256,7 @@ public class ChartServiceImpl implements ChartService {
                 .build();
     }
 
-    /** Helm release revision 이력 — agent 의 GET_HELM_RELEASE_HISTORY 전용. */
+    /** Helm release revision 이력: agent 의 GET_HELM_RELEASE_HISTORY 전용. */
     @Override
     public ChartHistoryResponse getReleaseHistory(String clusterName, String releaseName, String namespace, int max) {
         log.info("Getting history for release: {} in cluster: {} (max={})", releaseName, clusterName, max);
@@ -292,7 +292,7 @@ public class ChartServiceImpl implements ChartService {
                 .build();
     }
 
-    /** Helm release rollback — agent 가 ROLLBACK_HELM_RELEASE 로 rollback 과 status 를 함께 반환. */
+    /** Helm release rollback: agent 가 ROLLBACK_HELM_RELEASE 로 rollback 과 status 를 함께 반환. */
     @Override
     public ChartStatusResponse rollbackRelease(
             String clusterName, String releaseName, int revision, String namespace, boolean waitForReady) {
@@ -328,7 +328,7 @@ public class ChartServiceImpl implements ChartService {
                 .build();
     }
 
-    /** Helm release uninstall — agent 의 UNINSTALL_ADDON 이 KeepHistory / Wait 옵션을 그대로 받는다. */
+    /** Helm release uninstall. agent 의 UNINSTALL_ADDON 이 KeepHistory, Wait 옵션을 그대로 수신. */
     @Override
     public ChartStatusResponse uninstallRelease(
             String clusterName, String releaseName, String namespace, boolean keepHistory, boolean waitForReady) {
@@ -362,7 +362,7 @@ public class ChartServiceImpl implements ChartService {
                 .build();
     }
 
-    /** 3 — Helm release UPGRADE. */
+    /** 3: Helm release UPGRADE. */
     @Override
     public ChartStatusResponse upgradeRelease(
             String clusterName,
@@ -393,7 +393,7 @@ public class ChartServiceImpl implements ChartService {
         String enriched = clusterAgentValueInjector.enrich(chartName, valuesYaml);
         String valuesJson = yamlValuesToJson(enriched);
 
-        // Chart resolution — deployChartFromYaml 와 동일 우선순위 (pre-fetch → URL → alias fallback).
+        // Chart resolution: deployChartFromYaml 와 동일 우선순위 (pre-fetch → URL → alias fallback).
         String resolvedRepoUrl = null;
         String chartTarballB64 = null;
         HelmRepoEntity repoEntity = null;
@@ -460,11 +460,11 @@ public class ChartServiceImpl implements ChartService {
                 .build();
     }
 
-    // createKubeconfigFile / deleteKubeconfigFile 제거됨 — agent path 가 in-cluster
+    // createKubeconfigFile / deleteKubeconfigFile 제거됨. agent path 가 in-cluster
     // ServiceAccount token 으로 K8s API 호출하므로 임시 kubeconfig 파일이 불필요. backend 의
     // disk write / cleanup surface (특히 cleanup 누락 위험) 가 사라짐.
 
-    /** Cluster 의 Helm 릴리즈 목록 — agent 의 LIST_HELM_RELEASES 전용. agent 없으면 503. */
+    /** Cluster 의 Helm 릴리즈 목록: agent 의 LIST_HELM_RELEASES 전용. agent 없으면 503. */
     @Override
     public ChartReleasesResponse getReleases(String clusterName, String namespace) {
         log.info("Getting releases for cluster: {}, namespace: {}", clusterName, namespace);
@@ -507,7 +507,7 @@ public class ChartServiceImpl implements ChartService {
         return out;
     }
 
-    /** Helm release 의 K8s 자원 ref 목록 — agent 단일 호출. 실패 시 503, caller 가 degraded 처리. */
+    /** Helm release 의 K8s 자원 ref 목록: agent 단일 호출. 실패 시 503, caller 가 degraded 처리. */
     @Override
     public List<HelmReleaseResourceRef> getHelmResources(String clusterName, String namespace, String releaseName) {
         String ns = Namespaces.defaultIfBlank(namespace);
@@ -540,10 +540,10 @@ public class ChartServiceImpl implements ChartService {
     // Agent 의 helm op 실패 분류 / agent 가용성 가드는 ChartAgentInteractions (@Component) 가 담당.
 
     /**
-     * helm 은 release 를 {@code sh.helm.release.v1.<name>.v<revision>} secret 에 넣는다.
+     * helm 은 release 를 {@code sh.helm.release.v1.<name>.v<revision>} secret 에 저장.
      *
-     * <p>내용은 gzip 한 JSON 을 base64 로 감싼 것이고, k8s 가 secret data 를 한 번 더 base64 로
-     * 감싼다. 두 겹을 벗기고 {@code config} 를 꺼내면 설치할 때 넘긴 values 다.
+     * <p>내용은 gzip JSON 의 base64 인코딩이고, k8s 가 secret data 를 한 번 더 base64 인코딩.
+     * 2단계 디코딩 후 {@code config} 를 추출하면 설치 시 전달한 values.
      */
     @Override
     public String getReleaseValues(String clusterName, String namespace, String releaseName) {
@@ -570,7 +570,7 @@ public class ChartServiceImpl implements ChartService {
             com.fasterxml.jackson.databind.JsonNode config =
                     objectMapper.readTree(json).path("config");
             if (config.isMissingNode() || config.isNull() || config.isEmpty()) {
-                // 기본값만 쓴 릴리즈는 config 가 비어 있다 — 오류가 아니다.
+                // 기본값만 사용한 릴리즈는 config 가 빈 값. 오류 아님.
                 return "";
             }
             return new org.yaml.snakeyaml.Yaml(yamlDumperOptions())
@@ -594,7 +594,7 @@ public class ChartServiceImpl implements ChartService {
         return options;
     }
 
-    /** 지금 배포된 revision. 못 읽으면 1 로 본다 — 한 번만 설치한 릴리즈가 가장 흔하다. */
+    /** 지금 배포된 revision. 못 읽으면 1 로 본다: 한 번만 설치한 릴리즈가 가장 흔하다. */
     private int currentRevision(String clusterName, String namespace, String releaseName) {
         try {
             var releases = getReleases(clusterName, namespace);

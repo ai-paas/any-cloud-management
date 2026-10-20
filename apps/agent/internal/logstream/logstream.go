@@ -1,6 +1,6 @@
-// Package logstream — Pod log streaming runner.
+// Package logstream: Pod log streaming runner.
 //
-// 메인 runtime stream 과 독립된 bidi gRPC 채널 (AgentRuntime/StreamPodLogs) 사용 — pod I/O 가
+// 메인 runtime stream 과 독립된 bidi gRPC 채널 (AgentRuntime/StreamPodLogs) 사용: pod I/O 가
 // heartbeat loop 를 block 하지 않게 분리. session_id 는 backend 의 SSE bridge 와 매칭하기 위한
 // echo. chunk size / flush 주기는 RPC overhead vs backend memory 의 trade-off.
 package logstream
@@ -22,11 +22,11 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-// 각 LogChunk 의 max 크기 — 너무 작으면 RPC overhead, 너무 크면 backend memory.
+// 각 LogChunk 의 max 크기: 너무 작으면 RPC overhead, 너무 크면 backend memory.
 // 64KB 면 K8s log line 보통 1-2개 + 여유. 사용자 burst (cat large file) 도 무난.
 const maxChunkBytes = 64 * 1024
 
-// SessionConfig — Run() 입력.
+// SessionConfig: Run() 입력.
 type SessionConfig struct {
 	BackendAddr        string
 	AgentIdentityToken string
@@ -36,7 +36,7 @@ type SessionConfig struct {
 	TLS tlsconfig.Config
 }
 
-// Runner — log streaming 세션 실행. K8s client + AllowList loader 보유.
+// Runner: log streaming 세션 실행. K8s client + AllowList loader 보유.
 type Runner struct {
 	kube      k8s.Client
 	allowlist *config.Loader
@@ -46,11 +46,11 @@ func New(kube k8s.Client, allowlist *config.Loader) *Runner {
 	return &Runner{kube: kube, allowlist: allowlist}
 }
 
-// Run — context 종료 또는 stream 종료까지 블록. 호출은 별도 goroutine 권장.
+// Run: context 종료 또는 stream 종료까지 블록. 호출은 별도 goroutine 권장.
 //
 // 에러 케이스:
 //   - dial 실패 → 즉시 error 반환.
-//   - K8s stream 실패 → backend 가 EOF 로 SSE 종료 (별도 에러 전달 채널 없음 — best-effort).
+//   - K8s stream 실패 → backend 가 EOF 로 SSE 종료 (별도 에러 전달 채널 없음. best-effort).
 //   - AllowList 거부 → stream 열고 즉시 close (backend 가 empty SSE 로 인지).
 func (r *Runner) Run(ctx context.Context, cfg SessionConfig) error {
 	if cfg.Request == nil {
@@ -63,7 +63,7 @@ func (r *Runner) Run(ctx context.Context, cfg SessionConfig) error {
 		return errors.New("logstream.Run: identity token required")
 	}
 
-	// AllowList 검증 — namespace 거부 시 즉시 종료 (stream 안 열고).
+	// AllowList 검증: namespace 거부 시 즉시 종료 (stream 안 열고).
 	// (backend 가 dispatcher 의 NAMESPACE_NOT_ALLOWED 응답과 달리 즉시 정보 못 받지만, 정책 일관성.)
 	if r.allowlist != nil {
 		policy := r.allowlist.Snapshot()
@@ -95,7 +95,7 @@ func (r *Runner) Run(ctx context.Context, cfg SessionConfig) error {
 		return fmt.Errorf("open StreamPodLogs: %w", err)
 	}
 
-	// 첫 packet — request (session_id echo + 매개변수).
+	// 첫 packet: request (session_id echo + 매개변수).
 	// session_id 가 request 안에 비어있으면 OpenLogStream.session_id 강제 주입.
 	req := cfg.Request
 	if req.SessionId == "" {
@@ -125,7 +125,7 @@ func (r *Runner) Run(ctx context.Context, cfg SessionConfig) error {
 		Timestamps:   req.GetTimestamps(),
 	})
 	if err != nil {
-		// K8s 실패 — backend 에는 empty stream + close 로 전달.
+		// K8s 실패: backend 에는 empty stream + close 로 전달.
 		slog.Warn("logstream: k8s stream failed",
 			slog.String("session_id", cfg.SessionID),
 			slog.String("error", err.Error()))
@@ -140,7 +140,7 @@ func (r *Runner) Run(ctx context.Context, cfg SessionConfig) error {
 		for {
 			_, recvErr := stream.Recv()
 			if recvErr != nil {
-				// EOF (정상 종료) 또는 cancel/error — 모두 K8s stream 종료 시그널.
+				// EOF (정상 종료) 또는 cancel/error: 모두 K8s stream 종료 시그널.
 				k8sCancel()
 				return
 			}
@@ -148,7 +148,7 @@ func (r *Runner) Run(ctx context.Context, cfg SessionConfig) error {
 		}
 	}()
 
-	// 메인 루프 — K8s stream → LogChunk packet.
+	// 메인 루프: K8s stream → LogChunk packet.
 	buf := make([]byte, maxChunkBytes)
 	var bytesSent int64
 	var chunksSent int64
@@ -165,7 +165,7 @@ func (r *Runner) Run(ctx context.Context, cfg SessionConfig) error {
 				slog.Debug("logstream: send chunk failed (likely backend cancel)",
 					slog.String("session_id", cfg.SessionID),
 					slog.String("error", sendErr.Error()))
-				return nil // backend 가 cancel — 정상 종료
+				return nil // backend 가 cancel: 정상 종료
 			}
 			bytesSent += int64(n)
 			chunksSent++
@@ -175,7 +175,7 @@ func (r *Runner) Run(ctx context.Context, cfg SessionConfig) error {
 			break
 		}
 		if readErr != nil {
-			// ctx cancel / network — backend 입장에선 stream EOF.
+			// ctx cancel / network: backend 입장에선 stream EOF.
 			slog.Debug("logstream: k8s read terminated",
 				slog.String("session_id", cfg.SessionID),
 				slog.String("error", readErr.Error()))

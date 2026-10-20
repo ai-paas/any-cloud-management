@@ -23,25 +23,25 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * Helm chart {@code .tgz} 에서 파일 하나를 JVM 안에서 바로 꺼냅니다. helm CLI 를 부르지 않아
- * 동시 호출이 프로세스 경합을 일으키지 않습니다.
+ * Helm chart {@code .tgz} 에서 파일 하나를 JVM 내부에서 직접 추출. helm CLI 미호출이므로
+ * 동시 호출 시 프로세스 경합 없음.
  *
- * <p>chart 아카이브는 항상 {@code <chartName>/} 디렉토리 하나로 묶여 있습니다. 호출자는
- * chartName 과 그 아래 경로만 주면 됩니다.
+ * <p>chart 아카이브는 항상 {@code <chartName>/} 단일 디렉터리 구조. 호출자는 chartName 과
+ * 하위 경로만 전달.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class ChartArchiveFetcher {
 
-    /** 단일 archive entry 의 최대 크기 — chart values / README 가 8MB 넘으면 비정상. */
+    /** 단일 archive entry 의 최대 크기: chart values / README 가 8MB 넘으면 비정상. */
     private static final int MAX_ENTRY_BYTES = 8 * 1024 * 1024;
 
-    /** Chart .tgz 자체의 최대 크기 — 큰 chart 도 일반적으로 5MB. 50MB cap 으로 안전. */
+    /** Chart .tgz 자체의 최대 크기: 큰 chart 도 일반적으로 5MB. 50MB cap 으로 안전. */
     private static final int MAX_ARCHIVE_BYTES = 50 * 1024 * 1024;
 
     /**
-     * 공개 저장소의 index.yaml 은 크다 — prometheus-community 6.4MB, bitnami 는 더 크다.
+     * 공개 저장소의 index.yaml 은 크다: prometheus-community 6.4MB, bitnami 는 더 크다.
      *
      * <p>snakeyaml 기본 상한 3MiB 로는 거부되는데, 화면에는 README 와 values 가 없는 것처럼
      * 보인다. 목록과 상세는 상한을 올린 다른 파서를 써서 되고 여기만 막혔다.
@@ -90,7 +90,7 @@ public class ChartArchiveFetcher {
      * 용도 (helm install 시 agent 가 chartmuseum 에 직접 접근 못하는 air-gapped / 사내망 케이스).
      *
      * <p>{@link #fetchEntry} 와 동일한 internal download path 재사용. {@link #MAX_ARCHIVE_BYTES}
-     * (50MB) cap 이 그대로 적용 — 비정상 크기 chart 거부.
+     * (50MB) cap 이 그대로 적용: 비정상 크기 chart 거부.
      *
      * @return chart .tgz 의 raw bytes
      * @throws com.aipaas.anycloud.common.error.exception.HelmChartNotFoundException repo / chart /
@@ -107,7 +107,7 @@ public class ChartArchiveFetcher {
      *
      * <p><b>중요</b>: index.yaml 을 {@code byte[]} 로 받은 후 명시적으로 디코딩.
      * RestTemplate 의 StringHttpMessageConverter 가 response Content-Type 에 {@code charset=} 가
-     * 없을 때 -1 로 디코딩하는 RFC 2616 default 동작 때문 — ChartMuseum 등 일부 server 는
+     * 없을 때 -1 로 디코딩하는 RFC 2616 default 동작 때문: ChartMuseum 등 일부 server 는
      * Content-Type 에 charset 지정 안 함. multi-byte 문자 (예: em-dash {@code —}
      * U+2014 = {@code 0xE2 0x80 0x94}) 가 mojibake 가 되어 SnakeYAML 이
      * "special characters are not allowed" 로 reject 하는 회귀 회피.
@@ -177,7 +177,7 @@ public class ChartArchiveFetcher {
         try {
             return new URI(base).resolve(url).toString();
         } catch (URISyntaxException e) {
-            // Best-effort fallback — simple concat.
+            // Best-effort fallback: simple concat.
             return base + url;
         }
     }

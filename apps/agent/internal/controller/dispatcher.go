@@ -1,4 +1,4 @@
-// Package controller — agent 가 backend 로부터 받은 ControlMessage 를 처리하는 dispatcher.
+// Package controller: agent 가 backend 로부터 받은 ControlMessage 를 처리하는 dispatcher.
 //
 // K8s ops (LIST_PODS / GET_LOG / GET_CLUSTER_INFO) + Helm ops (INSTALL_ADDON /
 // UNINSTALL_ADDON / LIST_HELM_RELEASES). 모든 명령은 AllowList 통과 필수 (deny-all default).
@@ -53,14 +53,14 @@ type Dispatcher struct {
 	allowlist       *config.Loader
 }
 
-// Mode constants — main.go 의 AGENT_MODE env 와 일치.
+// Mode constants: main.go 의 AGENT_MODE env 와 일치.
 const (
 	ModeSingle    = "single"
 	ModeCore      = "core"
 	ModeInstaller = "installer"
 )
 
-// coreCommands — read-only RPC set. installer pod 에선 거부됨.
+// coreCommands: read-only RPC set. installer pod 에선 거부됨.
 var coreCommands = map[string]bool{
 	"LIST_PODS":                   true,
 	"GET_LOG":                     true,
@@ -86,7 +86,7 @@ var coreCommands = map[string]bool{
 	"EXEC_POD":                    true,
 }
 
-// installerCommands — mutating RPC set. core pod 에선 거부됨.
+// installerCommands: mutating RPC set. core pod 에선 거부됨.
 var installerCommands = map[string]bool{
 	"INSTALL_ADDON":                   true,
 	"UPGRADE_ADDON":                   true,
@@ -103,7 +103,7 @@ var installerCommands = map[string]bool{
 	"GENERATE_CSR_TOKEN":              true,
 }
 
-// New — 일반 사용. 각 dependency 가 nil 이면 관련 명령이 AGENT_UNAVAILABLE 또는 PERMISSION_DENIED.
+// New: 일반 사용. 각 dependency 가 nil 이면 관련 명령이 AGENT_UNAVAILABLE 또는 PERMISSION_DENIED.
 //
 // allowlist == nil 이면 deny-all 강제 (production 에서는 절대 nil 안 됨).
 // mode == "" → "single" 로 normalize (backward-compat).
@@ -127,7 +127,7 @@ func (d *Dispatcher) Handle(cmd *agentv1.CommandRequest) *agentv1.CommandRespons
 	}
 	slog.Debug("dispatch", slog.String("type", cmd.GetType().String()))
 
-	// AllowList 검사 — 모든 명령에 적용. deny-all default.
+	// AllowList 검사: 모든 명령에 적용. deny-all default.
 	if !d.commandAllowed(cmd.GetType().String()) {
 		return errorResponse(agentv1.Status_PERMISSION_DENIED, "COMMAND_NOT_ALLOWED",
 			fmt.Sprintf("command %s not in allowlist", cmd.GetType()))
@@ -193,13 +193,13 @@ func (d *Dispatcher) Handle(cmd *agentv1.CommandRequest) *agentv1.CommandRespons
 		return d.generateKubeconfig(ctx, cmd)
 	case agentv1.CommandType_CREATE_NODE_DEBUG_POD: //
 		return d.createNodeDebugPod(ctx, cmd)
-	case agentv1.CommandType_LIST_RESOURCE_KINDS: // discovery — cluster 가 지원하는 모든 kind (CRD 포함).
+	case agentv1.CommandType_LIST_RESOURCE_KINDS: // discovery: cluster 가 지원하는 모든 kind (CRD 포함).
 		return d.listResourceKinds(ctx)
 	case agentv1.CommandType_RESOLVE_RESOURCE: // 단일 input (short/singular/plural) → 정규화된 ResolvedResource.
 		return d.resolveResource(ctx, cmd)
-	case agentv1.CommandType_GET_AGENT_CONFIG: // self-introspection — allowlist + resource_policy snapshot.
+	case agentv1.CommandType_GET_AGENT_CONFIG: // self-introspection: allowlist + resource_policy snapshot.
 		return d.getAgentConfig(ctx, cmd)
-	case agentv1.CommandType_APPLY_AGENT_CONFIG: // backend PUT — agent 가 자기 ConfigMap 갱신 → watch reload.
+	case agentv1.CommandType_APPLY_AGENT_CONFIG: // backend PUT: agent 가 자기 ConfigMap 갱신 → watch reload.
 		return d.applyAgentConfig(ctx, cmd)
 	case agentv1.CommandType_ENSURE_AGENT_CONFIG_ANNOTATIONS: // helm.sh/resource-policy=keep annotation 멱등 backfill.
 		return d.ensureAgentConfigAnnotations(ctx, cmd)
@@ -221,7 +221,7 @@ func (d *Dispatcher) commandAllowed(typeName string) bool {
 	return d.allowlist.Snapshot().IsCommandAllowed(typeName)
 }
 
-// modeAllowsCommand — split mode RPC 분기 검사.
+// modeAllowsCommand: split mode RPC 분기 검사.
 //   - single    : 모든 명령 허용 (단일 pod 가 모든 명령 처리, 기존 default)
 //   - core      : coreCommands 안에 있어야
 //   - installer : installerCommands 안에 있어야
@@ -287,7 +287,7 @@ func errorResponse(status agentv1.Status, code, message string) *agentv1.Command
 	}
 }
 
-// failedWithData — failed-status 응답에 추가 metadata (result.data) 동봉. RESOLVE_RESOURCE 가
+// failedWithData: failed-status 응답에 추가 metadata (result.data) 동봉. RESOLVE_RESOURCE 가
 // suggestions 를 노출할 때 사용. status 는 caller 가 (예: INVALID_PARAMS) 결정.
 func failedWithData(status agentv1.Status, code, message string, data *structpb.Struct) *agentv1.CommandResponse {
 	return &agentv1.CommandResponse{
@@ -299,7 +299,7 @@ func failedWithData(status agentv1.Status, code, message string, data *structpb.
 	}
 }
 
-// sortStable — sort.SliceStable wrapper. 명령 응답의 결정성 (UI 의 list 순서 안정) 보장.
+// sortStable: sort.SliceStable wrapper. 명령 응답의 결정성 (UI 의 list 순서 안정) 보장.
 func sortStable(s []interface{}, less func(i, j int) bool) {
 	sort.SliceStable(s, less)
 }
@@ -326,9 +326,8 @@ func parseInt64(s string, fallback int64) int64 {
 	return v
 }
 
-// parseBoundedInt 는 helm revision 처럼 작은 양수만 의미가 있는 파라미터를 읽는다.
-// int64 를 그냥 int 로 줄이면 32비트 빌드에서 값이 뒤집혀 음수 revision 이 helm 에
-// 그대로 넘어간다.
+// parseBoundedInt 는 helm revision 처럼 소수의 양수만 유효한 파라미터 파싱.
+// int64 를 int 로 축소하면 32비트 빌드에서 값이 반전돼 음수 revision 이 helm 에 전달.
 func parseBoundedInt(s string, fallback, limit int) int {
 	if s == "" {
 		return fallback
@@ -360,7 +359,7 @@ func splitChartRef(ref string) (repo, chart string, err error) {
 	return ref[:idx], ref[idx+1:], nil
 }
 
-// versionInRange — semver-light. SemVer 형식 (예: "45.0.0") 만 지원, prerelease 무시.
+// versionInRange: semver-light. SemVer 형식 (예: "45.0.0") 만 지원, prerelease 무시.
 // min == max 이면 정확히 일치만 허용.
 func versionInRange(version, min, max string) bool {
 	cmpMin := compareSemver(version, min)
@@ -368,7 +367,7 @@ func versionInRange(version, min, max string) bool {
 	return cmpMin >= 0 && cmpMax <= 0
 }
 
-// compareSemver — major.minor.patch + optional v prefix. -1 / 0 / 1 반환.
+// compareSemver: major.minor.patch + optional v prefix. -1 / 0 / 1 반환.
 func compareSemver(a, b string) int {
 	pa := splitSemver(a)
 	pb := splitSemver(b)
@@ -399,13 +398,13 @@ func splitSemver(s string) [3]int {
 	return out
 }
 
-// jsonUnmarshal — encoding/json import 회피 (간단 명령 raw 만 받음). dispatcher 가 sync 핸들러라
-// values 가 매우 큰 case 는 backend 에서 reject 권장.
+// dispatcher 가 동기 핸들러이므로 values 가 크면 해당 요청 종료까지 다음 명령 수신 불가.
+// 크기 검사는 backend 담당.
 func jsonUnmarshal(raw string, out *map[string]interface{}) error {
 	return jsonStdUnmarshal([]byte(raw), out)
 }
 
-// jsonStdUnmarshal — 분리해서 빌드 태그로 swap 가능. 현재는 std encoding/json.
+// jsonStdUnmarshal: 분리해서 빌드 태그로 swap 가능. 현재는 std encoding/json.
 func jsonStdUnmarshal(data []byte, out *map[string]interface{}) error {
 	return jsonDecode(data, out)
 }

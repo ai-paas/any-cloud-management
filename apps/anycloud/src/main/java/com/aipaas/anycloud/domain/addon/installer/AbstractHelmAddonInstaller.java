@@ -10,7 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
-/** Base implementation — 모든 helm-based addon installer 의 공통 install/uninstall 흐름. */
+/** Base implementation: 모든 helm-based addon installer 의 공통 install/uninstall 흐름. */
 @Slf4j
 @RequiredArgsConstructor
 public abstract class AbstractHelmAddonInstaller implements AddonInstaller {
@@ -21,7 +21,7 @@ public abstract class AbstractHelmAddonInstaller implements AddonInstaller {
      * addon install 직후 자동 cache invalidate. Velero / Monitoring / Ingress
      * 어떤 addon 이든 CRD 를 새로 등록할 가능성이 있으므로 install 후 무조건 flush. {@code @Autowired}
      * field injection (non-final → Lombok ctor 미포함) → 6개 subclass 시그니처 보존. {@link ObjectProvider}
-     * 로 optional — bean 미존재 (test) 환경 호환.
+     * 로 optional: bean 미존재 (test) 환경 호환.
      */
     @Autowired(required = false)
     private ObjectProvider<KindResolver> kindResolverProvider;
@@ -33,7 +33,7 @@ public abstract class AbstractHelmAddonInstaller implements AddonInstaller {
     @Override
     public void install(ClusterAddonEntity addon) {
         // agent 의 INSTALL_ADDON handler 가 `repo/name` 형식 검증.
-        // HelmReleaseService 의 chart param 은 그대로 forward — backend 가 결합해서 전달.
+        // HelmReleaseService 의 chart param 은 그대로 forward: backend 가 결합해서 전달.
         String chartRef = addon.getChartRepo() + "/" + addon.getChartName();
         log.info(
                 "AddonInstaller[{}]: install start cluster={} release={} chart={}:{}",
@@ -48,13 +48,13 @@ public abstract class AbstractHelmAddonInstaller implements AddonInstaller {
                 addon.getReleaseName(),
                 chartRef, // "prometheus-community/kube-prometheus-stack"
                 addon.getRepoUrl(), // 명시 URL 전달 (null OK)
-                null, // chartTarballBase64 — pre-fetch 미사용
+                null, // chartTarballBase64: pre-fetch 미사용
                 addon.getChartVersion(),
                 addon.getNamespace(),
                 AddonValues.toJson(addon.getValuesYaml()),
-                true); // createNamespace — addon namespace 자동 생성
+                true); // createNamespace: addon namespace 자동 생성
 
-        // addon install 직후 cache flush — 신규 CRD 가 추가되었을 가능성 cover. invalidate 는 idempotent
+        // addon install 직후 cache flush: 신규 CRD 가 추가되었을 가능성 cover. invalidate 는 idempotent
         // 이므로 CRD 미추가 케이스에서도 다음 호출 시 한 번만 miss → 재캐시 비용만 발생. side-effect 안전.
         KindResolver kindResolver = kindResolverProvider == null ? null : kindResolverProvider.getIfAvailable();
         if (kindResolver != null) {
@@ -119,7 +119,7 @@ public abstract class AbstractHelmAddonInstaller implements AddonInstaller {
         }
     }
 
-    /** post-install hook — domain-specific 후속 로직 (override 선택). */
+    /** post-install hook: domain-specific 후속 로직 (override 선택). */
     protected void onAfterInstall(ClusterAddonEntity addon) {
         // no-op
     }

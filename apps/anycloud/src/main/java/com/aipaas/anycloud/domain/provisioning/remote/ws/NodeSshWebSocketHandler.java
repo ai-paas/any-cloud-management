@@ -12,10 +12,10 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 
 /**
- * 브라우저 터미널과 노드의 ssh 프로세스를 잇는다.
+ * 브라우저 터미널과 노드의 ssh 프로세스 연결.
  *
- * <p>파드 exec 는 에이전트를 거치지만 노드는 클러스터 밖이라 백엔드가 직접 ssh 를 띄운다.
- * 클러스터가 죽어 파드 셸을 못 쓸 때 쓰라고 만든 것이라, 에이전트에 기대면 안 된다.
+ * <p>파드 exec 는 에이전트 경유, 노드는 클러스터 외부이므로 백엔드가 ssh 직접 실행.
+ * 클러스터 장애로 파드 셸 사용이 불가할 때의 경로이므로 에이전트 의존 금지.
  *
  * <p>경로: {@code /v1/vms/{vmName}/nodes/{host}/ssh}
  */
@@ -42,7 +42,7 @@ public class NodeSshWebSocketHandler extends AbstractWebSocketHandler {
         }
     }
 
-    /** 사용자가 친 글자. 바이너리로 온다 — 터미널 입력은 텍스트가 아닐 수 있다. */
+    /** 사용자 입력. 터미널 입력이 텍스트가 아닐 수 있어 바이너리로 수신. */
     @Override
     protected void handleBinaryMessage(WebSocketSession session, BinaryMessage message) {
         ByteBuffer payload = message.getPayload();
@@ -68,7 +68,7 @@ public class NodeSshWebSocketHandler extends AbstractWebSocketHandler {
                 session.sendMessage(new TextMessage(text));
             }
         } catch (Exception ignored) {
-            // 이미 끊겼으면 알릴 곳이 없다.
+            // 연결 종료 상태면 통보 대상 부재.
         }
     }
 

@@ -16,13 +16,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 /**
- * PVE 에서 고를 수 있는 값을 읽어 온다.
+ * PVE 에서 선택 가능한 값 조회.
  *
- * <p>노드 이름, datastore, 브리지는 호스트마다 다르다. 사용자가 콘솔을 열어 베껴 적게 두면 오타가
- * 프로비저닝 직전까지 드러나지 않는다.
+ * <p>노드 이름, datastore, 브리지는 호스트마다 다름. 사용자가 콘솔에서 확인해 직접 입력하면
+ * 오타가 프로비저닝 단계까지 드러나지 않음.
  *
- * <p>인스턴스 타입 카탈로그는 없다 — Proxmox 는 코어와 메모리를 직접 받는다. 그래서 스펙과 이미지
- * 목록은 비워 두고, 화면이 직접 입력으로 그린다.
+ * <p>인스턴스 타입 카탈로그 없음. Proxmox 는 코어와 메모리를 직접 지정하므로 스펙과 이미지
+ * 목록은 비우고 화면이 자유 입력으로 처리.
  */
 @Component
 @RequiredArgsConstructor
@@ -42,7 +42,7 @@ public class ProxmoxVmOptionsProvider extends AbstractVmOptionsProvider {
         return describe(getProvider(), true, "PVE API 로 노드, datastore, 브리지를 조회합니다. 인스턴스 타입은 \"코어-메모리MiB\" 입니다.");
     }
 
-    /** Proxmox 는 하이퍼바이저라 리전이 없다. 배치할 노드가 그 자리를 대신한다. */
+    /** Proxmox 는 하이퍼바이저라 리전 개념 부재. 배치 노드가 리전 역할 대체. */
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "emptyRegionsFallback")
     public List<VmOptionRegion> listRegions() {
@@ -56,13 +56,13 @@ public class ProxmoxVmOptionsProvider extends AbstractVmOptionsProvider {
                 .toList();
     }
 
-    /** 카탈로그가 없다. 사용자가 "코어-메모리MiB" 를 직접 넣는다. */
+    /** 카탈로그 부재. 사용자가 "코어-메모리MiB" 직접 입력. */
     @Override
     public List<VmOptionSpec> listSpecs(String region, String keyword, boolean gpuOnly, int limit) {
         return List.of();
     }
 
-    /** 이미지도 URL 로 받는다. 목록을 흉내 내면 없는 선택지를 고르게 된다. */
+    /** 이미지도 URL 입력. 목록을 임의 구성하면 미제공 항목이 선택지에 포함. */
     @Override
     public List<VmOptionImage> listImages(String region, String keyword, String architecture, String owner, int limit) {
         return List.of();
@@ -74,7 +74,7 @@ public class ProxmoxVmOptionsProvider extends AbstractVmOptionsProvider {
         Map<String, String> env = currentCredentials();
         return switch (configKey) {
             case "providerSpec.nodeName" -> nodeNames();
-                // 디스크는 블록 스토리지, 내려받은 이미지는 import content 를 받는 디렉터리 스토리지로 간다.
+                // 디스크는 블록 스토리지, 수신 이미지는 import content 허용 디렉터리 스토리지에 배치.
             case "providerSpec.datastoreId" -> storages(env, region, "images");
             case "providerSpec.imageDatastoreId" -> storages(env, region, "import");
             case "providerSpec.networkBridge" -> bridges(env, region);
@@ -83,7 +83,7 @@ public class ProxmoxVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     private List<String> listConfigOptionsFallback(String configKey, String region, Throwable throwable) {
-        // 조회가 막혀도 자유 입력으로 남는다. 목록을 못 준다고 생성을 막을 이유는 없다.
+        // 조회 실패 시 자유 입력으로 유지. 목록 제공 실패가 생성 차단 사유는 아님.
         LOG.warn("Proxmox config options fallback: key={} cause={}", configKey, String.valueOf(throwable));
         return List.of();
     }
@@ -99,8 +99,8 @@ public class ProxmoxVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * @param content datastore 가 받는 content type. 블록 스토리지에 이미지를 내려받거나 디렉터리
-     *     스토리지에 디스크를 만들려 하면 PVE 가 거절한다
+     * @param content datastore 가 허용하는 content type. 블록 스토리지에 이미지를 받거나
+     *     디렉터리 스토리지에 디스크를 생성하려 하면 PVE 가 거절
      */
     private List<String> storages(Map<String, String> env, String region, String content) {
         String node = nodeOr(region, env);
@@ -133,7 +133,7 @@ public class ProxmoxVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * 화면은 리전을 노드 이름으로 채운다. 아직 고르지 않았으면 첫 노드로 목록을 보여 준다 —
+     * 화면은 리전을 노드 이름으로 채운다. 아직 고르지 않았으면 첫 노드로 목록을 보여 준다:
      * 단일 노드 호스트가 대부분이라 그 편이 빈 목록보다 낫다.
      */
     private String nodeOr(String region, Map<String, String> env) {

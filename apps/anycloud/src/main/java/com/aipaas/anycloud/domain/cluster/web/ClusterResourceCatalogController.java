@@ -27,8 +27,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Cluster 가 지원하는 API resource (kind) catalog 조회. UI 의 "resource kind picker" 데이터 소스.
  *
- * <p>cluster 마다 결과가 다름 — CRD 가 다양하기 때문 (cert-manager, ingress-nginx, custom CRD 등).
- * Agent 의 discovery API 를 통해 동적 enumerate — backend 가 미리 알 수 없는 kind 도 노출.
+ * <p>cluster 마다 결과가 다름: CRD 가 다양하기 때문 (cert-manager, ingress-nginx, custom CRD 등).
+ * Agent 의 discovery API 를 통해 동적 enumerate: backend 가 미리 알 수 없는 kind 도 노출.
  *
  * <p>Agent 의 {@code LIST_RESOURCE_KINDS} command 결과를 정규화.
  */
@@ -49,7 +49,7 @@ public class ClusterResourceCatalogController {
                     + "version / namespaced / shortNames 포함. CRD 자동 포함. cluster 마다 결과 다름.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "kind 목록 조회 성공 (group/plural 순 정렬)"),
-        @ApiResponse(responseCode = "503", description = "Cluster agent 비활성 — 기본 12 kind 로 degrade 권장")
+        @ApiResponse(responseCode = "503", description = "Cluster agent 비활성: 기본 12 kind 로 degrade 권장")
     })
     public ResponseEntity<ApiSuccessResponse<List<ResourceKindInfo>>> listResourceKinds(
             @PathVariable
@@ -71,7 +71,7 @@ public class ClusterResourceCatalogController {
         @ApiResponse(responseCode = "200", description = "정규화 성공"),
         @ApiResponse(
                 responseCode = "404",
-                description = "kind resolve 실패 — body 의 suggestions 배열 (Levenshtein 거리 ≤ 3) 활용"),
+                description = "kind resolve 실패: body 의 suggestions 배열 (Levenshtein 거리 ≤ 3) 활용"),
         @ApiResponse(responseCode = "503", description = "Cluster agent 비활성")
     })
     public ResponseEntity<ApiSuccessResponse<ResolvedResource>> resolveKind(

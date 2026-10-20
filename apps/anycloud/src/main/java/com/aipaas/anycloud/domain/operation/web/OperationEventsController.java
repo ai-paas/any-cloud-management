@@ -28,7 +28,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.Disposable;
 
 /**
- * Server-Sent Events 채널 — operation 진행 상황을 push.
+ * Server-Sent Events 채널: operation 진행 상황을 push.
  * <p>
  * 단순 구현: 일정 간격으로 DB 의 operation row 를 polling 하여 변경 시 emit. 향후 메시지 버스
  * (Redis Pub/Sub / EventBus) 연동으로 즉시 push 가능. 클라이언트는 SSE 표준 자동 reconnect 사용.
@@ -88,7 +88,7 @@ public class OperationEventsController {
                             emitter.complete();
                         }
                     } catch (IOException e) {
-                        // 클라이언트 disconnect — 그냥 종료.
+                        // 클라이언트 disconnect: 그냥 종료.
                         emitter.complete();
                     } catch (Exception e) {
                         log.warn("SSE operation poll error: id={}, err={}", operationId, e.toString());
@@ -110,7 +110,7 @@ public class OperationEventsController {
                             try {
                                 emitter.send(SseEmitter.event().name("pulumi").data(e));
                             } catch (IOException io) {
-                                // disconnect — 다음 cycle 에 onCompletion 로 정리.
+                                // disconnect: 다음 cycle 에 onCompletion 로 정리.
                             }
                         },
                         err -> log.warn("SSE pulumi sub error: id={}, err={}", operationId, err.toString()));

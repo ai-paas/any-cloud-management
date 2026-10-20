@@ -14,7 +14,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// newFakeRealClient — fake clientset 으로 realClient 를 만든다. Pod list / cluster info 검증용.
+// newFakeRealClient: fake clientset 으로 realClient 를 만든다. Pod list / cluster info 검증용.
 // GetPodLogs 는 fake clientset 의 Stream() 이 SubResource 라 mock 안 되므로 본 테스트에서 제외.
 func newFakeRealClient(objects ...runtime.Object) *realClient {
 	cs := fake.NewSimpleClientset(objects...)

@@ -27,16 +27,16 @@ import (
 )
 
 const (
-	// 100 MB PoC 한계 — 작은~중간 cluster (etcd ~50-80MB) cover. 운영의 multi-GB 는 별도 streaming proxy.
+	// 100 MB PoC 한계: 작은~중간 cluster (etcd ~50-80MB) cover. 운영의 multi-GB 는 별도 streaming proxy.
 	backupMaxBufferBytes = 100 * 1024 * 1024
 	backupStreamTimeout  = 10 * time.Minute
 	backupNodeAgentPort  = 9090
-	// node-agent DaemonSet 위치 — aipaas-system namespace, app=backup-agent label.
+	// node-agent DaemonSet 위치: aipaas-system namespace, app=backup-agent label.
 	nodeAgentNamespace = "aipaas-system"
 	nodeAgentLabel     = "app=backup-agent"
 )
 
-// isMaster — control-plane node 검사. K8s 1.20+ 의 표준 label + 구 호환용 master label 둘 다.
+// isMaster: control-plane node 검사. K8s 1.20+ 의 표준 label + 구 호환용 master label 둘 다.
 func isMaster(n corev1.Node) bool {
 	if _, ok := n.Labels["node-role.kubernetes.io/control-plane"]; ok {
 		return true
@@ -47,7 +47,7 @@ func isMaster(n corev1.Node) bool {
 	return false
 }
 
-// backupEtcd — BACKUP_ETCD 핸들러. control-plane 노드 1개 선택 → node-agent streaming → buffer 반환.
+// backupEtcd: BACKUP_ETCD 핸들러. control-plane 노드 1개 선택 → node-agent streaming → buffer 반환.
 func (d *Dispatcher) backupEtcd(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {
 	if d.kube == nil {
 		return errorResponse(agentv1.Status_AGENT_UNAVAILABLE, "K8S_CLIENT_NIL", "K8s client not initialized")
@@ -90,7 +90,7 @@ func (d *Dispatcher) backupEtcd(ctx context.Context, cmd *agentv1.CommandRequest
 	return okBackupResponse(payload, lastChunk, nodeName)
 }
 
-// backupPki — BACKUP_PKI 핸들러. backupEtcd 와 동일 패턴, control-plane 검사는 PKI 의미상 노드 선택용.
+// backupPki: BACKUP_PKI 핸들러. backupEtcd 와 동일 패턴, control-plane 검사는 PKI 의미상 노드 선택용.
 func (d *Dispatcher) backupPki(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {
 	if d.kube == nil {
 		return errorResponse(agentv1.Status_AGENT_UNAVAILABLE, "K8S_CLIENT_NIL", "K8s client not initialized")
@@ -105,7 +105,7 @@ func (d *Dispatcher) backupPki(ctx context.Context, cmd *agentv1.CommandRequest)
 		ChunkSize: int32(parseIntOr(getStringParam(cmd, "chunk_size"), 0)),
 	}
 	if raw := getStringParam(cmd, "include_paths"); raw != "" {
-		// JSON array 문자열 — Java 측 caller 가 명시.
+		// JSON array 문자열: Java 측 caller 가 명시.
 		var paths []string
 		if err := jsonUnmarshalSlice(raw, &paths); err == nil {
 			req.IncludePaths = paths
@@ -136,12 +136,12 @@ func (d *Dispatcher) backupPki(ctx context.Context, cmd *agentv1.CommandRequest)
 	return okBackupResponse(payload, lastChunk, nodeName)
 }
 
-// chunkStream — BackupEtcd / BackupPki 양쪽 호환되는 stream interface.
+// chunkStream: BackupEtcd / BackupPki 양쪽 호환되는 stream interface.
 type chunkStream interface {
 	Recv() (*nav1.BackupChunk, error)
 }
 
-// bufferChunks — server-streaming chunk 들을 한 buffer 에 누적. SHA-256 자체 검증. 100MB 초과 시 abort.
+// bufferChunks: server-streaming chunk 들을 한 buffer 에 누적. SHA-256 자체 검증. 100MB 초과 시 abort.
 func bufferChunks(stream chunkStream) ([]byte, *nav1.BackupChunk, error) {
 	buf := &bytes.Buffer{}
 	hash := sha256.New()
@@ -175,7 +175,7 @@ func bufferChunks(stream chunkStream) ([]byte, *nav1.BackupChunk, error) {
 	return buf.Bytes(), last, nil
 }
 
-// okBackupResponse — binary_payload 로 backup bytes 반환. result.fields 에 metadata.
+// okBackupResponse: binary_payload 로 backup bytes 반환. result.fields 에 metadata.
 func okBackupResponse(payload []byte, last *nav1.BackupChunk, nodeName string) *agentv1.CommandResponse {
 	meta := map[string]interface{}{
 		"size_bytes": float64(last.TotalSize),
@@ -191,7 +191,7 @@ func okBackupResponse(payload []byte, last *nav1.BackupChunk, nodeName string) *
 	}
 }
 
-// pickControlPlaneNodeAgent — control-plane 노드 중 backup-agent 가 살아있는 첫 노드 선택.
+// pickControlPlaneNodeAgent: control-plane 노드 중 backup-agent 가 살아있는 첫 노드 선택.
 // 반환: (hostIP, nodeName, error_code_or_nil).
 func (d *Dispatcher) pickControlPlaneNodeAgent(ctx context.Context) (string, string, error) {
 	cs := d.kube.Clientset()
@@ -231,7 +231,7 @@ func (d *Dispatcher) pickControlPlaneNodeAgent(ctx context.Context) (string, str
 	return "", "", fmt.Errorf("NO_NODE_AGENT")
 }
 
-// jsonUnmarshalSlice — encoding/json 직접 사용 회피 helper (테스트성, 일관성).
+// jsonUnmarshalSlice: encoding/json 직접 사용 회피 helper (테스트성, 일관성).
 func jsonUnmarshalSlice(raw string, out *[]string) error {
 	return jsonDecodeStrSlice([]byte(raw), out)
 }

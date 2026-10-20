@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-/** RabbitMQ publisher — addon install/uninstall enqueue. */
+/** RabbitMQ publisher: addon install/uninstall enqueue. */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -34,7 +34,7 @@ public class AddonInstallPublisher {
         });
     }
 
-    /** Uninstall queue 로 publish — DELETING state 의 addon row. */
+    /** Uninstall queue 로 publish: DELETING state 의 addon row. */
     public void enqueueUninstall(String clusterId, String addonId, String operationId) {
         AddonWorkflowMessage msg = new AddonWorkflowMessage(clusterId, addonId, operationId, MDC.get("requestId"));
         afterCommit(() -> {
@@ -48,10 +48,10 @@ public class AddonInstallPublisher {
     }
 
     /**
-     * 커밋이 끝난 뒤에 보낸다.
+     * 커밋 완료 후 전송.
      *
-     * <p>트랜잭션 안에서 보내면 소비자가 아직 없는 row 를 찾아 "addon row not found — drop" 으로
-     * 버린다. 메시지가 사라져 addon 이 ENQUEUED 에서 영영 움직이지 않는다.
+     * <p>트랜잭션 내 전송 시 소비자가 아직 생성되지 않은 row 를 조회해 "addon row not found: drop"
+     * 으로 폐기. 메시지 유실로 addon 이 ENQUEUED 에 고착.
      */
     private void afterCommit(Runnable send) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {

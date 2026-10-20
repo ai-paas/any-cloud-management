@@ -14,11 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>현재 sources of truth:
  * <ul>
- *   <li>{@link ClusterEntity#getHasGpuNodes()} — VM provisioning 시 GPU flavor 선택 또는 운영자
+ *   <li>{@link ClusterEntity#getHasGpuNodes()}: VM provisioning 시 GPU flavor 선택 또는 운영자
  *       수동 설정으로 채워진 값 (Flyway V11 컬럼)</li>
  * </ul>
  *
- * <p>cluster 가 unknown 이면 false (exception 던지지 않음 — auto-installer 흐름 중단 회피).
+ * <p>cluster 가 unknown 이면 false (exception 던지지 않음. auto-installer 흐름 중단 회피).
  */
 @Slf4j
 @Component
@@ -39,7 +39,7 @@ public class AnycloudClusterCapabilities implements ClusterCapabilities {
             Boolean v = opt.get().getHasGpuNodes();
             return Boolean.TRUE.equals(v);
         } catch (Exception e) {
-            // DB 일시 오류 등 — auto-installer 흐름 보호.
+            // DB 일시 오류 등: auto-installer 흐름 보호.
             log.warn("hasGpuNodes lookup failed for cluster={}: {}", clusterName, e.toString());
             return false;
         }

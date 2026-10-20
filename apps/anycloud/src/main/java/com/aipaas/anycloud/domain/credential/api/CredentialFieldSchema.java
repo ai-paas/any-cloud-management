@@ -11,13 +11,13 @@ public record CredentialFieldSchema(
         @Schema(description = "화면에 보일 이름", example = "액세스 키 ID") String label,
         @Schema(description = "없으면 프로비저닝이 실패하는 값", example = "true") boolean required,
         @Schema(description = "값을 화면에 드러내지 않아야 하는 값", example = "false") boolean secret,
-        @Schema(description = "여러 줄 — 키 본문이나 JSON", example = "false") boolean multiline,
+        @Schema(description = "여러 줄: 키 본문이나 JSON", example = "false") boolean multiline,
         @Schema(description = "무엇을 넣어야 하는지", example = "IAM 사용자의 액세스 키") String description,
-        /* 값의 생김새를 보여주는 예시. 그대로 복사해 쓰는 사람이 있으므로 진짜처럼 보이면 안 된다. */
+        /* 값 형식 예시. 그대로 복사해 사용하는 경우가 있어 실제 값처럼 보이면 안 됨. */
         @Schema(description = "입력 예시", example = "AKIAIOSFODNN7EXAMPLE") String placeholder,
         /*
-         * 같은 group 의 필드는 하나만 채우면 된다. 둘 다 필수로 물으면 채울 수 없다.
+         * 동일 group 의 필드는 하나만 입력. 양쪽을 필수로 요구하면 입력 불가.
          *
-         * <p>지금은 쓰는 CSP 가 없다. 화면이 묶음을 그릴 줄 알아 계약은 남겨 둔다.
+         * <p>현재 사용하는 CSP 없음. 화면이 그룹 렌더링을 지원하므로 계약만 유지.
          */
         @Schema(description = "택일 묶음 이름. 같은 값끼리 하나만 채우면 된다", example = "auth") String group) {}

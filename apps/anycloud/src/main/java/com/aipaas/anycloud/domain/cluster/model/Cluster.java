@@ -11,9 +11,9 @@ import java.time.ZonedDateTime;
  * @param version             K8s server version (예: v1.33.9). agent dial-in 시 backfill.
  * @param clusterType         "Public" / "Private" 등.
  * @param clusterProvider     cluster 가 운영되는 cloud / on-prem 표식 (aws, gcp, azure, orb 등).
- * @param provisioningType    "registered" / "vm" — registration source.
+ * @param provisioningType    "registered" / "vm": registration source.
  * @param provisioningStatus  registered cluster 도 lifecycle 추적 (READY / FAILED / ...).
- * @param hasGpuNodes         GPU 노드 존재 여부 — dcgm-exporter 자동 설치 트리거.
+ * @param hasGpuNodes         GPU 노드 존재 여부: dcgm-exporter 자동 설치 트리거.
  * @param stackName           pulumi stack name (VM provisioned cluster 만 의미).
  * @param createdAt           JPA-managed.
  * @param updatedAt           JPA-managed.
@@ -37,13 +37,13 @@ public record Cluster(
         return "vm".equalsIgnoreCase(provisioningType);
     }
 
-    /** Active 상태 — UI/배포 가능한 정상 상태. */
+    /** Active 상태: UI/배포 가능한 정상 상태. */
     public boolean isActive() {
         return "ACTIVE".equalsIgnoreCase(status);
     }
 
     /**
-     * Agent dial-in 대기 상태 — registered cluster 가 등록 직후 agent 가 아직 cluster 에서 dial 하지
+     * Agent dial-in 대기 상태: registered cluster 가 등록 직후 agent 가 아직 cluster 에서 dial 하지
      * 않은 placeholder 상태. agent 가 붙으면 ACTIVE 로 전환. 도메인에서는 status 문자열만으로 판단.
      */
     public boolean isPendingAgent() {

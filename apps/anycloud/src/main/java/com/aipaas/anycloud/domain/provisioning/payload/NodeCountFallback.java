@@ -1,10 +1,10 @@
 package com.aipaas.anycloud.domain.provisioning.payload;
 
 /**
- * 만들어진 노드가 기준이고, 아직 없으면 요청값으로 보여준다.
+ * 생성된 노드가 기준이며 미생성 상태면 요청값 사용.
  *
- * <p>삼항으로 쓰면 {@code int} 와 {@code Integer} 가 섞여 Integer 가 언박싱된다. 스냅샷이 없는
- * 행에서 NPE 가 나 목록 전체가 500 이 됐다 — 삭제된 행은 스냅샷이 지워지므로 드문 경우가 아니다.
+ * <p>삼항 연산자 사용 시 {@code int} 와 {@code Integer} 가 혼재해 Integer 가 언박싱. 스냅샷이
+ * 없는 행에서 NPE 가 발생해 목록 전체가 500. 삭제된 행은 스냅샷이 제거되므로 빈번한 경우.
  */
 public final class NodeCountFallback {
 

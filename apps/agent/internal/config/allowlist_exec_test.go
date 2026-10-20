@@ -34,7 +34,7 @@ func TestLoadOnce_ExecNamespaces_Parsed(t *testing.T) {
 			t.Errorf("exec ns %q should be allowed", ns)
 		}
 	}
-	// kube-system 은 화이트리스트 미포함 — denied.
+	// kube-system 은 화이트리스트 미포함. denied.
 	if policy.IsExecNamespaceAllowed("kube-system") {
 		t.Error("kube-system must NOT be exec-allowed by default")
 	}
@@ -51,7 +51,7 @@ func TestExecNamespace_NilSafe(t *testing.T) {
 }
 
 func TestLoadOnce_NoExecNamespacesKey_DefaultsEmpty(t *testing.T) {
-	// 기존 운영 ConfigMap 회귀 보호 — exec namespace key 없어도 parse 성공.
+	// 기존 운영 ConfigMap 회귀 보호: exec namespace key 없어도 parse 성공.
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{Name: "aipaas-agent-allowlist", Namespace: "aipaas-system"},
 		Data: map[string]string{

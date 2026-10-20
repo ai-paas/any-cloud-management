@@ -14,7 +14,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 /**
- * Fleet 페이지 read-only query — filter → DB → DTO.
+ * Fleet 페이지 read-only query: filter → DB → DTO.
  * size 상한 200 강제 (UI excessive page 방지).
  */
 @Service

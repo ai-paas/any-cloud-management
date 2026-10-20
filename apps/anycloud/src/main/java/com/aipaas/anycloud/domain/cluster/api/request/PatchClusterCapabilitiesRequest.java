@@ -9,4 +9,4 @@ import io.swagger.v3.oas.annotations.media.Schema;
  */
 @Schema(description = "Cluster capability flag 수동 설정 (sync, immediate effect)")
 public record PatchClusterCapabilitiesRequest(
-        @Schema(description = "GPU 노드 포함 여부 — true 면 dcgm-exporter 자동 설치 대상", example = "true") Boolean hasGpuNodes) {}
+        @Schema(description = "GPU 노드 포함 여부: true 면 dcgm-exporter 자동 설치 대상", example = "true") Boolean hasGpuNodes) {}

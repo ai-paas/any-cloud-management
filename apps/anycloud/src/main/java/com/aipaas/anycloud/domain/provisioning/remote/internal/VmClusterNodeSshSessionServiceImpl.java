@@ -31,10 +31,10 @@ import org.springframework.web.socket.WebSocketSession;
 /**
  * 노드에 붙는 대화형 ssh 세션.
  *
- * <p>파드 exec 는 에이전트를 거치지만 노드는 클러스터 밖이라 백엔드가 직접 {@code ssh} 를 띄운다.
- * 클러스터가 죽어 파드 셸을 못 쓸 때 쓰라고 만든 것이라 에이전트에 기대면 안 된다.
+ * <p>파드 exec 는 에이전트 경유, 노드는 클러스터 외부이므로 백엔드가 {@code ssh} 직접 실행.
+ * 클러스터 장애로 파드 셸 사용이 불가할 때의 경로이므로 에이전트 의존 금지.
  *
- * <p>개인키는 Pulumi outputs 에만 있다. 프로세스가 끝나면 지운다.
+ * <p>개인키는 Pulumi outputs 에만 존재. 프로세스 종료 시 삭제.
  */
 @Slf4j
 @Service
@@ -59,8 +59,7 @@ public class VmClusterNodeSshSessionServiceImpl implements VmClusterNodeSshSessi
                 .findFirstByClusterNameOrderByCreatedAtDesc(vmName)
                 .orElseThrow(() -> new IllegalStateException("클러스터를 찾을 수 없습니다: " + vmName));
 
-        // 요청받은 host 가 이 클러스터의 노드인지 확인한다. 확인하지 않으면 임의의 주소로
-        // 백엔드가 ssh 를 걸어주는 통로가 된다.
+        // 요청 host 가 해당 클러스터의 노드인지 확인. 미확인 시 임의 주소로의 ssh 중계 경로가 됨.
         List<VmClusterNodeRows.Row> nodes = VmClusterNodeRows.of(objectMapper, cluster);
         VmClusterNodeRows.Row matchedRow = nodes.stream()
                 .filter(n -> Stream.of(n.publicIp(), n.privateIp(), n.publicDns())
@@ -68,21 +67,21 @@ public class VmClusterNodeSshSessionServiceImpl implements VmClusterNodeSshSessi
                         .anyMatch(host::equals))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("이 클러스터의 노드가 아닙니다: " + host));
-        // 노드 목록에 있다고 ssh 인자로 안전하지는 않다. 옵션처럼 생긴 값은 여기서 막는다.
+        // 노드 목록 포함 여부와 ssh 인자 안전성은 별개. 옵션 형태 값은 여기서 차단.
         String target = NodeSshCommand.requireSafeHost(host);
 
         String privateKeyPem = privateKeyOf(cluster);
         Path keyPath = writeKey(privateKeyPem);
 
         try {
-            // 노드가 사설망이면 점프 없이는 닿지 않는다. 프로비저닝과 같은 길을 쓴다.
+            // 사설망 노드는 점프 호스트 없이 접근 불가. 프로비저닝과 동일 경로 사용.
             SshJump jump = sshJumpResolver.resolve(cluster);
             ProcessBuilder builder = new ProcessBuilder(NodeSshCommand.build(
                     keyPath.toString(), sshUserResolver.resolve(cluster), target, jump, matchedRow.sshPort()));
             builder.redirectErrorStream(true);
-            // 비밀번호 bastion 은 프롬프트를 띄우는데 여기엔 터미널이 없다. askpass 로 넘긴다.
-            // ssh 는 비밀번호가 필요해질 때 스크립트를 읽는다. 시작 직후 지우면 인증할 것이 없어
-            // 세션이 끝날 때까지 들고 있는다.
+            // 비밀번호 bastion 은 프롬프트를 요구하나 터미널 부재. askpass 로 전달.
+            // ssh 는 비밀번호 필요 시점에 스크립트를 읽으므로 시작 직후 삭제하면 인증 불가.
+            // 세션 종료까지 유지.
             SshJumpEnvironment jumpEnv = SshJumpEnvironment.prepare(jump, pulumiProperties.resolveRuntimeDir());
             builder.environment().putAll(jumpEnv.env());
             Process process = builder.start();
@@ -111,8 +110,8 @@ public class VmClusterNodeSshSessionServiceImpl implements VmClusterNodeSshSessi
     }
 
     /**
-     * 창 크기는 ssh 를 다시 띄우지 않고는 바꿀 수 없다 — 원격 TTY 크기는 접속할 때 정해진다.
-     * 프레임을 버리되 세션은 유지한다. 끊으면 창을 줄였다는 이유로 작업이 날아간다.
+     * 창 크기는 ssh 재실행 없이 변경 불가. 원격 TTY 크기는 접속 시점에 확정. 프레임은 폐기하고
+     * 세션은 유지. 연결 종료 시 창 크기 변경만으로 작업 유실.
      */
     @Override
     public void control(WebSocketSession socket, String payload) {
@@ -158,8 +157,8 @@ public class VmClusterNodeSshSessionServiceImpl implements VmClusterNodeSshSessi
     }
 
     /**
-     * DB 의 raw_outputs 에는 비밀이 REDACTED 로 들어간다 — 올바른 설계다. 개인키는 Pulumi 에서
-     * 그때그때 복호화해 읽는다.
+     * DB 의 raw_outputs 에는 비밀값이 REDACTED 로 저장. 개인키는 Pulumi 에서 호출 시점에
+     * 복호화해 조회.
      */
     private String privateKeyOf(VmClusterEntity cluster) {
         if (cluster.getStackName() == null || cluster.getStackName().isBlank()) {
@@ -191,11 +190,10 @@ public class VmClusterNodeSshSessionServiceImpl implements VmClusterNodeSshSessi
     }
 
     /**
-     * 개인키를 담을 빈 파일을 런타임 디렉터리 안에 만든다.
+     * 개인키 저장용 빈 파일을 런타임 디렉터리에 생성.
      *
-     * <p>이름에 클러스터 이름을 넣지 않는다. 그 값은 요청 경로에서 오므로 파일명에 섞으면
-     * 디렉터리를 벗어날 여지가 생기고, 그대로 ssh 인자로도 흘러간다. 진단에 쓰려고 넣었던
-     * 것이라 잃는 것이 없다.
+     * <p>파일명에 클러스터 이름 미포함. 해당 값은 요청 경로 유래이므로 파일명에 사용 시 디렉터리
+     * 이탈 가능성이 생기고 ssh 인자로도 전달.
      */
     static Path createKeyFile(Path dir) throws IOException {
         return Files.createTempFile(dir, "node-term-", ".pem");

@@ -3,17 +3,17 @@ package com.aipaas.anycloud.domain.provisioning.bootstrap;
 /**
  * Bootstrap 내부 sub-step 진행률을 OperationService 에 전파.
  *
- * <p>WorkflowSupportService 가 PROVISION(5%) → BOOTSTRAP(33%) → VERIFY(90%) 만
- * 마킹하므로 BOOTSTRAP 단계 (20~30분) 동안 사용자가 "33% stuck" 인식. 본 reporter 는
- * BOOTSTRAP 33→64 범위 안에서 sub-step 별로 percent 를 갱신해 stuck 인식 완화.
+ * <p>WorkflowSupportService 가 PROVISION(5%), BOOTSTRAP(33%), VERIFY(90%) 만 기록하므로
+ * BOOTSTRAP 단계(20~30분) 동안 진행률이 33% 에 고정 표시. 이 reporter 는 BOOTSTRAP 의
+ * 33~64 구간에서 sub-step 별 percent 를 갱신.
  *
- * <p>Bootstrap 사이클은 6 단계 — 각 단계 시작 시점에 caller 가 phase 와 함께 호출.
- * 진행 못한 단계 (예: HA 가 아니면 EXTRA_MASTER_JOIN 건너뜀) 는 reporter 호출도 생략.
+ * <p>Bootstrap 사이클 6단계. 각 단계 시작 시점에 caller 가 phase 와 함께 호출.
+ * 미실행 단계(예: HA 가 아니면 EXTRA_MASTER_JOIN 생략)는 reporter 호출도 생략.
  *
- * <p>enum 선언 순서 = VmClusterBootstrapServiceImpl 의 호출 순서 = percent 오름차순.
- * 셋 중 하나만 어긋나도 진행률이 역행한다 — 선언 순서를 바꾸면 percent 도 같이 옮긴다.
+ * <p>enum 선언 순서, VmClusterBootstrapServiceImpl 의 호출 순서, percent 오름차순이 모두 일치
+ * 해야 함. 하나라도 어긋나면 진행률 역행. 선언 순서 변경 시 percent 도 함께 조정.
  *
- * <p>예외/장애 시 best-effort — 본 reporter 내부 에러는 절대 bootstrap 흐름을 멈추지 않음.
+ * <p>예외, 장애 시 best-effort. 이 reporter 내부 오류는 bootstrap 흐름을 중단시키지 않음.
  */
 public interface VmClusterBootstrapProgressReporter {
 

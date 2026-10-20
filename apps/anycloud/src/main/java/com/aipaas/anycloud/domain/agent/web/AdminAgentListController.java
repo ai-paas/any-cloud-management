@@ -31,7 +31,7 @@ public class AdminAgentListController {
     @GetMapping
     @Operation(
             summary = "Cluster-agent fleet list",
-            description = "Admin 전용 — filter (status/clusterName/version/lastSeen) + server-side pagination.")
+            description = "Admin 전용: filter (status/clusterName/version/lastSeen) + server-side pagination.")
     public ResponseEntity<ApiSuccessResponse<AdminAgentListResponse>> list(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String clusterName,

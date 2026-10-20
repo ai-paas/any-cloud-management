@@ -91,10 +91,10 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(AlibabaVmOptionsProvider.class);
 
     /**
-     * VSwitch 가 zone 단위라 zone 을 골라야 서브넷이 만들어진다.
+     * VSwitch 가 zone 단위이므로 zone 선택이 서브넷 생성 조건.
      *
-     * <p>zone 이름은 콘솔을 열어야 알 수 있고, 같은 리전이라도 zone 마다 쓸 수 있는 인스턴스
-     * 타입이 다르다. 없는 조합을 고르면 재고 없음으로 생성이 막힌다.
+     * <p>zone 이름은 콘솔 확인이 필요하고, 동일 리전에서도 zone 별 사용 가능 인스턴스 타입이 상이.
+     * 미제공 조합 선택 시 재고 없음으로 생성 차단.
      */
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsFallback")
@@ -115,7 +115,7 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     private List<String> listConfigOptionsFallback(String configKey, String region, Throwable throwable) {
-        // 조회가 막혀도 자유 입력으로 남는다. 목록을 못 준다고 생성을 막을 이유는 없다.
+        // 조회 실패 시 자유 입력으로 유지. 목록 제공 실패가 생성 차단 사유는 아님.
         LOG.warn("Alibaba config options fallback: key={} cause={}", configKey, String.valueOf(throwable));
         return List.of();
     }
@@ -167,10 +167,10 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * 리전에서 실제로 파는 타입 집합. 판단할 수 없으면 {@code null} 이고 그때는 거르지 않는다.
+     * 리전에서 판매 중인 타입 집합. 판단 불가 시 {@code null} 반환, 이 경우 필터링하지 않음.
      *
-     * <p>DescribeInstanceTypes 는 리전을 가리지 않고 전 세계 카탈로그를 준다. 서울에 없는 구형
-     * ga1, gn4 가 vCPU 순으로 앞에 서서, 목록 앞쪽만 보면 리전에 있는 gn7i 까지 닿지 못한다.
+     * <p>DescribeInstanceTypes 는 리전 구분 없이 전체 카탈로그를 반환. 서울에 없는 구형 ga1,
+     * gn4 가 vCPU 순으로 앞에 배치되어 목록 앞부분만 보면 리전에 있는 gn7i 에 도달하지 못함.
      */
     private Set<String> sellableTypes(String region) {
         try {
@@ -217,7 +217,7 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
     /** DescribeAvailableResource 가 "팔고 있다" 고 답하는 값. */
     private static final String AVAILABLE_STATUS = "Available";
 
-    /** DescribeImages 의 상한. 기본 10 은 키워드 필터를 무의미하게 만든다. */
+    /** DescribeImages 상한. 기본값 10 에서는 키워드 필터가 동작하지 않음. */
     private static final int IMAGE_PAGE_SIZE = 100;
 
     @Override
@@ -294,9 +294,9 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
         String url = endpoint + "?" + canonicalQuery(params);
         try {
             /*
-             * URI 로 넘긴다. String 오버로드는 URI 템플릿으로 취급해 이미 인코딩된 값을 한 번 더
-             * 인코딩한다 — Timestamp 의 %3A 가 %253A 가 되어 "time stamp is not well formatted"
-             * 로 거절된다. 서명은 인코딩된 문자열로 계산했으므로 그대로 보내야 한다.
+             * URI 타입으로 전달. String 오버로드는 URI 템플릿으로 취급해 인코딩된 값을 재인코딩.
+             * Timestamp 의 %3A 가 %253A 가 되어 "time stamp is not well formatted" 로 거절됨.
+             * 서명은 인코딩된 문자열 기준으로 계산했으므로 원본 그대로 전송 필요.
              */
             ResponseEntity<String> response = restTemplate.exchange(
                     java.net.URI.create(url), HttpMethod.GET, new HttpEntity<>(new HttpHeaders()), String.class);
@@ -315,8 +315,8 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
         if (!StringUtils.hasText(regionId)) {
             return "https://ecs.aliyuncs.com/";
         }
-        // region 이 host 에 들어간다. 검증 없이 넣으면 host 가 통째로 바뀌고,
-        // 쿼리스트링의 AccessKeyId 와 Signature 가 그대로 따라 나간다.
+        // region 이 host 에 포함. 미검증 입력 시 host 전체가 치환되고 쿼리스트링의
+        // AccessKeyId 와 Signature 도 그대로 전송.
         String region = requireValidRegionId(regionId);
         String host = "ecs." + region + ".aliyuncs.com";
         return requireExpectedHost("https://" + host + "/", host);
@@ -399,10 +399,10 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * 존마다 파는 인스턴스가 다르다.
+     * 존별 제공 인스턴스 상이.
      *
-     * <p>DescribeInstanceTypes 는 리전 전체 목록이라 {@code ecs.ga1.xlarge} 가 있다고 나오지만
-     * ap-northeast-2a 에는 없다. 그대로 만들면 403 InvalidResourceType.NotSupported 로 끝난다.
+     * <p>DescribeInstanceTypes 는 리전 전체 목록이라 {@code ecs.ga1.xlarge} 가 포함되나
+     * ap-northeast-2a 에는 미제공. 그대로 생성 시 403 InvalidResourceType.NotSupported.
      */
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "isInstanceTypeAvailableInZoneFallback")
@@ -446,7 +446,7 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
                 }
                 for (AlibabaRecords.AvailableResourceResponse.SupportedResource supported :
                         resource.SupportedResources().SupportedResource()) {
-                    // Available 이 아닌 값은 재고가 없거나 판매하지 않는 것이다.
+                    // Available 이 아닌 상태는 재고 없음 또는 미판매.
                     if (instanceType.equalsIgnoreCase(supported.Value())
                             && AVAILABLE_STATUS.equalsIgnoreCase(supported.Status())) {
                         return true;
@@ -459,7 +459,7 @@ public class AlibabaVmOptionsProvider extends AbstractVmOptionsProvider {
 
     private boolean isInstanceTypeAvailableInZoneFallback(
             Map<String, String> credentials, String region, String zone, String instanceType, Throwable throwable) {
-        // 조회가 막히면 막지 않는다. 판단할 수 없다고 정상 요청을 거절할 이유는 없다.
+        // 조회 실패 시 통과 처리. 판단 불가를 거절 사유로 두지 않음.
         LOG.warn("Alibaba zone 가용성 확인 실패 type={} zone={}: {}", instanceType, zone, String.valueOf(throwable));
         return true;
     }

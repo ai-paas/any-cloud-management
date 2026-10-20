@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** 시간 의존 로직(백오프 등)을 테스트에서 고정할 수 있도록 Clock 을 주입 가능하게 둔다. */
+/** 시간 의존 로직(백오프 등)의 테스트 고정을 위해 Clock 주입 가능 구성. */
 @Configuration
 public class ClockConfig {
 

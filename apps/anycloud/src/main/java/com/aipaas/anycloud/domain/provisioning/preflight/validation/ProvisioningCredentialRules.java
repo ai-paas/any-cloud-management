@@ -33,7 +33,7 @@ public final class ProvisioningCredentialRules {
                     "TF_VAR_region",
                     "TF_VAR_private_key",
                     "TF_VAR_private_key_path");
-                // PVE 호스트 SSH 는 받지 않는다. 패키지 설치는 부트스트랩이 노드 SSH 로 처리한다.
+                // PVE 호스트 SSH 미수신. 패키지 설치는 부트스트랩이 노드 SSH 로 처리.
             case PROXMOX -> List.of("PROXMOX_VE_ENDPOINT", "PROXMOX_VE_API_TOKEN_ID", "PROXMOX_VE_API_TOKEN_SECRET");
             case IBM -> List.of("IBMCLOUD_API_KEY");
         };

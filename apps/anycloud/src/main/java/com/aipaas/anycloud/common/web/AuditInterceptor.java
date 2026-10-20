@@ -71,7 +71,7 @@ public class AuditInterceptor implements HandlerInterceptor {
         auditLogger.record(entry);
     }
 
-    /** Controller class 의 logical 도메인 이름. Suffix "Controller", "V1" 등을 제거하여 안정적인 action prefix 를 만든다. */
+    /** Controller class 의 logical 도메인 이름. "Controller", "V1" 등 suffix 제거로 안정적인 action prefix 구성. */
     static String inferAction(Object handler, HttpServletRequest request) {
         if (handler instanceof HandlerMethod hm) {
             String simple = hm.getBeanType().getSimpleName();
@@ -99,7 +99,7 @@ public class AuditInterceptor implements HandlerInterceptor {
         if (uri.startsWith("/v1/clusters/")) {
             // /v1/clusters/{c}/helm-releases/...
             if (uri.contains("/helm-releases")) return "helmRelease";
-            // /v1/clusters/{c}/namespaces/{ns}/{kind}/...  (sub-resource — K8s)
+            // /v1/clusters/{c}/namespaces/{ns}/{kind}/...  (sub-resource: K8s)
             if (uri.contains("/namespaces/")) return "k8sResource";
             return "cluster";
         }
@@ -116,18 +116,18 @@ public class AuditInterceptor implements HandlerInterceptor {
     }
 
     /**
-     * URI 에서 리소스 식별자를 추정합니다. 휴리스틱이라 controller 가 더 정확히 알면 AuditLogger 를
-     * 직접 불러 덮어쓰세요.
+     * URI 에서 리소스 식별자 추정. 휴리스틱이므로 controller 가 정확한 값을 보유하면 AuditLogger
+     * 직접 호출로 덮어쓰기.
      *
-     * <p>{@code /clusters/importKubeconfig} 처럼 collection 에 거는 custom method 는 식별자가 없어
-     * null 을 돌려줍니다. {@code /operations/op-1/cancel} 의 {@code op-1} 과 구분하려면 action
-     * 앞 segment 가 collection 인지 봐야 합니다.
+     * <p>{@code /clusters/importKubeconfig} 처럼 collection 대상 custom method 는 식별자가 없어
+     * null 반환. {@code /operations/op-1/cancel} 의 {@code op-1} 과 구분하려면 action 앞 segment
+     * 의 collection 여부 판정 필요.
      */
     static String inferResourceId(HttpServletRequest request) {
         String uri = request.getRequestURI();
         if (uri == null || uri.isBlank()) return null;
 
-        // 옛 :verb 경로 방어. 모든 라우트가 colon-free 로 바뀌었지만 외부 호출이 남아 있을 수 있습니다.
+        // 이전 :verb 경로 방어. 전체 라우트가 colon-free 로 전환됐으나 외부 호출 잔존 가능.
         int colonIdx = uri.lastIndexOf(':');
         String mainPath = colonIdx >= 0 ? uri.substring(0, colonIdx) : uri;
 
@@ -137,12 +137,12 @@ public class AuditInterceptor implements HandlerInterceptor {
 
         Set<String> collectionMarkers =
                 Set.of("clusters", "cluster-validations", "operations", "helm-repos", "audit-logs");
-        // 옛 `/v1/clusters:importKubeconfig` 같이 collection 이름 자체에 :verb 가 붙던 케이스 — 식별자 없음.
+        // 옛 `/v1/clusters:importKubeconfig` 같이 collection 이름 자체에 :verb 가 붙던 케이스: 식별자 없음.
         if (collectionMarkers.contains(last) && colonIdx >= 0) {
             return null;
         }
 
-        // 액션성 suffix (collection / sub-resource verb) — 한 단계 위 segment 가 실제 ID.
+        // 액션성 suffix (collection / sub-resource verb). 한 단계 위 segment 가 실제 ID.
         // 콜론 custom-method(:cancel/:flush/:install-all/:enqueue/:importKubeconfig)를 colon-free
         // 서브패스로 전환하면서, 옛 콜론과 동일한 resourceId 추출을 위해 verb suffix 로 추가.
         Set<String> verbs = Set.of(
@@ -162,7 +162,7 @@ public class AuditInterceptor implements HandlerInterceptor {
                 "importKubeconfig");
         if (verbs.contains(last) && !prev.isBlank()) {
             // prev 가 collection marker 면 collection-level custom method (예: /clusters/importKubeconfig)
-            // — 특정 식별자 없음.
+            // 특정 식별자 없음.
             return collectionMarkers.contains(prev) ? null : prev;
         }
 
@@ -173,7 +173,7 @@ public class AuditInterceptor implements HandlerInterceptor {
         // 우선순위: X-User-Id (gateway 가 검증된 사용자 식별자를 forward) → SecurityContext → anonymous.
         String fromGw = request.getHeader("X-User-Id");
         if (fromGw != null && !fromGw.isBlank()) return fromGw;
-        // SecurityContext lookup 은 의도적으로 생략 — gateway 환경에선 header 가 표준 경로.
+        // SecurityContext lookup 은 의도적으로 생략: gateway 환경에선 header 가 표준 경로.
         String mdcPrincipal = MDC.get("principal");
         return mdcPrincipal != null ? mdcPrincipal : "anonymous";
     }

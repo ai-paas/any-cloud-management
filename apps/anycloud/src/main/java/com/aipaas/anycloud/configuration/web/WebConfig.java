@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-/** CORS — {@code anycloud.cors.allowed-origins} (CSV) 또는 dev fallback (localhost-only). */
+/** CORS: {@code anycloud.cors.allowed-origins} (CSV) 또는 dev fallback (localhost-only). */
 @Slf4j
 @Configuration
 public class WebConfig implements WebMvcConfigurer {

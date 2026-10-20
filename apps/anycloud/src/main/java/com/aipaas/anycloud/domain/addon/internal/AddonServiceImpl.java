@@ -85,14 +85,14 @@ public class AddonServiceImpl implements AddonService {
                 saved.getAddonType());
 
         /*
-         * dcgm-exporter 를 따라 붙이지 않는다. gpu-operator 가 DCGM 을 함께 올리므로 두 벌이
-         * 되고, 뒤에 뜬 쪽은 GPU 를 잡지 못해 CrashLoopBackOff 로 남는다. operator 없이 metric
-         * 만 뽑으려면 카탈로그에서 직접 고른다.
+         * dcgm-exporter 자동 추가 미수행. gpu-operator 가 DCGM 을 함께 설치하므로 중복 설치가
+         * 되고, 후행 파드는 GPU 를 점유하지 못해 CrashLoopBackOff. operator 없이 metric 만
+         * 수집하려면 카탈로그에서 직접 선택.
          */
 
         // enqueue 조건: cluster 가 ACTIVE 이거나, agent gRPC 세션이 실제 active.
         // persisted ClusterStatus enum 이 stale 해도 (agent 등록 직후 status 미동기 등) 지금 agent 에
-        // 도달 가능하면 enqueue — addon 이 다음 reconnect/backfill 까지 PENDING 으로 막히는 것을 방지.
+        // 도달 가능하면 enqueue: addon 이 다음 reconnect/backfill 까지 PENDING 으로 막히는 것을 방지.
         // 아니면 listener 가 cluster ACTIVE 전환 시 enqueue, 또는 :enqueue 로 수동 backfill.
         boolean agentReachable = status == ClusterStatus.ACTIVE || helmReleaseService.isActiveFor(clusterId);
         if (Boolean.TRUE.equals(saved.getEnabled()) && agentReachable) {

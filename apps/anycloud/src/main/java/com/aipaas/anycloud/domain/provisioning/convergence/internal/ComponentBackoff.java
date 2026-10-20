@@ -7,15 +7,14 @@ import java.time.ZonedDateTime;
 /**
  * 컴포넌트 재적용 간격.
  *
- * <p>상한이 있는 이유 — 무한 배증은 며칠 뒤 재시도가 되어 사실상 정지와 같다. 반대로 워크플로우의
- * BLOCKED 처럼 완전히 멈추지 않는 이유는, CSP 쿼터나 이미지 문제로 몇 시간 뒤 성공하는 경우가
- * 있어서다.
+ * <p>상한 적용. 무제한 배증 시 재시도 간격이 일 단위로 증가. 워크플로의 BLOCKED 와 달리 중단은
+ * 하지 않음. CSP 쿼터나 이미지 문제는 수 시간 후 해소되는 경우 존재.
  */
 final class ComponentBackoff {
 
     private static final Duration BASE = Duration.ofMinutes(1);
     private static final Duration CAP = Duration.ofHours(1);
-    /** 2^6 분 = 64분 > 상한. 그 이상은 계산할 필요가 없고 shift overflow 도 막는다. */
+    /** 2^6 분 = 64분 > 상한. 초과 구간은 계산 불필요하며 shift overflow 도 차단. */
     private static final int MAX_EXPONENT = 6;
 
     private ComponentBackoff() {}
@@ -26,7 +25,7 @@ final class ComponentBackoff {
         return ZonedDateTime.now(clock).plus(delay.compareTo(CAP) > 0 ? CAP : delay);
     }
 
-    /** null 은 아직 한 번도 시도하지 않은 상태로 본다. */
+    /** null 은 미시도 상태로 판정. */
     static boolean isDue(ZonedDateTime nextAttemptAt, Clock clock) {
         return nextAttemptAt == null || !nextAttemptAt.isAfter(ZonedDateTime.now(clock));
     }

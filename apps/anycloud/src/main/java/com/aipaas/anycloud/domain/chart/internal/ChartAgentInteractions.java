@@ -15,9 +15,9 @@ import org.springframework.stereotype.Component;
  *
  * <p>3 helper 제공:
  * <ul>
- *   <li>{@link #requireHelmAgent} — agent isActiveFor=false 면 즉시 503 throw</li>
- *   <li>{@link #wrapHelmRouting} — agent action 실행 + {@link HelmRoutingException} 분류</li>
- *   <li>{@link #helmCall} — requireHelmAgent + wrapHelmRouting 1줄 단축 (가장 흔한 case)</li>
+ *   <li>{@link #requireHelmAgent}: agent isActiveFor=false 면 즉시 503 throw</li>
+ *   <li>{@link #wrapHelmRouting}: agent action 실행 + {@link HelmRoutingException} 분류</li>
+ *   <li>{@link #helmCall}: requireHelmAgent + wrapHelmRouting 1줄 단축 (가장 흔한 case)</li>
  * </ul>
  *
  * <p>ChartServiceImpl 내부 helper pattern 을 그대로 유지. caller 측 API 변경 0.
@@ -33,7 +33,7 @@ public class ChartAgentInteractions {
     private final AgentHealthService agentHealthService;
 
     /**
-     * agent isActiveFor=false 면 즉시 503 throw — agent stream 없는 cluster 에 helm op 시도 차단.
+     * agent isActiveFor=false 면 즉시 503 throw: agent stream 없는 cluster 에 helm op 시도 차단.
      */
     public void requireHelmAgent(String clusterName, String operationDesc) {
         if (!helmReleaseService.isActiveFor(clusterName)) {
@@ -52,7 +52,7 @@ public class ChartAgentInteractions {
         }
     }
 
-    /** {@code requireHelmAgent + wrapHelmRouting} 단축 — 가장 흔한 case (pre-work 없음). */
+    /** {@code requireHelmAgent + wrapHelmRouting} 단축: 가장 흔한 case (pre-work 없음). */
     public <R> R helmCall(String clusterName, String operationDesc, String context, HelmAction<R> action) {
         requireHelmAgent(clusterName, operationDesc + " " + context);
         return wrapHelmRouting(clusterName, operationDesc, context, action);
@@ -65,7 +65,7 @@ public class ChartAgentInteractions {
     }
 
     /**
-     * 503 AGENT_UNAVAILABLE 의 진단 강화 — agent status / stream / lastSeen 정보를 error 에 첨부해
+     * 503 AGENT_UNAVAILABLE 의 진단 강화: agent status / stream / lastSeen 정보를 error 에 첨부해
      * 운영자가 즉시 다음 action 식별 가능.
      */
     private CustomException agentUnavailable(String clusterName, String operation) {

@@ -7,11 +7,10 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * webhook 으로 나가는 이벤트 하나입니다. {@code id}, {@code type}, {@code timestamp} 는
- * CloudEvents 호환 메타이고 {@code data} 와 {@code links} 는 v1 API 응답과 같은 모양입니다.
+ * webhook 전송 이벤트 단위. {@code id}, {@code type}, {@code timestamp} 는 CloudEvents 호환
+ * 메타이고 {@code data} 와 {@code links} 는 v1 API 응답과 동일 구조.
  *
- * <p>이 JSON 은 외부 계약입니다. 필드를 더하는 건 안전하지만 빼거나 이름을 바꾸면 수신 측이
- * 깨집니다.
+ * <p>이 JSON 은 외부 계약. 필드 추가는 안전하나 제거나 이름 변경 시 수신 측 동작 실패.
  *
  * <pre>{@code
  *   {

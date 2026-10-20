@@ -36,14 +36,14 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
- * 예외를 ErrorCode 로 매핑합니다. 직렬화와 status 변환은 {@link ErrorResponseFormatter} 담당입니다.
+ * 예외를 ErrorCode 로 매핑. 직렬화와 status 변환은 {@link ErrorResponseFormatter} 담당.
  *
- * <p>핸들러는 아래 주석 구분선대로 VALIDATION, NOT FOUND, BUSINESS, EXTERNAL, SECURITY, FALLBACK
- * 순으로 둡니다. 같은 예외에 핸들러가 둘이면 Spring 이 더 구체적인 쪽을 고릅니다.
+ * <p>핸들러 배치 순서는 주석 구분선 기준으로 VALIDATION, NOT FOUND, BUSINESS, EXTERNAL,
+ * SECURITY, FALLBACK. 한 예외에 핸들러가 둘이면 Spring 이 더 구체적인 쪽을 선택.
  *
- * <p>provisioning 실패는 {@code TransientProvisioningFailure} 나
- * {@code PermanentProvisioningFailure} 로 던지세요. retry classifier 가 {@code isTransient()} 로
- * RabbitMQ DLQ 라우팅을 정하므로, RuntimeException 을 그대로 던지면 재시도되지 않습니다.
+ * <p>provisioning 실패는 {@code TransientProvisioningFailure} 또는
+ * {@code PermanentProvisioningFailure} 로 전달. retry classifier 가 {@code isTransient()} 로
+ * RabbitMQ DLQ 라우팅을 결정하므로, RuntimeException 전달 시 재시도 대상에서 제외.
  */
 @Slf4j
 @RestControllerAdvice
@@ -56,10 +56,10 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * body 가 비었거나 JSON 파싱이 실패했을 때입니다.
+     * body 누락 또는 JSON 파싱 실패.
      *
-     * <p>cause 의 raw message 는 사용자 입력을 그대로 담을 수 있어 로그에만 남기고, 응답에는 cause
-     * 클래스명만 내보냅니다.
+     * <p>cause 의 raw message 는 사용자 입력을 포함할 수 있어 로그에만 기록. 응답에는 cause
+     * 클래스명만 포함.
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     protected ResponseEntity<ErrorResponse> httpMessageNotReadableExceptionHandler(
@@ -67,7 +67,7 @@ public class GlobalExceptionHandler {
         Throwable cause = e.getMostSpecificCause();
         String causeClass = cause == null ? "<none>" : cause.getClass().getSimpleName();
         String causeMsg = cause == null ? "<none>" : cause.getMessage();
-        // 실제 도착한 request 의 헤더 정보를 함께 log — 클라이언트 (Bruno 등) 가 보낸 게 진짜
+        // 실제 도착한 request 의 헤더 정보를 함께 log: 클라이언트 (Bruno 등) 가 보낸 게 진짜
         // empty 인지, Content-Type 이 어떤지, charset 이 뭔지 확인 가능.
         log.error(
                 "HttpMessageNotReadable: {} | contentLength={} contentType={} method={} uri={} | cause class={} cause msg={}",
@@ -79,7 +79,7 @@ public class GlobalExceptionHandler {
                 causeClass,
                 causeMsg);
 
-        // sub-case 분기 — body missing 인지 JSON parse 실패인지.
+        // sub-case 분기: body missing 인지 JSON parse 실패인지.
         boolean bodyMissing = e.getMessage() != null && e.getMessage().contains("Required request body is missing");
 
         final String hint;
@@ -117,8 +117,8 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * @Validated 가 적용된 controller 의 path/query parameter 검증 실패 시 발생.
-     * @Valid @RequestBody 의 MethodArgumentNotValidException 과 달리 ConstraintViolationException 으로 던져진다.
+     * @Validated 적용 controller 의 path, query parameter 검증 실패.
+     * @Valid @RequestBody 의 MethodArgumentNotValidException 과 달리 ConstraintViolationException 발생.
      */
     @ExceptionHandler(ConstraintViolationException.class)
     protected ResponseEntity<?> handleConstraintViolationException(
@@ -154,7 +154,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
-    /** 필수 query parameter 누락. 핸들러가 없으면 최종 Exception 으로 떨어져 500 이 나간다. */
+    /** 필수 query parameter 누락. 핸들러 부재 시 최종 Exception 으로 전파돼 500 응답. */
     @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
     protected ResponseEntity<ErrorResponse> handleMissingServletRequestParameterException(
             org.springframework.web.bind.MissingServletRequestParameterException e) {
@@ -207,7 +207,7 @@ public class GlobalExceptionHandler {
 
     // ─── BUSINESS / STATE ────────────────────────────────────────────────────────
 
-    /** transient / permanent 를 응답 hint 로 내보내 클라이언트가 재시도 여부를 정하게 합니다. */
+    /** transient 와 permanent 를 응답 hint 에 포함. 클라이언트의 재시도 판단 근거. */
     @ExceptionHandler(ProvisioningException.class)
     protected ResponseEntity<ErrorResponse> handleProvisioningException(final ProvisioningException e) {
         final ErrorCode errorCode = e.getErrorCode();
@@ -239,8 +239,8 @@ public class GlobalExceptionHandler {
         if (e.getField() != null) {
             response = ErrorResponse.of(
                     e.getErrorCode(), ErrorResponse.FieldError.of(e.getField(), e.getValue(), e.getReason()));
-            // CSP 원문은 provider 마다 표현이 달라 그대로는 무엇을 고쳐야 할지 알 수 없습니다.
-            // 화면이 원문을 접어 두고 할 일부터 보여줄 수 있게 분류 결과를 함께 실어 보냅니다.
+            // CSP 원문은 provider 마다 표현이 달라 조치 대상을 특정할 수 없음. 화면이 원문 대신
+            // 조치 항목을 먼저 노출할 수 있도록 분류 결과를 함께 전달.
             response =
                     response.withHint(CredentialFailureKind.from(e.getReason()).hint());
         } else if (hasDetail) {
@@ -253,7 +253,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * cluster-provisioning starter 의 Pulumi 실행 실패 (up/preview/destroy) — 외부 시스템 실패이므로
+     * cluster-provisioning starter 의 Pulumi 실행 실패 (up/preview/destroy). 외부 시스템 실패이므로
      * UPSTREAM_FAILED(502). starter 가 host 예외에 의존하지 않도록 ProvisioningExecutionException
      * → host 매핑으로 처리.
      */
@@ -278,25 +278,25 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * — IllegalStateException 을 409 Conflict 로 매핑.
-     * 예: addon retry 가 FAILED 외 state 에서 호출, addon 중복 enqueue 등 — 요청 자체는 valid
+     * IllegalStateException 을 409 Conflict 로 매핑.
+     * 예: addon retry 가 FAILED 외 state 에서 호출, addon 중복 enqueue 등: 요청 자체는 valid
      * 이지만 현재 리소스 state 와 충돌. 400 (bad input) 과 의미 구분.
      *
      * <p>신규 코드는 의미 명확한
      * {@link com.aipaas.anycloud.common.error.exception.provisioning.StateConflictException}
-     * 사용 권장. 이 핸들러는 기존 IllegalStateException 을 받기 위한 것입니다.
+     * 사용 권장. 이 핸들러는 기존 IllegalStateException 수신용.
      */
     @ExceptionHandler(IllegalStateException.class)
     protected ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException e) {
         log.warn("Illegal state: {}", e.getMessage());
-        //  이전엔 body 에 INVALID_INPUT_VALUE(400) 를 넣고 HTTP 만 409 — status 불일치 +
+        //  이전엔 body 에 INVALID_INPUT_VALUE(400) 를 넣고 HTTP 만 409: status 불일치 +
         // "입력 값 오류" 오해 유발. 전용 STATE_CONFLICT(409) 로 HTTP==body 일치 보장.
         final ErrorResponse response = ErrorResponse.ofSummarized(ErrorCode.STATE_CONFLICT, e.getMessage());
         return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
 
     /**
-     * — JPA 의 jakarta.persistence.EntityNotFoundException (자체 정의 클래스
+     * JPA 의 jakarta.persistence.EntityNotFoundException (자체 정의 클래스
      * 와는 별개) 도 404 로 매핑. AddonService / 일반 JPA flow 에서 throw.
      */
     @ExceptionHandler(jakarta.persistence.EntityNotFoundException.class)
@@ -309,7 +309,7 @@ public class GlobalExceptionHandler {
 
     /**
      * Controller 가 의도적으로 던진 status (503 graceful degradation 등) 를 그대로 전달.
-     * 이 핸들러가 없으면 generic Exception 핸들러가 잡아 500 으로 나갑니다. 진단 정보가 사라집니다.
+     * 이 핸들러 부재 시 generic Exception 핸들러가 500 으로 처리. 진단 정보 유실.
      */
     @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
     protected ResponseEntity<ErrorResponse> handleResponseStatusException(
@@ -331,7 +331,7 @@ public class GlobalExceptionHandler {
     protected ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException e) {
         log.warn("Entity not found: {}", e.getMessage());
         final ErrorResponse response = ErrorResponse.of(ErrorCode.ENTITY_NOT_FOUND, e.getMessage());
-        // statusOf 로 통일합니다. 하드코딩하면 ErrorCode 의 status 와 어긋나 body 만 달라집니다.
+        // statusOf 로 통일. 하드코딩 시 ErrorCode 의 status 와 body 의 status 가 불일치.
         return new ResponseEntity<>(response, ErrorResponseFormatter.statusOf(ErrorCode.ENTITY_NOT_FOUND));
     }
 
@@ -341,7 +341,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ClusterNotFoundException.class)
     protected ResponseEntity<ErrorResponse> handleClusterNotFoundException(ClusterNotFoundException e) {
         log.warn("Cluster not found: {}", e.getMessage(), e);
-        //  복구 경로 제공 — 목록에서 정확한 이름 확인. 예외가 clusterName 을 들고 있어
+        //  복구 경로 제공: 목록에서 정확한 이름 확인. 예외가 clusterName 을 들고 있어
         // 정적이 아닌 정확한 link 생성 가능.
         final ErrorResponse response = ErrorResponse.of(e.getErrorCode(), e.getMessage())
                 .withHint("GET /v1/clusters 로 등록된 cluster 이름을 확인하세요.")
@@ -391,11 +391,11 @@ public class GlobalExceptionHandler {
     }
 
     // ==== starter exception 일원화 ====
-    // 응답 envelope 는 {@link ApiSuccessResponse} (success=false) 유지 — frontend 호환성 보존
+    // 응답 envelope 는 {@link ApiSuccessResponse} (success=false) 유지: frontend 호환성 보존
     // (UI 가 success boolean 으로 분기).
 
     /**
-     * cluster-observability-starter 의 {@link ObservabilityException} — Prometheus / Alertmanager /
+     * cluster-observability-starter 의 {@link ObservabilityException}: Prometheus / Alertmanager /
      * Grafana 라우팅 실패. errorCode 별 HTTP status 매핑.
      */
     @ExceptionHandler(ObservabilityException.class)
@@ -419,7 +419,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * cluster-backup-starter 의 {@link BackupException} — K8s upgrade / Velero / etcd backup
+     * cluster-backup-starter 의 {@link BackupException}: K8s upgrade / Velero / etcd backup
      * 등 lifecycle 작업 실패. errorCode 별 HTTP status 매핑.
      */
     @ExceptionHandler(BackupException.class)

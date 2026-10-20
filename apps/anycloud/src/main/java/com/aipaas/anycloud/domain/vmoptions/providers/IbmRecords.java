@@ -7,8 +7,8 @@ import java.util.List;
 /**
  * IBM Cloud IAM 과 VPC API 응답 중 화면이 쓰는 필드만.
  *
- * <p>VPC API 는 수치 속성을 {@code {"type":"fixed","value":8}} 처럼 감싸서 준다. 프로파일마다
- * type 이 fixed / range / dependent 로 달라 value 가 아예 없을 수 있으므로 전부 nullable 이다.
+ * <p>VPC API 는 수치 속성을 {@code {"type":"fixed","value":8}} 형태로 감싸서 반환. 프로파일별
+ * type 이 fixed, range, dependent 로 달라 value 부재 가능하므로 전부 nullable.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 final class IbmRecords {
@@ -61,7 +61,7 @@ final class IbmRecords {
     @JsonIgnoreProperties(ignoreUnknown = true)
     record ImageList(List<Image> images, Next next, @JsonProperty("total_count") Integer totalCount) {}
 
-    /** 다음 페이지 링크. 응답 본문에서 오므로 host 를 확인하고 써야 한다. */
+    /** 다음 페이지 링크. 응답 본문 유래이므로 host 확인 후 사용. */
     @JsonIgnoreProperties(ignoreUnknown = true)
     record Next(String href) {}
 

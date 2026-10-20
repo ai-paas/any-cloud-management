@@ -36,7 +36,7 @@ public record HelmInstallInstructionsResponse(
         @Schema(description = "chart version", example = "0.1.0") String chartVersion,
         @Schema(description = "target namespace", example = "aipaas-system") String namespace,
         @Schema(
-                        description = "values.yaml 내용 — 그대로 파일에 붙여넣어 -f 로 전달",
+                        description = "values.yaml 내용: 그대로 파일에 붙여넣어 -f 로 전달",
                         example = "bootstrap:\n  registrationToken: \"eyJ...\"\nbackend:\n  grpcAddr: \"...\"\n")
                 String valuesYaml,
         @Schema(

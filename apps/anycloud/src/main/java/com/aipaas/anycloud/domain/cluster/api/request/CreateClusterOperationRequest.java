@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * POST /v1/clusters/{name}/operations body.
- * scale/upgrade 는 PATCH 로 표현하므로 여기 type 에 없음 — 본 endpoint 는 액션성 task 만.
+ * scale/upgrade 는 PATCH 로 표현하므로 여기 type 에 없음. 본 endpoint 는 액션성 task 만.
  *
  * <pre>
  * { "type": "retryWorkflow" }

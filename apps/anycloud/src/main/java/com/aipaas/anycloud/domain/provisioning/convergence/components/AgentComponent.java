@@ -20,9 +20,9 @@ import org.springframework.stereotype.Component;
 /**
  * cluster agent 의 dial-in 성립 여부를 ClusterEntity 상태로 판정.
  *
- * <p>등급이 설정값인 이유 — agent 가 ACTIVE 로 가려면 백엔드 gRPC endpoint 가 CSP VM 에서 도달
- * 가능해야 하는데, 개발 기본값(host.docker.internal)은 그렇지 않다. 운영에서는 REQUIRED 여야 하고
- * 개발에서는 아니어야 한다.
+ * <p>등급을 설정값으로 둔 이유. agent 의 ACTIVE 전이에는 백엔드 gRPC endpoint 가 CSP VM 에서
+ * 도달 가능해야 하나 개발 기본값(host.docker.internal)은 도달 불가. 운영은 REQUIRED, 개발은
+ * 그 외 등급 필요.
  */
 @Component
 public class AgentComponent implements ClusterComponent {

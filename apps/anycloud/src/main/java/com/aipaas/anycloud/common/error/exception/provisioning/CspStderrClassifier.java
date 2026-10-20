@@ -4,19 +4,19 @@ import com.aipaas.anycloud.common.error.enums.ErrorCode;
 import java.util.List;
 
 /**
- * Pulumi / CSP stderr 를 transient 와 permanent 로 나눠 {@link ProvisioningException} 으로 감쌉니다.
+ * Pulumi, CSP stderr 를 transient 와 permanent 로 분류해 {@link ProvisioningException} 으로 변환.
  *
- * <p>분류 매트릭스는 {@code docs/operations/credential-failure-policy.md} § 2 가 단일 출처입니다.
- * 패턴을 추가하려면 정책 문서를 먼저 고치세요.
+ * <p>분류 매트릭스의 단일 출처는 {@code docs/operations/credential-failure-policy.md} § 2.
+ * 패턴 추가 시 정책 문서 선행 수정.
  *
- * <p>permanent 를 먼저 맞춰보고, 아무 패턴에도 걸리지 않으면 transient 로 둡니다. 재시도해서 또
- * 실패하는 편이 영구 실패를 조용히 포기하는 것보다 낫기 때문입니다.
+ * <p>permanent 패턴 우선 매칭, 미매칭 시 transient 로 판정. 영구 실패를 무음 처리하는 것보다
+ * 재시도 후 재실패가 안전.
  */
 public final class CspStderrClassifier {
 
     private CspStderrClassifier() {}
 
-    /** Case-insensitive substring 매칭 — Pattern 컴파일 비용 회피, stderr 가 보통 짧음. */
+    /** Case-insensitive substring 매칭: Pattern 컴파일 비용 회피, stderr 가 보통 짧음. */
     private static final List<String> PERMANENT_AUTH_TOKENS = List.of(
             // AWS
             "InvalidAccessKeyId",
@@ -66,7 +66,7 @@ public final class CspStderrClassifier {
         return new TransientProvisioningFailure(message);
     }
 
-    /** Pulumi CLI 호출 전용 — summary 가 항상 "Pulumi <action> failed" 형태. */
+    /** Pulumi CLI 호출 전용: summary 가 항상 "Pulumi <action> failed" 형태. */
     public static ProvisioningException classifyPulumi(String action, String rawStderr) {
         String detail = blankToNull(rawStderr);
         String message = "Pulumi " + action + " failed" + (detail == null ? "" : ": " + detail);

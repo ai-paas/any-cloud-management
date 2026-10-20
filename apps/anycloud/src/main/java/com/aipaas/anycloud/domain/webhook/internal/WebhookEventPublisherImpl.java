@@ -47,7 +47,7 @@ public class WebhookEventPublisherImpl implements WebhookEventPublisher {
             return;
         }
         if (!properties.getEvents().isEmpty() && !properties.getEvents().contains(event.type())) {
-            // filter 미일치 — 조용히 스킵.
+            // filter 미일치: 조용히 스킵.
             return;
         }
         if (properties.getUrls() == null || properties.getUrls().isEmpty()) {

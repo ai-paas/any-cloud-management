@@ -16,11 +16,11 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 /**
- * VmCluster status 변경 audit row — state transition audit history.
+ * VmCluster status 변경 audit row: state transition audit history.
  *
  * <p>모든 {@code VmClusterEntity.transitionTo(...)} 호출이 한 row 발행. operator 가 "이 cluster 가
  * 어떤 step 들을 거쳤나" 시간순 query 가능. {@code valid=false} 면 state machine graph 가 invalid
- * 라고 판정한 transition (observation mode 에서 그대로 진행됨) — 회귀 추적용.
+ * 라고 판정한 transition (observation mode 에서 그대로 진행됨). 회귀 추적용.
  */
 @Entity
 @Table(name = "vm_cluster_state_history")

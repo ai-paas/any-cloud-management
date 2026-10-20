@@ -25,7 +25,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 /**
- * VM 기반 클러스터 생성 이력과 상태를 추적하는 엔티티입니다.
+ * VM 기반 클러스터 생성 이력과 상태 추적 엔티티.
  */
 @Entity
 @Getter
@@ -86,18 +86,17 @@ public class VmClusterEntity implements Serializable {
     @Column(name = "active_request_key", length = 45, unique = true)
     private String activeRequestKey;
 
-    /** 살아있는 자격증명을 가리키는 참조. 자격증명이 지워지면 아무데도 닿지 않는 값이 된다. */
+    /** 유효한 자격증명 참조. 자격증명 삭제 시 참조 대상 소멸. */
     @Size(max = 36)
     @Column(name = "credential_id", length = 36)
     private String credentialId;
 
     /*
-     * 요청 당시 이름의 스냅샷. credential_id 와 같은 값을 두 번 저장한 것이 아니다 —
-     * 하나는 참조고 이것은 기록이다.
+     * 요청 시점 이름의 스냅샷. credential_id 의 중복 저장이 아니라 참조와 기록의 분리.
      *
-     * 자격증명 이름이 바뀌어도 따라가지 않는다. 따라가면 "그때 무엇으로 만들었나" 를 잃는다.
-     * DELETED 후 request_config 는 비밀 때문에 통째로 지우므로, 삭제된 클러스터가 무엇으로
-     * 만들어졌는지는 이 컬럼에만 남는다.
+     * 자격증명 이름 변경 시 미추종. 추종하면 생성 시점 자격증명 정보 유실. DELETED 후
+     * request_config 는 비밀값 때문에 전체 삭제하므로, 삭제된 클러스터의 생성 자격증명은
+     * 이 컬럼에만 잔존.
      */
     @Size(max = 100)
     @Column(name = "credential_name", length = 100)
@@ -116,7 +115,7 @@ public class VmClusterEntity implements Serializable {
     private String lastError;
 
     /**
-     * 마지막 실패의 분류 코드. ErrorResponse 의 code 와 동일 체계 — UI 가 메시지 대신
+     * 마지막 실패의 분류 코드. ErrorResponse 의 code 와 동일 체계: UI 가 메시지 대신
      * 코드로 분기 가능. fail() 이 예외에서 추론해 설정, markReady/markDeleteCompleted 가 클리어.
      */
     @Column(name = "last_error_code", length = 50)
@@ -126,7 +125,7 @@ public class VmClusterEntity implements Serializable {
     @Column(name = "bootstrap_log", columnDefinition = "MEDIUMTEXT")
     private String bootstrapLog;
 
-    /** BOOTSTRAP 단계 내부의 sub-step label — MASTER_INIT / WORKER_JOIN / NODES_READY 등. */
+    /** BOOTSTRAP 단계 내부의 sub-step label: MASTER_INIT / WORKER_JOIN / NODES_READY 등. */
     @Column(name = "current_sub_step", length = 50)
     private String currentSubStep;
 
@@ -156,9 +155,9 @@ public class VmClusterEntity implements Serializable {
     private String lastProcessedWorkflowMessageId;
 
     /**
-     * 지금 이 클러스터를 처리 중인 워크플로 메시지. 처리 시작 시점에 조건부 UPDATE 로 잡고
-     * 끝나면 비운다. {@link #lastProcessedWorkflowMessageId} 는 처리가 끝난 뒤에야 기록돼
-     * 처리 도중 도착한 재전달을 막지 못한다.
+     * 해당 클러스터를 처리 중인 워크플로 메시지. 처리 시작 시점에 조건부 UPDATE 로 획득하고
+     * 종료 시 해제. {@link #lastProcessedWorkflowMessageId} 는 처리 완료 후 기록이라 처리
+     * 도중 도착한 재전달 차단 불가.
      */
     @Column(name = "processing_message_id", length = 36)
     private String processingMessageId;
@@ -206,7 +205,7 @@ public class VmClusterEntity implements Serializable {
 
     // ============= State transition helper =============
 
-    /** SLF4J logger — static (Hibernate proxy 가 instance field 를 갖지 못함). */
+    /** SLF4J logger: static (Hibernate proxy 가 instance field 를 갖지 못함). */
     private static final org.slf4j.Logger STATE_LOG =
             org.slf4j.LoggerFactory.getLogger(VmClusterEntity.class.getName() + ".state");
 
@@ -214,12 +213,12 @@ public class VmClusterEntity implements Serializable {
      * Validated state transition. {@link VmClusterStatus#canTransitionTo} 로 graph 검증 + status set
      * + audit history row insert (recorder 통해).
      *
-     * <p>관측 모드 (default) — invalid transition 시 log.warn 만. strict 모드 (throw) 는
-     * {@code anycloud.vm-cluster.state-machine.strict=true} 로 전환 (별도 caller config — entity 가 직접 읽지 않음).
+     * <p>관측 모드 (default). invalid transition 시 log.warn 만. strict 모드 (throw) 는
+     * {@code anycloud.vm-cluster.state-machine.strict=true} 로 전환 (별도 caller config: entity 가 직접 읽지 않음).
      *
      * <p>State history 자동 기록: {@link SpringBeanHolder} 통해 {@code VmClusterStateHistoryRecorder}
      * 조회 후 호출. JPA entity 가 service bean 을 직접 inject 받을 수 없으므로 static lookup 사용.
-     * test 환경 (ApplicationContext 없음) 에선 recorder null 이라 silent skip — entity 동작은 동일.
+     * test 환경 (ApplicationContext 없음) 에선 recorder null 이라 silent skip: entity 동작은 동일.
      *
      * @param next 새 상태
      * @param reason 호출 위치 / 사유 (log + audit 용도). 예: "workflow.BOOTSTRAP.ok", "scale.start"
@@ -228,8 +227,8 @@ public class VmClusterEntity implements Serializable {
         VmClusterStatus current = this.provisioningStatus;
         boolean invalid = current != null && !current.canTransitionTo(next);
         if (invalid) {
-            // Strict mode (anycloud.vm-cluster.state-machine.strict=true) — throw 로 즉시 차단.
-            // Observation mode (default) — log.warn + apply (audit history 가 invalid 도 row 로 남김).
+            // Strict mode (anycloud.vm-cluster.state-machine.strict=true). throw 로 즉시 차단.
+            // Observation mode (default). log.warn + apply (audit history 가 invalid 도 row 로 남김).
             var props = com.aipaas.anycloud.common.util.SpringBeanHolder.beanOrNull(
                     com.aipaas.anycloud.domain.provisioning.properties.VmClusterStateMachineProperties.class);
             if (props != null && props.isStrict()) {
@@ -248,8 +247,8 @@ public class VmClusterEntity implements Serializable {
         }
         this.provisioningStatus = next;
 
-        // Audit history — Spring bean 가용 시 row insert (REQUIRES_NEW TX 이므로 caller 비즈니스
-        // TX rollback 과 무관). null tolerant — unit test / startup 초기 같이 context wire 전 호출
+        // Audit history: Spring bean 가용 시 row insert (REQUIRES_NEW TX 이므로 caller 비즈니스
+        // TX rollback 과 무관). null tolerant: unit test / startup 초기 같이 context wire 전 호출
         // 시 silent skip.
         Object recorder = com.aipaas.anycloud.common.util.SpringBeanHolder.beanOrNull(
                 com.aipaas.anycloud.domain.provisioning.VmClusterStateHistoryRecorder.class);

@@ -7,14 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * <pre>
- * ClassName : ChartStatusResponse
- * Type : class
- * Description : Helm 릴리즈 상태 조회 응답 DTO입니다.
- * Related : ChartController, ChartService
- * </pre>
- */
+/** Helm 릴리즈 상태 응답 DTO. */
 @Getter
 @Setter
 @Builder

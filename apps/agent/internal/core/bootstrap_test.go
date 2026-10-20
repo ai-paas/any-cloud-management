@@ -14,13 +14,13 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// In-process backend stub — net.Listen + grpc.Server. 실제 네트워크 dial 까지 검증.
+// In-process backend stub: net.Listen + grpc.Server. 실제 네트워크 dial 까지 검증.
 
 type stubBackend struct {
 	agentv1.UnimplementedAgentBootstrapServer
 
 	expectedToken string
-	// 마지막 호출에서 본 request — 검증용.
+	// 마지막 호출에서 본 request: 검증용.
 	lastRequest *agentv1.RegisterRequest
 	// 마지막 호출에서 Bearer header.
 	lastBearer string
@@ -98,7 +98,7 @@ func TestRun_SuccessfulRegister(t *testing.T) {
 		t.Errorf("ClusterStatus = %v, want ACTIVE", result.ClusterStatus)
 	}
 
-	// Bearer 헤더 검증 — registration_token 이 metadata 로 전달되었는지.
+	// Bearer 헤더 검증: registration_token 이 metadata 로 전달되었는지.
 	if stub.lastBearer != "Bearer fake-jwt-token" {
 		t.Errorf("backend received bearer = %q, want 'Bearer fake-jwt-token'", stub.lastBearer)
 	}
@@ -138,7 +138,7 @@ func TestRun_BackendRejectsToken_PropagatesError(t *testing.T) {
 	}
 	st, ok := status.FromError(errors.Unwrap(err))
 	if !ok {
-		// fmt.Errorf wrapping — direct check on string.
+		// fmt.Errorf wrapping: direct check on string.
 		if !contains(err.Error(), "PermissionDenied") && !contains(err.Error(), "invalid token") {
 			t.Errorf("expected PermissionDenied error, got: %v", err)
 		}
