@@ -6,11 +6,10 @@ import com.aipaas.anycloud.testsupport.AbstractUnitTest;
 import org.junit.jupiter.api.Test;
 
 /**
- * 준비 대기에는 상한이 있어야 한다.
+ * 준비 대기에 상한 적용 필요.
  *
- * <p>cloud-init 이 실패하면 containerd 와 kubelet 이 영영 오지 않는다. 상한이 없으면 SSH 세션이
- * 계속 살아 있어 워크플로가 BOOTSTRAPPING 에서 멈춘 채 로그도 남지 않는다. 실제로 17분을 조용히
- * 기다린 뒤에야 사람이 알아챈 적이 있다.
+ * <p>cloud-init 실패 시 containerd 와 kubelet 미기동. 상한 부재 시 SSH 세션이 유지돼 워크플로가
+ * BOOTSTRAPPING 에 정지한 채 로그도 미기록. 17분 경과 후에야 운영자가 검출한 사례 발생.
  */
 class GenericLinuxBootstrapWaitTest extends AbstractUnitTest {
 
@@ -25,7 +24,7 @@ class GenericLinuxBootstrapWaitTest extends AbstractUnitTest {
 
     @Test
     void waitReportsWhyItGaveUp() {
-        // 그냥 실패하면 원인이 SSH 인지 cloud-init 인지 구분되지 않는다.
+        // 사유 없이 실패하면 원인이 SSH 인지 cloud-init 인지 구분 불가.
         String cmd = strategy.waitForPreparationCommand();
 
         assertThat(cmd).contains("cloud-init");
@@ -34,7 +33,7 @@ class GenericLinuxBootstrapWaitTest extends AbstractUnitTest {
 
     @Test
     void stillWaitsForContainerdAndKubelet() {
-        // 상한을 넣다가 대기 자체를 없애면 kubeadm 이 설치 전에 돈다.
+        // 상한 적용 과정에서 대기를 제거하면 kubeadm 이 설치 전에 실행.
         String cmd = strategy.waitForPreparationCommand();
 
         assertThat(cmd).contains("containerd").contains("kubelet");

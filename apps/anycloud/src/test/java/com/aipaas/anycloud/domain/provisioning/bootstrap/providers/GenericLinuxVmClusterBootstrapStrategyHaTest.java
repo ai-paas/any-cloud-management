@@ -11,10 +11,10 @@ import org.junit.jupiter.api.Test;
 /**
  * HA control-plane (multi-master) 변경의 regression 보호.
  *
- * <p>Single master (masterCount=1, 기본) 는 legacy 동작 그대로: kubeadm init 에
- * {@code --control-plane-endpoint} / {@code --upload-certs} 가 들어가면 안 된다.
- * Multi-master (masterCount>=2) 는 둘 다 들어가야 하고, control-plane join 명령은
- * {@code --control-plane} + {@code --certificate-key} 를 포함해야 한다.
+ * <p>Single master (masterCount=1, 기본) 는 기존 동작 유지. kubeadm init 에
+ * {@code --control-plane-endpoint}, {@code --upload-certs} 포함 금지.
+ * Multi-master (masterCount>=2) 는 양쪽 모두 포함 필요하고, control-plane join 명령에
+ * {@code --control-plane} 와 {@code --certificate-key} 포함 필요.
  */
 class GenericLinuxVmClusterBootstrapStrategyHaTest extends AbstractUnitTest {
 
@@ -32,8 +32,8 @@ class GenericLinuxVmClusterBootstrapStrategyHaTest extends AbstractUnitTest {
     @Test
     void initializeMaster_publicIp_landsInTheCertificateSans() {
         /*
-         * SAN 은 kubeadm init 때만 정해진다. 빠뜨리면 내려받은 kubeconfig 가 공인 IP 를 가리키는데
-         * TLS 이름 검증에서 막히고, 클러스터를 다시 만들기 전에는 고칠 수 없다.
+         * SAN 은 kubeadm init 시점에만 확정. 누락 시 수신한 kubeconfig 가 공인 IP 를 가리키나
+         * TLS 이름 검증에서 실패하고, 클러스터 재생성 전까지 수정 불가.
          */
         String cmd = strategy.initializeMasterCommand(snapshot(Map.of()), "203.0.113.10");
 
@@ -42,7 +42,7 @@ class GenericLinuxVmClusterBootstrapStrategyHaTest extends AbstractUnitTest {
 
     @Test
     void initializeMaster_privateOnlyCluster_omitsTheExtraSan() {
-        // 공인 IP 가 없는 클러스터가 있다. 빈 값을 넘기면 kubeadm 이 인자 파싱에서 죽는다.
+        // 공인 IP 가 없는 클러스터 존재. 빈 값 전달 시 kubeadm 이 인자 파싱에서 실패.
         assertThat(strategy.initializeMasterCommand(snapshot(Map.of()), null))
                 .doesNotContain("--apiserver-cert-extra-sans");
         assertThat(strategy.initializeMasterCommand(snapshot(Map.of()), "  "))

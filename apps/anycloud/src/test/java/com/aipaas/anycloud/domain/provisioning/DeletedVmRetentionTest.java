@@ -15,10 +15,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 /**
- * 삭제 이력에 보관 기한을 둔다.
+ * 삭제 이력에 보관 기한 적용.
  *
- * <p>삭제는 감사와 원인 분석을 위해 행을 남기는데 정리하는 곳이 없어 영원히 쌓인다. operation 은
- * deleteCompletedBefore 로 정리하고 있었지만 vm_cluster 에는 그런 게 없었다.
+ * <p>삭제 시 감사와 원인 분석용 행을 기록하나 정리 주체가 없어 무한 누적. operation 은
+ * deleteCompletedBefore 로 정리하고 있었으나 vm_cluster 에는 해당 경로 부재.
  */
 class DeletedVmRetentionTest extends AbstractUnitTest {
 
@@ -45,7 +45,7 @@ class DeletedVmRetentionTest extends AbstractUnitTest {
 
     @Test
     void keepsRowsInsideTheWindow() {
-        // 최근 삭제 이력은 원인 분석에 쓰인다. 기한 안쪽은 건드리지 않는다.
+        // 최근 삭제 이력은 원인 분석에 사용. 기한 내 항목은 유지.
         when(vmClusterRepository.deleteDeletedBefore(any())).thenReturn(0);
 
         reaper.reap();
@@ -55,7 +55,7 @@ class DeletedVmRetentionTest extends AbstractUnitTest {
 
     @Test
     void survivesRepositoryFailure() {
-        // 정리가 실패해도 스케줄러 스레드가 죽으면 안 된다.
+        // 정리 실패로 스케줄러 스레드 종료 금지.
         when(vmClusterRepository.deleteDeletedBefore(any())).thenThrow(new IllegalStateException("boom"));
 
         reaper.reap();
@@ -63,7 +63,7 @@ class DeletedVmRetentionTest extends AbstractUnitTest {
 
     @Test
     void retentionOfZeroDisablesCleanup() {
-        // 기한 0 이하는 "정리하지 않음" 이다. 실수로 전체를 지우면 복구할 수 없다.
+        // 기한 0 이하는 정리 비활성. 전체 삭제 시 복구 불가.
         new DeletedVmClusterReaper(vmClusterRepository, 0).reap();
 
         verify(vmClusterRepository, never()).deleteDeletedBefore(any());
