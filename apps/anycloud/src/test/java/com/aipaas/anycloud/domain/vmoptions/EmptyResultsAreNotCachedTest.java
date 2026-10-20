@@ -9,13 +9,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.cache.annotation.Cacheable;
 
 /**
- * 빈 결과가 캐시에 남으면 그 상태가 TTL 동안 고정된다.
+ * 빈 결과가 캐시에 저장되면 TTL 동안 해당 상태 고정.
  *
- * <p>잘못된 자격증명 한 번이 목록을 비우고, 자격증명을 고쳐도 화면은 계속 비어 있다. 원인이
- * 캐시라는 사실이 드러나지 않아 코드 결함으로 오진하게 된다. 실제로 그랬다.
+ * <p>잘못된 자격증명 1회로 목록이 비고, 자격증명 수정 후에도 화면이 계속 빈 상태 유지. 원인이
+ * 캐시임이 드러나지 않아 코드 결함으로 오진. 해당 사례 발생.
  *
- * <p>애노테이션을 읽어 확인한다. 캐시 매니저를 띄우면 테스트가 무거워지는데, 지켜야 하는 것은
- * "빈 결과를 담지 않는다"는 선언 하나다.
+ * <p>애노테이션 기준 검증. 캐시 매니저 기동은 테스트 비용이 크고, 검증 대상은 빈 결과 미저장
+ * 선언 하나.
  */
 class EmptyResultsAreNotCachedTest extends AbstractUnitTest {
 
@@ -34,7 +34,7 @@ class EmptyResultsAreNotCachedTest extends AbstractUnitTest {
 
     @Test
     void theLookupsThatTalkToTheCloudAreCached() {
-        // 캐시가 빠지면 화면을 열 때마다 CSP API 를 쳐서 요청 제한에 걸린다.
+        // 캐시 제거 시 화면 진입마다 CSP API 호출로 요청 제한 도달.
         assertThat(cachedMethodNames()).contains("getRegions", "getSpecs", "getImages");
     }
 

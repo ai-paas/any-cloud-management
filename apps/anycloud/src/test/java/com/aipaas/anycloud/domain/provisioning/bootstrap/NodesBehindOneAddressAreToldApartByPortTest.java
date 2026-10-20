@@ -11,11 +11,11 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * NAT 뒤 클러스터는 모든 노드가 같은 공인 주소를 쓰고 포트로만 갈린다.
+ * NAT 뒤 클러스터는 전체 노드가 동일 공인 주소를 사용하고 포트로만 구분.
  *
- * <p>host 로 노드를 찾으면 언제나 첫 번째가 걸린다. 그 상태로 부트스트랩이 돌면 worker 준비와
- * join 명령이 master 에 두 번 실행되고, worker 에는 kubeadm 조차 깔리지 않는다. 클러스터는
- * master 하나로 Ready 가 되어 성공처럼 보인다.
+ * <p>host 기준 노드 조회 시 항상 첫 번째 노드 반환. 이 상태로 부트스트랩이 실행되면 worker 준비
+ * 와 join 명령이 master 에 중복 실행되고 worker 에는 kubeadm 미설치. 클러스터는 master 단독으로
+ * Ready 전이해 성공으로 표시.
  */
 class NodesBehindOneAddressAreToldApartByPortTest extends AbstractUnitTest {
 
@@ -65,7 +65,7 @@ class NodesBehindOneAddressAreToldApartByPortTest extends AbstractUnitTest {
 
     @Test
     void stacksWithoutAPortFallBackToTwentyTwo() {
-        // 예전에 만든 클러스터에는 sshPort 가 없다. 그 클러스터도 계속 접속돼야 한다.
+        // 이전 생성 클러스터에는 sshPort 부재. 해당 클러스터도 접속 유지 필요.
         Map<String, Object> legacy = Map.of(
                 "nodes", List.of(Map.of("role", "master", "publicIp", "10.0.0.5")), "masterPublicIp", "10.0.0.5");
 

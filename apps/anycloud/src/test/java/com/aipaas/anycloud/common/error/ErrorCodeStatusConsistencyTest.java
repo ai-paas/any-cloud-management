@@ -18,7 +18,7 @@ import org.springframework.http.HttpStatus;
  */
 class ErrorCodeStatusConsistencyTest {
 
-    /** 이름이 부재를 뜻하면 404 여야 한다. */
+    /** 이름이 부재를 의미하면 404 사용. */
     @Test
     @DisplayName("NOT_FOUND 로 끝나는 ErrorCode 는 404 를 쓴다")
     void notFoundCodes_use404() {

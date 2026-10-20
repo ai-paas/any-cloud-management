@@ -10,10 +10,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 
 /**
- * Proxmox 요청이 인스턴스 타입 목록 조회로 새지 않아야 한다.
+ * Proxmox 요청의 인스턴스 타입 목록 조회 경로 유입 차단.
  *
- * <p>Proxmox 는 인스턴스 타입이 없어 {@code VmOptionsProvider} 구현이 없다. 조회로 내려가면
- * {@code VM options provider is not registered} 로 PROVISION 이 5% 에서 끝난다.
+ * <p>Proxmox 는 인스턴스 타입이 없어 {@code VmOptionsProvider} 구현 부재. 조회 경로 진입 시
+ * {@code VM options provider is not registered} 로 PROVISION 이 5% 에서 종료.
  */
 class ProxmoxHasNoInstanceTypeCatalogTest extends AbstractUnitTest {
 

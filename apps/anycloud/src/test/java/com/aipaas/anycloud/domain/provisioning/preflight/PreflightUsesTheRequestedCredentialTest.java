@@ -30,9 +30,9 @@ import org.mockito.quality.Strictness;
 /**
  * 사전 검토가 요청에 담긴 자격증명으로 조회해야 한다.
  *
- * <p>버리면 조회가 환경변수 fallback 으로 떨어져 "조회 불가"가 되고, 등록한 자격증명으로 만들려던
- * 요청이 {@code readyToProvision=false} 로 막힌다. 화면에는 자격증명이 정상이라고 나오는데 진행은
- * 안 되는 상태라 원인을 찾기 어렵다.
+ * <p>제거 시 조회가 환경변수 fallback 으로 전환돼 조회 불가 상태가 되고, 등록 자격증명 기반
+ * 생성 요청이 {@code readyToProvision=false} 로 차단. 화면에는 자격증명이 정상으로 표시되나
+ * 진행이 되지 않아 원인 파악 곤란.
  */
 @MockitoSettings(strictness = Strictness.LENIENT)
 class PreflightUsesTheRequestedCredentialTest extends AbstractUnitTest {
@@ -88,7 +88,7 @@ class PreflightUsesTheRequestedCredentialTest extends AbstractUnitTest {
 
     @Test
     void regionDiscoveryIsCalledWithTheCredentialFromTheRequest() {
-        // 조회 단계는 자격증명이 다 채워졌을 때만 돈다.
+        // 조회 단계는 자격증명이 모두 채워진 경우에만 실행.
         when(cspCredentialService.resolveForProvision(anyString(), anyString()))
                 .thenReturn(ResolvedCspCredential.builder()
                         .credentialId(CREDENTIAL_ID)

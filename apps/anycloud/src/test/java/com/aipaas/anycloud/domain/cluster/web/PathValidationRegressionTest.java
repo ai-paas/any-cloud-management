@@ -31,15 +31,14 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.MethodValidationInterceptor;
 
 /**
- * v1 controller 의 path / query parameter @Pattern / @Size 검증 회귀 방지.
- * <p>
- * 표준 MockMvc 의 {@code standaloneSetup} 에선 {@code @Validated} 클래스의 path/query
- * parameter 검증을 트리거하는 {@code MethodValidationPostProcessor} 가 적용되지 않아
- * 정규식 위반이 그냥 통과한다. 본 테스트는 Spring AOP {@link ProxyFactory} 로 controller 를
- * 직접 감싸 {@link MethodValidationInterceptor} 를 적용함으로써 path validation 이 실제로
- * 400 을 만들도록 회귀를 잡는다.
- * <p>
- * Docker / DB / 전체 Spring context 모두 불필요. 모든 service 는 Mockito.
+ * v1 controller 의 path, query parameter @Pattern, @Size 검증 회귀 방지.
+ *
+ * <p>표준 MockMvc 의 {@code standaloneSetup} 은 {@code @Validated} 클래스의 path, query
+ * parameter 검증을 트리거하는 {@code MethodValidationPostProcessor} 를 적용하지 않아 정규식
+ * 위반이 통과. 이 테스트는 Spring AOP {@link ProxyFactory} 로 controller 를 감싸
+ * {@link MethodValidationInterceptor} 를 적용해 path validation 의 400 응답 생성을 검증.
+ *
+ * <p>Docker, DB, 전체 Spring context 불필요. 모든 service 는 Mockito 사용.
  */
 class PathValidationRegressionTest extends AbstractUnitTest {
 
@@ -71,9 +70,9 @@ class PathValidationRegressionTest extends AbstractUnitTest {
     }
 
     /**
-     * Spring AOP proxy 로 controller 를 감싸 {@link MethodValidationInterceptor} 를 적용.
-     * 이렇게 하면 controller 의 {@code @Validated} 가 표준 MockMvc 환경에서도 path/query 검증을
-     * 실제로 수행해 {@code ConstraintViolationException} 을 던진다.
+     * Spring AOP proxy 로 controller 를 감싸 {@link MethodValidationInterceptor} 적용.
+     * 이 구성에서 controller 의 {@code @Validated} 가 표준 MockMvc 환경에서도 path, query 검증을
+     * 수행해 {@code ConstraintViolationException} 발생.
      */
     @SuppressWarnings("unchecked")
     private static <T> T withValidation(T controller) {

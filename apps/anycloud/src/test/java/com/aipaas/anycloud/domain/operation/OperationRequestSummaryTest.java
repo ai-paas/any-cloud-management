@@ -8,10 +8,10 @@ import com.aipaas.anycloud.testsupport.AbstractUnitTest;
 import org.junit.jupiter.api.Test;
 
 /**
- * 작업이 무엇을 했는지 보여준다.
+ * 작업 내용 표시.
  *
- * <p>CREATE_CLUSTER 가 수십 건인데 각각 어떤 요청이었는지 알 수 없어 목록을 봐도 구분이 되지
- * 않았다. 요청 본문은 이미 저장돼 있었고 응답에만 빠져 있었다.
+ * <p>CREATE_CLUSTER 가 수십 건인 상태에서 각 요청 내용을 확인할 수 없어 목록에서 구분 불가.
+ * 요청 본문은 이미 저장된 상태였고 응답에만 누락.
  */
 class OperationRequestSummaryTest extends AbstractUnitTest {
 
@@ -33,7 +33,7 @@ class OperationRequestSummaryTest extends AbstractUnitTest {
 
     @Test
     void redactsSecretsInTheRequest() {
-        // 요청 본문에 자격증명이 섞여 들어오면 작업 이력이 비밀 저장소가 된다.
+        // 요청 본문에 자격증명이 포함되면 작업 이력이 비밀값 저장소가 됨.
         String payload = "{\"AWS_SECRET_ACCESS_KEY\":\"wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEY\"}";
 
         assertThat(OperationResponse.from(entity(payload)).request())

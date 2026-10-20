@@ -25,8 +25,8 @@ class GpuFlavorMapperTest extends AbstractUnitTest {
 
     @Test
     void namespacedOperatorChoiceIsNotOverwritten() {
-        // 요청은 anycloud-k8s: 접두로 온다. 접두 없이 확인하면 운영자 지정 인스턴스 타입을
-        // 못 보고 GPU 기본값으로 덮어쓴다.
+        // 요청 키에는 anycloud-k8s: 접두 포함. 접두 없이 조회하면 운영자 지정 인스턴스 타입을
+        // 인식하지 못해 GPU 기본값으로 덮어씀.
         Map<String, String> cfg = new HashMap<>();
         cfg.put(GpuFlavorMapper.nsKey(GpuFlavorMapper.CONFIG_KEY_WORKER_INSTANCE_TYPE), "p4d.24xlarge");
 
@@ -84,7 +84,7 @@ class GpuFlavorMapperTest extends AbstractUnitTest {
 
     @Test
     void applyGpuDefaults_unsupportedProvider_stillTurnsTheOperatorOn() {
-        // flavor 표에 없는 CSP 도 드라이버는 필요하다. 타입은 운영자가 고른 값을 그대로 둔다.
+        // flavor 표 미등록 CSP 도 드라이버 필요. 타입은 운영자 선택 값 유지.
         Map<String, String> cfg = new HashMap<>();
 
         boolean mutated = GpuFlavorMapper.applyGpuDefaults("proxmox", cfg);

@@ -42,7 +42,7 @@ class KubeServiceImplFallbackTest extends AbstractUnitTest {
 
     @Test
     void fallbacks_rethrowClusterNotFoundUnchanged() {
-        // 없는 클러스터는 404 여야 한다. agent 불통(503) 과 섞이면 진단이 어긋난다.
+        // 미존재 클러스터는 404. agent 불통(503)과 혼재 시 진단 불일치.
         ClusterNotFoundException notFound = new ClusterNotFoundException("c1");
 
         assertThatThrownBy(() -> service.getResourceFallback("c1", "ns", "deployments", "app", notFound))
@@ -53,7 +53,7 @@ class KubeServiceImplFallbackTest extends AbstractUnitTest {
 
     @Test
     void failureMessageNamesClusterAndOperation() {
-        // 운영자가 어느 클러스터의 어느 호출이 죽었는지 로그 없이도 알아야 한다.
+        // 운영자가 로그 없이도 실패한 클러스터와 호출을 식별할 수 있어야 함.
         assertThatThrownBy(() -> service.getResourcesFallback("prod-01", "ns", "pods", AGENT_DOWN))
                 .hasMessageContaining("prod-01");
 

@@ -94,7 +94,7 @@ class ClusterKubernetesControllerTest extends AbstractUnitTest {
                         .returnedItemCount(0)
                         .build());
 
-        // _all / - 모두 sentinel: 컨트롤러가 ns=null 로 전달해야 한다.
+        // _all 과 - 모두 sentinel. 컨트롤러가 ns=null 로 전달.
         mvc.perform(get("/v1/clusters/demo-aws-01/namespaces/" + sentinel + "/pods"))
                 .andExpect(status().isOk());
         verify(kubeService).listResourcesPaginated(eq("demo-aws-01"), isNull(), eq("pods"), anyInt(), any(), any());
@@ -240,8 +240,8 @@ class ClusterKubernetesControllerTest extends AbstractUnitTest {
                 .andExpect(status().isCreated());
     }
 
-    // NOTE: path 정규식의 실제 검증 거동은 PathValidationRegressionTest 가 커버한다.
-    // Spring AOP MethodValidationInterceptor 를 controller 에 직접 적용해 standalone MockMvc
-    // 환경에서도 @Validated path/query parameter 검증이 ConstraintViolationException → 400 으로
-    // 정상 매핑되는지 회귀 방지.
+    // path 정규식의 실제 검증 동작은 PathValidationRegressionTest 담당.
+    // Spring AOP MethodValidationInterceptor 를 controller 에 적용해 standalone MockMvc
+    // 환경에서도 @Validated path, query parameter 검증이 ConstraintViolationException 을 거쳐
+    // 400 으로 매핑되는지 회귀 방지.
 }
