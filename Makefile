@@ -61,6 +61,8 @@ CHART_TGZ             := /tmp/$(CHART_NAME)-$(CHART_VERSION).tgz
 # Helm chart 의 rendered output 을 raw manifest 로 저장 — apps/agent/deploy/k8s/agent.yaml.
 # 본 파일은 사용자가 manual kubectl apply 또는 reference 로 사용. backend 의 자동 install 은
 # 본 파일을 안 읽음 (AgentChartRenderer 가 chart 를 직접 helm template 함).
+# identity.cleanupHook 은 off 로 렌더. kubectl 은 helm.sh/hook annotation 미인식이라 cleanup
+# Job 이 Deployment 와 순서 없이 경쟁 — agent 가 저장한 identity Secret 삭제 가능.
 # Chart 변경 시 본 target 으로 갱신 권장 — PR review 시 diff 보기 쉬움.
 SNAPSHOT_NS                   ?= aipaas-system
 SNAPSHOT_TOKEN                ?= REPLACE_WITH_REAL_JWT
@@ -322,6 +324,7 @@ agent-manifest-snapshot:
 		'#' > $(SNAPSHOT_OUT)
 	@helm template cluster-agent $(CHART_DIR) \
 		--namespace $(SNAPSHOT_NS) \
+		--set "identity.cleanupHook.enabled=false" \
 		--set "bootstrap.registrationToken=$(SNAPSHOT_TOKEN)" \
 		--set "backend.grpcAddr=$(SNAPSHOT_BACKEND_GRPC)" \
 		--set "image.repository=$(SNAPSHOT_IMAGE_REPO)" \

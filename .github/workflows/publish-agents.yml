@@ -5,20 +5,22 @@ name: Publish Agent Images (GHCR)
 # 아직 배포 대상이 아니라 matrix 에서 뺐다.
 #
 # 발동 조건:
-#   - tag push (vX.Y.Z)     → :vX.Y.Z, :X.Y, :sha-<short>, :{branch}-vX.Y.Z, :latest(main only)
-#   - workflow_dispatch     → :<input.tag>(옵션), :sha-<short>
+#   - tag push (cluster-agent-vX.Y.Z) → :vX.Y.Z, :sha-<short>, :latest(main only)
+#   - workflow_dispatch               → :<input.tag>(옵션), :sha-<short>
 #
-# main push 는 publish 안 함 — 회귀 검증은 ci.yml 에서. release tag (semver) 만 publish.
+# backend 릴리스 태그 (vX.Y.Z) 와 분리된 전용 접두사. agent 는 변경 주기가 길어 backend 릴리스
+# 마다 동일 이미지를 재빌드할 이유가 없음. ops-shell 과 같은 방식.
+# main push 는 publish 안 함 — 회귀 검증은 ci.yml 에서.
 # :latest 는 tag 가 main branch 의 commit 일 때만 부착 — hotfix branch tag 등은 :latest 안 됨.
 # Image 는 처음 push 시 GHCR 에서 private. public 공개는 GitHub Packages UI 에서 1회 토글.
 
 on:
   push:
-    tags: ['v*.*.*']
+    tags: ['cluster-agent-v*.*.*']
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Optional manual tag (e.g. v0.1.0-rc1)'
+        description: 'Optional manual tag (예: v0.1.0-rc1)'
         required: false
 
 permissions:
@@ -92,11 +94,9 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/${{ matrix.target.image }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=match,pattern=cluster-agent-(v.*),group=1
             type=sha,prefix=sha-
             type=raw,value=latest,enable=${{ steps.branch.outputs.is_main == 'true' }}
-            type=raw,value=${{ steps.branch.outputs.name }}-${{ github.ref_name }},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
             type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '' }}
 
       - name: Build & push (${{ matrix.target.cmd }})

@@ -64,6 +64,8 @@ agent:
     repo-alias: ${ANYCLOUD_AGENT_HELM_REPO_ALIAS:anycloud}
     # 빈 값 = 미설정. backend 의 자동 install 은 classpath 의 packaged chart 를 쓴다.
     repo-url: ${ANYCLOUD_AGENT_HELM_REPO_URL:}
+    # chart 는 OCI 로만 publish (publish-charts.yml). repo-url 기반 classic repo 는 미운영.
+    oci-registry: ${ANYCLOUD_AGENT_HELM_OCI_REGISTRY:oci://ghcr.io/ai-paas/charts}
     chart-name: ${ANYCLOUD_AGENT_HELM_CHART_NAME:cluster-agent}
     chart-version: ${ANYCLOUD_AGENT_HELM_CHART_VERSION:0.1.0}
 

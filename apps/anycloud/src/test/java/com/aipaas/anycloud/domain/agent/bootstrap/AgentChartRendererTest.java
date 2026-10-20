@@ -108,6 +108,21 @@ class AgentChartRendererTest extends AbstractUnitTest {
 
     @Test
     @EnabledIfSystemProperty(named = "chart.integration", matches = "true")
+    void render_omitsIdentityCleanupHook() {
+        String manifest = renderer.render("eyJhbGc.fake.jwt");
+
+        // cleanup Job 잔존 시 Deployment 와 순서 없이 경쟁. agent 가 저장한 identity Secret
+        // 삭제로 이어지고, 그 상태의 재시작은 registration token 만료로 CrashLoop 진입.
+        assertThat(manifest).doesNotContain("cluster-agent-identity-cleanup");
+        assertThat(manifest).doesNotContain("identity-cleaner");
+        assertThat(manifest).doesNotContain("kind: Job");
+
+        // bootstrap Secret 은 Deployment 의 env 참조 대상. 함께 제거되면 agent 기동 불가.
+        assertThat(manifest).contains("aipaas-agent-bootstrap");
+    }
+
+    @Test
+    @EnabledIfSystemProperty(named = "chart.integration", matches = "true")
     void render_emptyToken_throws() {
         assertThatThrownBy(() -> renderer.render(""))
                 .isInstanceOf(IllegalArgumentException.class)

@@ -124,6 +124,14 @@ public class AgentChartRenderer {
     /**
      * Values.yaml 생성: chart 의 values.yaml 위에 override 되는 key 만 들고 있음.
      * 사용자가 helm install 시 명시 안 한 항목들 (token / endpoint / image) 만 주입.
+     *
+     * <p>{@code identity.cleanupHook} 은 항상 off. 본 렌더 결과의 적용 주체는 helm 이 아닌
+     * kubectl 이고, kubectl 은 {@code helm.sh/hook} annotation 미인식. cleanup Job 이 일반 Job
+     * 으로 생성돼 Deployment 와 순서 없이 경쟁하므로 agent 가 저장한 cluster-agent-identity
+     * Secret 삭제 가능. 그 상태의 재시작은 registration token (10분 TTL) 만료로 CrashLoop 진입.
+     * cleanup 의 대상인 stale identity 는 agent 의 연속 Unauthenticated 3회 자가 삭제로 복구
+     * (apps/agent/internal/core/runtime.go). hook 순서가 보장되는 helm 경로는 chart default
+     * (enabled=true) 유지.
      */
     private Path writeValuesYaml(String token, boolean adminKubeconfig) {
         ImageRef img = parseImageRef(agentImage);
@@ -142,6 +150,9 @@ public class AgentChartRenderer {
 				rbac:
 				  adminKubeconfig:
 				    enabled: %s
+				identity:
+				  cleanupHook:
+				    enabled: false
 				""",
                 backendEndpoint, token, img.repository(), img.tag(), imagePullPolicy, agentNamespace, adminKubeconfig);
         try {

@@ -63,13 +63,22 @@ public record AgentProperties(Grpc grpc, Manifest manifest, Helm helm, ApiManage
             String repoAlias,
             /** helm chart repository URL. 빈 값 = 미설정: 자동 install 에는 영향 없음. */
             String repoUrl,
+            /** chart 가 publish 되는 OCI registry. 뒤에 {@code /chartName} 결합. */
+            String ociRegistry,
             String chartName,
             String chartVersion) {
         public Helm {
             if (repoAlias == null || repoAlias.isBlank()) repoAlias = "anycloud";
             if (repoUrl == null) repoUrl = "";
+            if (ociRegistry == null || ociRegistry.isBlank()) ociRegistry = "oci://ghcr.io/ai-paas/charts";
             if (chartName == null || chartName.isBlank()) chartName = "cluster-agent";
             if (chartVersion == null || chartVersion.isBlank()) chartVersion = "0.1.0";
+        }
+
+        /** {@code oci://ghcr.io/ai-paas/charts/cluster-agent} 형태의 완전한 chart 좌표. */
+        public String ociChartRef() {
+            String base = ociRegistry.endsWith("/") ? ociRegistry.substring(0, ociRegistry.length() - 1) : ociRegistry;
+            return base + "/" + chartName;
         }
     }
 
@@ -83,7 +92,7 @@ public record AgentProperties(Grpc grpc, Manifest manifest, Helm helm, ApiManage
     public AgentProperties {
         if (grpc == null) grpc = new Grpc(null, null, null);
         if (manifest == null) manifest = new Manifest(null, null, null, null, null);
-        if (helm == null) helm = new Helm(null, null, null, null);
+        if (helm == null) helm = new Helm(null, null, null, null, null);
         if (apiManaged == null) apiManaged = new ApiManaged(true);
     }
 }
