@@ -105,11 +105,10 @@ public class AgentRegistrationController {
 				""",
                 token, endpoint);
         String installCommand = String.format(
-                "helm install cluster-agent %s/%s --version %s --namespace %s --create-namespace -f -",
-                helm.repoAlias(), helm.chartName(), helm.chartVersion(), namespace);
+                "helm install cluster-agent %s --version %s --namespace %s --create-namespace -f -",
+                helm.ociChartRef(), helm.chartVersion(), namespace);
         return HelmInstallInstructionsResponse.builder()
-                .repoAlias(helm.repoAlias())
-                .repoUrl(helm.repoUrl())
+                .chartRef(helm.ociChartRef())
                 .chartName(helm.chartName())
                 .chartVersion(helm.chartVersion())
                 .namespace(namespace)

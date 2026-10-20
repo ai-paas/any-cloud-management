@@ -7,6 +7,8 @@ import lombok.Builder;
  * 사용자가 직접 helm install 로 cluster-agent 를 배포할 때 필요한 정보.
  * {@link AgentRegistrationTokenResponse#helmInstall()} 에 포함되어 응답.
  *
+ * <p>chart 는 OCI registry 로만 publish. {@code helm repo add} 단계 없음.
+ *
  * <p>사용 예 (사용자 shell):
  * <pre>{@code
  *   # 1) 응답의 valuesYaml 를 파일로 저장
@@ -15,8 +17,7 @@ import lombok.Builder;
  *   EOF
  *
  *   # 2) helm install
- *   helm repo add anycloud <repoUrl>
- *   helm install cluster-agent anycloud/cluster-agent \
+ *   helm install cluster-agent <chartRef> \
  *       --version <chartVersion> \
  *       --namespace <namespace> --create-namespace \
  *       -f /tmp/agent-values.yaml
@@ -25,14 +26,11 @@ import lombok.Builder;
 @Builder
 @Schema(description = "사용자가 직접 helm install 시 필요한 values + 명령 snippet")
 public record HelmInstallInstructionsResponse(
-        @Schema(description = "helm install 시 사용할 chart 의 repo 이름 (사용자가 helm repo add 등록한 이름)", example = "anycloud")
-                String repoAlias,
         @Schema(
-                        description = "chart 다운로드 URL (helm repo add 시 사용). 미설정 시 빈 값",
-                        example = "https://ai-paas.github.io/helm-charts")
-                String repoUrl,
-        @Schema(description = "chart 이름 (\"<repoAlias>/<chartName>\" 형식의 chart 부분)", example = "cluster-agent")
-                String chartName,
+                        description = "chart 의 OCI 좌표. helm install 의 chart 인자로 그대로 사용",
+                        example = "oci://ghcr.io/ai-paas/charts/cluster-agent")
+                String chartRef,
+        @Schema(description = "chart 이름 (chartRef 의 마지막 segment)", example = "cluster-agent") String chartName,
         @Schema(description = "chart version", example = "0.1.0") String chartVersion,
         @Schema(description = "target namespace", example = "aipaas-system") String namespace,
         @Schema(
@@ -42,5 +40,5 @@ public record HelmInstallInstructionsResponse(
         @Schema(
                         description = "복사-붙여넣기용 단일 라인 helm install 명령. valuesYaml 을 stdin 으로 전달.",
                         example =
-                                "helm install cluster-agent anycloud/cluster-agent --version 0.1.0 -n aipaas-system --create-namespace -f -")
+                                "helm install cluster-agent oci://ghcr.io/ai-paas/charts/cluster-agent --version 0.1.0 -n aipaas-system --create-namespace -f -")
                 String installCommand) {}
