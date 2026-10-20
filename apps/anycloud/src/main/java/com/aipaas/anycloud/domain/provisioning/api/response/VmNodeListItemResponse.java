@@ -4,10 +4,10 @@ import com.aipaas.anycloud.domain.provisioning.query.VmClusterNodeRows;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * VM 목록의 한 행: 클러스터가 아니라 노드 하나.
+ * VM 목록의 행 단위. 클러스터가 아닌 노드 하나.
  *
- * @param infraStatus 소속 클러스터의 프로비저닝 상태. 노드별 실제 인스턴스 상태가 아니다.
- *     그건 CSP API 를 쳐야 하고, 쿠버네티스 Ready 여부는 agent 를 거친다.
+ * @param infraStatus 소속 클러스터의 프로비저닝 상태. 노드별 실제 인스턴스 상태 아님.
+ *     인스턴스 상태는 CSP API 조회, 쿠버네티스 Ready 여부는 agent 경유
  */
 @Schema(description = "VM 노드 목록 항목")
 public record VmNodeListItemResponse(

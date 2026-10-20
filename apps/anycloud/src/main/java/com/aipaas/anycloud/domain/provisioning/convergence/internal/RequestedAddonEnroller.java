@@ -20,7 +20,7 @@ public class RequestedAddonEnroller {
     private final AddonService addonService;
     private final VmClusterBootstrapSnapshotService snapshotService;
 
-    /** 예외를 던지지 않는다: addon 등록 실패가 BOOTSTRAP 을 실패시키면 안 된다. */
+    /** 예외 미전파. addon 등록 실패가 BOOTSTRAP 실패로 이어지면 안 됨. */
     public void enroll(VmClusterEntity vmCluster) {
         String clusterId = vmCluster.getClusterId();
         if (clusterId == null || clusterId.isBlank()) {

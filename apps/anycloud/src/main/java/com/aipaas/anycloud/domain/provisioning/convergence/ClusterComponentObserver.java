@@ -13,6 +13,6 @@ public interface ClusterComponentObserver {
      */
     List<ComponentObservation> observe(VmClusterEntity vmCluster);
 
-    /** probe 없이 저장된 상태만 읽는다. 조회 API 가 매 요청마다 SSH 를 열면 안 된다. */
+    /** probe 없이 저장된 상태만 조회. 조회 API 의 요청별 SSH 연결 금지. */
     List<ComponentObservation> currentComponents(String vmClusterId);
 }

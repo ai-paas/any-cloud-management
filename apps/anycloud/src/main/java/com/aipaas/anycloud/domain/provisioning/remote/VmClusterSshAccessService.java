@@ -18,8 +18,8 @@ public interface VmClusterSshAccessService {
     SshKeyResult issueSshKey(String clusterName);
 
     /**
-     * @param sshJump 노드가 사설망이라 점프 호스트를 거쳐야 하면 {@code user@host[:port]}. 없으면 null.
-     *     비밀번호는 담지 않는다: 화면이 명령을 만들 때 필요한 것은 주소뿐이다
+     * @param sshJump 사설망 노드로 점프 호스트 경유가 필요하면 {@code user@host[:port]}, 아니면 null.
+     *     비밀번호 미포함. 화면의 명령 구성에는 주소만 필요
      */
     record NodeListResult(
             String clusterName, String provider, String sshUser, String sshJump, List<Map<String, Object>> nodes) {}

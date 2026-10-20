@@ -10,7 +10,7 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 /**
  * 노드 SSH 터미널 경로 등록.
  *
- * <p>노드 root 셸이 웹으로 열리는 통로다. 필요 없는 배포에서는 끌 수 있어야 한다.
+ * <p>노드 root 셸의 웹 접근 경로. 불필요한 배포에서는 비활성화 가능해야 함.
  */
 @Configuration
 @EnableWebSocket

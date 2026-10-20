@@ -51,7 +51,7 @@ public class ClusterConvergenceServiceImpl implements ClusterConvergenceService 
         return false;
     }
 
-    /** interrupt 를 삼키면 종료 신호가 사라진다. 플래그를 복구하고 즉시 포기한다. */
+    /** interrupt 를 무시하면 종료 신호 유실. 플래그 복구 후 즉시 중단. */
     private boolean sleepBetweenAttempts() {
         if (attemptInterval.isZero() || attemptInterval.isNegative()) {
             return true;

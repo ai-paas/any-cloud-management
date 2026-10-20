@@ -27,12 +27,12 @@ public interface VmClusterCommandService {
     HttpStatus deleteVmCluster(String clusterName);
 
     /**
-     * destroy 없이 기록만 지운다.
+     * destroy 없이 기록만 삭제.
      *
-     * <p>참조하던 자격증명이 사라지면 destroy 가 인증을 못 해 행이 영영 남는다. 마지막 수단이다.
-     * <b>클라우드에 자원이 남아 있을 수 있다.</b>
+     * <p>참조 자격증명이 삭제되면 destroy 가 인증에 실패해 행이 잔존. 최종 수단.
+     * <b>클라우드에 자원이 잔존할 수 있음.</b>
      *
-     * @return 지운 기록 수와, 남아 있을 수 있는 스택 이름들
+     * @return 삭제한 기록 수와 잔존 가능한 스택 이름 목록
      */
     ForceDeleteResult forceDeleteVmCluster(String clusterName);
 }

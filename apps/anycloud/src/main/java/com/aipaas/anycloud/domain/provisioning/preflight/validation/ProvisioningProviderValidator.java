@@ -89,7 +89,7 @@ public class ProvisioningProviderValidator {
                     request.getRegion(),
                     request.getConfig());
             if (provider == SupportedProvisioningProvider.PROXMOX) {
-                // Proxmox 는 인스턴스 타입 목록이 없어 위 검증이 통과한다. 노드, datastore, 브리지는 여기서 본다.
+                // Proxmox 는 인스턴스 타입 목록이 없어 위 검증 통과. 노드, datastore, 브리지는 이 지점에서 검증.
                 proxmoxPreflightValidator.validate(request.credentialEnvironmentOrEmpty(), request.getConfig());
             }
         } catch (RuntimeException e) {
