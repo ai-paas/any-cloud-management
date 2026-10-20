@@ -87,7 +87,7 @@ curl -X POST https://anycloud/v1/clusters -H 'Content-Type: application/json' -d
 3. Agent 자동 설치 → ACTIVE 전환
 4. Agent 가 5분 내 GPU 노드를 감지하여 → heartbeat 로 `gpu_node_count=4` 를 보고합니다.
 5. Backend 가 `cluster.has_gpu_nodes=true` 를 갱신합니다.
-6. `MonitoringAutoInstaller` 가 자동 동작합니다.
+6. `MonitoringAddonInstaller` 가 자동 동작합니다.
    - `kube-prometheus-stack` 설치
    - `dcgm-exporter` 설치입니다 (GPU 메트릭 노출).
    - Grafana `AIPaaS Cluster Overview` + `AIPaaS GPU Overview` dashboard import 입니다.

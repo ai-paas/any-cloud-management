@@ -10,7 +10,6 @@ import com.aipaas.anycloud.common.error.exception.HelmRepositoryNotFoundExceptio
 import com.aipaas.anycloud.common.error.exception.provisioning.CredentialFailureKind;
 import com.aipaas.anycloud.common.error.exception.provisioning.ProvisioningException;
 import com.aipaas.anycloud.common.web.ApiSuccessResponse;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.aipaas.cluster.agent.backup.core.BackupException;
 import io.aipaas.cluster.agent.observability.core.ObservabilityException;
@@ -26,7 +25,6 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
@@ -51,11 +49,9 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private final ObjectMapper objectMapper;
     private final ErrorResponseFormatter formatter;
 
     public GlobalExceptionHandler(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
         this.formatter = new ErrorResponseFormatter(objectMapper);
     }
 
@@ -135,46 +131,7 @@ public class GlobalExceptionHandler {
         log.warn("Constraint violation: {}", violations);
         final ErrorResponse response = ErrorResponse.of(ErrorCode.INVALID_INPUT_VALUE, violations);
 
-        // 양쪽 모두 Content-Type 을 명시합니다. 비워 두면 controller 의
-        // produces=text/event-stream 이 예외 핸들러의 content negotiation 까지 끌고 갑니다.
-        if (acceptsEventStream(request)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .contentType(MediaType.TEXT_EVENT_STREAM)
-                    .body(toSseErrorEvent(response));
-        }
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(response);
-    }
-
-    /**
-     * SSE 로 응답할지 판단합니다. URI 로도 보는 이유는 Accept 가 비었거나 와일드카드인 클라이언트
-     * 때문입니다.
-     *
-     * <p>SSE endpoint 에 Accept: application/json 을 명시해 보내면 Spring 의 응답 측 content
-     * negotiation 이 SSE 를 거부해 500 으로 떨어집니다. 핸들러에서 막을 수 없습니다.
-     */
-    private static boolean acceptsEventStream(HttpServletRequest request) {
-        if (request == null) return false;
-        String accept = request.getHeader("Accept");
-        if (accept != null && accept.contains(MediaType.TEXT_EVENT_STREAM_VALUE)) {
-            return true;
-        }
-        String uri = request.getRequestURI();
-        return uri != null && uri.endsWith("/events");
-    }
-
-    /** SSE error event 로 직렬화합니다. 끝의 빈 줄은 event 종료 마커라 빼면 안 됩니다. */
-    private String toSseErrorEvent(ErrorResponse response) {
-        String json;
-        try {
-            json = objectMapper.writeValueAsString(response);
-        } catch (JsonProcessingException ex) {
-            // ErrorResponse 직렬화 실패는 거의 불가능 — fallback 으로 단순 키만 표시.
-            json = "{\"code\":\"" + response.getCode() + "\",\"message\":\""
-                    + response.getMessage().replace("\"", "\\\"") + "\"}";
-        }
-        return "event: error\ndata: " + json + "\n\n";
+        return formatter.respond(request, HttpStatus.BAD_REQUEST, response);
     }
 
     private String renderViolation(ConstraintViolation<?> v) {

@@ -252,13 +252,13 @@ provisioner 7종을 그대로 옮기지 않고 **공통 골격 + CSP별 리소�
 
 | 구성 | 책임 |
 |---|---|
-| `YamlProgramBuilder` | `Pulumi.yaml` 골격, outputs 조립, 직렬화 |
+| `PulumiProgram` | `Pulumi.yaml` 골격, outputs 조립, 직렬화 |
 | `ProviderYamlEmitter` (내부 인터페이스) | CSP별 `resources` 맵 생성 |
-| `Aws/Gcp/Azure/... YamlEmitter` | 각 CSP의 네트워크, 보안그룹, 인스턴스 정의 |
-| `CommonOutputs` | 출력 키 조립 — 현재 `assembleOutputs` 등가물 |
+| `Aws/Gcp/... YamlEmitter` | 각 CSP의 네트워크, 보안그룹, 인스턴스 정의 |
+| `StandardOutputs` | 출력 키 조립 |
 
-`ProviderRegistry`는 유지하되 `ProviderProvisioner` 대신 `ProviderYamlEmitter`를 담습니다. 등록
-방식(autoconfigure의 bean 7개)도 그대로입니다.
+구현된 이름은 `YamlEmitters` 가 emitter 7종을 들고 있고 `YamlProgramAssembler` 가 조립을
+맡습니다.
 
 **emitter는 public이 아닙니다.** 확장점을 닫기로 했으므로 package-private 또는 `internal` 하위에 둡니다.
 
@@ -271,7 +271,7 @@ provisioner 7종을 그대로 옮기지 않고 **공통 골격 + CSP별 리소�
 
 | 단계 | 내용 | 검증 | 상태 |
 |---|---|---|---|
-| 1 | `YamlProgramBuilder` + 출력 조립 + OpenStack emitter | OpenStack 스택 실제 생성 | 완료 |
+| 1 | 프로그램 골격 + 출력 조립 + OpenStack emitter | OpenStack 스택 실제 생성 | 완료 |
 | 2 | AWS emitter | `pulumi preview` 구조 검증 | 완료 |
 | 3 | GCP emitter | `pulumi preview` 구조 검증 | 완료 |
 | 4 | OCI emitter | `pulumi preview` 구조 검증 | 완료 |

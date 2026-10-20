@@ -35,7 +35,7 @@ open libs/cluster-agent-features-spring-boot-starter/build/reports/jacoco/test/h
 |---------|-------:|------:|---------|------|
 | `domain/vmoptions/providers` | 7220 | 0.8% | **P1 quick-win** | CSP provider (AWS/GCP/OCI/Proxmox/Alibaba/OpenStack/IBM) 가 모두 0%. 순수 transformation — data-driven 테스트 쉬움 |
 | `controller/v1` | 1839 | 50.5% | P2 | MockMvc 로 endpoint 단위 보강. 절반은 이미 cover |
-| `domain/cluster/impl` | 1826 | 0.0% | **P4 defer** | `UnifiedClusterServiceImpl` 제거 예정 — 투자 X |
+| `domain/cluster/internal` | - | - | P3 | `ClusterFacadeImpl` 과 `ClusterServiceImpl` |
 | `domain/provisioning/workflow/impl` | 1654 | 0.0% | P3 | 비동기 workflow — 테스트 harness 필요 |
 | `domain/chart/impl` | 1444 | 0.0% | **P1 quick-win** | `ChartServiceImpl` — file I/O mock 가능 |
 | `domain/provisioning/query/impl` | 1065 | 0.0% | P2 | 단순 query — JPA mock |
@@ -85,7 +85,6 @@ model/provisioning                       64.8%
 ## 회피 항목
 - `*Dto*`, `**/dto/**` — 단순 record/POJO 입니다. Lombok generated.
 - `**/gen/agent/v1/**`, `com/aipaas/anycloud/agent/v1/**` — protoc generated 입니다.
-- `UnifiedClusterServiceImpl` (1073 missed) — 제거 예정
 
 ## 참고
 - 게이트 설정: 루트 `build.gradle`, `jacocoTestCoverageVerification` block
