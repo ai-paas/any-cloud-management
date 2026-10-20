@@ -42,7 +42,7 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(GcpVmOptionsProvider.class);
 
     private static final String COMPUTE_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
-    /** 한 프로젝트에서 받아올 개수. 걸러내기는 이 목록 안에서 한다. */
+    /** 프로젝트당 조회 개수. 필터링은 이 목록 범위에서 수행. */
     private static final int IMAGE_PAGE_SIZE = 200;
 
     private static final List<String> DEFAULT_IMAGE_PROJECTS =
@@ -448,8 +448,8 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
         if (!StringUtils.hasText(owner)) {
             return DEFAULT_IMAGE_PROJECTS;
         }
-        // owner 는 요청 파라미터다. 검증 없이 두면 project id 자리에 ../ 를 넣어
-        // 의도하지 않은 GCP API 경로로 (access token 을 붙인 채) 요청이 나간다.
+        // owner 는 요청 파라미터. 미검증 시 project id 자리에 ../ 를 주입해 의도하지 않은
+        // GCP API 경로로 access token 이 포함된 요청 전송.
         return List.of(owner.split(",")).stream()
                 .map(String::trim)
                 .filter(StringUtils::hasText)

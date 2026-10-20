@@ -25,7 +25,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class RequestedAddonInspectorImpl implements RequestedAddonInspector {
 
-    /** 설치가 끝나지 않은 상태. 실패로 판정하면 설치 중인 것을 미충족으로 보고하게 된다. */
+    /** 설치 미완료 상태. 실패로 판정하면 설치 진행 중인 항목이 미충족으로 보고됨. */
     private static final Set<AddonState> IN_FLIGHT =
             Set.of(AddonState.PENDING, AddonState.ENQUEUED, AddonState.INSTALLING);
 
@@ -65,7 +65,7 @@ public class RequestedAddonInspectorImpl implements RequestedAddonInspector {
 
     private ConvergenceSignal toSignal(String catalogId, ClusterAddonEntity addon) {
         if (addon == null) {
-            // agent 미연결이면 auto-enroll 이 아직 안 돌았다. 미설치로 단정할 수 없다.
+            // agent 미연결이면 auto-enroll 미실행 상태. 미설치로 단정 불가.
             return new ConvergenceSignal(
                     catalogId, Requirement.REQUIRED, ComponentHealth.UNKNOWN, "addon 이 아직 등록되지 않았습니다");
         }

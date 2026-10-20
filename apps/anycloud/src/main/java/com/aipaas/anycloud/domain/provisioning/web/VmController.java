@@ -224,7 +224,7 @@ public class VmController {
     @ApiResponses({@ApiResponse(responseCode = "200", description = "검증 완료 (생성 불가도 200)")})
     public ResponseEntity<ApiSuccessResponse<VmClusterPreflightResponse>> preflight(
             @Valid @RequestBody VmCreateRequest request) {
-        // 검증 자체는 성공한 호출이다. 결과가 불가라고 HTTP 오류로 내보내면 화면이 오류 처리를 한다.
+        // 검증 호출 자체는 성공. 결과가 불가라고 HTTP 오류로 응답하면 화면이 오류로 처리.
         return ResponseEntity.ok(ApiSuccessResponse.of(
                 HttpStatus.OK.value(),
                 "VM preflight completed",
@@ -269,7 +269,7 @@ public class VmController {
                     @RequestParam(required = false, defaultValue = "false")
                     boolean force) {
         if (force) {
-            // destroy 를 돌리지 않는다. Operation 도 만들지 않는다: 진행할 작업이 없다.
+            // destroy 미실행. 진행할 작업이 없으므로 Operation 도 미생성.
             var result = vmClusterCommandService.forceDeleteVmCluster(vmName);
             return ResponseEntity.ok(ApiSuccessResponse.of(
                     HttpStatus.OK.value(),

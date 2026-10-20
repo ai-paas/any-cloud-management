@@ -62,8 +62,8 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
     private final ProvisioningProviderValidator provisioningProviderValidator;
 
     /**
-     * Pulumi preview 기반 create 미리보기. create 와 동일한 정적 검증 + credential 해석 후
-     * {@code pulumi preview --json} 실행: CSP 자원은 생성하지 않는다.
+     * Pulumi preview 기반 create 미리보기. create 와 동일한 정적 검증과 credential 해석 후
+     * {@code pulumi preview --json} 실행. CSP 자원 미생성.
      */
     @Override
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
@@ -296,8 +296,8 @@ public class VmClusterPreflightServiceImpl implements VmClusterPreflightService 
             SupportedProvisioningProvider provider, ProvisionClusterRequest cluster) {
         List<String> messages = new ArrayList<>();
         try {
-            // credentialId 를 버리면 조회가 환경변수 fallback 으로 떨어진다. 등록한 자격증명으로
-            // 만들려는 요청인데 preflight 는 "조회 불가"로 답해 readyToProvision 이 false 가 된다.
+            // credentialId 제거 시 조회가 환경변수 fallback 으로 전환. 등록 자격증명 기반 생성
+            // 요청인데 preflight 가 조회 불가로 응답해 readyToProvision 이 false.
             String credentialId = cluster == null ? null : cluster.getCredentialId();
             List<com.aipaas.anycloud.domain.vmoptions.api.VmOptionRegion> regions =
                     vmOptionsQueryService.listRegions(provider.getCanonicalName(), credentialId);

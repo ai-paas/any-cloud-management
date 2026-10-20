@@ -33,7 +33,7 @@ public class ClusterComponentObserverImpl implements ClusterComponentObserver {
 
     @Override
     public List<ComponentObservation> observe(VmClusterEntity vmCluster) {
-        // 값을 얻으려면 Pulumi 를 호출해야 한다. 쓰는 컴포넌트가 있을 때만 한 번 부르고 재사용한다.
+        // 값 조회에 Pulumi 호출 필요. 사용 컴포넌트가 있을 때만 1회 호출 후 재사용.
         Supplier<Map<String, Object>> outputs =
                 memoize(() -> provisioningService.stackOutputs(vmCluster.getStackName(), true, Map.of()));
         VmClusterInternalRequestSnapshot spec = snapshotService.read(vmCluster.getRequestConfig());
@@ -76,7 +76,7 @@ public class ClusterComponentObserverImpl implements ClusterComponentObserver {
         };
     }
 
-    /** 계약상 probe 는 예외를 던지지 않지만, 구현 실수가 나머지 컴포넌트 관측을 막으면 안 된다. */
+    /** 계약상 probe 는 예외 미전파. 구현 오류로 나머지 컴포넌트 관측이 중단되면 안 됨. */
     private ComponentProbe safeProbe(
             ClusterComponent component, VmClusterEntity vmCluster, Supplier<Map<String, Object>> outputs) {
         try {
