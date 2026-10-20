@@ -16,10 +16,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 
 /**
- * 자격증명이 살아 있는지 확인한다.
+ * 자격증명 유효성 확인.
  *
- * <p>등록만 하고 쓸 수 있는지는 프로비저닝을 걸어봐야 알았다. 리전 조회는 CSP API 를 실제로
- * 부르므로 그 자체가 검증이다. 새 노출면을 만들지 않고 확인할 수 있다.
+ * <p>등록만으로는 사용 가능 여부 확인 불가. 리전 조회는 CSP API 를 실제 호출하므로 그 자체가
+ * 검증이며 노출면 증가 없이 확인 가능.
  */
 class CredentialHealthTest extends AbstractUnitTest {
 
@@ -67,14 +67,14 @@ class CredentialHealthTest extends AbstractUnitTest {
         var result = service.check("OCI", "cred-1");
 
         assertThat(result.healthy()).isFalse();
-        // 무엇을 고쳐야 하는지까지 말해야 확인 버튼이 쓸모 있다.
+        // 조치 대상까지 안내해야 확인 기능이 유효.
         assertThat(result.kind()).isEqualTo("PERMISSION_DENIED");
         assertThat(result.hint()).contains("권한");
     }
 
     @Test
     void emptyRegionListIsNotHealthy() {
-        // 호출은 성공했는데 아무것도 못 보는 자격증명은 쓸 수 없다.
+        // 호출은 성공하나 조회 결과가 없는 자격증명은 사용 불가.
         when(vmOptionsService.getRegions(anyString(), anyString())).thenReturn(List.of());
 
         var result = service.check("AWS", "cred-1");

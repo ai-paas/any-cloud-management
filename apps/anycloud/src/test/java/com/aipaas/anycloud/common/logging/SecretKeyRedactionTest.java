@@ -8,10 +8,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
- * 키 이름으로 가린다.
+ * 키 이름 기준 마스킹.
  *
- * <p>기존 규칙은 값의 생김새만 본다. AWS 시크릿 키처럼 형식이 없는 값은 그대로 새어 나간다.
- * 어떤 값인지는 옆에 붙은 키 이름이 말해준다.
+ * <p>기존 규칙은 값의 형식만 판정. AWS 시크릿 키처럼 고정 형식이 없는 값은 미차단.
+ * 값의 종류는 인접한 키 이름이 제공.
  */
 class SecretKeyRedactionTest extends AbstractUnitTest {
 
@@ -38,7 +38,7 @@ class SecretKeyRedactionTest extends AbstractUnitTest {
 
     @Test
     void leavesOrdinaryFieldsAlone() {
-        // 전부 가리면 작업 이력을 봐도 무엇을 한 작업인지 알 수 없다.
+        // 전체 마스킹 시 작업 이력에서 작업 내용 확인 불가.
         String json = "{\"clusterName\":\"demo\",\"region\":\"ap-tokyo-1\",\"workerCount\":2}";
 
         assertThat(SensitiveDataRedactor.redact(json)).isEqualTo(json);

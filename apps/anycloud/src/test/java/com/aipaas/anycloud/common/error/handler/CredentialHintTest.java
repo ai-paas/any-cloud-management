@@ -8,10 +8,10 @@ import com.aipaas.anycloud.testsupport.AbstractUnitTest;
 import org.junit.jupiter.api.Test;
 
 /**
- * 자격증명 오류에 할 일을 붙인다.
+ * 자격증명 오류에 조치 안내 첨부.
  *
- * <p>CSP 가 주는 원문은 provider 마다 표현이 달라 그대로 보면 무엇을 고쳐야 하는지 알 수 없다.
- * 화면이 원문을 접어두고 안내부터 보여줄 수 있어야 한다.
+ * <p>CSP 원문은 provider 별 표현이 달라 그대로는 조치 대상 판단 불가. 화면이 원문을 접고 안내를
+ * 우선 표시할 수 있어야 함.
  */
 class CredentialHintTest extends AbstractUnitTest {
 
@@ -44,13 +44,13 @@ class CredentialHintTest extends AbstractUnitTest {
 
     @Test
     void upstreamFailureIsNotBlamedOnTheCredential() {
-        // 용량 부족을 자격증명 문제로 안내하면 엉뚱한 곳을 고치게 된다.
+        // 용량 부족을 자격증명 문제로 안내하면 잘못된 지점을 조치.
         assertThat(hintOf("oci", "Out of host capacity")).contains("CSP");
     }
 
     @Test
     void unclassifiedFailureGetsNoMisleadingHint() {
-        // 억지로 분류하면 엉뚱한 안내가 나간다. 원본을 보라고만 한다.
+        // 임의 분류 시 잘못된 안내 전달. 원문 확인만 안내.
         assertThat(hintOf("aws", "something nobody predicted")).contains("원본");
     }
 }
