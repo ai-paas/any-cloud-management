@@ -10,14 +10,8 @@
     "description" : "Generated server url"
   } ],
   "tags" : [ {
-    "name" : "Providers (v1)",
-    "description" : "VM provisioning 카탈로그 — providers / regions / specs / images"
-  }, {
     "name" : "Observability (v1)",
     "description" : "Cluster Prometheus/Grafana 호출 (PromQL/install/dashboard)"
-  }, {
-    "name" : "Vms (v1)",
-    "description" : "VM 인프라 자원 — Pulumi provisioned"
   }, {
     "name" : "AdminClusterCleanup",
     "description" : "Cluster 강제 삭제 (Pulumi destroy 건너뜀)"
@@ -28,23 +22,20 @@
     "name" : "Helm Repos (v1)",
     "description" : "Helm chart 저장소 CRUD"
   }, {
-    "name" : "Cluster Agent (v1) — runtime test",
-    "description" : "Agent stream 검증용 — 운영 흐름 X"
-  }, {
     "name" : "Admin (agent policy)",
     "description" : "Cluster-agent policy snapshot + 일관성 검증 + 변경"
   }, {
     "name" : "Cluster Health (v1)",
     "description" : "Agent 기반 cluster 종합 health 점검"
   }, {
+    "name" : "Clusters (v1)",
+    "description" : "통합 cluster 자원: VM provisioned + 외부 registered"
+  }, {
     "name" : "Cluster Access (v1)",
     "description" : "Kubeconfig 발급 + node debug shell"
   }, {
     "name" : "Cluster Agent (v1)",
-    "description" : "Cluster Agent bootstrap — registration_token 발급"
-  }, {
-    "name" : "Cluster Kubernetes Resources (v1)",
-    "description" : "Cluster 의 K8s 리소스 — pods/services/deployments 등"
+    "description" : "Cluster Agent bootstrap: registration_token 발급"
   }, {
     "name" : "Helm Charts (v1)",
     "description" : "Helm repo 의 chart catalog"
@@ -52,17 +43,20 @@
     "name" : "Cluster Addons (v1)",
     "description" : "Per-cluster addon CRUD + lifecycle"
   }, {
+    "name" : "Cluster Kubernetes Resources (v1)",
+    "description" : "Cluster 의 K8s 리소스: pods/services/deployments 등"
+  }, {
     "name" : "Workflow (v1)",
     "description" : "VM Cluster Workflow 관리 (queues, dead-letter-messages)"
   }, {
     "name" : "Audit Logs (v1)",
     "description" : "운영 감사 로그 조회"
   }, {
-    "name" : "Clusters (v1)",
-    "description" : "통합 cluster 자원 — VM provisioned + 외부 registered"
-  }, {
     "name" : "Nodes (v1)",
     "description" : "VM 클러스터를 구성하는 개별 노드"
+  }, {
+    "name" : "Cluster Agent (v1). runtime test",
+    "description" : "Agent stream 검증용: 운영 흐름 X"
   }, {
     "name" : "SSE Streams (v1)",
     "description" : "Operation / Cluster 이벤트 실시간 스트리밍 (SSE)"
@@ -75,9 +69,6 @@
   }, {
     "name" : "Resource Events (v1)",
     "description" : "자원 변경 신호 단일 스트림 (SSE)"
-  }, {
-    "name" : "Fleet Upgrade (v1)",
-    "description" : "Staggered rollout — wave 기반 agent 신버전 배포 관리"
   }, {
     "name" : "Admin (cluster-agent reinstall)",
     "description" : "이미 등록된 cluster 에 agent 재배포 (chart upgrade / image refresh / 복구)"
@@ -100,11 +91,20 @@
     "name" : "AdminClusterDrift",
     "description" : "Pulumi state drift 감지 + refresh 복구"
   }, {
+    "name" : "Providers (v1)",
+    "description" : "VM provisioning 카탈로그: providers / regions / specs / images"
+  }, {
     "name" : "Cluster Resource Catalog (v1)",
     "description" : "Cluster 가 지원하는 API resource (kind) 동적 카탈로그"
   }, {
     "name" : "Operations",
     "description" : "Long-Running Operation 추적 (전역)"
+  }, {
+    "name" : "Fleet Upgrade (v1)",
+    "description" : "Staggered rollout: wave 기반 agent 신버전 배포 관리"
+  }, {
+    "name" : "Vms (v1)",
+    "description" : "VM 인프라 자원: Pulumi provisioned"
   } ],
   "paths" : {
     "/v1/clusters/{clusterName}/helm-releases/{releaseName}" : {
@@ -158,7 +158,7 @@
       },
       "put" : {
         "tags" : [ "Cluster Helm Releases (v1)" ],
-        "summary" : "release 업그레이드 — 새 chart version / values 로 갱신",
+        "summary" : "release 업그레이드: 새 chart version / values 로 갱신",
         "operationId" : "upgradeRelease",
         "parameters" : [ {
           "name" : "clusterName",
@@ -220,7 +220,7 @@
         },
         "responses" : {
           "200" : {
-            "description" : "upgrade OK — revision 증가, status=deployed",
+            "description" : "upgrade OK: revision 증가, status=deployed",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -253,7 +253,7 @@
       },
       "delete" : {
         "tags" : [ "Cluster Helm Releases (v1)" ],
-        "summary" : "release uninstall (LRO — helm uninstall)",
+        "summary" : "release uninstall (LRO: helm uninstall)",
         "description" : "지정 release 를 cluster 에서 제거. 기본은 history 도 같이 삭제 (idempotent 재설치 가능). `keepHistory=true` 면 helm 의 revision 이력을 보존 (롤백 추적용). `wait=true` 면 모든 K8s 자원이 실제로 사라질 때까지 대기.",
         "operationId" : "uninstall",
         "parameters" : [ {
@@ -308,7 +308,7 @@
         } ],
         "responses" : {
           "202" : {
-            "description" : "uninstall accepted — Location: /v1/operations/{id}",
+            "description" : "uninstall accepted: Location: /v1/operations/{id}",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -389,7 +389,7 @@
             }
           },
           "422" : {
-            "description" : "HIGH severity warning — force=true 필요",
+            "description" : "HIGH severity warning: force=true 필요",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -463,7 +463,7 @@
             }
           },
           "422" : {
-            "description" : "HIGH severity warning — force=true 필요",
+            "description" : "HIGH severity warning: force=true 필요",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -575,7 +575,7 @@
         } ],
         "responses" : {
           "200" : {
-            "description" : "성공 — VmClusterListItemResponse 배열",
+            "description" : "성공: VmClusterListItemResponse 배열",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -602,7 +602,7 @@
         "description" : "Pulumi 가 CSP VM 인프라를 생성하고 Kubernetes 를 자동 설치한다. 비동기 → 202 + Operation. K8s ClusterEntity 등록은 bootstrap 완료 후 cluster-agent self-register 로 자동.",
         "operationId" : "create",
         "requestBody" : {
-          "description" : "VM provision request — provider, region, credentialId 필수.",
+          "description" : "VM provision request: provider, region, credentialId 필수.",
           "content" : {
             "application/json" : {
               "schema" : {
@@ -679,7 +679,7 @@
         },
         "responses" : {
           "202" : {
-            "description" : "수락 — Location: /v1/operations/{id}",
+            "description" : "수락: Location: /v1/operations/{id}",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -936,7 +936,7 @@
         } ],
         "responses" : {
           "202" : {
-            "description" : "취소 요청 수락 — state=CANCELLED 로 갱신",
+            "description" : "취소 요청 수락: state=CANCELLED 로 갱신",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -1048,7 +1048,7 @@
       "post" : {
         "tags" : [ "Fleet Upgrade (v1)" ],
         "summary" : "Fleet-wide upgrade submit",
-        "description" : "여러 wave 의 cluster 를 wave 순서 + concurrency limit + auto-abort 로 순차 upgrade. PLANNED row 즉시 반환 — background scheduler 가 RUNNING 전환 후 진행.",
+        "description" : "여러 wave 의 cluster 를 wave 순서 + concurrency limit + auto-abort 로 순차 upgrade. PLANNED row 즉시 반환: background scheduler 가 RUNNING 전환 후 진행.",
         "operationId" : "submitFleetUpgrade",
         "requestBody" : {
           "content" : {
@@ -1088,7 +1088,7 @@
       "post" : {
         "tags" : [ "Fleet Upgrade (v1)" ],
         "summary" : "Fleet upgrade abort",
-        "description" : "운영자가 진행 중 run 을 강제 중단. ABORTED 로 전환 — 이미 IN_PROGRESS 인 cluster 는 그 자체로 SUCCEEDED/FAILED 까지 진행 (개별 K8s rolling update 는 못 멈춤).",
+        "description" : "운영자가 진행 중 run 을 강제 중단. ABORTED 로 전환: 이미 IN_PROGRESS 인 cluster 는 그 자체로 SUCCEEDED/FAILED 까지 진행 (개별 K8s rolling update 는 못 멈춤).",
         "operationId" : "abortRun",
         "parameters" : [ {
           "name" : "runId",
@@ -1311,7 +1311,7 @@
         }, {
           "name" : "pageToken",
           "in" : "query",
-          "description" : "다음 페이지 token (opaque — 첫 호출 시 omit, 응답 meta.pagination.nextPageToken 그대로 round-trip). 형식은 service 내부 구현이라 client 가 파싱 금지.",
+          "description" : "다음 페이지 token (opaque: 첫 호출 시 omit, 응답 meta.pagination.nextPageToken 그대로 round-trip). 형식은 service 내부 구현이라 client 가 파싱 금지.",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -1319,7 +1319,7 @@
         } ],
         "responses" : {
           "200" : {
-            "description" : "성공 — PagedData<UnifiedClusterResponse> + page meta",
+            "description" : "성공: PagedData<UnifiedClusterResponse> + page meta",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -1343,28 +1343,26 @@
       "post" : {
         "tags" : [ "Clusters (v1)" ],
         "summary" : "cluster 등록 (외부 K8s cluster 등록 전용)",
-        "description" : "외부 K8s cluster 를 자체 DB 에 등록한다 (즉시 → 201 + Operation(SUCCEEDED)). VM provision 은 별도 namespace 인 POST /v1/vms 사용 — source=vm 요청은 400. Idempotency-Key 헤더 지원 (24h).",
+        "description" : "외부 K8s cluster 를 자체 DB 에 등록한다 (즉시 → 201 + Operation(SUCCEEDED)). VM provision 은 별도 namespace 인 POST /v1/vms 사용: source=vm 요청은 400. Idempotency-Key 헤더 지원 (24h).",
         "operationId" : "create_1",
         "requestBody" : {
-          "description" : "외부 K8s cluster 등록 — sync 201. VM provision 은 POST /v1/vms 사용.",
+          "description" : "외부 K8s cluster 등록: sync 201. VM provision 은 POST /v1/vms 사용.",
           "content" : {
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/CreateClusterRequest"
               },
               "examples" : {
-                "Registered (kubeconfig)" : {
-                  "description" : "Registered (kubeconfig)",
+                "Registered (외부 cluster 등록)" : {
+                  "description" : "Registered (외부 cluster 등록)",
                   "value" : {
                     "source" : "registered",
                     "clusterName" : "imported-aws-01",
                     "spec" : {
                       "provider" : "AWS",
                       "clusterType" : "EKS",
-                      "apiServerUrl" : "https://kube.example.com:6443",
-                      "serverCA" : "<base64-CA>",
-                      "clientToken" : "<bearer-token>",
-                      "description" : "Imported via raw fields"
+                      "hasGpuNodes" : false,
+                      "description" : "Imported cluster"
                     }
                   }
                 }
@@ -1411,7 +1409,7 @@
       "post" : {
         "tags" : [ "Fleet Upgrade (v1)" ],
         "summary" : "Cluster agent upgrade trigger",
-        "description" : "단일 cluster 의 agent 를 target image 로 upgrade. Backend 가 최소 Deployment patch 를 agent path (APPLY_MANIFEST) 로 보내 K8s rolling update 트리거. trigger 직후 IN_PROGRESS 응답 — 진행 감지는 heartbeat 기반 (별도 monitor 가 SUCCEEDED/FAILED 전환). 같은 image 면 NO_OP.",
+        "description" : "단일 cluster 의 agent 를 target image 로 upgrade. Backend 가 최소 Deployment patch 를 agent path (APPLY_MANIFEST) 로 보내 K8s rolling update 트리거. trigger 직후 IN_PROGRESS 응답: 진행 감지는 heartbeat 기반 (별도 monitor 가 SUCCEEDED/FAILED 전환). 같은 image 면 NO_OP.",
         "operationId" : "upgrade",
         "parameters" : [ {
           "name" : "clusterName",
@@ -1466,7 +1464,7 @@
             }
           },
           "503" : {
-            "description" : "Agent unavailable — manifest apply 실패",
+            "description" : "Agent unavailable: manifest apply 실패",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -1482,7 +1480,7 @@
       "post" : {
         "tags" : [ "Cluster Access (v1)" ],
         "summary" : "VM cluster SSH private key 발급",
-        "description" : "Pulumi 가 cluster 생성 시 만든 SSH keypair 의 private key (PEM) 를 state 에서 복호화해 반환 — 노드 직접 접속용. format=pem 이면 .pem 파일 다운로드, 기본 json 은 key + 노드별 ssh 명령 포함. CSP 무관 동일 동작. ⚠ key 소지 = 전 노드 root 등가 — 전달/보관 주의.",
+        "description" : "Pulumi 가 cluster 생성 시 만든 SSH keypair 의 private key (PEM) 를 state 에서 복호화해 반환: 노드 직접 접속용. format=pem 이면 .pem 파일 다운로드, 기본 json 은 key + 노드별 ssh 명령 포함. CSP 무관 동일 동작. ⚠ key 소지 = 전 노드 root 등가: 전달/보관 주의.",
         "operationId" : "issueSshKey_1",
         "parameters" : [ {
           "name" : "clusterName",
@@ -1570,7 +1568,7 @@
       "post" : {
         "tags" : [ "Clusters (v1)" ],
         "summary" : "액션 operation 생성 (retry/refresh)",
-        "description" : "type=retryWorkflow|retryRegistration|refreshStatus. **항상 202 + Operation resource** 반환 (Google AIP LRO 패턴). sync 한 op (refreshStatus) 는 응답 body 의 state=SUCCEEDED 필드로 즉시 식별 가능 — 클라이언트는 state 만 보면 polling 여부 판단.",
+        "description" : "type=retryWorkflow|retryRegistration|refreshStatus. **항상 202 + Operation resource** 반환 (Google AIP LRO 패턴). sync 한 op (refreshStatus) 는 응답 body 의 state=SUCCEEDED 필드로 즉시 식별 가능: 클라이언트는 state 만 보면 polling 여부 판단.",
         "operationId" : "createOperation_1",
         "parameters" : [ {
           "name" : "clusterName",
@@ -1820,7 +1818,7 @@
       "post" : {
         "tags" : [ "Observability (v1)" ],
         "summary" : "카탈로그 전체 설치",
-        "description" : "각 rule-set 별 결과 list 반환. 일부 실패해도 나머지 계속 — status='failed:<code>' 표시.",
+        "description" : "각 rule-set 별 결과 list 반환. 일부 실패해도 나머지 계속: status='failed:<code>' 표시.",
         "operationId" : "installAllRuleSets",
         "parameters" : [ {
           "name" : "clusterName",
@@ -1913,7 +1911,7 @@
       "get" : {
         "tags" : [ "Cluster Kubernetes Resources (v1)" ],
         "summary" : "리소스 list (server-side pagination)",
-        "description" : "지원 kind: pods, services, deployments, statefulsets, daemonsets, replicasets, configmaps, secrets, persistentvolumeclaims, jobs, cronjobs (namespaced); nodes, namespaces, persistentvolumes, storageclasses, customresourcedefinitions (cluster-scoped — {namespace} path 값 무시, 권장 `-`).",
+        "description" : "지원 kind: pods, services, deployments, statefulsets, daemonsets, replicasets, configmaps, secrets, persistentvolumeclaims, jobs, cronjobs (namespaced); nodes, namespaces, persistentvolumes, storageclasses, customresourcedefinitions (cluster-scoped: {namespace} path 값 무시, 권장 `-`).",
         "operationId" : "list_2",
         "parameters" : [ {
           "name" : "clusterName",
@@ -2286,7 +2284,7 @@
       },
       "post" : {
         "tags" : [ "Cluster Helm Releases (v1)" ],
-        "summary" : "release 설치 (JSON — values 객체 또는 valuesYaml 문자열)",
+        "summary" : "release 설치 (JSON: values 객체 또는 valuesYaml 문자열)",
         "description" : "values 입력은 최대 하나만 제공. values (JSON object, 권장) 또는 valuesYaml (raw string). 큰 values 파일은 multipart variant 사용 권장.",
         "operationId" : "installMultipart",
         "parameters" : [ {
@@ -2338,21 +2336,48 @@
         } ],
         "requestBody" : {
           "content" : {
-            "multipart/form-data" : {
-              "schema" : {
-                "type" : "object",
-                "properties" : {
-                  "valuesFile" : {
-                    "type" : "string",
-                    "format" : "binary",
-                    "description" : "values.yaml 파일 (선택, multipart file)"
-                  }
-                }
-              }
-            },
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/InstallHelmReleaseRequest"
+              },
+              "examples" : {
+                "values 객체 (권장)" : {
+                  "description" : "values 객체 (권장)",
+                  "value" : {
+                    "releaseName" : "ingress",
+                    "chart" : "bitnami/nginx",
+                    "version" : "15.3.0",
+                    "namespace" : "web",
+                    "values" : {
+                      "replicaCount" : 3,
+                      "image" : {
+                        "repository" : "nginx",
+                        "tag" : "1.25"
+                      },
+                      "service" : {
+                        "type" : "LoadBalancer",
+                        "port" : 80
+                      }
+                    }
+                  }
+                },
+                "valuesYaml 문자열" : {
+                  "description" : "valuesYaml 문자열",
+                  "value" : {
+                    "releaseName" : "ingress",
+                    "chart" : "bitnami/nginx",
+                    "namespace" : "web",
+                    "valuesYaml" : "replicaCount: 3\nimage:\n  repository: nginx\n  tag: \"1.25\"\nservice:\n  type: LoadBalancer\n"
+                  }
+                },
+                "default values (values 미지정)" : {
+                  "description" : "default values (values 미지정)",
+                  "value" : {
+                    "releaseName" : "ingress",
+                    "chart" : "bitnami/nginx",
+                    "namespace" : "web"
+                  }
+                }
               }
             }
           },
@@ -2360,7 +2385,7 @@
         },
         "responses" : {
           "202" : {
-            "description" : "install accepted — Location: /v1/operations/{id}",
+            "description" : "install accepted: Location: /v1/operations/{id}",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -2479,7 +2504,7 @@
         } ],
         "responses" : {
           "201" : {
-            "description" : "검사 완료 — connected=true|false 포함",
+            "description" : "검사 완료: connected=true|false 포함",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -2614,7 +2639,7 @@
     "/v1/clusters/{clusterName}/addons/enqueue" : {
       "post" : {
         "tags" : [ "Cluster Addons (v1)" ],
-        "summary" : "Backfill — 모든 PENDING/FAILED enqueue",
+        "summary" : "Backfill: 모든 PENDING/FAILED enqueue",
         "description" : "ACTIVE 인 cluster 에 신규 addon 추가 직후 또는 운영 중 일괄 enqueue.",
         "operationId" : "enqueueAll",
         "parameters" : [ {
@@ -2757,7 +2782,7 @@
       "post" : {
         "tags" : [ "Cluster Validations (v1)" ],
         "summary" : "VM cluster 생성 미리보기 (pulumi preview)",
-        "description" : "실제로 생성될 CSP resource 계획을 반환 — `pulumi preview --json` 기반. CSP 자원은 만들지 않는다. preflight (정적 검증, ~ms) 와 달리 Pulumi CLI + CSP API 를 실제 호출하므로 수십 초 걸릴 수 있다 — client timeout 60s 이상 권장. 신규 cluster 는 preview 용 stack 을 임시 생성 후 정리, 기존 stack 은 diff 만 반환.",
+        "description" : "실제로 생성될 CSP resource 계획을 반환: `pulumi preview --json` 기반. CSP 자원은 만들지 않는다. preflight (정적 검증, ~ms) 와 달리 Pulumi CLI + CSP API 를 실제 호출하므로 수십 초 걸릴 수 있다. client timeout 60s 이상 권장. 신규 cluster 는 preview 용 stack 을 임시 생성 후 정리, 기존 stack 은 diff 만 반환.",
         "operationId" : "preview",
         "requestBody" : {
           "content" : {
@@ -2835,7 +2860,7 @@
       "post" : {
         "tags" : [ "Admin (kind cache)" ],
         "summary" : "모든 cluster 의 kind metadata cache flush (전역)",
-        "description" : "Backend 전체 KindResolver cache 무효화. 사용 빈도 낮음 — boot-time / sanity 용.",
+        "description" : "Backend 전체 KindResolver cache 무효화. 사용 빈도 낮음. boot-time / sanity 용.",
         "operationId" : "flushAll",
         "responses" : {
           "200" : {
@@ -2855,7 +2880,7 @@
       "post" : {
         "tags" : [ "AdminClusterDrift" ],
         "summary" : "Pulumi state 를 실제 CSP 상태와 동기화 (pulumi refresh)",
-        "description" : "운영자가 콘솔에서 자원을 직접 변경/삭제해 state 가 낡았을 때 사용. state file 만 갱신 — CSP 자원 자체는 만들지도 지우지도 않는다. 이후 drift 재확인 또는 scale/destroy 재시도 권장.",
+        "description" : "운영자가 콘솔에서 자원을 직접 변경/삭제해 state 가 낡았을 때 사용. state file 만 갱신: CSP 자원 자체는 만들지도 지우지도 않는다. 이후 drift 재확인 또는 scale/destroy 재시도 권장.",
         "operationId" : "refreshState",
         "parameters" : [ {
           "name" : "clusterName",
@@ -2890,7 +2915,7 @@
             }
           },
           "500" : {
-            "description" : "Pulumi command 실패 — stderr 참고",
+            "description" : "Pulumi command 실패: stderr 참고",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -2906,7 +2931,7 @@
       "post" : {
         "tags" : [ "Admin (kind cache)" ],
         "summary" : "단일 cluster 의 kind metadata cache flush",
-        "description" : "RESOLVE_RESOURCE 결과 cache 를 즉시 무효화. 다음 호출부터 agent 재조회. resource data 는 캐시 대상 아님 — 동작 변경 없음.",
+        "description" : "RESOLVE_RESOURCE 결과 cache 를 즉시 무효화. 다음 호출부터 agent 재조회. resource data 는 캐시 대상 아님: 동작 변경 없음.",
         "operationId" : "flushOne",
         "parameters" : [ {
           "name" : "clusterName",
@@ -2952,7 +2977,7 @@
         } ],
         "responses" : {
           "200" : {
-            "description" : "재배포 trigger 성공 — 응답의 token 정보 + manifest 크기",
+            "description" : "재배포 trigger 성공: 응답의 token 정보 + manifest 크기",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -3050,7 +3075,7 @@
         } ],
         "responses" : {
           "200" : {
-            "description" : "성공 — VmClusterStatusResponse",
+            "description" : "성공: VmClusterStatusResponse",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -3107,7 +3132,7 @@
         } ],
         "responses" : {
           "202" : {
-            "description" : "삭제 수락 — Operation",
+            "description" : "삭제 수락: Operation",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -3155,7 +3180,7 @@
         },
         "responses" : {
           "202" : {
-            "description" : "변경 수락 — Operation",
+            "description" : "변경 수락: Operation",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -3245,7 +3270,7 @@
       "patch" : {
         "tags" : [ "Helm Repos (v1)" ],
         "summary" : "헬름 저장소 정보 부분 갱신",
-        "description" : "변경 가능 필드: url / username / password / caFile / insecureSkipTlsVerify. null 필드는 현재 값 유지 (partial update). <br><br><b>name 변경 미지원</b> — repository 이름은 URL identity (path variable). 이름 변경이 필요하면 DELETE + POST 패턴 사용.",
+        "description" : "변경 가능 필드: url / username / password / caFile / insecureSkipTlsVerify. null 필드는 현재 값 유지 (partial update). <br><br><b>name 변경 미지원</b>: repository 이름은 URL identity (path variable). 이름 변경이 필요하면 DELETE + POST 패턴 사용.",
         "operationId" : "updateHelmRepo",
         "parameters" : [ {
           "name" : "repoName",
@@ -3359,7 +3384,7 @@
       "patch" : {
         "tags" : [ "CSP Credentials (v1)" ],
         "summary" : "CSP 자격증명 수정",
-        "description" : "설명과 값을 바꿉니다. 이름과 프로바이더는 바꿀 수 없습니다 — vm_cluster 가 프로비저닝 당시 이름을 기록으로 들고 있고, 프로바이더가 바뀌면 키 구성이 달라집니다. 값은 통째로 교체됩니다. 일부만 보내면 나머지는 사라집니다.",
+        "description" : "설명과 값을 바꿉니다. 이름과 프로바이더는 바꿀 수 없습니다. vm_cluster 가 프로비저닝 당시 이름을 기록으로 들고 있고, 프로바이더가 바뀌면 키 구성이 달라집니다. 값은 통째로 교체됩니다. 일부만 보내면 나머지는 사라집니다.",
         "operationId" : "updateCredential",
         "parameters" : [ {
           "name" : "credentialId",
@@ -3433,7 +3458,7 @@
         } ],
         "responses" : {
           "200" : {
-            "description" : "성공 — links{self,operations,helmReleases,namespaces,events} 포함",
+            "description" : "성공: links{self,operations,helmReleases,namespaces,events} 포함",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -3481,7 +3506,7 @@
         } ],
         "responses" : {
           "202" : {
-            "description" : "삭제 수락 — Location 헤더 + Operation",
+            "description" : "삭제 수락: Location 헤더 + Operation",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -3541,7 +3566,7 @@
         },
         "responses" : {
           "202" : {
-            "description" : "변경 수락 — Location 헤더 + Operation",
+            "description" : "변경 수락: Location 헤더 + Operation",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -3642,7 +3667,7 @@
           }
         } ],
         "requestBody" : {
-          "description" : "변경할 capability flag 들 — null 필드는 변경 안 함.",
+          "description" : "변경할 capability flag 들: null 필드는 변경 안 함.",
           "content" : {
             "application/json" : {
               "schema" : {
@@ -3930,7 +3955,7 @@
         }, {
           "name" : "credentialId",
           "in" : "query",
-          "description" : "사용자가 등록한 credential ID — 미지정 시 환경변수 fallback",
+          "description" : "사용자가 등록한 credential ID: 미지정 시 환경변수 fallback",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -4007,7 +4032,7 @@
         }, {
           "name" : "credentialId",
           "in" : "query",
-          "description" : "사용자가 등록한 credential ID (MANUAL sourceType) — 미지정 시 환경변수 fallback",
+          "description" : "사용자가 등록한 credential ID (MANUAL sourceType). 미지정 시 환경변수 fallback",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -4046,7 +4071,7 @@
         }, {
           "name" : "credentialId",
           "in" : "query",
-          "description" : "사용자가 등록한 credential ID — 미지정 시 환경변수 fallback",
+          "description" : "사용자가 등록한 credential ID: 미지정 시 환경변수 fallback",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -4117,7 +4142,7 @@
       "get" : {
         "tags" : [ "Providers (v1)" ],
         "summary" : "자격증명 입력 필드 schema",
-        "description" : "프로바이더별로 자격증명에 무엇을 받아야 하는지 — key, label, required, secret, multiline, group 포함. 화면이 KEY=VALUE 를 직접 받지 않도록 입력 폼을 만드는 데 쓴다.",
+        "description" : "프로바이더별로 자격증명에 무엇을 받아야 하는지: key, label, required, secret, multiline, group 포함. 화면이 KEY=VALUE 를 직접 받지 않도록 입력 폼을 만드는 데 쓴다.",
         "operationId" : "getCredentialSchema",
         "parameters" : [ {
           "name" : "provider",
@@ -4157,7 +4182,7 @@
       "get" : {
         "tags" : [ "Providers (v1)" ],
         "summary" : "Provisioning config 키 schema",
-        "description" : "spec.config 에 사용할 수 있는 모든 'anycloud-k8s:*' 키 목록 — type, required, default, description, allowedValues 포함. 클라이언트 form generation / validation 미리보기에 사용.",
+        "description" : "spec.config 에 사용할 수 있는 모든 'anycloud-k8s:*' 키 목록: type, required, default, description, allowedValues 포함. 클라이언트 form generation / validation 미리보기에 사용.",
         "operationId" : "getConfigSchema",
         "parameters" : [ {
           "name" : "provider",
@@ -4171,7 +4196,7 @@
         }, {
           "name" : "credentialId",
           "in" : "query",
-          "description" : "사용자가 등록한 credential ID — 주면 계정에서 고를 수 있는 값을 allowedValues 에 채운다",
+          "description" : "사용자가 등록한 credential ID: 주면 계정에서 고를 수 있는 값을 allowedValues 에 채운다",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -4180,7 +4205,7 @@
         }, {
           "name" : "region",
           "in" : "query",
-          "description" : "리전 — 리전마다 고를 수 있는 값이 다른 키에 필요",
+          "description" : "리전: 리전마다 고를 수 있는 값이 다른 키에 필요",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -4883,7 +4908,7 @@
             }
           },
           "503" : {
-            "description" : "Cluster agent 비활성 — 기본 12 kind 로 degrade 권장",
+            "description" : "Cluster agent 비활성: 기본 12 kind 로 degrade 권장",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -4933,7 +4958,7 @@
             }
           },
           "404" : {
-            "description" : "kind resolve 실패 — body 의 suggestions 배열 (Levenshtein 거리 ≤ 3) 활용",
+            "description" : "kind resolve 실패: body 의 suggestions 배열 (Levenshtein 거리 ≤ 3) 활용",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -5186,7 +5211,7 @@
       "get" : {
         "tags" : [ "Cluster Kubernetes Resources (v1)" ],
         "summary" : "리소스 단건의 K8s Event 목록",
-        "description" : "involvedObject.kind/name(/namespace) 로 fieldSelector 필터링. core/v1 Event 만 — events.k8s.io/v1 은 미지원.",
+        "description" : "involvedObject.kind/name(/namespace) 로 fieldSelector 필터링. core/v1 Event 만: events.k8s.io/v1 은 미지원.",
         "operationId" : "listEvents",
         "parameters" : [ {
           "name" : "clusterName",
@@ -5338,7 +5363,7 @@
       "get" : {
         "tags" : [ "Cluster Kubernetes Resources (v1)" ],
         "summary" : "Pod 로그 streaming (kubectl logs -f 등가, SSE)",
-        "description" : "지정 pod 의 container log 를 SSE 로 chunk-by-chunk push. cluster agent ACTIVE 필수 — inactive 면 503 AGENT_UNAVAILABLE. follow=true 면 tail -f 처럼 실시간 push, false 면 tail_lines 만큼 snapshot 전송 후 close. SSE event 이름 = 'log'.",
+        "description" : "지정 pod 의 container log 를 SSE 로 chunk-by-chunk push. cluster agent ACTIVE 필수: inactive 면 503 AGENT_UNAVAILABLE. follow=true 면 tail -f 처럼 실시간 push, false 면 tail_lines 만큼 snapshot 전송 후 close. SSE event 이름 = 'log'.",
         "operationId" : "streamPodLogs",
         "parameters" : [ {
           "name" : "clusterName",
@@ -5864,7 +5889,7 @@
       "get" : {
         "tags" : [ "Cluster Access (v1)" ],
         "summary" : "kubeconfig YAML 다운로드 (단기 SA token)",
-        "description" : "agent 가 K8s TokenRequest API 로 ServiceAccount 의 한시 token 을 발급한 뒤 표준 kubeconfig YAML 을 합성해 다운로드한다 (정적 admin 자격 미보관). 발급 identity 는 KubeconfigIdentityResolver 가 결정: serviceAccount 명시 시 그대로, 미지정 + VM(PULUMI) cluster 면 자동 생성 cluster-admin SA(기본 aipaas-admin / aipaas-system) 로 전체 권한 다운로드. registered/BYO 는 존재하는 serviceAccount(+namespace) 명시 필요 (미지정 시 400). 단일 발급 엔드포인트 — 이전 POST /kubeconfig 는 본 GET 으로 통합됐다.",
+        "description" : "agent 가 K8s TokenRequest API 로 ServiceAccount 의 한시 token 을 발급한 뒤 표준 kubeconfig YAML 을 합성해 다운로드한다 (정적 admin 자격 미보관). 발급 identity 는 KubeconfigIdentityResolver 가 결정: serviceAccount 명시 시 그대로, 미지정 + VM(PULUMI) cluster 면 자동 생성 cluster-admin SA(기본 aipaas-admin / aipaas-system) 로 전체 권한 다운로드. registered/BYO 는 존재하는 serviceAccount(+namespace) 명시 필요 (미지정 시 400). 단일 발급 엔드포인트: 이전 POST /kubeconfig 는 본 GET 으로 통합됐다.",
         "operationId" : "downloadKubeconfig_1",
         "parameters" : [ {
           "name" : "clusterName",
@@ -6099,7 +6124,7 @@
         } ],
         "responses" : {
           "200" : {
-            "description" : "Health 정보 조회 성공 — healthy 필드 확인",
+            "description" : "Health 정보 조회 성공: healthy 필드 확인",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -6146,7 +6171,7 @@
       "get" : {
         "tags" : [ "Clusters (v1)" ],
         "summary" : "Cluster-agent install manifest (agent-led registration)",
-        "description" : "Cluster 등록 직후 사용자가 자신의 kubectl context 에서 직접 apply 할 수 있는 ready-to-apply YAML. JWT token + backend gRPC endpoint 가 baked in. 예: `curl -sS .../agent-manifest.yaml | kubectl apply -f -`. Token 은 cluster registration 시점에 발급된 한 번뿐인 단기 JWT — 본 endpoint 는 매 호출 새 token 을 발급 (Bruno 등 GUI 가 등록 후 별도 fetch 시 재발급 가능).",
+        "description" : "Cluster 등록 직후 사용자가 자신의 kubectl context 에서 직접 apply 할 수 있는 ready-to-apply YAML. JWT token + backend gRPC endpoint 가 baked in. 예: `curl -sS .../agent-manifest.yaml | kubectl apply -f -`. Token 은 cluster registration 시점에 발급된 한 번뿐인 단기 JWT: 본 endpoint 는 매 호출 새 token 을 발급 (Bruno 등 GUI 가 등록 후 별도 fetch 시 재발급 가능).",
         "operationId" : "agentManifestYaml",
         "parameters" : [ {
           "name" : "clusterName",
@@ -6181,7 +6206,7 @@
             }
           },
           "410" : {
-            "description" : "cluster 가 이미 ACTIVE — 재발급 원하면 admin reinstall endpoint",
+            "description" : "cluster 가 이미 ACTIVE: 재발급 원하면 admin reinstall endpoint",
             "content" : {
               "application/yaml" : {
                 "schema" : {
@@ -6197,7 +6222,7 @@
       "get" : {
         "tags" : [ "Clusters (v1)" ],
         "summary" : "Cluster-agent bootstrap 정보 (JSON, helm/kubectl 명령 + token)",
-        "description" : "등록 직후 modal 또는 detail 페이지의 '재발급' 시 사용. 매 호출 새 token 발급 — helmInstallCommand / kubectlApplyCommand 즉시 복사 가능. yaml 만 필요하면 /agent-manifest.yaml 사용.",
+        "description" : "등록 직후 modal 또는 detail 페이지의 '재발급' 시 사용. 매 호출 새 token 발급: helmInstallCommand / kubectlApplyCommand 즉시 복사 가능. yaml 만 필요하면 /agent-manifest.yaml 사용.",
         "operationId" : "agentBootstrap",
         "parameters" : [ {
           "name" : "clusterName",
@@ -6353,9 +6378,9 @@
     },
     "/v1/clusters/{clusterId}/agent/pods" : {
       "get" : {
-        "tags" : [ "Cluster Agent (v1) — runtime test" ],
+        "tags" : [ "Cluster Agent (v1). runtime test" ],
         "summary" : "[TEST] Agent 통해 pod list",
-        "description" : "AgentRuntime stream 위에서 LIST_PODS 명령. 운영용 X — fabric8 direct 와 동등.",
+        "description" : "AgentRuntime stream 위에서 LIST_PODS 명령. 운영용 X.",
         "operationId" : "listPods",
         "parameters" : [ {
           "name" : "clusterId",
@@ -6404,9 +6429,9 @@
     },
     "/v1/clusters/{clusterId}/agent/logs" : {
       "get" : {
-        "tags" : [ "Cluster Agent (v1) — runtime test" ],
+        "tags" : [ "Cluster Agent (v1). runtime test" ],
         "summary" : "[TEST] Agent 통해 pod log snapshot",
-        "description" : "GET_LOG 명령. T2 의 fabric8 direct 와 동등하지만 agent 우회.",
+        "description" : "GET_LOG 명령.",
         "operationId" : "getLog",
         "parameters" : [ {
           "name" : "clusterId",
@@ -6604,7 +6629,7 @@
       "get" : {
         "tags" : [ "Cluster Health (v1)" ],
         "summary" : "Fleet-wide agent health 요약",
-        "description" : "등록된 모든 cluster 의 agent 활성도. healthy/unhealthy/noAgent 집계 + status 분포 + per-cluster 상세. UI 대시보드용 snapshot — 시계열 metric 은 /actuator/prometheus 의 anycloud_agent_* 시리즈.",
+        "description" : "등록된 모든 cluster 의 agent 활성도. healthy/unhealthy/noAgent 집계 + status 분포 + per-cluster 상세. UI 대시보드용 snapshot: 시계열 metric 은 /actuator/prometheus 의 anycloud_agent_* 시리즈.",
         "operationId" : "getFleetHealth",
         "responses" : {
           "200" : {
@@ -6644,7 +6669,7 @@
       "get" : {
         "tags" : [ "AdminClusterDrift" ],
         "summary" : "Pulumi state drift 감지 (read-only)",
-        "description" : "`pulumi preview --refresh --json` — 실제 CSP 상태를 읽어 state/프로그램과 비교. same 외의 op 가 있으면 drift 또는 미적용 변경. CSP API 호출로 수십 초 걸릴 수 있다.",
+        "description" : "`pulumi preview --refresh --json`: 실제 CSP 상태를 읽어 state/프로그램과 비교. same 외의 op 가 있으면 drift 또는 미적용 변경. CSP API 호출로 수십 초 걸릴 수 있다.",
         "operationId" : "detectDrift",
         "parameters" : [ {
           "name" : "clusterName",
@@ -6659,7 +6684,7 @@
         } ],
         "responses" : {
           "200" : {
-            "description" : "감지 완료 — drifted + changeSummary",
+            "description" : "감지 완료: drifted + changeSummary",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -6679,7 +6704,7 @@
             }
           },
           "500" : {
-            "description" : "Pulumi command 실패 — stderr 참고",
+            "description" : "Pulumi command 실패: stderr 참고",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -6695,7 +6720,7 @@
       "get" : {
         "tags" : [ "Admin Agents Fleet (v1)" ],
         "summary" : "Cluster-agent fleet list",
-        "description" : "Admin 전용 — filter (status/clusterName/version/lastSeen) + server-side pagination.",
+        "description" : "Admin 전용: filter (status/clusterName/version/lastSeen) + server-side pagination.",
         "operationId" : "list_7",
         "parameters" : [ {
           "name" : "status",
@@ -6804,7 +6829,7 @@
       "get" : {
         "tags" : [ "Admin (agent policy)" ],
         "summary" : "Fleet-wide policy audit",
-        "description" : "모든 등록 cluster 의 agent policy snapshot + validator 결과 집계. HIGH severity 우선 정렬 — 운영자가 즉시 문제 cluster 식별. agent unreachable cluster 는 UNREACHABLE 표시.",
+        "description" : "모든 등록 cluster 의 agent policy snapshot + validator 결과 집계. HIGH severity 우선 정렬: 운영자가 즉시 문제 cluster 식별. agent unreachable cluster 는 UNREACHABLE 표시.",
         "operationId" : "fleetAudit",
         "responses" : {
           "200" : {
@@ -6844,7 +6869,7 @@
       "delete" : {
         "tags" : [ "Observability (v1)" ],
         "summary" : "Alertmanager silence 삭제",
-        "description" : "Alertmanager /api/v2/silence/{id} DELETE — silenceId 는 create 시 발급된 UUID.",
+        "description" : "Alertmanager /api/v2/silence/{id} DELETE: silenceId 는 create 시 발급된 UUID.",
         "operationId" : "deleteSilence",
         "parameters" : [ {
           "name" : "clusterName",
@@ -6884,7 +6909,7 @@
       "delete" : {
         "tags" : [ "AdminClusterCleanup" ],
         "summary" : "Pulumi orphan stack file 정리 (RustFS 의 state 만)",
-        "description" : "옛 cred 로 쓰여진 또는 destroy 실패로 잔존하는 stack file 을 backend 에서 제거. force-delete 의 자매 — DB 는 손 안 대고 Pulumi state 만.",
+        "description" : "옛 cred 로 쓰여진 또는 destroy 실패로 잔존하는 stack file 을 backend 에서 제거. force-delete 의 자매: DB 는 손 안 대고 Pulumi state 만.",
         "operationId" : "cleanupOrphanState",
         "parameters" : [ {
           "name" : "stackName",
@@ -6908,7 +6933,7 @@
             }
           },
           "500" : {
-            "description" : "Pulumi command 실패 — message 참고",
+            "description" : "Pulumi command 실패: message 참고",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -6976,7 +7001,7 @@
           },
           "version" : {
             "type" : "string",
-            "description" : "차트 버전 (반드시 명시 — latest 는 추적성/예측가능성 측면에서 거부)",
+            "description" : "차트 버전 (반드시 명시: latest 는 추적성/예측가능성 측면에서 거부)",
             "example" : "15.4.0",
             "minLength" : 1
           },
@@ -6987,10 +7012,8 @@
           },
           "values" : {
             "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            },
-            "description" : "values (JSON object — backend 가 YAML 로 직렬화). reuseValues=false 일 때 적용."
+            "additionalProperties" : { },
+            "description" : "values (JSON object: backend 가 YAML 로 직렬화). reuseValues=false 일 때 적용."
           },
           "valuesYaml" : {
             "type" : "string",
@@ -6998,23 +7021,24 @@
           },
           "atomic" : {
             "type" : "boolean",
-            "default" : "true",
+            "default" : true,
             "description" : "실패 시 자동 rollback (helm CLI --atomic). production 권장 (default true).",
             "example" : true
           },
           "reuseValues" : {
             "type" : "boolean",
-            "default" : "false",
+            "default" : false,
             "description" : "기존 release 의 values 보존 + 새 values merge (helm CLI --reuse-values). 버전만 올릴 때 유용.",
             "example" : false
           },
           "resetValues" : {
             "type" : "boolean",
-            "default" : "false",
+            "default" : false,
             "description" : "기존 values 모두 reset, chart default + 새 values 만 사용 (helm CLI --reset-values). reuseValues 와 동시 true 면 resetValues 우선.",
             "example" : false
           }
-        }
+        },
+        "required" : [ "chart", "version" ]
       },
       "ApiSuccessResponseOperationResponse" : {
         "type" : "object",
@@ -7163,7 +7187,7 @@
       },
       "ResponseMeta" : {
         "type" : "object",
-        "description" : "응답 메타 — 요청 추적/시간/페이지네이션 정보",
+        "description" : "응답 메타: 요청 추적/시간/페이지네이션 정보",
         "properties" : {
           "requestId" : {
             "type" : "string",
@@ -7183,7 +7207,7 @@
           },
           "pagination" : {
             "$ref" : "#/components/schemas/Pagination",
-            "description" : "페이지네이션 — list 응답일 때만"
+            "description" : "페이지네이션: list 응답일 때만"
           }
         }
       },
@@ -7192,7 +7216,7 @@
         "description" : "Agent allowlist + resource_policy PUT / PATCH 요청. ConfigMap 으로 직접 push. PATCH 에서 null 필드는 현재 값 유지.",
         "properties" : {
           "allowedNamespaces" : {
-            "type" : "array",
+            "type" : [ "array", "null" ],
             "description" : "허용 namespace. 와일드카드 [\"*\"] 가능. PUT 필수, PATCH 옵션.",
             "example" : [ "monitoring", "app" ],
             "items" : {
@@ -7200,7 +7224,7 @@
             }
           },
           "allowedCommands" : {
-            "type" : "array",
+            "type" : [ "array", "null" ],
             "description" : "허용 command 목록. PUT 필수, PATCH 옵션.",
             "example" : [ "LIST_PODS", "LIST_RESOURCES" ],
             "items" : {
@@ -7208,7 +7232,7 @@
             }
           },
           "allowedCharts" : {
-            "type" : "array",
+            "type" : [ "array", "null" ],
             "description" : "허용 Helm chart rule (repo/name:min-max 또는 repo/*:min-max). PUT 필수, PATCH 옵션.",
             "example" : [ "prometheus-community/kube-prometheus-stack:45.0.0-65.0.0" ],
             "items" : {
@@ -7216,20 +7240,21 @@
             }
           },
           "allowedExecNamespaces" : {
-            "type" : "array",
+            "type" : [ "array", "null" ],
             "description" : "PodExec 허용 namespace. PATCH 시 null 이면 변경 안 함.",
             "items" : {
               "type" : "string"
             }
           },
           "resourcePolicy" : {
+            "type" : "null",
             "$ref" : "#/components/schemas/ResourcePolicy",
             "description" : "resource_policy 구조. PATCH 시 null 이면 변경 안 함."
           },
           "force" : {
             "type" : "boolean",
-            "default" : "false",
-            "description" : "true 면 HIGH severity warning 도 무시하고 적용 (긴급 대응용). MISSING_MANAGEMENT_COMMANDS 우회 시 다음 backend 호출에서 PERMISSION_DENIED — 복구는 kubectl patch 만 가능."
+            "default" : false,
+            "description" : "true 면 HIGH severity warning 도 무시하고 적용 (긴급 대응용). MISSING_MANAGEMENT_COMMANDS 우회 시 다음 backend 호출에서 PERMISSION_DENIED: 복구는 kubectl patch 만 가능."
           }
         }
       },
@@ -7286,9 +7311,7 @@
           },
           "data" : {
             "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            },
+            "additionalProperties" : { },
             "description" : "실제 응답 데이터"
           },
           "meta" : {
@@ -7374,7 +7397,7 @@
           "kubernetesVersion" : {
             "type" : "string",
             "description" : "Kubernetes 버전",
-            "example" : 1.31
+            "example" : "1.31"
           },
           "masterCount" : {
             "type" : "integer",
@@ -7412,7 +7435,7 @@
           },
           "osImage" : {
             "type" : "string",
-            "description" : "OS 이미지. 표현이 CSP 마다 다르다 — OCI 는 OCID, Azure 는 4단 좌표",
+            "description" : "OS 이미지. 표현이 CSP 마다 다르다. OCI 는 OCID, Azure 는 4단 좌표",
             "example" : "ubuntu-24.04"
           },
           "sshUser" : {
@@ -7473,7 +7496,7 @@
         "properties" : {
           "vmGroupName" : {
             "type" : "string",
-            "description" : "VM 그룹 이름 — master + worker 인스턴스 집합을 묶는 식별자. K8s cluster registration 시에는 동일 이름이 cluster.id 로도 사용됨 (현재 1:1 매핑).",
+            "description" : "VM 그룹 이름: master + worker 인스턴스 집합을 묶는 식별자. K8s cluster registration 시에는 동일 이름이 cluster.id 로도 사용됨 (현재 1:1 매핑).",
             "example" : "demo-aws-01",
             "maxLength" : 63,
             "minLength" : 0,
@@ -7481,7 +7504,7 @@
           },
           "provider" : {
             "type" : "string",
-            "description" : "CSP — aws | gcp | azure | openstack | oci | proxmox | ibm",
+            "description" : "CSP: aws | gcp | azure | openstack | oci | proxmox | ibm",
             "example" : "aws",
             "minLength" : 1
           },
@@ -7493,7 +7516,7 @@
           },
           "environment" : {
             "type" : "string",
-            "description" : "환경 태그 — dev | stage | prod (선택)",
+            "description" : "환경 태그: dev | stage | prod (선택)",
             "example" : "dev"
           },
           "credentialId" : {
@@ -7512,9 +7535,7 @@
           },
           "providerSpec" : {
             "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            },
+            "additionalProperties" : { },
             "description" : "provider 전용 설정. provider 마다 스키마가 다르다",
             "example" : {
               "externalNetworkId" : "3f8d3f36-...",
@@ -7523,10 +7544,11 @@
           },
           "hasGpuNodes" : {
             "type" : "boolean",
-            "description" : "GPU 노드 포함 여부 — cluster-observability 가 dcgm-exporter 설치 결정에 활용",
+            "description" : "GPU 노드 포함 여부: cluster-observability 가 dcgm-exporter 설치 결정에 활용",
             "example" : false
           }
-        }
+        },
+        "required" : [ "credentialId", "provider", "region", "vmGroupName" ]
       },
       "CreateClusterOperationRequest" : {
         "type" : "object",
@@ -7561,7 +7583,6 @@
             "example" : "Clusters loaded"
           },
           "data" : {
-            "type" : "object",
             "description" : "실제 응답 데이터"
           },
           "meta" : {
@@ -7829,20 +7850,21 @@
           "source" : {
             "type" : "string",
             "default" : "EXTERNAL",
-            "description" : "저장소 종류 (INTERNAL/EXTERNAL) — default EXTERNAL",
+            "description" : "저장소 종류 (INTERNAL/EXTERNAL). default EXTERNAL",
             "enum" : [ "INTERNAL", "EXTERNAL" ],
             "example" : "EXTERNAL"
           },
           "tags" : {
             "type" : "string",
-            "description" : "tags (comma-separated) — UI filter",
+            "description" : "tags (comma-separated). UI filter",
             "example" : "monitoring,default"
           },
           "insecureSkipTLSVerify" : {
             "type" : "boolean",
             "description" : "헬름 저장소 INSECURE 사용 여부"
           }
-        }
+        },
+        "required" : [ "name", "url" ]
       },
       "FleetUpgradeRequest" : {
         "type" : "object",
@@ -7871,7 +7893,7 @@
             "format" : "int32"
           }
         },
-        "required" : [ "waves" ]
+        "required" : [ "targetImage", "waves" ]
       },
       "ApiSuccessResponseFleetUpgradeRunEntity" : {
         "type" : "object",
@@ -8013,7 +8035,8 @@
               "AWS_SECRET_ACCESS_KEY" : "***"
             }
           }
-        }
+        },
+        "required" : [ "name", "provider" ]
       },
       "ApiSuccessResponseCspCredentialResponse" : {
         "type" : "object",
@@ -8179,7 +8202,7 @@
           },
           "detail" : {
             "type" : "string",
-            "description" : "CSP 원본 메시지 — 지원 문의용"
+            "description" : "CSP 원본 메시지: 지원 문의용"
           },
           "checkedRegions" : {
             "type" : "integer",
@@ -8200,7 +8223,7 @@
         "properties" : {
           "source" : {
             "type" : "string",
-            "description" : "클러스터 source — vm: Pulumi provision, registered: 외부 클러스터 등록",
+            "description" : "클러스터 source: vm: Pulumi provision, registered: 외부 클러스터 등록",
             "enum" : [ "vm", "registered" ],
             "example" : "vm"
           },
@@ -8214,13 +8237,11 @@
           },
           "spec" : {
             "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            },
+            "additionalProperties" : { },
             "description" : "source 별 spec"
           }
         },
-        "required" : [ "source", "spec" ]
+        "required" : [ "clusterName", "source", "spec" ]
       },
       "ApiSuccessResponseClusterRegistrationResponse" : {
         "type" : "object",
@@ -8261,7 +8282,7 @@
       },
       "BootstrapInfo" : {
         "type" : "object",
-        "description" : "Agent-led cluster bootstrap 정보 — cluster 등록 직후 한 번만 노출",
+        "description" : "Agent-led cluster bootstrap 정보: cluster 등록 직후 한 번만 노출",
         "properties" : {
           "token" : {
             "type" : "string",
@@ -8285,19 +8306,19 @@
           },
           "helmInstallCommand" : {
             "type" : "string",
-            "description" : "권장 helm install 명령 — kubectl context 에서 직접 실행",
+            "description" : "권장 helm install 명령: kubectl context 에서 직접 실행",
             "example" : "helm install cluster-agent --namespace aipaas-system --create-namespace --set bootstrap.registrationToken=eyJ... --set backend.grpcAddr=anycloud:9090 oci://docker.io/aipaas/cluster-agent"
           },
           "kubectlApplyCommand" : {
             "type" : "string",
-            "description" : "대안 — manifest URL 을 curl 로 받아 kubectl apply",
+            "description" : "대안: manifest URL 을 curl 로 받아 kubectl apply",
             "example" : "curl http://localhost:8888/v1/clusters/orb-001/agent-manifest.yaml | kubectl apply -f -"
           }
         }
       },
       "ClusterRegistrationResponse" : {
         "type" : "object",
-        "description" : "Cluster 등록 응답 — operation + agent bootstrap",
+        "description" : "Cluster 등록 응답: operation + agent bootstrap",
         "properties" : {
           "operation" : {
             "$ref" : "#/components/schemas/OperationResponse",
@@ -8305,7 +8326,7 @@
           },
           "bootstrap" : {
             "$ref" : "#/components/schemas/BootstrapInfo",
-            "description" : "Agent bootstrap (registered source 만). source=vm 은 null — VM 프로비저닝 완료 후 별도 endpoint."
+            "description" : "Agent bootstrap (registered source 만). source=vm 은 null: VM 프로비저닝 완료 후 별도 endpoint."
           }
         }
       },
@@ -8318,7 +8339,8 @@
             "minLength" : 0,
             "pattern" : "^[\\w./:-]+$"
           }
-        }
+        },
+        "required" : [ "targetImage" ]
       },
       "ApiSuccessResponseUpgradeResult" : {
         "type" : "object",
@@ -8674,9 +8696,7 @@
           }
         }
       },
-      "JsonNode" : {
-        "type" : "object"
-      },
+      "JsonNode" : { },
       "MultiQueryRequest" : {
         "type" : "object",
         "properties" : {
@@ -8687,7 +8707,8 @@
             },
             "minItems" : 1
           }
-        }
+        },
+        "required" : [ "queries" ]
       },
       "MultiQuerySpec" : {
         "type" : "object",
@@ -8716,7 +8737,8 @@
           "step" : {
             "type" : "string"
           }
-        }
+        },
+        "required" : [ "name", "query", "type" ]
       },
       "ApiSuccessResponseMapStringJsonNode" : {
         "type" : "object",
@@ -8793,10 +8815,8 @@
           },
           "values" : {
             "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            },
-            "description" : "values 객체 — JSON 으로 자연스럽게 작성. 백엔드가 YAML 로 직렬화.",
+            "additionalProperties" : { },
+            "description" : "values 객체: JSON 으로 자연스럽게 작성. 백엔드가 YAML 로 직렬화.",
             "example" : {
               "replicaCount" : 3,
               "image" : {
@@ -8810,7 +8830,8 @@
             "maxLength" : 1000000,
             "minLength" : 0
           }
-        }
+        },
+        "required" : [ "chart", "releaseName" ]
       },
       "HelmReleaseOperationRequest" : {
         "type" : "object",
@@ -8891,7 +8912,7 @@
           },
           "repoUrl" : {
             "type" : "string",
-            "description" : "M8 — explicit repo URL (alias resolve 우회)",
+            "description" : "M8: explicit repo URL (alias resolve 우회)",
             "example" : "https://prometheus-community.github.io/helm-charts",
             "maxLength" : 512,
             "minLength" : 0
@@ -8902,7 +8923,7 @@
           },
           "enabled" : {
             "type" : "boolean",
-            "default" : "true",
+            "default" : true,
             "description" : "false = soft disable (auto-install 제외)"
           }
         },
@@ -9105,7 +9126,7 @@
       },
       "AgentRegistrationTokenResponse" : {
         "type" : "object",
-        "description" : "Cluster Agent bootstrap 정보 — registration_token + control plane endpoint",
+        "description" : "Cluster Agent bootstrap 정보: registration_token + control plane endpoint",
         "properties" : {
           "clusterId" : {
             "type" : "string",
@@ -9140,6 +9161,7 @@
             "example" : "MANUAL"
           },
           "helmInstall" : {
+            "type" : "null",
             "$ref" : "#/components/schemas/HelmInstallInstructionsResponse",
             "description" : "사용자가 직접 helm install 로 배포 시 사용할 values + 명령 snippet. installMode = HELM_BOOTSTRAP / MANUAL 일 때 채워짐. API_MANAGED (backend 자동 설치) 면 null."
           }
@@ -9213,8 +9235,8 @@
           },
           "valuesYaml" : {
             "type" : "string",
-            "description" : "values.yaml 내용 — 그대로 파일에 붙여넣어 -f 로 전달",
-            "example" : "bootstrap:\n  registrationToken: \"eyJ...\"\nbackend:\n  grpcAddr: \"...\"\n"
+            "description" : "values.yaml 내용: 그대로 파일에 붙여넣어 -f 로 전달",
+            "example" : "bootstrap:\n  registrationToken: \"eyJ...\"\nbackend:\n  grpcAddr: \"...\""
           },
           "installCommand" : {
             "type" : "string",
@@ -9283,11 +9305,12 @@
           },
           "hasGpuNodes" : {
             "type" : "boolean",
-            "default" : "false",
+            "default" : false,
             "description" : "GPU 노드 포함 cluster",
             "example" : false
           }
-        }
+        },
+        "required" : [ "clusterName", "clusterProvider", "environment", "region" ]
       },
       "ApiSuccessResponseVmClusterPreviewResponse" : {
         "type" : "object",
@@ -9346,7 +9369,7 @@
       },
       "VmClusterPreviewResponse" : {
         "type" : "object",
-        "description" : "Pulumi preview 결과 — 실제로 생성/변경될 CSP resource 계획",
+        "description" : "Pulumi preview 결과: 실제로 생성/변경될 CSP resource 계획",
         "properties" : {
           "stackName" : {
             "type" : "string",
@@ -9355,7 +9378,7 @@
           },
           "stackExistedBefore" : {
             "type" : "boolean",
-            "description" : "stack 이 preview 이전부터 존재했는지 — false 면 신규 create 미리보기",
+            "description" : "stack 이 preview 이전부터 존재했는지: false 면 신규 create 미리보기",
             "example" : false
           },
           "changeSummary" : {
@@ -9419,7 +9442,7 @@
       },
       "VmPatchRequest" : {
         "type" : "object",
-        "description" : "VM 변경 요청 — 현재는 scale 만 지원",
+        "description" : "VM 변경 요청: 현재는 scale 만 지원",
         "properties" : {
           "spec" : {
             "$ref" : "#/components/schemas/Spec",
@@ -9429,7 +9452,7 @@
       },
       "UpdateHelmRepoRequest" : {
         "type" : "object",
-        "description" : "Helm repository 부분 갱신 요청. name 변경 미지원 — DELETE + POST 패턴 사용.",
+        "description" : "Helm repository 부분 갱신 요청. name 변경 미지원: DELETE + POST 패턴 사용.",
         "properties" : {
           "url" : {
             "type" : "string",
@@ -9507,7 +9530,7 @@
         "properties" : {
           "hasGpuNodes" : {
             "type" : "boolean",
-            "description" : "GPU 노드 포함 여부 — true 면 dcgm-exporter 자동 설치 대상",
+            "description" : "GPU 노드 포함 여부: true 면 dcgm-exporter 자동 설치 대상",
             "example" : true
           }
         }
@@ -9913,7 +9936,7 @@
       },
       "VmClusterComponentResponse" : {
         "type" : "object",
-        "description" : "VM 클러스터 구성 요소 상태 — 백엔드가 SSH 로 직접 설치하는 계층",
+        "description" : "VM 클러스터 구성 요소 상태: 백엔드가 SSH 로 직접 설치하는 계층",
         "properties" : {
           "type" : {
             "type" : "string",
@@ -10114,7 +10137,7 @@
           },
           "apiServerReach" : {
             "type" : "string",
-            "description" : "내려받은 kubeconfig 로 바로 닿는지 — DIRECT / PRIVATE_NETWORK / VIA_BASTION",
+            "description" : "내려받은 kubeconfig 로 바로 닿는지: DIRECT / PRIVATE_NETWORK / VIA_BASTION",
             "example" : "DIRECT"
           },
           "apiServerUrl" : {
@@ -10168,7 +10191,7 @@
           },
           "components" : {
             "type" : "array",
-            "description" : "구성 요소 상태 — DEGRADED 사유를 여기서 확인한다",
+            "description" : "구성 요소 상태: DEGRADED 사유를 여기서 확인한다",
             "items" : {
               "$ref" : "#/components/schemas/VmClusterComponentResponse"
             }
@@ -10439,9 +10462,7 @@
             "type" : "array",
             "items" : {
               "type" : "object",
-              "additionalProperties" : {
-                "type" : "object"
-              }
+              "additionalProperties" : { }
             }
           }
         }
@@ -10554,7 +10575,7 @@
           "defaultKubernetesVersion" : {
             "type" : "string",
             "description" : "기본 Kubernetes 버전",
-            "example" : 1.3
+            "example" : "1.30"
           },
           "notes" : {
             "type" : "string",
@@ -10845,7 +10866,7 @@
           "osVersion" : {
             "type" : "string",
             "description" : "운영체제 버전",
-            "example" : 24.04
+            "example" : "24.04"
           },
           "architecture" : {
             "type" : "string",
@@ -10942,7 +10963,7 @@
           },
           "multiline" : {
             "type" : "boolean",
-            "description" : "여러 줄 — 키 본문이나 JSON",
+            "description" : "여러 줄: 키 본문이나 JSON",
             "example" : false
           },
           "description" : {
@@ -11052,19 +11073,19 @@
           },
           "type" : {
             "type" : "string",
-            "description" : "값 타입 — 모든 값은 string 으로 전달되지만 의미상 type",
+            "description" : "값 타입: 모든 값은 string 으로 전달되지만 의미상 type",
             "enum" : [ "string", "integer", "boolean", "cidr", "enum" ],
             "example" : "integer"
           },
           "required" : {
             "type" : "boolean",
-            "description" : "필수 여부 — true 면 누락 시 400",
+            "description" : "필수 여부: true 면 누락 시 400",
             "example" : false
           },
           "defaultValue" : {
             "type" : "string",
             "description" : "기본값 (applyDefaults 가 putIfAbsent). null 이면 default 없음",
-            "example" : 1
+            "example" : "1"
           },
           "label" : {
             "type" : "string",
@@ -11226,7 +11247,7 @@
         "type" : "object",
         "properties" : {
           "timeout" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int64"
           }
         }
@@ -11924,9 +11945,7 @@
             } ],
             "items" : {
               "type" : "object",
-              "additionalProperties" : {
-                "type" : "object"
-              }
+              "additionalProperties" : { }
             }
           },
           "keywords" : {
@@ -12444,7 +12463,7 @@
       },
       "UnifiedClusterResponse" : {
         "type" : "object",
-        "description" : "통합 cluster 응답 (vm + registered 공통 schema) — deprecated, /v1/vms 와 /v1/clusters 분리",
+        "description" : "통합 cluster 응답 (vm + registered 공통 schema). deprecated, /v1/vms 와 /v1/clusters 분리",
         "properties" : {
           "source" : {
             "type" : "string",
@@ -12467,7 +12486,7 @@
           },
           "linkedVmName" : {
             "type" : "string",
-            "description" : "연결된 VM 자원의 이름 (1:1). null 이면 manual 등록 cluster. VM provisioning 으로 만들어진 cluster 는 동일 이름이 vm_cluster 테이블에도 존재 — UI 가 VM 메뉴로 cross-link 시 사용.",
+            "description" : "연결된 VM 자원의 이름 (1:1). null 이면 manual 등록 cluster. VM provisioning 으로 만들어진 cluster 는 동일 이름이 vm_cluster 테이블에도 존재: UI 가 VM 메뉴로 cross-link 시 사용.",
             "example" : "demo-aws-01"
           },
           "provider" : {
@@ -12525,7 +12544,7 @@
           },
           "agentConnectivity" : {
             "type" : "string",
-            "description" : "cluster-agent 연결 상태 (K8s status 와 별개 — registered source 에서만 채워짐). CONNECTED=정상 / DEGRADED=stream 활성이지만 heartbeat stale / DISCONNECTED=stream 끊김 또는 agent REVOKED/FAILED / NOT_REGISTERED=agent 등록 안됨.",
+            "description" : "cluster-agent 연결 상태 (K8s status 와 별개: registered source 에서만 채워짐). CONNECTED=정상 / DEGRADED=stream 활성이지만 heartbeat stale / DISCONNECTED=stream 끊김 또는 agent REVOKED/FAILED / NOT_REGISTERED=agent 등록 안됨.",
             "enum" : [ "CONNECTED", "DEGRADED", "DISCONNECTED", "NOT_REGISTERED" ],
             "example" : "CONNECTED"
           },
@@ -12537,12 +12556,12 @@
           },
           "agentHealthSummary" : {
             "type" : "string",
-            "description" : "agent health 요약 (사람이 읽을 수 있는 한 줄 — UI tooltip 용).",
+            "description" : "agent health 요약 (사람이 읽을 수 있는 한 줄: UI tooltip 용).",
             "example" : "stream up, heartbeat 8s ago"
           },
           "workflowProgress" : {
             "$ref" : "#/components/schemas/WorkflowProgress",
-            "description" : "VM cluster workflow 진행 단계 (vm source 만 — registered 면 null). UI 가 PROVISIONING 같은 단일 status 대신 step 별 progress 노출 시 사용."
+            "description" : "VM cluster workflow 진행 단계 (vm source 만: registered 면 null). UI 가 PROVISIONING 같은 단일 status 대신 step 별 progress 노출 시 사용."
           }
         }
       },
@@ -12581,19 +12600,19 @@
           },
           "subStep" : {
             "type" : "string",
-            "description" : "BOOTSTRAP 단계 내부 sub-step. BOOTSTRAP 은 20~30분 걸려 큰 단계만으론 'stuck' 인식 — 어느 sub-step 인지 노출. null=BOOTSTRAP 아님 또는 완료.",
+            "description" : "BOOTSTRAP 단계 내부 sub-step. BOOTSTRAP 은 20~30분 걸려 큰 단계만으론 'stuck' 인식: 어느 sub-step 인지 노출. null=BOOTSTRAP 아님 또는 완료.",
             "enum" : [ "BOOTSTRAP_NODE_PREPARATION", "BOOTSTRAP_MASTER_INIT", "BOOTSTRAP_EXTRA_MASTER_JOIN", "BOOTSTRAP_WORKER_JOIN", "BOOTSTRAP_ADDONS", "BOOTSTRAP_NODES_READY" ],
             "example" : "BOOTSTRAP_MASTER_INIT"
           },
           "subStepStartedAt" : {
             "type" : "string",
             "format" : "date-time",
-            "description" : "현재 sub-step 시작 시각 — 'N분째 이 단계' 진단용.",
+            "description" : "현재 sub-step 시작 시각: 'N분째 이 단계' 진단용.",
             "example" : "2026-06-11T15:45:10"
           },
           "lastErrorCode" : {
             "type" : "string",
-            "description" : "마지막 실패 분류 코드 — ErrorResponse.code 와 동일 체계. UI 가 lastError 메시지 대신 코드로 분기 가능.",
+            "description" : "마지막 실패 분류 코드: ErrorResponse.code 와 동일 체계. UI 가 lastError 메시지 대신 코드로 분기 가능.",
             "example" : "UPSTREAM_FAILED"
           }
         }
@@ -13009,7 +13028,7 @@
           "degradedMessage" : {
             "type" : "string",
             "description" : "degraded detail message",
-            "example" : "Cluster agent not connected — install agent first"
+            "example" : "Cluster agent not connected: install agent first"
           }
         }
       },
@@ -13149,7 +13168,7 @@
           "revision" : {
             "type" : "string",
             "description" : "릴리즈 버전",
-            "example" : 1
+            "example" : "1"
           },
           "status" : {
             "type" : "string",
@@ -13389,7 +13408,6 @@
             "example" : "Clusters loaded"
           },
           "data" : {
-            "type" : "object",
             "description" : "실제 응답 데이터"
           },
           "meta" : {
@@ -13763,7 +13781,7 @@
           },
           "clusters" : {
             "type" : "array",
-            "description" : "per-cluster health 상세 — 단일 endpoint 와 동일 DTO",
+            "description" : "per-cluster health 상세: 단일 endpoint 와 동일 DTO",
             "items" : {
               "$ref" : "#/components/schemas/ClusterHealthResponse"
             }
