@@ -5,26 +5,16 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 
 /**
- * K8s 응답 JSON 에서 노이즈 / 민감 정보 필드 제거. 현재 대상:
- * <ul>
- *   <li>{@code metadata.managedFields} — Server-Side Apply tracking. 일반 자원의 70-90% 를 차지
- *       하는 경우가 흔하고 UI/대시보드에선 거의 안 쓰임. 제거 시 응답 크기 / 파싱 비용 / 메모리 모두
- *       크게 감소. ({@link #stripManagedFields})</li>
- *   <li>{@code Secret.data} / {@code Secret.stringData} — base64 / plain value redaction.
- *       wildcard read RBAC 트레이드오프를 backend-side 에서 완화. 운영자가
- *       {@code security.kube.redact-secrets=false} 로 비활성 가능 (default ON).
- *       ({@link #redactSecretValues})</li>
- * </ul>
- * <p>
- * 동작 원칙:
- * <ul>
- *   <li>in-place mutation. 입력 JsonNode 가 ObjectMapper 가 만든 mutable 트리라는 가정.</li>
- *   <li>recursive — array / object / list-wrapper (items[]) 모두 처리.</li>
- *   <li>null / missing 안전 — 어떤 형태가 와도 silent skip.</li>
- *   <li>kube 응답 외 임의 JSON 에는 무해 (metadata 노드 없으면 nop).</li>
- * </ul>
- * <p>
- * 호출 위치: 응답 DTO build 직전.
+ * K8s 응답에서 {@code metadata.managedFields} 를 떼고 Secret 값을 가립니다.
+ *
+ * <p>managedFields 는 Server-Side Apply 추적용인데 자원 하나의 70~90% 를 차지하는 일이 흔하고
+ * 화면에서는 쓰지 않습니다.
+ *
+ * <p>Secret 의 {@code data} 와 {@code stringData} 는 기본으로 가립니다. agent 의 read 권한이
+ * wildcard 라 값이 그대로 응답에 실리기 때문입니다. {@code security.kube.redact-secrets=false} 로
+ * 끌 수 있습니다.
+ *
+ * <p>입력 트리를 제자리에서 고칩니다. ObjectMapper 가 만든 mutable 트리를 넘기세요.
  */
 public final class K8sResponseSanitizer {
 

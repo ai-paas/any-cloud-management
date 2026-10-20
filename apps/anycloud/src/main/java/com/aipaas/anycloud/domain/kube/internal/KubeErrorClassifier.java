@@ -4,19 +4,11 @@ import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import java.util.Locale;
 
 /**
- * K8s 호출 실패의 cause chain 을 분석해 UX 친화적 reason code 로 분류하는 정적 utility.
+ * K8s 호출 실패를 reason code 로 분류합니다. "agent 가 죽었다", "RBAC 가 거부했다", "모르는
+ * kind 다" 를 호출 측이 구분할 수 있게 하려는 것입니다.
  *
- * <p>{@code KubeServiceImpl} 의 642 LOC god class 에서 분리. ~95 LOC 의 순수
- * 정적 helper 묶음으로, Spring bean 없이 어디서든 import 해 사용 가능.
- *
- * <p>본 분류기는 {@link io.github.resilience4j.circuitbreaker.CircuitBreaker} fallback path 에서
- * caller (UI / 운영자) 가 "agent 가 죽음 vs RBAC 거부 vs 알 수 없는 kind" 등을 즉시 구분할 수 있도록
- * 표준 reason code 를 제공.
- *
- * <p>cause unwrap 로직 유지 — wrapper exception 의 message 가 root cause 의
- * 진짜 키워드를 가리지 않도록 모든 cause level 의 message 를 누적 후 keyword scan.
- *
- * @see com.aipaas.anycloud.domain.kube.internal.KubeServiceImpl
+ * <p>cause chain 전체의 message 를 모아 놓고 키워드를 찾습니다. 가장 바깥 예외만 보면 wrapper 의
+ * 문구가 진짜 원인을 가립니다.
  */
 public final class KubeErrorClassifier {
 
