@@ -10,8 +10,8 @@ import org.junit.jupiter.api.Test;
 /**
  * 웹 터미널이 노드에 붙을 때 쓰는 ssh 명령.
  *
- * <p>대화형 셸이라 원격에 TTY 를 붙여야 한다. 비대화형 실행과 달리 명령을 붙이지 않는다.
- * 붙이면 그것만 실행하고 끊긴다.
+ * <p>대화형 셸이므로 원격 TTY 할당 필요. 비대화형 실행과 달리 명령 미첨부. 첨부 시 해당
+ * 명령만 실행하고 연결 종료.
  */
 class NodeSshCommandTest extends AbstractUnitTest {
 
@@ -47,7 +47,7 @@ class NodeSshCommandTest extends AbstractUnitTest {
 
     @Test
     void rejectsAHostThatCouldCarryExtraSshArguments() {
-        // host 가 outputs 에서 오지만, 옵션처럼 생긴 값이 그대로 인자가 되면 안 된다.
+        // host 는 outputs 유래이나 옵션 형태 값의 인자 전달 금지.
         assertThatThrownBy(() -> NodeSshCommand.build("/tmp/key.pem", "ubuntu", "-oProxyCommand=touch /tmp/pwn"))
                 .isInstanceOf(IllegalArgumentException.class);
     }
@@ -62,7 +62,7 @@ class NodeSshCommandTest extends AbstractUnitTest {
 
     @Test
     void theHostCheckIsCallableBeforeBuilding() {
-        // 호출부에서 먼저 거르면 명령을 만들기 전에 끊긴다.
+        // 호출부 선행 필터링 시 명령 구성 전에 차단.
         assertThat(NodeSshCommand.requireSafeHost("node-1.example.com")).isEqualTo("node-1.example.com");
     }
 

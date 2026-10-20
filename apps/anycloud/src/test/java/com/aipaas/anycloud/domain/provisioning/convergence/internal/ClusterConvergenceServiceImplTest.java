@@ -23,7 +23,7 @@ class ClusterConvergenceServiceImplTest {
     private final ClusterComponentObserver observer = mock(ClusterComponentObserver.class);
     private final RequestedAddonInspector addonInspector = mock(RequestedAddonInspector.class);
 
-    /** 테스트에서 대기 0: 실제 지연은 설정값이라 로직만 검증한다. */
+    /** 테스트에서 대기 0. 실제 지연은 설정값이므로 로직만 검증. */
     private ClusterConvergenceServiceImpl service(int maxAttempts) {
         when(addonInspector.inspect(any())).thenReturn(List.of());
         return new ClusterConvergenceServiceImpl(observer, addonInspector, maxAttempts, Duration.ZERO);
@@ -53,7 +53,7 @@ class ClusterConvergenceServiceImplTest {
 
     @Test
     void givesUpAfterMaxAttempts() {
-        // consumer 스레드를 오래 붙잡지 않는 것이 이 제한의 목적이다.
+        // consumer 스레드 장시간 점유 방지가 이 제한의 목적.
         when(observer.observe(any())).thenReturn(List.of(required(ComponentHealth.NOT_READY)));
 
         assertThat(service(3).convergeWithinBudget(new VmClusterEntity())).isFalse();
@@ -62,7 +62,7 @@ class ClusterConvergenceServiceImplTest {
 
     @Test
     void inconclusiveIsNotConverged() {
-        // 확인하지 못한 것을 충족으로 보고하면 관측을 넣은 의미가 없다.
+        // 미확인 항목을 충족으로 보고하면 관측 도입 의미 상실.
         when(observer.observe(any())).thenReturn(List.of(required(ComponentHealth.UNKNOWN)));
 
         assertThat(service(2).convergeWithinBudget(new VmClusterEntity())).isFalse();
@@ -70,7 +70,7 @@ class ClusterConvergenceServiceImplTest {
 
     @Test
     void noApplicableComponentsConvergesImmediately() {
-        // GPU 도 ingress 도 요청하지 않은 평범한 클러스터는 즉시 통과해야 한다.
+        // GPU 와 ingress 모두 미요청한 클러스터는 즉시 통과 필요.
         when(observer.observe(any())).thenReturn(List.of());
 
         assertThat(service(3).convergeWithinBudget(new VmClusterEntity())).isTrue();

@@ -7,10 +7,10 @@ import com.aipaas.anycloud.testsupport.AbstractUnitTest;
 import org.junit.jupiter.api.Test;
 
 /**
- * GPU 인스턴스로 만들어도 operator 가 없으면 GPU 를 쓸 수 없다.
+ * GPU 인스턴스로 생성해도 operator 부재 시 GPU 사용 불가.
  *
- * <p>화면이 보내는 플래그에만 기대던 동안 그 플래그가 한 번도 오지 않아, GPU 노드를 만들어도
- * 드라이버 스택이 올라가지 않았다.
+ * <p>화면 전송 플래그에만 의존하던 구간에 해당 플래그가 수신되지 않아, GPU 노드 생성 후에도
+ * 드라이버 스택 미설치.
  */
 class GpuNodesGetTheirDriverStackTest extends AbstractUnitTest {
 
@@ -31,14 +31,14 @@ class GpuNodesGetTheirDriverStackTest extends AbstractUnitTest {
 
     @Test
     void anOrdinaryClusterDoesNotGetIt() {
-        // 쓰지도 않을 드라이버 스택을 올리면 노드 자원만 먹는다.
+        // 미사용 드라이버 스택 설치는 노드 자원만 소모.
         assertThat(RequestedAddons.catalogEntries(spec("AWS", "t3.large", null)))
                 .doesNotContainKey("nvidia-gpu-operator");
     }
 
     @Test
     void anExplicitOffIsRespected() {
-        // 직접 끈 것은 존중한다. 자동 판정이 사용자의 결정을 되돌리면 안 된다.
+        // 명시적 비활성화는 유지. 자동 판정이 사용자 결정을 덮으면 안 됨.
         assertThat(RequestedAddons.catalogEntries(spec("AWS", "g6.24xlarge", false)))
                 .doesNotContainKey("nvidia-gpu-operator");
     }
@@ -51,7 +51,7 @@ class GpuNodesGetTheirDriverStackTest extends AbstractUnitTest {
 
     @Test
     void openstackGpuFlavorsCountToo() {
-        // 이름 규칙이 CSP 마다 다르다. OpenStack flavor 는 운영자가 이름을 정한다.
+        // 이름 규칙은 CSP 별 상이. OpenStack flavor 이름은 운영자가 지정.
         assertThat(RequestedAddons.catalogEntries(spec("OpenStack", "32-256-gpu", null)))
                 .containsKey("nvidia-gpu-operator");
     }

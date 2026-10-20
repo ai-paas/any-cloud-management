@@ -45,7 +45,7 @@ class ProcessingLockTest extends AbstractUnitTest {
 
     @Test
     void refusesWhenAnotherMessageIsInFlight() {
-        // 재전달이 여기서 막힌다. 막지 않으면 같은 노드에 부트스트랩이 두 번 붙는다.
+        // 재전달을 이 지점에서 차단. 미차단 시 동일 노드에 부트스트랩 중복 실행.
         when(vmClusterRepository.acquireProcessing(eq("c1"), eq("m2"), any(), any()))
                 .thenReturn(0);
 
@@ -54,7 +54,7 @@ class ProcessingLockTest extends AbstractUnitTest {
 
     @Test
     void reclaimsOwnershipOlderThanTheStaleWindow() {
-        // 워커가 죽으면 아무도 놓아주지 않는다. 회수 기준을 쿼리에 넘긴다.
+        // 워커 종료 시 락 해제 주체 부재. 회수 기준을 쿼리에 전달.
         when(vmClusterRepository.acquireProcessing(any(), any(), any(), any())).thenReturn(1);
 
         lock.acquire("c1", "m1");
@@ -73,7 +73,7 @@ class ProcessingLockTest extends AbstractUnitTest {
 
     @Test
     void skipsWhenThereIsNoClusterToLock() {
-        // vmClusterId 가 없는 메시지(일부 destroy 흐름)는 잠글 대상이 없다.
+        // vmClusterId 가 없는 메시지(일부 destroy 흐름)는 잠금 대상 부재.
         assertThat(lock.acquire(null, "m1")).isTrue();
         assertThat(lock.acquire("c1", null)).isTrue();
 
@@ -90,8 +90,8 @@ class ProcessingLockTest extends AbstractUnitTest {
 
     @Test
     void staleWindowOutlivesTheAmqpAckTimeout() {
-        // 회수 기준이 ack 타임아웃(30분)보다 짧으면, 원래 워커가 아직 일하는 중에
-        // 재전달이 락을 빼앗아 중복 실행이 그대로 일어난다.
+        // 회수 기준이 ack 타임아웃(30분)보다 짧으면 실행 중인 워커의 락을 재전달이 탈취해
+        // 중복 실행 발생.
         assertThat(ProcessingLock.DEFAULT_STALE_AFTER).isGreaterThan(Duration.ofMinutes(30));
     }
 }

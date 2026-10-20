@@ -32,8 +32,8 @@ class VmClusterComponentRepositoryIntegrationTest extends AbstractIntegrationTes
     VmClusterRepository vmClusterRepository;
 
     /**
-     * vm_cluster_component 는 vm_cluster 를 FK 로 참조한다. 실제 부모 row 없이는 insert 가
-     * 막히므로 매 테스트가 자기 클러스터를 만든다.
+     * vm_cluster_component 는 vm_cluster 를 FK 로 참조. 부모 row 없이는 insert 가 차단되므로
+     * 각 테스트가 자체 클러스터 생성.
      */
     private String newClusterId(String name) {
         VmClusterEntity e = new VmClusterEntity();
@@ -58,7 +58,7 @@ class VmClusterComponentRepositoryIntegrationTest extends AbstractIntegrationTes
 
     @Test
     void generatedIdFitsColumn() {
-        // "vmcc-" + UUID = 41자. 컬럼이 64 미만이면 여기서 깨진다.
+        // "vmcc-" + UUID = 41자. 컬럼 길이가 64 미만이면 이 지점에서 실패.
         VmClusterComponentEntity saved =
                 repository.saveAndFlush(newComponent(newClusterId("conv-01"), ComponentType.AGENT));
         assertThat(saved.getId()).startsWith("vmcc-").hasSizeGreaterThan(36);
@@ -87,7 +87,7 @@ class VmClusterComponentRepositoryIntegrationTest extends AbstractIntegrationTes
 
     @Test
     void uniqueConstraintPreventsDuplicatePerClusterAndType() {
-        // 관측이 매 주기 돌아도 행은 하나여야 한다. 중복되면 상태가 갈린다.
+        // 관측이 매 주기 실행돼도 행은 1개 유지. 중복 시 상태 분기.
         String clusterId = newClusterId("conv-03c");
         repository.saveAndFlush(newComponent(clusterId, ComponentType.AGENT));
 
@@ -108,7 +108,7 @@ class VmClusterComponentRepositoryIntegrationTest extends AbstractIntegrationTes
 
     @Test
     void lastErrorAcceptsLongText() {
-        // CSP stderr 는 수 KB 다. varchar 로 잘리면 진단이 불가능해진다.
+        // CSP stderr 는 수 KB 규모. varchar 절단 시 진단 불가.
         VmClusterComponentEntity entity = newComponent(newClusterId("conv-05"), ComponentType.AGENT);
         entity.setLastError("x".repeat(4000));
         entity.setLastProbedAt(ZonedDateTime.now());

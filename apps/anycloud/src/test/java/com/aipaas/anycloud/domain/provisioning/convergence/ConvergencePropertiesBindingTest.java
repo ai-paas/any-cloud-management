@@ -9,8 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
 /**
- * 설정 키 오타는 @Value 기본값으로 조용히 대체되므로 바인딩을 명시적으로 확인한다.
- * config/workflow.yaml 에서 키 하나를 잘못 쓰면 이 테스트만 잡을 수 있다.
+ * 설정 키 오타는 @Value 기본값으로 무음 대체되므로 바인딩을 명시적으로 검증.
+ * config/workflow.yaml 의 키 오타는 이 테스트에서만 검출 가능.
  */
 class ConvergencePropertiesBindingTest extends AbstractIntegrationTest {
 
@@ -54,13 +54,13 @@ class ConvergencePropertiesBindingTest extends AbstractIntegrationTest {
 
     @Test
     void degradedRecheckIsFasterThanTheRegularSweep() {
-        // 재확인이 정기 주기보다 느리면 존재 이유가 없다.
+        // 재확인 주기가 정기 주기보다 길면 기능 의미 상실.
         assertThat(degradedRecheckDelay).isLessThan(java.time.Duration.ofMillis(intervalMs));
     }
 
     @Test
     void agentRequirementBindsToEnum() {
-        // 문자열이 enum 으로 변환되지 않으면 컨텍스트 자체가 뜨지 않는다.
+        // 문자열의 enum 변환 실패 시 컨텍스트 기동 불가.
         assertThat(agentRequirement).isEqualTo(Requirement.REQUIRED);
     }
 
