@@ -9208,19 +9208,14 @@
         "type" : "object",
         "description" : "사용자가 직접 helm install 시 필요한 values + 명령 snippet",
         "properties" : {
-          "repoAlias" : {
+          "chartRef" : {
             "type" : "string",
-            "description" : "helm install 시 사용할 chart 의 repo 이름 (사용자가 helm repo add 등록한 이름)",
-            "example" : "anycloud"
-          },
-          "repoUrl" : {
-            "type" : "string",
-            "description" : "chart 다운로드 URL (helm repo add 시 사용). 미설정 시 빈 값",
-            "example" : "https://ai-paas.github.io/helm-charts"
+            "description" : "chart 의 OCI 좌표. helm install 의 chart 인자로 그대로 사용",
+            "example" : "oci://ghcr.io/ai-paas/charts/cluster-agent"
           },
           "chartName" : {
             "type" : "string",
-            "description" : "chart 이름 (\"<repoAlias>/<chartName>\" 형식의 chart 부분)",
+            "description" : "chart 이름 (chartRef 의 마지막 segment)",
             "example" : "cluster-agent"
           },
           "chartVersion" : {
@@ -9241,7 +9236,7 @@
           "installCommand" : {
             "type" : "string",
             "description" : "복사-붙여넣기용 단일 라인 helm install 명령. valuesYaml 을 stdin 으로 전달.",
-            "example" : "helm install cluster-agent anycloud/cluster-agent --version 0.1.0 -n aipaas-system --create-namespace -f -"
+            "example" : "helm install cluster-agent oci://ghcr.io/ai-paas/charts/cluster-agent --version 0.1.0 -n aipaas-system --create-namespace -f -"
           }
         }
       },
