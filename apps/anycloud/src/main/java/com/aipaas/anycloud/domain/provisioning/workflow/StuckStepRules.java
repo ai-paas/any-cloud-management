@@ -6,16 +6,15 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 
 /**
- * 진행 중인 채로 멈춘 단계를 다시 실행할지 판단한다.
+ * 진행 중 상태로 정지한 단계의 재실행 여부 판정.
  *
- * <p>메시지를 즉시 ack 하면 크래시 때 RabbitMQ 가 재전달하지 않는다. 이 규칙이 그 단계를
- * 다시 실행할 대상으로 고른다.
+ * <p>메시지 즉시 ack 구조에서는 크래시 시 RabbitMQ 재전달 없음. 이 규칙이 재실행 대상을 선별.
  */
 public final class StuckStepRules {
 
     private StuckStepRules() {}
 
-    /** 상태가 이 중 하나면 아직 워크플로가 붙어 있어야 한다. */
+    /** 해당 상태 집합은 워크플로 연결이 유지돼야 하는 구간. */
     public static VmClusterWorkflowStep stepFor(VmClusterStatus status) {
         if (status == null) {
             return null;
@@ -25,13 +24,13 @@ public final class StuckStepRules {
             case BOOTSTRAPPING -> VmClusterWorkflowStep.BOOTSTRAP;
             case VERIFYING -> VmClusterWorkflowStep.VERIFY;
             case DELETING -> VmClusterWorkflowStep.DESTROY;
-                // 끝난 것을 다시 밀면 멀쩡한 클러스터를 부트스트랩한다.
+                // 완료된 단계를 재투입하면 정상 클러스터에 부트스트랩이 재실행.
             default -> null;
         };
     }
 
     /**
-     * @param staleAfter 단계의 최악 예산. 이보다 오래 붙잡고 있으면 진행이 아니라 멈춘 것으로 본다
+     * @param staleAfter 단계 최악 예산. 초과 점유 시 진행이 아닌 정지 상태로 판정
      */
     public static boolean needsRedrive(VmClusterEntity cluster, LocalDateTime now, Duration staleAfter) {
         if (cluster == null || stepFor(cluster.getProvisioningStatus()) == null) {

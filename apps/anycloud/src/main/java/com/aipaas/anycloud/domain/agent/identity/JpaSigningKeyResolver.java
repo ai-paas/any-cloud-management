@@ -14,17 +14,17 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * JWT signing key 를 DB 에 보관합니다. 메모리에만 두면 backend 가 재시작할 때마다 키가 바뀌어
- * 이미 발급된 registration_token 이 전부 검증에 실패합니다.
+ * JWT signing key 를 DB 에 보관. 메모리 보관 시 backend 재시작마다 키가 변경돼 기발급
+ * registration_token 전체가 검증 실패.
  *
- * <p>부팅 때 row 가 없으면 64바이트 난수를 만들어 넣습니다. replica 가 동시에 뜨면 둘 다 insert 를
- * 시도하는데, UNIQUE 제약으로 하나만 성공하고 진 쪽은 {@link DataIntegrityViolationException} 을
- * 받아 다시 읽습니다.
+ * <p>부팅 시 row 부재면 64바이트 난수 생성 후 삽입. replica 동시 기동 시 양쪽이 insert 를
+ * 시도하며 UNIQUE 제약으로 하나만 성공, 실패한 쪽은 {@link DataIntegrityViolationException}
+ * 수신 후 재조회.
  *
- * <p>{@code active=true} 중 가장 최근 row 를 씁니다. 키를 교체할 때는 새 row 를 넣고 이전 row 를
- * {@code active=false} 로 내리면 됩니다.
+ * <p>{@code active=true} 중 최신 row 사용. 키 교체 시 새 row 삽입 후 이전 row 를
+ * {@code active=false} 로 변경.
  *
- * <p>이 bean 이 있으면 starter 의 {@code PropertySigningKeyResolver} 는 등록되지 않습니다.
+ * <p>이 bean 존재 시 starter 의 {@code PropertySigningKeyResolver} 미등록.
  */
 @Slf4j
 @Component

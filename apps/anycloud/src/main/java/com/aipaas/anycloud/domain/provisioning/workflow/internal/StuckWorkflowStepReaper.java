@@ -20,13 +20,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 진행 중인 채로 멈춘 단계를 다시 실행한다.
+ * 진행 중 상태로 정지한 단계 재실행.
  *
- * <p>메시지를 즉시 ack 하므로 크래시가 나면 RabbitMQ 가 재전달하지 않는다. 이 루프가 없으면
- * 그 단계는 영영 멈춘 채로 남는다.
+ * <p>메시지 즉시 ack 구조라 크래시 시 RabbitMQ 재전달 없음. 이 루프가 없으면 해당 단계는 정지
+ * 상태로 잔존.
  *
- * <p>재전송하는 것은 <b>메시지</b>지 인프라가 아니다. 단계 서비스가 멱등하므로 이미 끝난 일을
- * 다시 실행해도 결과는 같다.
+ * <p>재전송 대상은 <b>메시지</b>이며 인프라는 대상 외. 단계 서비스가 멱등이라 완료된 작업의
+ * 재실행 결과는 동일.
  */
 @Slf4j
 @Component
@@ -45,7 +45,7 @@ public class StuckWorkflowStepReaper {
     @Value("${anycloud.vm-cluster.workflow.redrive.enabled:true}")
     private boolean enabled;
 
-    /** 단계의 최악 예산보다 길어야 한다. 짧으면 아직 도는 작업을 두 번 돌린다. */
+    /** 단계 최악 예산보다 커야 함. 작으면 실행 중인 작업이 중복 실행. */
     @Value("${anycloud.vm-cluster.workflow.processing-stale-after:PT180M}")
     private Duration staleAfter;
 
@@ -72,7 +72,7 @@ public class StuckWorkflowStepReaper {
     }
 
     private void publish(VmClusterEntity cluster, VmClusterWorkflowStep step) {
-        // 새 messageId 로 민다. 같은 id 로 밀면 처리 완료 가드가 걸러 아무 일도 일어나지 않는다.
+        // 신규 messageId 로 재투입. 동일 id 사용 시 처리 완료 가드에 걸려 미실행.
         VmClusterWorkflowMessage message = VmClusterWorkflowMessage.builder()
                 .messageId(UUID.randomUUID().toString())
                 .vmClusterId(cluster.getId())

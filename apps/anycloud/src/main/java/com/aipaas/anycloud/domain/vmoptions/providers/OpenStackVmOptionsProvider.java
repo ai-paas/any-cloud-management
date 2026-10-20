@@ -66,7 +66,7 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
                 .toList();
     }
 
-    /** 선택 상자에 담을 최대 개수. 카탈로그가 크면 화면이 못 쓰게 된다. */
+    /** 선택 목록 최대 개수. 카탈로그 규모가 크면 화면 사용성 저하. */
     private static final int OPTION_LIMIT = 200;
 
     /**
@@ -106,7 +106,7 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
         };
     }
 
-    /** 외부망은 UUID 로 지정한다. 이름을 함께 주지 않으면 화면에서 어느 망인지 알 수 없다. */
+    /** 외부망은 UUID 로 지정. 이름 미동반 시 화면에서 망 식별 불가. */
     @Override
     @CircuitBreaker(name = "csp-api", fallbackMethod = "listConfigOptionsWithLabelsFallback")
     public List<com.aipaas.anycloud.domain.vmoptions.api.ConfigOption> listConfigOptionsWithLabels(
@@ -134,8 +134,8 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
     }
 
     /**
-     * Neutron 카탈로그 주소는 배포마다 {@code /v2.0} 을 포함하기도 하고 아니기도 하다. 그대로 이어
-     * 붙이면 {@code /v2.0/v2.0/networks} 가 되어 404 로 끝난다.
+     * Neutron 카탈로그 주소의 {@code /v2.0} 포함 여부는 배포별 상이. 그대로 결합하면
+     * {@code /v2.0/v2.0/networks} 가 되어 404 응답.
      */
     static String neutronUrl(String endpoint, String path) {
         String base = endpoint.endsWith("/") ? endpoint.substring(0, endpoint.length() - 1) : endpoint;
@@ -308,7 +308,7 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
         return base.endsWith("/v2") ? base + "/images" : base + "/v2/images";
     }
 
-    /** 깨진 override 로 preflight 를 통째로 실패시키지 않는다: 카탈로그로 물러난다. */
+    /** 손상된 override 로 preflight 전체를 실패시키지 않음. 카탈로그 값으로 대체. */
     Map<String, String> endpointOverrides() {
         String raw = resolveCredential("OS_ENDPOINT_OVERRIDES");
         if (!StringUtils.hasText(raw)) {
@@ -545,8 +545,8 @@ public class OpenStackVmOptionsProvider extends AbstractVmOptionsProvider {
         }
 
         private String serviceEndpoint(String serviceType, String region) {
-            // 사설망 배포는 카탈로그가 외부에서 못 닿는 주소를 광고한다. Pulumi 쪽
-            // openstack:endpointOverrides 와 같은 자격증명 항목을 여기서도 본다.
+            // 사설망 배포는 카탈로그가 외부 접근 불가 주소를 광고. Pulumi 의
+            // openstack:endpointOverrides 와 동일한 자격증명 항목을 여기서도 참조.
             String override = endpointOverrides.get(serviceType.toLowerCase(Locale.ROOT));
             if (StringUtils.hasText(override)) {
                 return override.endsWith("/") ? override.substring(0, override.length() - 1) : override;

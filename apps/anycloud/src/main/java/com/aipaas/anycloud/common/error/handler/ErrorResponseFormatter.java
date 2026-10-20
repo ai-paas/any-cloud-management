@@ -18,11 +18,10 @@ public class ErrorResponseFormatter {
     }
 
     /**
-     * SSE 로 응답할지 판단합니다. URI 로도 보는 이유는 Accept 가 비었거나 와일드카드인 클라이언트
-     * 때문입니다.
+     * SSE 응답 여부 판정. Accept 가 비었거나 와일드카드인 클라이언트 때문에 URI 도 판정 대상.
      *
-     * <p>SSE endpoint 에 Accept: application/json 을 명시해 보내면 Spring 의 content negotiation 이
-     * SSE 를 거부해 500 으로 떨어집니다. 여기서 막을 수 없습니다.
+     * <p>SSE endpoint 에 Accept: application/json 을 명시하면 Spring 의 content negotiation 이
+     * SSE 를 거부해 500 응답. 이 지점에서 차단 불가.
      */
     public static boolean acceptsEventStream(HttpServletRequest request) {
         if (request == null) return false;
@@ -35,9 +34,9 @@ public class ErrorResponseFormatter {
     }
 
     /**
-     * SSE error event 로 직렬화합니다. 끝의 빈 줄은 event 종료 마커라 빼면 안 됩니다.
+     * SSE error event 직렬화. 마지막 빈 줄은 event 종료 마커이므로 제거 금지.
      *
-     * <p>직렬화가 실패하면 code 와 message 만 직접 escape 해 내보냅니다.
+     * <p>직렬화 실패 시 code 와 message 만 직접 escape 해 전송.
      */
     public String toSseErrorEvent(ErrorResponse response) {
         String json;
