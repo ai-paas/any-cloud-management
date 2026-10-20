@@ -31,7 +31,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 /**
- * {@link AdminAgentPolicyController} PUT 회귀 — validator 통합 + agent push + audit 흐름 보호.
+ * {@link AdminAgentPolicyController} PUT 회귀: validator 통합 + agent push + audit 흐름 보호.
  */
 class AdminAgentPolicyControllerTest extends AbstractUnitTest {
 
@@ -52,10 +52,10 @@ class AdminAgentPolicyControllerTest extends AbstractUnitTest {
     @BeforeEach
     void setUp() {
         // controller 가 AgentPolicyAuditService 에 위임. fleet audit 단위 테스트는 service 측에서.
-        // merge / diff logic 도 service. 실제 구현체 주입 — 행동 보존 검증.
+        // merge / diff logic 도 service. 실제 구현체 주입: 행동 보존 검증.
         mvc = MockMvcBuilders.standaloneSetup(new AdminAgentPolicyController(
                         kubeResourceService,
-                        new AgentPolicyValidator(), // 실제 validator — 룰 trigger 검증
+                        new AgentPolicyValidator(), // 실제 validator: 룰 trigger 검증
                         auditLogger,
                         clusterService,
                         policyAuditService,
@@ -66,7 +66,7 @@ class AdminAgentPolicyControllerTest extends AbstractUnitTest {
     }
 
     /**
-     * ww 의 diff 계산을 위해 applyChange 가 이전 snapshot 을 fetch — mock 이 빈 snapshot 반환.
+     * ww 의 diff 계산을 위해 applyChange 가 이전 snapshot 을 fetch: mock 이 빈 snapshot 반환.
      * 다른 의도가 없으면 모든 list 가 빈 상태로 시작. force/422 케이스도 동일하게 사용.
      */
     private void stubEmptyBeforeSnapshot() {
@@ -78,7 +78,7 @@ class AdminAgentPolicyControllerTest extends AbstractUnitTest {
     @Test
     void put_success_appliesAndAudits() throws Exception {
         stubEmptyBeforeSnapshot();
-        // secrets 가 deny 에 들어가 있어 HIGH severity 없음 — 정상 적용 예상
+        // secrets 가 deny 에 들어가 있어 HIGH severity 없음. 정상 적용 예상
         when(kubeResourceService.applyAgentConfig(
                         eq("c-1"), anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenReturn("99999");
@@ -187,7 +187,7 @@ class AdminAgentPolicyControllerTest extends AbstractUnitTest {
                         anyString(), anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenThrow(new KubeRoutingException("No active agent session"));
 
-        // 정책 자체는 통과해야 503 이 검증됨 — secrets 가 deny 에 들어가도록
+        // 정책 자체는 통과해야 503 이 검증됨. secrets 가 deny 에 들어가도록
         String body =
                 """
 				{
@@ -242,7 +242,7 @@ class AdminAgentPolicyControllerTest extends AbstractUnitTest {
                 .andExpect(jsonPath("$.data.appliedResourceVersion").value("50"));
     }
 
-    // =================== GGG — CCC merge-patch (RFC 7396) tests ===================
+    // =================== GGG: CCC merge-patch (RFC 7396) tests ===================
 
     private static final MediaType MERGE_PATCH_JSON = MediaType.valueOf("application/merge-patch+json");
 
@@ -270,7 +270,7 @@ class AdminAgentPolicyControllerTest extends AbstractUnitTest {
                         eq(""))) // resource_policy YAML 이 빈 string
                 .thenReturn("90");
 
-        // RFC 7396 — resourcePolicy: null 명시 → 비우기
+        // RFC 7396: resourcePolicy: null 명시 → 비우기
         String body = """
 				{ "resourcePolicy": null }
 				""";
@@ -302,7 +302,7 @@ class AdminAgentPolicyControllerTest extends AbstractUnitTest {
                         eq("c-1"), anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenReturn("91");
 
-        // allowedCharts 만 변경 — 다른 field 는 omit → 현재 값 유지
+        // allowedCharts 만 변경: 다른 field 는 omit → 현재 값 유지
         String body = """
 				{ "allowedCharts": ["new-repo/new-chart:1.0.0-2.0.0"] }
 				""";
@@ -332,7 +332,7 @@ class AdminAgentPolicyControllerTest extends AbstractUnitTest {
                         eq("c-1"), anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenReturn("92");
 
-        // RFC 7396 — allowedExecNamespaces: null → 빈 list 로 clear
+        // RFC 7396: allowedExecNamespaces: null → 빈 list 로 clear
         String body = """
 				{ "allowedExecNamespaces": null }
 				""";
@@ -355,8 +355,8 @@ class AdminAgentPolicyControllerTest extends AbstractUnitTest {
 
     @Test
     void legacyPatch_explicitNullResourcePolicy_keepsCurrent() throws Exception {
-        // 같은 body 의 application/json 은 legacy 동작 — null = keep
-        // current snapshot 이 HIGH warning 유발 안 하도록 — secrets / RBAC / webhook 모두 deny
+        // 같은 body 의 application/json 은 legacy 동작: null = keep
+        // current snapshot 이 HIGH warning 유발 안 하도록: secrets / RBAC / webhook 모두 deny
         AgentPolicySnapshot.ResourcePolicy currentPolicy = new AgentPolicySnapshot.ResourcePolicy(
                 "allow_all_discovered",
                 List.of(
@@ -380,7 +380,7 @@ class AdminAgentPolicyControllerTest extends AbstractUnitTest {
                 null,
                 null);
         when(kubeResourceService.getAgentConfig("c-1")).thenReturn(current);
-        // resource_policy YAML 이 "allow_all_discovered" 로 시작 — 현재 값이 유지됐다는 신호
+        // resource_policy YAML 이 "allow_all_discovered" 로 시작: 현재 값이 유지됐다는 신호
         when(kubeResourceService.applyAgentConfig(
                         eq("c-1"),
                         anyString(),

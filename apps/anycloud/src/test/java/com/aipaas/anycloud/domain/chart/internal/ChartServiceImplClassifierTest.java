@@ -8,7 +8,7 @@ import io.aipaas.cluster.agent.runtime.HelmRoutingException;
 import org.junit.jupiter.api.Test;
 
 /**
- * {@link com.aipaas.anycloud.domain.chart.internal.HelmExceptionMapper#toClassifiedException} 회귀 — agent 의 error_code string 을 의미별
+ * {@link com.aipaas.anycloud.domain.chart.internal.HelmExceptionMapper#toClassifiedException} 회귀: agent 의 error_code string 을 의미별
  * {@link ErrorCode} 로 정확히 분류하는지 확인. 운영자가 "agent 죽음 (503)" vs "정책에 막힘 (403)"
  * 즉시 구분할 수 있도록 핵심 매핑 lock.
  */
@@ -43,7 +43,7 @@ class ChartServiceImplClassifierTest {
 
     @Test
     void genericPermissionDenied_mapsTo403() {
-        // CHART_NOT_ALLOWED / NAMESPACE_NOT_ALLOWED 매칭 안 되는 PERMISSION_DENIED — 일반 403.
+        // CHART_NOT_ALLOWED / NAMESPACE_NOT_ALLOWED 매칭 안 되는 PERMISSION_DENIED: 일반 403.
         HelmRoutingException e = new HelmRoutingException(
                 "Agent UNINSTALL_ADDON returned PERMISSION_DENIED (UNAUTHORIZED): " + "some custom policy denied");
 
@@ -74,7 +74,7 @@ class ChartServiceImplClassifierTest {
 
     @Test
     void chartNotAllowed_priorityOverGenericPermissionDenied() {
-        // PERMISSION_DENIED 문자열도 포함된 CHART_NOT_ALLOWED 응답 — 더 구체적 mapping 우선해야.
+        // PERMISSION_DENIED 문자열도 포함된 CHART_NOT_ALLOWED 응답: 더 구체적 mapping 우선해야.
         HelmRoutingException e =
                 new HelmRoutingException("Agent INSTALL_ADDON returned PERMISSION_DENIED (CHART_NOT_ALLOWED): blah");
 
@@ -145,7 +145,7 @@ class ChartServiceImplClassifierTest {
 
     @Test
     void helmInstallFailed_timeout_mapsTo500HelmInstall() {
-        // timeout 도 K8s 단계 실패 — chart 해상 단어가 없으므로 HELM_INSTALL_FAILED (500).
+        // timeout 도 K8s 단계 실패: chart 해상 단어가 없으므로 HELM_INSTALL_FAILED (500).
         HelmRoutingException e = new HelmRoutingException(
                 "Agent INSTALL_ADDON returned FAILED (HELM_INSTALL_FAILED): " + "timed out waiting for the condition");
 

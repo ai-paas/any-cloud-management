@@ -19,7 +19,7 @@ import org.mockito.Mock;
  * 자격증명이 살아 있는지 확인한다.
  *
  * <p>등록만 하고 쓸 수 있는지는 프로비저닝을 걸어봐야 알았다. 리전 조회는 CSP API 를 실제로
- * 부르므로 그 자체가 검증이다 — 새 노출면을 만들지 않고 확인할 수 있다.
+ * 부르므로 그 자체가 검증이다. 새 노출면을 만들지 않고 확인할 수 있다.
  */
 class CredentialHealthTest extends AbstractUnitTest {
 

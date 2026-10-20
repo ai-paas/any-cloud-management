@@ -23,7 +23,7 @@ class ClusterConvergenceServiceImplTest {
     private final ClusterComponentObserver observer = mock(ClusterComponentObserver.class);
     private final RequestedAddonInspector addonInspector = mock(RequestedAddonInspector.class);
 
-    /** 테스트에서 대기 0 — 실제 지연은 설정값이라 로직만 검증한다. */
+    /** 테스트에서 대기 0: 실제 지연은 설정값이라 로직만 검증한다. */
     private ClusterConvergenceServiceImpl service(int maxAttempts) {
         when(addonInspector.inspect(any())).thenReturn(List.of());
         return new ClusterConvergenceServiceImpl(observer, addonInspector, maxAttempts, Duration.ZERO);

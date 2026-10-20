@@ -25,7 +25,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 /**
  * {@link AgentHealthMetricsBinder} 단위 테스트. SimpleMeterRegistry 로 metric 등록 확인.
  *
- * <p>실제 scheduling 은 검증하지 않고 {@code init()} + {@code scan()} 을 직접 호출 — gauge
+ * <p>실제 scheduling 은 검증하지 않고 {@code init()} + {@code scan()} 을 직접 호출: gauge
  * row 가 cluster 별로 등록됐는지 + 값이 ClusterHealth 와 일치하는지 확인.
  */
 class AgentHealthMetricsBinderTest extends AbstractUnitTest {
@@ -79,7 +79,7 @@ class AgentHealthMetricsBinderTest extends AbstractUnitTest {
 
         binder.scan();
 
-        // healthy gauge — alpha=1, bravo=0, charlie=0
+        // healthy gauge: alpha=1, bravo=0, charlie=0
         assertThat(meterRegistry
                         .get("anycloud.agent.healthy")
                         .tag("cluster", "alpha")
@@ -99,7 +99,7 @@ class AgentHealthMetricsBinderTest extends AbstractUnitTest {
                         .value())
                 .isEqualTo(0.0d);
 
-        // heartbeat age — charlie 는 신호 없음 → -1
+        // heartbeat age: charlie 는 신호 없음 → -1
         assertThat(meterRegistry
                         .get("anycloud.agent.heartbeat.age.seconds")
                         .tag("cluster", "alpha")
@@ -119,7 +119,7 @@ class AgentHealthMetricsBinderTest extends AbstractUnitTest {
                         .value())
                 .isEqualTo(-1.0d);
 
-        // stream active — alpha=1, others=0
+        // stream active: alpha=1, others=0
         assertThat(meterRegistry
                         .get("anycloud.agent.stream.active")
                         .tag("cluster", "alpha")
@@ -133,7 +133,7 @@ class AgentHealthMetricsBinderTest extends AbstractUnitTest {
                         .value())
                 .isEqualTo(0.0d);
 
-        // status — per cluster + per status label, current=1
+        // status: per cluster + per status label, current=1
         assertThat(meterRegistry
                         .get("anycloud.agent.status")
                         .tags("cluster", "alpha", "status", "ACTIVE")
@@ -193,7 +193,7 @@ class AgentHealthMetricsBinderTest extends AbstractUnitTest {
     @Test
     void disabled_doesNotRegisterGauges() {
         ReflectionTestUtils.setField(binder, "enabled", false);
-        // fresh binder 인 척 — 실제로는 init 이 이미 호출됐으니, scan 만 noop 확인.
+        // fresh binder 인 척: 실제로는 init 이 이미 호출됐으니, scan 만 noop 확인.
         binder.scan();
         // scan 이 enabled=false 일 때 register 호출하지 않음 → 새 row 없음. 기존 메트릭 자체는 init 단계
         // 에서 register 됐을 수 있으나 row=0 이므로 .gauges() 가 비어 있어야 함.

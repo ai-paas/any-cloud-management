@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
  * 가용성 확인은 리전 목록 길이로 판정한다.
  *
  * <p>대부분은 리전 조회가 곧 인증 호출이라 그것으로 충분하다. AWS 만 SDK 에 박힌 정적 목록을
- * 돌려줘 자격증명을 건드리지도 않는다 — 완전히 가짜인 키가 '정상'으로 나왔다.
+ * 돌려줘 자격증명을 건드리지도 않는다. 완전히 가짜인 키가 '정상'으로 나왔다.
  */
 class CredentialVerificationTest extends AbstractUnitTest {
 

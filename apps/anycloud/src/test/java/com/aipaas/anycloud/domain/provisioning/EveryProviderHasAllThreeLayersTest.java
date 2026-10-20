@@ -68,7 +68,7 @@ class EveryProviderHasAllThreeLayersTest extends AbstractUnitTest {
      * 클래스 이름으로 짝을 짓는다. 빈을 만들려면 생성자 의존성을 모두 채워야 하는데, 그러면 이
      * 검사가 provider 하나 추가할 때마다 같이 손봐야 하는 또 다른 목록이 된다.
      *
-     * <p>이름 규칙이 깨지면 여기서 실패한다 — 빠뜨린 것을 놓치는 쪽보다 낫다.
+     * <p>이름 규칙이 깨지면 여기서 실패한다. 빠뜨린 것을 놓치는 쪽보다 낫다.
      */
     private static boolean mentions(String className, SupportedProvisioningProvider provider) {
         return className

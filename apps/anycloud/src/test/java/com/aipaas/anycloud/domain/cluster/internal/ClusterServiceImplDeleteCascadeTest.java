@@ -24,7 +24,7 @@ import org.springframework.http.HttpStatus;
 
 /**
  * ClusterServiceImpl.deleteCluster 의 cluster_agent cascade cleanup 회귀 보호.
- * DB 에 FK 없으므로 application-level 정리 — 본 test 가 정리 누락 조기 탐지.
+ * DB 에 FK 없으므로 application-level 정리: 본 test 가 정리 누락 조기 탐지.
  */
 class ClusterServiceImplDeleteCascadeTest extends AbstractUnitTest {
 
@@ -44,7 +44,7 @@ class ClusterServiceImplDeleteCascadeTest extends AbstractUnitTest {
         MockitoAnnotations.openMocks(this);
         // connectivity logic 은 ClusterConnectivityService 로 위임. delete cascade test 는
         // connectivity 와 무관해서 mock 으로 충분.
-        // MeterRegistry 는 실제 SimpleMeterRegistry — initMetrics() 가 호출되지 않더라도 NPE 회피.
+        // MeterRegistry 는 실제 SimpleMeterRegistry: initMetrics() 가 호출되지 않더라도 NPE 회피.
         service = new ClusterServiceImpl(
                 clusterRepository,
                 org.mapstruct.factory.Mappers.getMapper(com.aipaas.anycloud.domain.cluster.mapper.ClusterMapper.class),
@@ -97,7 +97,7 @@ class ClusterServiceImplDeleteCascadeTest extends AbstractUnitTest {
 
         assertThatThrownBy(() -> service.deleteCluster("vm-1")).isInstanceOf(CustomException.class);
 
-        // Critical: PULUMI 거부 시 cascade / delete 모두 호출 안 됨 — side-effect 없음.
+        // Critical: PULUMI 거부 시 cascade / delete 모두 호출 안 됨. side-effect 없음.
         verify(clusterAgentRepository, never()).deleteByClusterName(anyString());
         verify(clusterRepository, never()).delete(org.mockito.ArgumentMatchers.any(ClusterEntity.class));
     }
@@ -116,5 +116,5 @@ class ClusterServiceImplDeleteCascadeTest extends AbstractUnitTest {
     // lenient (case-insensitive / trim) fallback 제거. 본 test 가 가정하던
     // findAll() + stream filter 매칭은 더 이상 작동 안 함. 운영 환경에서 row id 가 정규화되어 있으면
     // findById exact 만으로 충분. lenient 매칭이 필요해지면 controller 측에서 input normalization 권장.
-    // 본 test 는 design intent 변경에 따라 삭제 — strict ID 매칭이 새 contract.
+    // 본 test 는 design intent 변경에 따라 삭제: strict ID 매칭이 새 contract.
 }

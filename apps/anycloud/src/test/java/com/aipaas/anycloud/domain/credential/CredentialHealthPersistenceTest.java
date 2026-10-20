@@ -24,7 +24,7 @@ import org.mockito.Mock;
  * 확인 결과를 남긴다.
  *
  * <p>화면 상태로만 두면 새로고침하면 사라지고 사용자마다 각자 확인해야 한다. 반대로 페이지를 열
- * 때마다 전부 다시 확인하면 CSP 요청 제한에 걸린다 — 오래된 것만 다시 본다.
+ * 때마다 전부 다시 확인하면 CSP 요청 제한에 걸린다. 오래된 것만 다시 본다.
  */
 class CredentialHealthPersistenceTest extends AbstractUnitTest {
 

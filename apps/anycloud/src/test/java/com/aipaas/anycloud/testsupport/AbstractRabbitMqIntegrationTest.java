@@ -23,14 +23,14 @@ import org.testcontainers.utility.DockerImageName;
  *
  *     @Test void install_addon_publishesToQueue() {
  *         publisher.publish(addonId);
- *         // RabbitMQ 통해 listener 가 처리 — 실제 broker 동작 검증
+ *         // RabbitMQ 통해 listener 가 처리: 실제 broker 동작 검증
  *     }
  * }
  * }</pre>
  *
  * <p>container reuse 활성화: {@code ~/.testcontainers.properties} 에 다음 추가
  * <pre>testcontainers.reuse.enable=true</pre>
- * 로컬 dev 에선 매 test 마다 container 재생성 회피 — 5-10초 절감.
+ * 로컬 dev 에선 매 test 마다 container 재생성 회피: 5-10초 절감.
  */
 @SpringBootTest
 @ActiveProfiles("test")

@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
  * 노드 수 대체값.
  *
  * <p>{@code provisioned ? int : Integer} 는 삼항 안에서 Integer 를 언박싱한다. 스냅샷이 없는 행에서
- * NPE 가 나 VM 목록 전체가 500 이 됐다 — 삭제된 행은 스냅샷이 지워지므로 드문 경우가 아니다.
+ * NPE 가 나 VM 목록 전체가 500 이 됐다. 삭제된 행은 스냅샷이 지워지므로 드문 경우가 아니다.
  */
 class NodeCountFallbackTest extends AbstractUnitTest {
 

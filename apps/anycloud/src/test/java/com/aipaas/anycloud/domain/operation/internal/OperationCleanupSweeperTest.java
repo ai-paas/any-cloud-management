@@ -55,7 +55,7 @@ class OperationCleanupSweeperTest extends AbstractUnitTest {
         when(repo.deleteCompletedBefore(any(LocalDateTime.class)))
                 .thenThrow(new RuntimeException("DB connection lost"));
 
-        // 예외 던지지 않아야 함 — scheduler chain 보호.
+        // 예외 던지지 않아야 함. scheduler chain 보호.
         sweeper.sweep();
 
         verify(repo, times(1)).deleteCompletedBefore(any());

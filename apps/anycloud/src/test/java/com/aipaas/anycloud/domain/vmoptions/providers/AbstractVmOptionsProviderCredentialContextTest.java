@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
  */
 class AbstractVmOptionsProviderCredentialContextTest {
 
-    /** 최소 fixture provider — base class 의 ThreadLocal/resolve 동작만 검증. */
+    /** 최소 fixture provider: base class 의 ThreadLocal/resolve 동작만 검증. */
     private static class FixtureProvider extends AbstractVmOptionsProvider {
         String capturedKey;
         String capturedValue;
@@ -63,7 +63,7 @@ class AbstractVmOptionsProviderCredentialContextTest {
         FixtureProvider p = new FixtureProvider();
         p.listSpecs(Map.of("AWS_ACCESS_KEY_ID", "AKIA1"), "us-east-1", null, false, 10);
 
-        // 호출 이후엔 ThreadLocal 이 clear — resolveCredential 직접 호출 시 env fallback 만.
+        // 호출 이후엔 ThreadLocal 이 clear: resolveCredential 직접 호출 시 env fallback 만.
         FixtureProvider p2 = new FixtureProvider();
         p2.listSpecs(Map.of(), "us-east-1", null, false, 10);
         // p2 의 capturedValue 가 "AKIA1" 이면 leak (지난 호출의 ThreadLocal 이 남음).
@@ -72,10 +72,10 @@ class AbstractVmOptionsProviderCredentialContextTest {
 
     @Test
     void blankCredentialValueFallsThroughToEnv() {
-        // map 에 key 가 있지만 value 가 blank — env fallback 으로 가야 함.
+        // map 에 key 가 있지만 value 가 blank: env fallback 으로 가야 함.
         FixtureProvider p = new FixtureProvider();
         p.listSpecs(Map.of("AWS_ACCESS_KEY_ID", "   "), "us-east-1", null, false, 10);
-        // blank 는 missing 으로 treat — capturedValue 는 env 의 값 (null 가능) 또는 비-blank.
+        // blank 는 missing 으로 treat: capturedValue 는 env 의 값 (null 가능) 또는 비-blank.
         // 핵심: blank string 이 그대로 통과되면 안 됨.
         assertThat(p.capturedValue == null || !p.capturedValue.isBlank()).isTrue();
     }

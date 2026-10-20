@@ -24,7 +24,7 @@ import org.springframework.data.domain.Pageable;
  *
  * <p>생성 도중 삭제하면 그 CREATE 는 다시 진행될 수 없는데도 RUNNING 으로 남아, 클러스터가 READY
  * 인데 화면은 "BOOTSTRAP_NODES_READY 64%" 를 보여줬다. 시간 기반 정리(2시간)로는 그 사이를
- * 메우지 못한다 — 새 작업이 뜨는 순간 앞선 작업의 운명은 이미 정해져 있다.
+ * 메우지 못한다. 새 작업이 뜨는 순간 앞선 작업의 운명은 이미 정해져 있다.
  */
 @MockitoSettings(strictness = Strictness.LENIENT)
 class SupersededOperationIsClosedTest extends AbstractUnitTest {

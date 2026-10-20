@@ -32,17 +32,17 @@ class AgentPolicyAuditServiceImplTest extends AbstractUnitTest {
 
     @BeforeEach
     void setUp() {
-        // Synchronous executor — test 환경에서 parallel 의 비결정성 회피.
+        // Synchronous executor: test 환경에서 parallel 의 비결정성 회피.
         service = new AgentPolicyAuditServiceImpl(
                 kubeResourceService,
-                new AgentPolicyValidator(), // 실제 validator — 룰 trigger 검증
+                new AgentPolicyValidator(), // 실제 validator: 룰 trigger 검증
                 clusterService,
                 Runnable::run);
     }
 
     @Test
     void runFleetAudit_mixedClusters_sortsHighFirst() {
-        // ACTIVE 2개 + INACTIVE 1개 — HIGH severity 가 ACTIVE 중 1개
+        // ACTIVE 2개 + INACTIVE 1개: HIGH severity 가 ACTIVE 중 1개
         ClusterEntity activeBad = ClusterEntity.builder()
                 .id("c-bad")
                 .status(ClusterStatus.ACTIVE)
@@ -64,7 +64,7 @@ class AgentPolicyAuditServiceImplTest extends AbstractUnitTest {
 
         when(clusterService.getClusterEntities()).thenReturn(List.of(activeGood, activeBad, inactive));
 
-        // c-bad: HIGH severity 유발 — allow_all_discovered + secrets 누락
+        // c-bad: HIGH severity 유발: allow_all_discovered + secrets 누락
         AgentPolicySnapshot bad = new AgentPolicySnapshot(
                 List.of("*"),
                 true,
@@ -77,7 +77,7 @@ class AgentPolicyAuditServiceImplTest extends AbstractUnitTest {
                 null);
         when(kubeResourceService.getAgentConfig("c-bad")).thenReturn(bad);
 
-        // c-good: secrets 가 deny — HIGH 없음 (MEDIUM 정도)
+        // c-good: secrets 가 deny: HIGH 없음 (MEDIUM 정도)
         AgentPolicySnapshot good = new AgentPolicySnapshot(
                 List.of("monitoring"),
                 false,
@@ -107,7 +107,7 @@ class AgentPolicyAuditServiceImplTest extends AbstractUnitTest {
         // HIGH 가 sort 의 첫 entry
         assertThat(clusters.get(0).get("clusterName")).isEqualTo("c-bad");
         assertThat(clusters.get(0).get("highestSeverity")).isEqualTo("HIGH");
-        // durationMs 포함 — parallel 효과 측정용
+        // durationMs 포함. parallel 효과 측정용
         assertThat(body).containsKey("durationMs");
     }
 
@@ -121,7 +121,7 @@ class AgentPolicyAuditServiceImplTest extends AbstractUnitTest {
                 .build();
         when(clusterService.getClusterEntities()).thenReturn(List.of(active));
 
-        // agent 가 응답 안 함 — KubeRoutingException
+        // agent 가 응답 안 함. KubeRoutingException
         when(kubeResourceService.getAgentConfig("c-1")).thenThrow(new KubeRoutingException("No active agent session"));
 
         Map<String, Object> body = service.runFleetAudit();

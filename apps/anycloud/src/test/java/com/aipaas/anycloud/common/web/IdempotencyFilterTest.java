@@ -102,7 +102,7 @@ class IdempotencyFilterTest extends AbstractUnitTest {
         filter.doFilter(req, res, controllerReturning(500, "{\"error\":\"boom\"}"));
 
         assertThat(res.getStatus()).isEqualTo(500);
-        // 5xx 는 캐싱하지 않음 — 재시도 마다 같은 5xx 받지 않도록.
+        // 5xx 는 캐싱하지 않음. 재시도 마다 같은 5xx 받지 않도록.
         verify(repository, never()).save(any(IdempotencyRecordEntity.class));
     }
 
@@ -131,7 +131,7 @@ class IdempotencyFilterTest extends AbstractUnitTest {
 
         assertThat(res.getStatus()).isEqualTo(202);
         assertThat(res.getContentAsString()).isEqualTo("{\"opId\":\"op-cached\"}");
-        // UX #5: replay 시 X-Idempotency-Replay: true — 클라이언트가 cached 응답임을 인지.
+        // UX #5: replay 시 X-Idempotency-Replay: true: 클라이언트가 cached 응답임을 인지.
         assertThat(res.getHeader(IdempotencyFilter.IDEMPOTENCY_REPLAY_HEADER)).isEqualTo("true");
         // body 가 보존되었으므로 truncated 헤더는 없어야 함.
         assertThat(res.getHeader(IdempotencyFilter.IDEMPOTENCY_BODY_TRUNCATED_HEADER))
@@ -160,7 +160,7 @@ class IdempotencyFilterTest extends AbstractUnitTest {
 
         assertThat(res.getStatus()).isEqualTo(202);
         assertThat(res.getContentAsString()).isEmpty();
-        // 두 헤더 모두 emit — 빈 body 가 의도된 결과임을 클라이언트가 알 수 있어야 함.
+        // 두 헤더 모두 emit: 빈 body 가 의도된 결과임을 클라이언트가 알 수 있어야 함.
         assertThat(res.getHeader(IdempotencyFilter.IDEMPOTENCY_REPLAY_HEADER)).isEqualTo("true");
         assertThat(res.getHeader(IdempotencyFilter.IDEMPOTENCY_BODY_TRUNCATED_HEADER))
                 .isEqualTo("true");

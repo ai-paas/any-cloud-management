@@ -47,7 +47,7 @@ class VmClusterNodeResolverImplTest {
 
     @Test
     void workerJoinListIsNotEmptyForJsonString() {
-        // 이 목록이 비면 worker 가 kubeadm join 을 하지 않는다 — 폴백이 없는 경로다.
+        // 이 목록이 비면 worker 가 kubeadm join 을 하지 않는다. 폴백이 없는 경로다.
         List<VmClusterNodeResolver.VmClusterNode> workers = resolver.readNodes(Map.of("nodes", NODES_JSON)).stream()
                 .filter(node -> "worker".equalsIgnoreCase(node.role()))
                 .toList();
@@ -70,7 +70,7 @@ class VmClusterNodeResolverImplTest {
 
     @Test
     void extraMasterHostsWorksForJsonString() {
-        // HA control plane — 폴백이 없어 JSON 문자열이면 추가 master 가 join 하지 못했다.
+        // HA control plane: 폴백이 없어 JSON 문자열이면 추가 master 가 join 하지 못했다.
         String ha = "[{\"role\":\"master\",\"publicIp\":\"1.1.1.1\",\"publicDns\":\"1.1.1.1\"},"
                 + "{\"role\":\"master\",\"publicIp\":\"2.2.2.2\",\"publicDns\":\"2.2.2.2\"}]";
 

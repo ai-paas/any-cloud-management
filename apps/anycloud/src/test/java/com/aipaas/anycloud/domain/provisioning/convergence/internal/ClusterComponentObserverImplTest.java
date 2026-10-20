@@ -100,7 +100,7 @@ class ClusterComponentObserverImplTest {
     @Test
     void observe_survivesUnavailableStackOutputs() {
         // stack 이 사라진 클러스터에서 관측이 예외로 워크플로우를 죽이면 안 된다.
-        // outputs 를 쓰지 않는 probe 는 그대로 관측된다 — agent 판정은 DB 만 읽는다.
+        // outputs 를 쓰지 않는 probe 는 그대로 관측된다. agent 판정은 DB 만 읽는다.
         ClusterComponent probed = stubComponent(ComponentType.AGENT, Requirement.REQUIRED, ComponentProbe.ready());
         ClusterComponentObserverImpl observer = observer(List.of(probed));
         when(provisioningService.stackOutputs(anyString(), anyBoolean(), any()))

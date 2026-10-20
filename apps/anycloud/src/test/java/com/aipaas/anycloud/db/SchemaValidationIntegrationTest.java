@@ -35,7 +35,7 @@ import org.testcontainers.containers.MariaDBContainer;
 @TestPropertySource(
         properties = {
             "spring.flyway.enabled=true",
-            // 운영과 동일 — Flyway 가 schema 를 만들고 JPA 는 매핑만 검증한다.
+            // 운영과 동일: Flyway 가 schema 를 만들고 JPA 는 매핑만 검증한다.
             "spring.jpa.hibernate.ddl-auto=validate"
         })
 class SchemaValidationIntegrationTest {

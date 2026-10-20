@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.aipaas.anycloud.domain.addon.model.AddonState;
 import org.junit.jupiter.api.Test;
 
-/** N-13 — AddonState helper 메서드 (isRetryable, isInFlight). */
+/** N-13: AddonState helper 메서드 (isRetryable, isInFlight). */
 class AddonStateTest {
 
     @Test

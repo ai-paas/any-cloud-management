@@ -24,7 +24,7 @@ import org.springframework.web.client.RestTemplate;
  *
  * <p>버그 시나리오: ChartMuseum 등 일부 helm repo server 가 response Content-Type 에 charset 를
  * 지정하지 않으면 Spring 의 StringHttpMessageConverter 가 RFC 2616 default 인 ISO-8859-1 로 디코딩.
- * UTF-8 multi-byte 문자 (em-dash {@code —} U+2014 = bytes {@code 0xE2 0x80 0x94}) 가 mojibake 가
+ * UTF-8 multi-byte 문자 (em-dash {@code: } U+2014 = bytes {@code 0xE2 0x80 0x94}) 가 mojibake 가
  * 되어 SnakeYAML 이 "special characters are not allowed" 로 reject. fix: byte[] 로 받은 후
  * 명시 UTF-8 변환.
  */
@@ -38,8 +38,8 @@ class ChartArchiveFetcherUtf8Test extends AbstractUnitTest {
 
     @Test
     void resolveChartUrl_parsesUtf8MultiByteIndex_withoutSpecialCharsError() {
-        // em-dash (—, U+2014) 가 chart description 에 들어간 index.yaml.
-        // 실제 ChartMuseum 응답에서 흔한 패턴 — prometheus, ingress-nginx 등 chart description 에 종종 포함.
+        // em-dash (: , U+2014) 가 chart description 에 들어간 index.yaml.
+        // 실제 ChartMuseum 응답에서 흔한 패턴: prometheus, ingress-nginx 등 chart description 에 종종 포함.
         String indexYaml =
                 """
 				apiVersion: v1
@@ -70,8 +70,8 @@ class ChartArchiveFetcherUtf8Test extends AbstractUnitTest {
                 .url("http://example.com/repo")
                 .build();
 
-        // resolveChartUrl 은 private — 본 테스트는 fetchEntry 를 통해 간접 검증.
-        // 다음 단계 (tgz download) 는 mock 안 했으므로 NPE 또는 다른 exception 으로 떨어짐 —
+        // resolveChartUrl 은 private: 본 테스트는 fetchEntry 를 통해 간접 검증.
+        // 다음 단계 (tgz download) 는 mock 안 했으므로 NPE 또는 다른 exception 으로 떨어짐.
         // 본 테스트의 통과 기준은 SnakeYAML 의 "special characters" 가 아니라는 것뿐.
         assertThatThrownBy(() -> fetcher.fetchEntry(repo, "test-chart", "1.0.0", "values.yaml"))
                 .satisfies(e -> {

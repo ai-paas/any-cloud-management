@@ -139,7 +139,7 @@ class ConfigSchemaOffersAccountValuesTest extends AbstractUnitTest {
     @Test
     void aFailedLookupLeavesTheRestOfTheSchemaIntact() {
         /*
-         * 조회 예외가 그대로 올라오면 폼이 통째로 비어 "설정할 것이 없는 CSP" 로 보인다 —
+         * 조회 예외가 그대로 올라오면 폼이 통째로 비어 "설정할 것이 없는 CSP" 로 보인다.
          * OpenStack 이 외부망 조회 404 하나로 필드 15개를 전부 잃었다.
          */
         List<ProviderConfigKey> schema = service.listConfigSchema("IBM", "cred-1", "jp-tok");

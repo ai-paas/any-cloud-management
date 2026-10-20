@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
  * 점프 호스트는 자격증명에 딸린다.
  *
  * <p>{@code -J} 는 내부 ssh 를 하나 더 띄우는데 그쪽에 인증 옵션을 실어 보낼 방법이 없다.
- * 컨테이너에는 {@code ~/.ssh/config} 가 없어 비밀번호 bastion 이면 publickey 로 시도하다 멈춘다 —
+ * 컨테이너에는 {@code ~/.ssh/config} 가 없어 비밀번호 bastion 이면 publickey 로 시도하다 멈춘다.
  * "Connection timed out during banner exchange" 로 실제로 막혔다. ProxyCommand 로 직접 짠다.
  */
 class SshJumpOptionsTest extends AbstractUnitTest {

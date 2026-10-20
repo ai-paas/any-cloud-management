@@ -20,7 +20,7 @@ import org.mockito.Mockito;
 /**
  * 진행률 역행 회귀 보호.
  *
- * <p>선언 순서만 검사하면 호출 순서가 어긋나도 통과한다 — ADDONS(64) 를 NODES_READY(60) 뒤에
+ * <p>선언 순서만 검사하면 호출 순서가 어긋나도 통과한다. ADDONS(64) 를 NODES_READY(60) 뒤에
  * 선언해 두고 앞에서 호출한 결함이 그렇게 살아남았다. 여기서는 bootstrap 을 실제로 돌려
  * reporter 가 받은 순서 그대로 percent 를 검증한다.
  */

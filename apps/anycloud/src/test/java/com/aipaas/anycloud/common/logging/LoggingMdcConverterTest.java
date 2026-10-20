@@ -45,7 +45,7 @@ class LoggingMdcConverterTest extends AbstractUnitTest {
 
     @Test
     void requestContextRendersBeforeWorkflowContext() {
-        // B6 회귀 방지 — request 단위(req/ip) 가 workflow(cluster/...) 보다 먼저 표시.
+        // B6 회귀 방지: request 단위(req/ip) 가 workflow(cluster/...) 보다 먼저 표시.
         Map<String, String> mdc = new LinkedHashMap<>();
         mdc.put(LoggingMdc.CLUSTER_NAME, "demo-aws-01");
         mdc.put(LoggingMdc.REQUEST_ID, "abc12345");

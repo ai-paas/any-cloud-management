@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 /**
  * 등록된 자격증명 값 보기.
  *
- * <p>값은 목록에 섞지 않는다 — 캐시와 로그에 남는다. 전용 경로로만 꺼내고 누가 언제 무엇을
+ * <p>값은 목록에 섞지 않는다. 캐시와 로그에 남는다. 전용 경로로만 꺼내고 누가 언제 무엇을
  * 봤는지 감사 로그에 남긴다.
  */
 class CredentialRevealTest extends AbstractUnitTest {

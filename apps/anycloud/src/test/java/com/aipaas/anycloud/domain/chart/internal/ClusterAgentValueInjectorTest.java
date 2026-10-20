@@ -56,7 +56,7 @@ class ClusterAgentValueInjectorTest extends AbstractUnitTest {
 
     @Test
     void clusterAgent_tlsDisabledDefault_noInjection() {
-        // backend TLS 비활성 (default) 면 본 injector 는 backend.tls 손 안 댐 — chart default
+        // backend TLS 비활성 (default) 면 본 injector 는 backend.tls 손 안 댐: chart default
         // (backend.tls.enabled=false) 가 그대로 사용됨. 명시 false 도 emit 하지 않음.
         String result = injector.enrich("cluster-agent", null);
 
@@ -214,7 +214,7 @@ class ClusterAgentValueInjectorTest extends AbstractUnitTest {
 
     @Test
     void parseImageRef_registryWithPort_safeSplit() {
-        // last-colon-after-last-slash 규칙 — 5000 포트가 tag 로 잘리지 않아야 함.
+        // last-colon-after-last-slash 규칙: 5000 포트가 tag 로 잘리지 않아야 함.
         ImageRef r = ClusterAgentValueInjector.parseImageRef("registry.local:5000/cluster-agent:dev");
         assertThat(r.repository()).isEqualTo("registry.local:5000/cluster-agent");
         assertThat(r.tag()).isEqualTo("dev");

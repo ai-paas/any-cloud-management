@@ -11,9 +11,9 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * UX #6 — provider config schema 발견성 endpoint 회귀 보호.
+ * UX #6: provider config schema 발견성 endpoint 회귀 보호.
  *
- * <p>{@code ProvisioningConfigRules} 와 schema 정합성 검증 — 두 곳이 분리되어 있으므로
+ * <p>{@code ProvisioningConfigRules} 와 schema 정합성 검증: 두 곳이 분리되어 있으므로
  * 중요 키들이 양쪽에 있는지 확인.
  */
 class ProviderConfigSchemaServiceImplTest extends AbstractUnitTest {

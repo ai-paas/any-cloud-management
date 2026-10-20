@@ -37,14 +37,14 @@ class ClusterStatusTransitionTest {
                 .isTrue();
         assertThat(ClusterStatus.AGENT_PENDING.canTransitionTo(ClusterStatus.INACTIVE))
                 .isTrue();
-        // fallback path — agent backfill 실패 시 UNKNOWN 으로 회귀 가능
+        // fallback path: agent backfill 실패 시 UNKNOWN 으로 회귀 가능
         assertThat(ClusterStatus.AGENT_PENDING.canTransitionTo(ClusterStatus.UNKNOWN))
                 .isTrue();
     }
 
     @Test
     void activeAndInactive_canFlipBackAndForth() {
-        // connectivity 변동 — day-2 운영의 정상 동작
+        // connectivity 변동: day-2 운영의 정상 동작
         assertThat(ClusterStatus.ACTIVE.canTransitionTo(ClusterStatus.INACTIVE)).isTrue();
         assertThat(ClusterStatus.INACTIVE.canTransitionTo(ClusterStatus.ACTIVE)).isTrue();
     }

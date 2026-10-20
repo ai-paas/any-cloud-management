@@ -15,7 +15,7 @@ import org.springframework.test.web.client.response.MockRestResponseCreators;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * providerSpec.zone 은 리전 드롭다운으로 채울 수 없다 — us-south 가 아니라 us-south-1 이다.
+ * providerSpec.zone 은 리전 드롭다운으로 채울 수 없다. us-south 가 아니라 us-south-1 이다.
  *
  * <p>자유 입력으로 두면 사용자가 IBM 존 명명 규칙을 외워야 하고, 틀린 값은 프로비저닝 도중에야
  * 드러난다. 계정마다 활성 zone 이 달라 {@code {region}-1} 로 넘겨짚을 수도 없다.
@@ -57,7 +57,7 @@ class IbmConfigOptionsTest extends AbstractUnitTest {
     @Test
     void theResourceGroupKeyOffersTheGroupsWithTheirNames() {
         /*
-         * 그룹 ID 는 콘솔을 열어 베껴 와야 하는 값이다. 계정에서 읽어 이름과 함께 준다 —
+         * 그룹 ID 는 콘솔을 열어 베껴 와야 하는 값이다. 계정에서 읽어 이름과 함께 준다.
          * ID 만 내려보내면 화면에 식별자가 그대로 떠 무엇을 고르는지 알 수 없다.
          */
         server.expect(MockRestRequestMatchers.requestTo("https://iam.cloud.ibm.com/identity/token"))

@@ -30,7 +30,7 @@ import org.mockito.Mock;
  *
  * <p>{@code stackOutputs} 는 Pulumi CLI 를 띄우고 원격 상태를 읽는 호출이다. 5분 주기 조정이
  * READY/DEGRADED 클러스터 전부에 대해 이걸 돌면 클러스터 수에 비례해 비용이 커진다. 지금 유일한
- * 컴포넌트인 agent probe 는 DB 만 읽어 outputs 가 필요 없다 — 필요한 쪽만 값을 당겨 쓰게 한다.
+ * 컴포넌트인 agent probe 는 DB 만 읽어 outputs 가 필요 없다. 필요한 쪽만 값을 당겨 쓰게 한다.
  */
 class ObserverLazyOutputsTest extends AbstractUnitTest {
 
@@ -51,7 +51,7 @@ class ObserverLazyOutputsTest extends AbstractUnitTest {
         return e;
     }
 
-    /** outputs 를 건드리지 않는 컴포넌트 — agent probe 와 같은 성격. */
+    /** outputs 를 건드리지 않는 컴포넌트: agent probe 와 같은 성격. */
     private ClusterComponent probeOnly(Supplier<Map<String, Object>> capture) {
         return new ClusterComponent() {
             @Override

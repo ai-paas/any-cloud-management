@@ -33,7 +33,7 @@ class K8sResponseSanitizerTest extends AbstractUnitTest {
 
     @Test
     void listWrapper_itemsManagedFields_removedFromEach() {
-        // K8s PodList 형태 — {items: [Pod, Pod, ...]}.
+        // K8s PodList 형태: {items: [Pod, Pod, ...]}.
         ObjectNode list = mapper.createObjectNode();
         ArrayNode items = list.putArray("items");
         items.add(pod("nginx-1"));
@@ -71,7 +71,7 @@ class K8sResponseSanitizerTest extends AbstractUnitTest {
 
     @Test
     void noMetadata_noChange() {
-        // 임의 JSON — metadata 노드 없음. nop.
+        // 임의 JSON: metadata 노드 없음. nop.
         ObjectNode obj = mapper.createObjectNode();
         obj.put("foo", "bar");
 
@@ -119,7 +119,7 @@ class K8sResponseSanitizerTest extends AbstractUnitTest {
         // key 는 보존, value 는 <redacted:N> 형태로 교체. N = 원본 base64 길이.
         assertThat(data.get("password").asText()).isEqualTo("<redacted:16>");
         assertThat(data.get("token").asText()).isEqualTo("<redacted:8>");
-        // 다른 metadata 는 그대로 — name / kind 보존.
+        // 다른 metadata 는 그대로: name / kind 보존.
         assertThat(secret.get("kind").asText()).isEqualTo("Secret");
         assertThat(secret.get("metadata").get("name").asText()).isEqualTo("my-secret");
     }
@@ -138,7 +138,7 @@ class K8sResponseSanitizerTest extends AbstractUnitTest {
     @Test
     void redactSecretValues_nonSecret_untouched() {
         ObjectNode pod = pod("nginx-1");
-        // pod 에 data 필드 추가 (인위적) — redact 대상 아님 확인.
+        // pod 에 data 필드 추가 (인위적). redact 대상 아님 확인.
         ObjectNode data = pod.putObject("data");
         data.put("config", "important-value");
 
@@ -153,7 +153,7 @@ class K8sResponseSanitizerTest extends AbstractUnitTest {
         ObjectNode list = mapper.createObjectNode();
         list.put("kind", "SecretList");
         ArrayNode items = list.putArray("items");
-        // SecretList 의 item 은 kind 필드 없을 수 있음 — list wrapper 가 SecretList 이면 무조건 redact.
+        // SecretList 의 item 은 kind 필드 없을 수 있음. list wrapper 가 SecretList 이면 무조건 redact.
         items.add(secretNoKind("s1", java.util.Map.of("k", "dmFsMQ==")));
         items.add(secretNoKind("s2", java.util.Map.of("k", "dmFsMg==")));
 
@@ -170,7 +170,7 @@ class K8sResponseSanitizerTest extends AbstractUnitTest {
         assertThat(K8sResponseSanitizer.redactSecretValues(null)).isNull();
         assertThat(K8sResponseSanitizer.redactSecretValues(mapper.nullNode()).isNull())
                 .isTrue();
-        // secret 에 data 없는 경우 — nop.
+        // secret 에 data 없는 경우: nop.
         ObjectNode secret = secret("empty", java.util.Map.of());
         secret.remove("data");
         K8sResponseSanitizer.redactSecretValues(secret);
@@ -191,7 +191,7 @@ class K8sResponseSanitizerTest extends AbstractUnitTest {
 
     private ObjectNode secretNoKind(String name, java.util.Map<String, String> data) {
         ObjectNode secret = mapper.createObjectNode();
-        // kind 필드 의도적으로 미설정 — SecretList items[] 에서 발견되는 형태.
+        // kind 필드 의도적으로 미설정: SecretList items[] 에서 발견되는 형태.
         ObjectNode meta = secret.putObject("metadata");
         meta.put("name", name);
         ObjectNode dataNode = secret.putObject("data");

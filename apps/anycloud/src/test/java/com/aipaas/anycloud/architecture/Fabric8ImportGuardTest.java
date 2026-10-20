@@ -30,7 +30,7 @@ class Fabric8ImportGuardTest {
 
     @Test
     void no_file_imports_fabric8() throws IOException {
-        // gradle 은 module rootDir 에서 test 실행 — apps/anycloud/src/main/java 가 정확한 경로.
+        // gradle 은 module rootDir 에서 test 실행: apps/anycloud/src/main/java 가 정확한 경로.
         assertThat(BACKEND_MAIN_SRC).as("backend main src 디렉토리").exists();
 
         TreeMap<String, TreeSet<String>> offenders = new TreeMap<>();

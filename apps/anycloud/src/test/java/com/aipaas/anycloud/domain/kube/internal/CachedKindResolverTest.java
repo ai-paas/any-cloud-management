@@ -23,8 +23,8 @@ import org.mockito.Mock;
  * <ol>
  *   <li>cache miss → agent 호출 1회 후 반환</li>
  *   <li>cache hit → agent 추가 호출 없음 (동일 cluster + kind)</li>
- *   <li>shortname 정규화 — 대소문자 다른 입력 동일 entry hit</li>
- *   <li>cluster 별 isolation — 같은 kind 라도 cluster 가 다르면 별도 entry</li>
+ *   <li>shortname 정규화: 대소문자 다른 입력 동일 entry hit</li>
+ *   <li>cluster 별 isolation: 같은 kind 라도 cluster 가 다르면 별도 entry</li>
  *   <li>invalidate(cluster) → 해당 cluster 만 flush, 다른 cluster 는 유지</li>
  *   <li>invalidateAll() → 전체 flush</li>
  *   <li>agent 예외 → hardcoded fallback (namespaced=false for cluster-scoped)</li>
@@ -81,7 +81,7 @@ class CachedKindResolverTest extends AbstractUnitTest {
         resolver.resolve("c1", "PODS");
         resolver.resolve("c1", "Pods");
 
-        // 1회만 agent 호출 — 대소문자 정규화로 동일 cache key.
+        // 1회만 agent 호출: 대소문자 정규화로 동일 cache key.
         verify(kubeResourceService, times(1)).resolveResource(eq("c1"), any());
     }
 

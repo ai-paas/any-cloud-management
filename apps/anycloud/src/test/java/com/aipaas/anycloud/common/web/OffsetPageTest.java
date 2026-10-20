@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 /**
  * 자르는 곳은 한 곳이어야 한다.
  *
- * <p>백엔드가 전량을 주고 중간 계층이 자르면 각 층이 서로 다른 페이지를 가정한다 — 실제로
+ * <p>백엔드가 전량을 주고 중간 계층이 자르면 각 층이 서로 다른 페이지를 가정한다. 실제로
  * 게이트웨이가 기본 20건으로 잘라 화면이 21번째부터를 영영 보지 못했다.
  */
 class OffsetPageTest extends AbstractUnitTest {

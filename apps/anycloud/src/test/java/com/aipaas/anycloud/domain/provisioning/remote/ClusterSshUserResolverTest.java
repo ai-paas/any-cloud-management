@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 /**
  * 접속 사용자는 그 클러스터를 만든 스택이 정한다.
  *
- * <p>전역 기본값으로 붙으면 Alibaba 만 publickey 거절로 막힌다 — 그 이미지에는 ubuntu 계정이
+ * <p>전역 기본값으로 붙으면 Alibaba 만 publickey 거절로 막힌다. 그 이미지에는 ubuntu 계정이
  * 없고 키가 root 에 들어간다. 화면에는 노드가 다 올라온 것으로 보여 원인이 드러나지 않는다.
  */
 class ClusterSshUserResolverTest extends AbstractUnitTest {

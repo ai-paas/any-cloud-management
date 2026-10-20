@@ -24,7 +24,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 /**
- * {@link AgentUpgradeServiceImpl} 회귀 lock —.
+ * {@link AgentUpgradeServiceImpl} 회귀 lock: .
  *
  * <p>Fleet upgrade trigger path 의 분기 회귀 lock. 회귀 시 in-flight upgrade 중복 trigger /
  * inactive cluster upgrade 시도 등 운영 incident 가능.
@@ -90,7 +90,7 @@ class AgentUpgradeServiceImplTest {
 
     @Test
     void upgradeCluster_noActiveAgent_throwsAgentNotActive() {
-        // 회귀 lock — REGISTERED 만 있고 ACTIVE 없으면 upgrade 시도 차단.
+        // 회귀 lock: REGISTERED 만 있고 ACTIVE 없으면 upgrade 시도 차단.
         ClusterAgentEntity registered = ClusterAgentEntity.builder()
                 .agentId("a1")
                 .clusterName("orb-001")
@@ -106,7 +106,7 @@ class AgentUpgradeServiceImplTest {
 
     @Test
     void upgradeCluster_upgradeInFlight_throwsConflict() {
-        // 회귀 lock — IN_PROGRESS 인 row 발견되면 중복 trigger 거부 (race 방지).
+        // 회귀 lock: IN_PROGRESS 인 row 발견되면 중복 trigger 거부 (race 방지).
         ClusterAgentEntity inFlight = ClusterAgentEntity.builder()
                 .agentId("a1")
                 .clusterName("orb-001")
@@ -124,7 +124,7 @@ class AgentUpgradeServiceImplTest {
 
     @Test
     void upgradeCluster_alreadyAtTarget_returnsNoOp_noApply() {
-        // 회귀 lock — agent_version 이 이미 target tag 와 일치하면 no-op 으로 안전 처리.
+        // 회귀 lock: agent_version 이 이미 target tag 와 일치하면 no-op 으로 안전 처리.
         ClusterAgentEntity active = ClusterAgentEntity.builder()
                 .agentId("a1")
                 .clusterName("orb-001")
@@ -177,7 +177,7 @@ class AgentUpgradeServiceImplTest {
 
     @Test
     void upgradeCluster_applyFails_marksFailedAndThrows() {
-        // 회귀 lock — APPLY_MANIFEST 실패 시 FAILED terminal state 로 즉시 전환 (운영자 재시도 가능).
+        // 회귀 lock: APPLY_MANIFEST 실패 시 FAILED terminal state 로 즉시 전환 (운영자 재시도 가능).
         ClusterAgentEntity active = ClusterAgentEntity.builder()
                 .agentId("a1")
                 .clusterName("orb-001")
@@ -202,7 +202,7 @@ class AgentUpgradeServiceImplTest {
 
     @Test
     void upgradeCluster_imageWithoutTag_treatedAsTagItself() {
-        // equalsImage helper 의 colon 없는 경우 — image 전체를 tag 로 비교.
+        // equalsImage helper 의 colon 없는 경우: image 전체를 tag 로 비교.
         ClusterAgentEntity active = ClusterAgentEntity.builder()
                 .agentId("a1")
                 .clusterName("orb-001")

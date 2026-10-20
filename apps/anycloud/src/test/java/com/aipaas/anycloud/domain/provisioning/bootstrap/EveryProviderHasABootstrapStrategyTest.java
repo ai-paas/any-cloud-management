@@ -22,7 +22,7 @@ import org.junit.jupiter.params.provider.EnumSource;
  * 인프라를 다 만든 뒤에야 전략이 없다는 것을 알면 늦다.
  *
  * <p>PROVISION 이 끝난 상태에서 BOOTSTRAP 이 즉시 실패하므로, 만들어진 인스턴스가 과금되는 채로
- * 남는다. IBM 이 실제로 그랬다 — {@code No VM cluster bootstrap strategy for provider IBM}.
+ * 남는다. IBM 이 실제로 그랬다. {@code No VM cluster bootstrap strategy for provider IBM}.
  */
 class EveryProviderHasABootstrapStrategyTest extends AbstractUnitTest {
 

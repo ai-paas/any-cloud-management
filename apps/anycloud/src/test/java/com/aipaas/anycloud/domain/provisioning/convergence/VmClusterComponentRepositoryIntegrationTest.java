@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
  * JPA 매핑이 실제 MariaDB 에서 동작하는지 확인.
  *
  * <p>이 테스트는 {@code ddl-auto=create-drop} 으로 만든 스키마를 쓴다 (test 프로파일이 Flyway 를
- * 끈다). 따라서 Flyway DDL 과의 일치는 검증하지 못한다 — 엔티티 애너테이션에 길이와 제약을 빠짐없이
+ * 끈다). 따라서 Flyway DDL 과의 일치는 검증하지 못한다. 엔티티 애너테이션에 길이와 제약을 빠짐없이
  * 적어야 두 경로가 같은 스키마를 만든다. cluster_addon 은 id 가 varchar(36) 으로 생성돼 42자 값
  * insert 가 항상 깨졌다.
  */

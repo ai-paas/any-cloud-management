@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 /**
  * ACTIVE 에서 내려오는 길이 없었다.
  *
- * <p>클러스터가 사라져 하트비트가 끊겨도 행은 ACTIVE 로 남는다. 화면만의 문제가 아니다 —
+ * <p>클러스터가 사라져 하트비트가 끊겨도 행은 ACTIVE 로 남는다. 화면만의 문제가 아니다.
  * 업그레이드 대상과 카탈로그가 status == ACTIVE 로 거르기 때문에 죽은 에이전트를 살아 있다고 센다.
  */
 class AgentLivenessTest extends AbstractUnitTest {

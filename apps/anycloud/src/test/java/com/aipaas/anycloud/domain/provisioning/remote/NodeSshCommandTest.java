@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 /**
  * 웹 터미널이 노드에 붙을 때 쓰는 ssh 명령.
  *
- * <p>대화형 셸이라 원격에 TTY 를 붙여야 한다. 비대화형 실행과 달리 명령을 붙이지 않는다 —
+ * <p>대화형 셸이라 원격에 TTY 를 붙여야 한다. 비대화형 실행과 달리 명령을 붙이지 않는다.
  * 붙이면 그것만 실행하고 끊긴다.
  */
 class NodeSshCommandTest extends AbstractUnitTest {

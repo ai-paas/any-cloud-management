@@ -50,7 +50,7 @@ class RequestedAddonEnrollerTest {
         verify(addonService).create(anyString(), spec.capture());
         assertThat(spec.getValue().catalogId()).isEqualTo("ingress-nginx");
         assertThat(spec.getValue().type()).isEqualTo(AddonType.INGRESS_NGINX);
-        // 나머지는 카탈로그 기본값을 쓴다 — 버전을 두 곳에 적으면 갈린다.
+        // 나머지는 카탈로그 기본값을 쓴다. 버전을 두 곳에 적으면 갈린다.
         assertThat(spec.getValue().chartVersion()).isNull();
         assertThat(spec.getValue().repoUrl()).isNull();
     }

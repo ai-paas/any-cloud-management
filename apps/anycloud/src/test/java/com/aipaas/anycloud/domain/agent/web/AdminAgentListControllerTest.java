@@ -21,7 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 /**
- * AdminAgentListController 회귀 보호 — GET /v1/admin/agents fleet list.
+ * AdminAgentListController 회귀 보호: GET /v1/admin/agents fleet list.
  */
 class AdminAgentListControllerTest extends AbstractUnitTest {
 
@@ -79,7 +79,7 @@ class AdminAgentListControllerTest extends AbstractUnitTest {
         when(queryService.query(any(), any(), any(), any(), anyInt(), anyInt()))
                 .thenReturn(new AdminAgentListResponse(List.of(), 0, 0, 50, 0));
 
-        // ACTIVE 만 valid, BOGUS 는 skip — controller 가 400 던지지 않고 그대로 진행
+        // ACTIVE 만 valid, BOGUS 는 skip: controller 가 400 던지지 않고 그대로 진행
         mvc.perform(get("/v1/admin/agents").param("status", "ACTIVE,BOGUS")).andExpect(status().isOk());
     }
 }

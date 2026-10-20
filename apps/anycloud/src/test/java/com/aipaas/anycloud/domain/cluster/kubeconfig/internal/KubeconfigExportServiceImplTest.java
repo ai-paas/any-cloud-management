@@ -26,7 +26,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 /**
- * {@link KubeconfigExportServiceImpl} 회귀 lock —.
+ * {@link KubeconfigExportServiceImpl} 회귀 lock: .
  *
  * <p>사용자에게 short-lived kubeconfig 를 발급하는 보안 critical path. 모든 분기 (OK / NO_ACTIVE_AGENT
  * / TIMEOUT / SessionClosed / 일반 실패 / 인터럽트) + default 처리 (ttl=3600 / displayName=clusterName /
@@ -44,7 +44,7 @@ class KubeconfigExportServiceImplTest {
     }
 
     // ============================================================================
-    // Happy path — agent OK response
+    // Happy path: agent OK response
     // ============================================================================
 
     @Test
@@ -67,7 +67,7 @@ class KubeconfigExportServiceImplTest {
     }
 
     // ============================================================================
-    // Defaults — null fields → fallback values
+    // Defaults: null fields → fallback values
     // ============================================================================
 
     @Test
@@ -207,12 +207,12 @@ class KubeconfigExportServiceImplTest {
 
     @Test
     void issue_timeout_mapsToTimeoutErrorCode() throws Exception {
-        // future 가 never-complete — get(timeout) 가 TimeoutException 발생.
+        // future 가 never-complete: get(timeout) 가 TimeoutException 발생.
         CompletableFuture<CommandResponse> pending = new CompletableFuture<>();
         when(sessionRegistry.sendCommand(any(), any(), anyInt())).thenReturn(pending);
 
-        // service 의 TIMEOUT 은 15s + 1000ms — 테스트 시간 짧게 줄여줄 방법 없음.
-        // 직접 ExecutionException 으로 TimeoutException 시뮬레이션 — future 가 TimeoutException 으로 complete.
+        // service 의 TIMEOUT 은 15s + 1000ms: 테스트 시간 짧게 줄여줄 방법 없음.
+        // 직접 ExecutionException 으로 TimeoutException 시뮬레이션: future 가 TimeoutException 으로 complete.
         CompletableFuture<CommandResponse> timedOut = new CompletableFuture<>();
         timedOut.completeExceptionally(new java.util.concurrent.TimeoutException("agent timeout"));
         when(sessionRegistry.sendCommand(any(), any(), anyInt())).thenReturn(timedOut);
@@ -225,9 +225,9 @@ class KubeconfigExportServiceImplTest {
 
     @Test
     void issue_interrupted_setsThreadInterruptAndThrows() throws Exception {
-        // future.get() 호출 중 thread 가 interrupt 된 시나리오 — 외부에서 ExecutionException 으로 wrap 못 됨.
+        // future.get() 호출 중 thread 가 interrupt 된 시나리오: 외부에서 ExecutionException 으로 wrap 못 됨.
         // CompletableFuture 가 InterruptedException 을 throw 하는 경로는 .get() 의 blocking 중.
-        // 단위 테스트로 시뮬레이션 어려움 — Thread.currentThread().interrupt() flag 만 검증.
+        // 단위 테스트로 시뮬레이션 어려움: Thread.currentThread().interrupt() flag 만 검증.
         CompletableFuture<CommandResponse> never = new CompletableFuture<>() {
             @Override
             public CommandResponse get(long timeout, java.util.concurrent.TimeUnit unit) throws InterruptedException {
@@ -245,7 +245,7 @@ class KubeconfigExportServiceImplTest {
                     .as("InterruptedException 캐치 시 thread interrupt flag 재설정 필수")
                     .isTrue();
         } finally {
-            // flag clear — 다른 테스트에 영향 주지 않도록.
+            // flag clear: 다른 테스트에 영향 주지 않도록.
             Thread.interrupted();
         }
     }

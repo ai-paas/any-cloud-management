@@ -11,7 +11,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * N-13 — AddonSpecResolver: catalog merge + custom 모드 + validation.
+ * N-13: AddonSpecResolver: catalog merge + custom 모드 + validation.
  */
 class AddonSpecResolverTest {
 

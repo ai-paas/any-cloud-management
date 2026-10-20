@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
 /**
- * VmClusterStateHistoryMapper 단위 테스트 — MapStruct instance ({@link Mappers#getMapper})
+ * VmClusterStateHistoryMapper 단위 테스트: MapStruct instance ({@link Mappers#getMapper})
  * round-trip 검증.
  */
 class VmClusterStateHistoryMapperTest {
@@ -58,7 +58,7 @@ class VmClusterStateHistoryMapperTest {
 
         assertThat(validTrue.isInvalidTransition()).isFalse();
         assertThat(validFalse.isInvalidTransition()).isTrue();
-        // null 은 invalid 로 단정 짓지 않음 — 기본 합의는 valid=true 의도.
+        // null 은 invalid 로 단정 짓지 않음. 기본 합의는 valid=true 의도.
         assertThat(validNull.isInvalidTransition()).isFalse();
     }
 

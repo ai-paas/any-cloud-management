@@ -10,11 +10,11 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
- * H2 — AfterCommitPublisher 의 핵심 거동 회귀 방지.
+ * H2: AfterCommitPublisher 의 핵심 거동 회귀 방지.
  * <ul>
  *   <li>활성 TX 가 없으면 즉시 실행 (fallback).</li>
  *   <li>활성 TX 가 있으면 commit 이후에만 실행, rollback (status != COMMITTED) 시 실행 안 함.</li>
- *   <li>action 이 예외 던져도 publish 자체는 throw 하지 않음 — 비즈니스 흐름 보호.</li>
+ *   <li>action 이 예외 던져도 publish 자체는 throw 하지 않음. 비즈니스 흐름 보호.</li>
  * </ul>
  */
 class AfterCommitPublisherTest extends AbstractUnitTest {
@@ -59,7 +59,7 @@ class AfterCommitPublisherTest extends AbstractUnitTest {
 
         publisher.publish("test", counter::incrementAndGet);
 
-        // rollback path — afterCommit 호출되지 않고 afterCompletion(ROLLED_BACK) 만.
+        // rollback path: afterCommit 호출되지 않고 afterCompletion(ROLLED_BACK) 만.
         for (TransactionSynchronization s : TransactionSynchronizationManager.getSynchronizations()) {
             s.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK);
         }
@@ -72,7 +72,7 @@ class AfterCommitPublisherTest extends AbstractUnitTest {
         publisher.publish("test", () -> {
             throw new RuntimeException("intentional");
         });
-        // 여기 도달했다는 자체가 검증 — assertion 불필요.
+        // 여기 도달했다는 자체가 검증: assertion 불필요.
     }
 
     @Test

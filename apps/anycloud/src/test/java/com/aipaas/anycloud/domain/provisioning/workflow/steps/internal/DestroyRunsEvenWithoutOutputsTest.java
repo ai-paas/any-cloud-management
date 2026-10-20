@@ -84,7 +84,7 @@ class DestroyRunsEvenWithoutOutputsTest extends AbstractUnitTest {
 
     @Test
     void aFailedStackWithNoOutputsIsStillDestroyed() {
-        // up 이 일찍 실패해 출력값이 없다 — 그래도 자원은 남아 있을 수 있다.
+        // up 이 일찍 실패해 출력값이 없다. 그래도 자원은 남아 있을 수 있다.
         when(provisioningService.stackOutputs(eq(STACK), anyBoolean(), any())).thenReturn(Map.of());
 
         service.execute("rehearsal-02");

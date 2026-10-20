@@ -40,7 +40,7 @@ class DefaultedFlagsReachTheSnapshotTest extends AbstractUnitTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    /** 프론트가 모니터링을 켠 채로 보낼 때 — 값 자체를 싣지 않는다. */
+    /** 프론트가 모니터링을 켠 채로 보낼 때: 값 자체를 싣지 않는다. */
     private ProvisionClusterRequest requestWithoutMonitoringFlag() {
         ProvisionClusterRequest cluster = new ProvisionClusterRequest();
         cluster.setClusterProvider("GCP");

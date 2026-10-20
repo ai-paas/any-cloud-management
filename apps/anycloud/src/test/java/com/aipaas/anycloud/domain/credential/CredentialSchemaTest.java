@@ -45,7 +45,7 @@ class CredentialSchemaTest extends AbstractUnitTest {
     @EnumSource(SupportedProvisioningProvider.class)
     void aFullyFilledFormPassesProvisioningValidation(SupportedProvisioningProvider provider) {
         /*
-         * 키 목록을 그대로 비교하면 택일 관계를 담지 못한다 — OCI 는 개인키 본문이나 경로 중
+         * 키 목록을 그대로 비교하면 택일 관계를 담지 못한다. OCI 는 개인키 본문이나 경로 중
          * 하나면 되는데, 목록 비교는 둘 다 화면에 있어야 한다고 우긴다.
          * 화면을 다 채웠을 때 검증을 통과하는지가 진짜 계약이다.
          */

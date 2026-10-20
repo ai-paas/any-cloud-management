@@ -79,11 +79,11 @@ class PathValidationRegressionTest extends AbstractUnitTest {
     private static <T> T withValidation(T controller) {
         ProxyFactory pf = new ProxyFactory(controller);
         pf.addAdvice(new MethodValidationInterceptor());
-        pf.setProxyTargetClass(true); // CGLIB — interface 없는 controller class 도 proxy
+        pf.setProxyTargetClass(true); // CGLIB: interface 없는 controller class 도 proxy
         return (T) pf.getProxy();
     }
 
-    /** 길이 초과 (K8S_NAME_MAX=63) — annotation 안에서 String.repeat 불가하므로 별도 상수. */
+    /** 길이 초과 (K8S_NAME_MAX=63). annotation 안에서 String.repeat 불가하므로 별도 상수. */
     private static final String NAME_TOO_LONG = "a".repeat(64);
 
     private static final String KIND_TOO_LONG = "a".repeat(51);
@@ -114,7 +114,7 @@ class PathValidationRegressionTest extends AbstractUnitTest {
         mvc.perform(get("/v1/clusters/demo-aws-01")).andExpect(status().is2xxSuccessful());
     }
 
-    // =============== K8s kind (K8S_KIND_PATTERN — 소문자만) ===============
+    // =============== K8s kind (K8S_KIND_PATTERN: 소문자만) ===============
 
     @ParameterizedTest(name = "GET /v1/clusters/c/namespaces/default/{0} → 400")
     @ValueSource(
@@ -146,7 +146,7 @@ class PathValidationRegressionTest extends AbstractUnitTest {
         mvc.perform(get("/v1/clusters/demo-aws-01/namespaces/default/pods")).andExpect(status().is2xxSuccessful());
     }
 
-    // =============== Namespace path (NAMESPACE_PATTERN — name 또는 -/_all sentinel) ===============
+    // =============== Namespace path (NAMESPACE_PATTERN: name 또는 -/_all sentinel) ===============
 
     @ParameterizedTest(name = "GET /v1/clusters/c/namespaces/{0}/pods → 400")
     @ValueSource(

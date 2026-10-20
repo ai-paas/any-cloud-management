@@ -13,7 +13,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
  *
  * <p>{@code ThreadPoolTaskExecutor} 는 {@code InitializingBean} 이라 스프링이 초기화를 한 번 더
  * 부른다. 그때 내부 {@code ThreadPoolExecutor} 가 새로 만들어지는데, 미터를 그 이전 객체에 걸어
- * 두면 그 객체는 버려져 회수되고 게이지는 약한 참조라 전부 NaN 이 된다 — 실제로 그랬다.
+ * 두면 그 객체는 버려져 회수되고 게이지는 약한 참조라 전부 NaN 이 된다. 실제로 그랬다.
  */
 class PoolMetricsSurviveSpringInitTest extends AbstractUnitTest {
 
@@ -29,7 +29,7 @@ class PoolMetricsSurviveSpringInitTest extends AbstractUnitTest {
         AsyncProperties properties = new AsyncProperties();
         ThreadPoolTaskExecutor executor = new AsyncConfig(properties, registry).bootstrapExecutor();
 
-        // 스프링이 InitializingBean 으로 한 번 더 부른다 — 내부 풀이 새로 만들어진다.
+        // 스프링이 InitializingBean 으로 한 번 더 부른다. 내부 풀이 새로 만들어진다.
         executor.afterPropertiesSet();
         System.gc();
 

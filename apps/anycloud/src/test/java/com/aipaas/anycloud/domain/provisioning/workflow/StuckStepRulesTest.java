@@ -46,7 +46,7 @@ class StuckStepRulesTest extends AbstractUnitTest {
 
     @Test
     void anInFlightClusterWithNoOwnerIsPushedAgain() {
-        // ack 는 됐는데 실행이 시작되지 못한 경우 — 크래시나 풀 거부.
+        // ack 는 됐는데 실행이 시작되지 못한 경우: 크래시나 풀 거부.
         VmClusterEntity c = cluster(VmClusterStatus.BOOTSTRAPPING, null, null);
 
         assertThat(StuckStepRules.needsRedrive(c, NOW, STALE_AFTER)).isTrue();

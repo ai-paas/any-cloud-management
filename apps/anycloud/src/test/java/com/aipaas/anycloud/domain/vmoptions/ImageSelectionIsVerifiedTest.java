@@ -24,7 +24,7 @@ import org.mockito.quality.Strictness;
  * 없는 이미지를 그대로 보내면 CSP 마다 다른 방식으로 죽는다.
  *
  * <p>IBM 은 pulumi-yaml 이 패닉해 Go 스택 수백 줄이 {@code lastError} 에 담긴다. 사용자는 그
- * 안에서 무엇이 문제인지 알 길이 없다 — 만들기 전에 막아야 한다.
+ * 안에서 무엇이 문제인지 알 길이 없다. 만들기 전에 막아야 한다.
  */
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ImageSelectionIsVerifiedTest extends AbstractUnitTest {
@@ -51,7 +51,7 @@ class ImageSelectionIsVerifiedTest extends AbstractUnitTest {
 
     @Test
     void anImageTheAccountCannotSeeIsRejected() {
-        // 키워드로는 없고 전체 목록은 나온다 — 그 값이 없는 것이다.
+        // 키워드로는 없고 전체 목록은 나온다. 그 값이 없는 것이다.
         when(vmOptionsService.getImages(anyString(), anyString(), anyString(), eq("ghost"), any(), any(), anyInt()))
                 .thenReturn(List.of());
         when(vmOptionsService.getImages(anyString(), anyString(), anyString(), eq(null), any(), any(), anyInt()))
@@ -72,7 +72,7 @@ class ImageSelectionIsVerifiedTest extends AbstractUnitTest {
     void whenTheCloudCannotBeReadTheChoiceIsNotBlocked() {
         /*
          * 목록 자체가 비면 CSP 를 못 읽는 상황이다. 여기서 막으면 CSP 장애 때 정상 요청까지
-         * 거절한다 — 그때는 Pulumi 가 더 정확한 진단을 준다.
+         * 거절한다. 그때는 Pulumi 가 더 정확한 진단을 준다.
          */
         when(vmOptionsService.getImages(anyString(), anyString(), anyString(), any(), any(), any(), anyInt()))
                 .thenReturn(List.of());

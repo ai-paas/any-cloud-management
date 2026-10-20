@@ -86,7 +86,7 @@ class ClusterControllerTest extends AbstractUnitTest {
                 .build();
     }
 
-    /** Step 2 Phase B — controller 가 *Domain 호출하므로 domain record stub. */
+    /** Step 2 Phase B: controller 가 *Domain 호출하므로 domain record stub. */
     private com.aipaas.anycloud.domain.operation.Operation stubOperationDomain(
             String id, OperationType type, String resourceId, OperationState state) {
         return org.mapstruct.factory.Mappers.getMapper(
@@ -96,7 +96,7 @@ class ClusterControllerTest extends AbstractUnitTest {
 
     @Test
     void createVmCluster_isRejected_useVmsEndpointInstead() throws Exception {
-        // VM 인프라 생성은 /v1/clusters 에서 제거됐다 — /v1/vms 로 분리. 잘못된 호출은 400.
+        // VM 인프라 생성은 /v1/clusters 에서 제거됐다. /v1/vms 로 분리. 잘못된 호출은 400.
         String body = json.writeValueAsString(java.util.Map.of(
                 "source", "vm",
                 "clusterName", "demo-aws-01",
@@ -175,7 +175,7 @@ class ClusterControllerTest extends AbstractUnitTest {
     @Test
     void createOperation_refreshStatus_returns202_evenWhenAlreadySucceeded() throws Exception {
         // UX #8: 항상 202 통일. Sync op (refreshStatus) 도 응답 body 의 state=SUCCEEDED 로 식별.
-        // 클라이언트는 state 만 보면 polling 필요 여부 판단 — HTTP code 분기 불필요.
+        // 클라이언트는 state 만 보면 polling 필요 여부 판단: HTTP code 분기 불필요.
         when(clusterFacade.createOperationDomain(anyString(), anyString()))
                 .thenReturn(stubOperationDomain(
                         "op-refresh01", OperationType.REFRESH_STATUS, "demo-aws-01", OperationState.SUCCEEDED));

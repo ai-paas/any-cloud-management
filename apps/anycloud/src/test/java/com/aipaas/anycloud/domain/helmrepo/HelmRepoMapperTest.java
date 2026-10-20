@@ -9,9 +9,9 @@ import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
 /**
- * HelmRepoMapper 단위 테스트 — MapStruct instance ({@link Mappers#getMapper}) 호출 round-trip 검증.
+ * HelmRepoMapper 단위 테스트: MapStruct instance ({@link Mappers#getMapper}) 호출 round-trip 검증.
  *
- * <p>검증: null-safe, round-trip, sensitive field 보존 (username/password 는 redaction 없음 — 그건
+ * <p>검증: null-safe, round-trip, sensitive field 보존 (username/password 는 redaction 없음. 그건
  * controller / DTO 책임).
  */
 class HelmRepoMapperTest {
@@ -58,7 +58,7 @@ class HelmRepoMapperTest {
 
     @Test
     void roundTrip_preservesPersistableFields() {
-        // JPA lifecycle 가 채우는 createdAt / updatedAt 은 mapper 의 entity 변환에서 제외 — domain 의 값은
+        // JPA lifecycle 가 채우는 createdAt / updatedAt 은 mapper 의 entity 변환에서 제외: domain 의 값은
         // "현재 상태 snapshot" 으로만 의미가 있다. 따라서 round-trip 비교는 persistable field 만.
         HelmRepo original = new HelmRepo(
                 "id-1",

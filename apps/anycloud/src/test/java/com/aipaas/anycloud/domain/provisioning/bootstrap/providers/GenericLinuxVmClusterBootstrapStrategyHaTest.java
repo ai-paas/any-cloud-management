@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 /**
  * HA control-plane (multi-master) 변경의 regression 보호.
  *
- * <p>Single master (masterCount=1, 기본) 는 legacy 동작 그대로 — kubeadm init 에
+ * <p>Single master (masterCount=1, 기본) 는 legacy 동작 그대로: kubeadm init 에
  * {@code --control-plane-endpoint} / {@code --upload-certs} 가 들어가면 안 된다.
  * Multi-master (masterCount>=2) 는 둘 다 들어가야 하고, control-plane join 명령은
  * {@code --control-plane} + {@code --certificate-key} 를 포함해야 한다.
@@ -23,7 +23,7 @@ class GenericLinuxVmClusterBootstrapStrategyHaTest extends AbstractUnitTest {
     private VmClusterInternalRequestSnapshot snapshot(Map<String, String> providerConfig) {
         LinkedHashMap<String, String> config =
                 providerConfig == null ? new LinkedHashMap<>() : new LinkedHashMap<>(providerConfig);
-        //  정상 생성 경로는 backend 가 항상 random joinToken 을 snapshot 에 영속화 — 그
+        //  정상 생성 경로는 backend 가 항상 random joinToken 을 snapshot 에 영속화: 그
         // invariant 를 test fixture 에도 반영 (없으면 strategy 가 fail-fast).
         config.putIfAbsent("anycloud-k8s:joinToken", "test1.token0123456789ab");
         return VmClusterInternalRequestSnapshot.builder().providerConfig(config).build();
@@ -112,7 +112,7 @@ class GenericLinuxVmClusterBootstrapStrategyHaTest extends AbstractUnitTest {
         assertThat(cmd).contains("--discovery-token-ca-cert-hash sha256:'deadbeef'");
         assertThat(cmd).contains("--control-plane");
         assertThat(cmd).contains("--certificate-key 'cert-key-abc'");
-        // 멱등성 — 이미 join 된 노드는 skip.
+        // 멱등성: 이미 join 된 노드는 skip.
         assertThat(cmd).contains("if [ ! -f /etc/kubernetes/kubelet.conf ]");
         // kubeconfig 복사로 extra master 도 kubectl 사용 가능.
         assertThat(cmd).contains("cp /etc/kubernetes/admin.conf /root/.kube/config");
@@ -120,7 +120,7 @@ class GenericLinuxVmClusterBootstrapStrategyHaTest extends AbstractUnitTest {
 
     @Test
     void initializeMaster_missingJoinToken_failsFast() {
-        //  공유 하드코딩 token fallback 제거 — snapshot 에 joinToken 이 없으면 즉시 실패해야
+        //  공유 하드코딩 token fallback 제거: snapshot 에 joinToken 이 없으면 즉시 실패해야
         // 한다 (silent 공유 token 으로 cluster 횡 이동 공격면이 생기는 것 차단).
         VmClusterInternalRequestSnapshot noToken = VmClusterInternalRequestSnapshot.builder()
                 .providerConfig(new LinkedHashMap<>())

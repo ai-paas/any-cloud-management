@@ -40,7 +40,7 @@ class VmClusterStatusTransitionTest {
                 .isTrue();
         assertThat(VmClusterStatus.READY.canTransitionTo(VmClusterStatus.FAILED))
                 .isTrue();
-        // READY → PROVISIONING 은 invalid — 명시 SCALING/UPGRADING 사용.
+        // READY → PROVISIONING 은 invalid: 명시 SCALING/UPGRADING 사용.
         assertThat(VmClusterStatus.READY.canTransitionTo(VmClusterStatus.PROVISIONING))
                 .isFalse();
     }
@@ -59,7 +59,7 @@ class VmClusterStatusTransitionTest {
         assertThat(VmClusterStatus.UPGRADING.canTransitionTo(VmClusterStatus.FAILED))
                 .isTrue();
 
-        // invalid — day-2 ops 가 직접 다른 step 으로 점프 금지
+        // invalid: day-2 ops 가 직접 다른 step 으로 점프 금지
         assertThat(VmClusterStatus.SCALING.canTransitionTo(VmClusterStatus.UPGRADING))
                 .isFalse();
         assertThat(VmClusterStatus.SCALING.canTransitionTo(VmClusterStatus.PROVISIONING))
@@ -68,7 +68,7 @@ class VmClusterStatusTransitionTest {
 
     @Test
     void ready_cannotJumpToBootstrappingOrVerifying() {
-        // READY 에서 중간 step 으로 점프는 invalid — 항상 SCALING/UPGRADING/DELETING 만 가능
+        // READY 에서 중간 step 으로 점프는 invalid: 항상 SCALING/UPGRADING/DELETING 만 가능
         assertThat(VmClusterStatus.READY.canTransitionTo(VmClusterStatus.BOOTSTRAPPING))
                 .isFalse();
         assertThat(VmClusterStatus.READY.canTransitionTo(VmClusterStatus.VERIFYING))

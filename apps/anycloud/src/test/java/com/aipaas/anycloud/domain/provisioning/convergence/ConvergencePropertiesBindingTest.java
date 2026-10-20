@@ -43,7 +43,7 @@ class ConvergencePropertiesBindingTest extends AbstractIntegrationTest {
 
     @Test
     void verifyBudgetStaysShort() {
-        // consumer 스레드 점유 상한이 이 값의 존재 이유다. 횟수가 아니라 총 예산을 지킨다 —
+        // consumer 스레드 점유 상한이 이 값의 존재 이유다. 횟수가 아니라 총 예산을 지킨다.
         // 5회 x 30초 = 2분으로, 1분 간격 3회와 같은 시간에 해상도만 두 배다.
         assertThat(verifyMaxAttempts).isEqualTo(5);
         assertThat(verifyInterval).isEqualTo(java.time.Duration.ofSeconds(30));

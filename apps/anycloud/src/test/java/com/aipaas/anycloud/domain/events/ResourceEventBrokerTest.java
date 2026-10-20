@@ -12,7 +12,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 /**
  * 화면이 새로고침 없이 최신을 보게 하는 채널.
  *
- * <p>데이터를 흘려보내지 않고 "무엇이 바뀌었다"는 신호만 보낸다. 데이터는 REST 가 계속 책임진다 —
+ * <p>데이터를 흘려보내지 않고 "무엇이 바뀌었다"는 신호만 보낸다. 데이터는 REST 가 계속 책임진다.
  * 스트림으로 실어 나르면 두 경로가 서로 다른 답을 하게 된다.
  */
 class ResourceEventBrokerTest extends AbstractUnitTest {

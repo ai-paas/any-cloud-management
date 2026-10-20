@@ -132,7 +132,7 @@ class ClusterFacadeImplPagedTest extends AbstractUnitTest {
     @Test
     void noSourceFilter_mergesBothSourcesByCreatedAtDescending() {
         // Registered rows seeded with later createdAt than vm rows so chronological merge places
-        // registered first — assertion documents the descending-by-createdAt contract.
+        // registered first: assertion documents the descending-by-createdAt contract.
         List<Cluster> registered = registeredRows(2);
         when(vmClusterService.listVmClusters(null, null, null)).thenReturn(vmRows(2));
         when(clusterService.findAllDomain()).thenReturn(registered);

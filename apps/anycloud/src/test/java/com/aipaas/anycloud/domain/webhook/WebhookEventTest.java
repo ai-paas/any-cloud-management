@@ -33,7 +33,7 @@ class WebhookEventTest extends AbstractUnitTest {
 
     @Test
     void eventTypeConstants() {
-        // 외부 계약 — 오타나 변경 시 즉시 잡힘.
+        // 외부 계약: 오타나 변경 시 즉시 잡힘.
         assertThat(WebhookEventTypes.VM_CLUSTER_READY).isEqualTo("vm-cluster.ready");
         assertThat(WebhookEventTypes.VM_CLUSTER_FAILED).isEqualTo("vm-cluster.failed");
         assertThat(WebhookEventTypes.VM_CLUSTER_BLOCKED).isEqualTo("vm-cluster.blocked");

@@ -18,7 +18,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
  * 락을 못 잡는 것은 일시적인 상황이지 메시지를 버릴 이유가 아니다.
  *
  * <p>BOOTSTRAP 은 자기 락을 쥔 채 다음 단계를 발행한다. VERIFY 가 그 순간 도착하면 락을 못 잡는데,
- * 조용히 반환하면 ack 되어 사라진다 — 워크플로가 영원히 BOOTSTRAP 에 머문다. 실제로 그랬다.
+ * 조용히 반환하면 ack 되어 사라진다. 워크플로가 영원히 BOOTSTRAP 에 머문다. 실제로 그랬다.
  *
  * <p>되돌리면 잠시 뒤 다시 와서 그때는 락이 비어 있다.
  */

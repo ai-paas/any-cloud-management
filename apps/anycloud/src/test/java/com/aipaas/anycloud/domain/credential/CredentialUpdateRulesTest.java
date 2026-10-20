@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 /**
  * 자격증명에서 무엇을 바꿔도 되는지.
  *
- * <p>이름과 프로바이더는 막는다 — vm_cluster 가 이름을 기록으로 들고 있고(삭제된 자격증명의
+ * <p>이름과 프로바이더는 막는다. vm_cluster 가 이름을 기록으로 들고 있고(삭제된 자격증명의
  * 유일한 흔적이다), 프로바이더가 바뀌면 키 구성 자체가 달라진다.
  */
 class CredentialUpdateRulesTest extends AbstractUnitTest {

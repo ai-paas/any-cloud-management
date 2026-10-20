@@ -10,7 +10,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 /**
  * 사설망 클러스터는 kubeconfig 를 받아도 그 자리에서 못 쓴다.
  *
- * <p>받아서 써 본 뒤에야 아는 것이 지금 동작이다 — OpenStack 은 floating IP 가 사설 대역이고
+ * <p>받아서 써 본 뒤에야 아는 것이 지금 동작이다. OpenStack 은 floating IP 가 사설 대역이고
  * 노드에 닿으려면 bastion 을 거친다.
  */
 class ApiServerReachTest extends AbstractUnitTest {

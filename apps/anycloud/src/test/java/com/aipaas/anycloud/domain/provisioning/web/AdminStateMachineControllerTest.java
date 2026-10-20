@@ -17,7 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 /**
- * AdminStateMachineController 회귀 보호 — graph 조회 + strict toggle.
+ * AdminStateMachineController 회귀 보호: graph 조회 + strict toggle.
  */
 class AdminStateMachineControllerTest extends AbstractUnitTest {
 

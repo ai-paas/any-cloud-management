@@ -94,7 +94,7 @@ class ClusterKubernetesControllerTest extends AbstractUnitTest {
                         .returnedItemCount(0)
                         .build());
 
-        // _all / - 모두 sentinel — 컨트롤러가 ns=null 로 전달해야 한다.
+        // _all / - 모두 sentinel: 컨트롤러가 ns=null 로 전달해야 한다.
         mvc.perform(get("/v1/clusters/demo-aws-01/namespaces/" + sentinel + "/pods"))
                 .andExpect(status().isOk());
         verify(kubeService).listResourcesPaginated(eq("demo-aws-01"), isNull(), eq("pods"), anyInt(), any(), any());
@@ -175,7 +175,7 @@ class ClusterKubernetesControllerTest extends AbstractUnitTest {
 
     // Note: @Min/@Max validation on query params (tailLines 1..10000, sinceSeconds 1..86400) 는 실제
     // Spring context 의 MethodValidationPostProcessor 를 통해 동작. 표준 standaloneSetup MockMvc 는
-    // 해당 interceptor 가 없어 회귀 테스트로 보호하기 어려움 — service 단에서도
+    // 해당 interceptor 가 없어 회귀 테스트로 보호하기 어려움: service 단에서도
     // Math.min(MAX_TAIL_LINES) 캡으로 defense-in-depth 적용됨 (KubeServiceImpl.getPodLogs).
 
     @Test
@@ -240,7 +240,7 @@ class ClusterKubernetesControllerTest extends AbstractUnitTest {
                 .andExpect(status().isCreated());
     }
 
-    // NOTE: path 정규식의 실제 검증 거동은 PathValidationRegressionTest 가 커버한다 —
+    // NOTE: path 정규식의 실제 검증 거동은 PathValidationRegressionTest 가 커버한다.
     // Spring AOP MethodValidationInterceptor 를 controller 에 직접 적용해 standalone MockMvc
     // 환경에서도 @Validated path/query parameter 검증이 ConstraintViolationException → 400 으로
     // 정상 매핑되는지 회귀 방지.

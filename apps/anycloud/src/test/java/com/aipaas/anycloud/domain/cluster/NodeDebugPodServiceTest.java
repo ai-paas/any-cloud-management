@@ -82,7 +82,7 @@ class NodeDebugPodServiceTest extends AbstractUnitTest {
     }
 
     /**
-     * 파라미터 이름은 agent 와의 계약이다. 틀리면 도구 셸을 요청해도 조용히 호스트 셸이 뜬다 —
+     * 파라미터 이름은 agent 와의 계약이다. 틀리면 도구 셸을 요청해도 조용히 호스트 셸이 뜬다.
      * 화면에는 터미널이 열리므로 실패로 보이지도 않는다.
      */
     @Test

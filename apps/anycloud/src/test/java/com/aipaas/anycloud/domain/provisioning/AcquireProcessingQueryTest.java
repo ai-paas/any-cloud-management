@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
  * 처리 중 소유권을 잡는 조건.
  *
  * <p>AMQP 재전달은 <b>같은 messageId</b> 를 쓴다. 조건에 {@code processingMessageId = :messageId}
- * 가 있으면 재전달이 자기 락을 다시 잡아 같은 작업이 두 번 돈다 — 실제로 30분마다 부트스트랩이
+ * 가 있으면 재전달이 자기 락을 다시 잡아 같은 작업이 두 번 돈다. 실제로 30분마다 부트스트랩이
  * 처음부터 다시 시작하는 것을 관측했다.
  *
  * <p>크래시 후 재시도는 stale 창이 열어준다. 같은 messageId 라는 이유만으로 열어주면 안 된다.

@@ -16,7 +16,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
  * 워크플로 단계가 넘칠 때 무엇을 희생할지.
  *
  * <p>PROVISION, BOOTSTRAP, VERIFY, DESTROY 가 이 풀 하나를 같이 쓴다. 한 단계는 최악 170분까지
- * 스레드를 잡는다. 넘쳤을 때 호출자 스레드에서 실행하면 그 호출자는 AMQP 리스너다 — 그 큐의
+ * 스레드를 잡는다. 넘쳤을 때 호출자 스레드에서 실행하면 그 호출자는 AMQP 리스너다. 그 큐의
  * 메시지 소비가 통째로 멈추고, ack 를 못 해 재전달 루프가 돌아온다.
  *
  * <p>거부하면 {@code WorkflowStepDispatcher} 가 락을 반납하고 메시지를 되돌린다. 잠시 뒤 다시 온다.
@@ -30,7 +30,7 @@ class BootstrapPoolSaturationTest extends AbstractUnitTest {
     }
 
     /**
-     * 실제 bootstrap 설정을 그대로 쓰되 크기만 줄인다 — 거부 정책은 건드리지 않아야 이 검사가
+     * 실제 bootstrap 설정을 그대로 쓰되 크기만 줄인다. 거부 정책은 건드리지 않아야 이 검사가
      * 진짜 운영 설정을 검증한다.
      */
     private AsyncProperties.Pool tinyPool() {

@@ -22,7 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 /**
- * AdminAgentController 회귀 보호 — heartbeat staleness threshold 조회/변경 endpoint.
+ * AdminAgentController 회귀 보호: heartbeat staleness threshold 조회/변경 endpoint.
  */
 class AdminAgentControllerTest extends AbstractUnitTest {
 

@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
  * 갓 만들어진 노드는 바로 SSH 를 받지 않는다.
  *
  * <p>7개를 동시에 띄웠을 때 한 노드가 늦게 부팅됐는데, 재시도 3회에 고정 10초라 20초 만에 포기하고
- * 클러스터가 통째로 실패했다 — "Failed during node preparation after 3 attempts". cloud-init
+ * 클러스터가 통째로 실패했다. "Failed during node preparation after 3 attempts". cloud-init
  * 타임아웃은 20분인데 그 예산을 써보지도 못했다.
  */
 class BootstrapRetryPolicyTest extends AbstractUnitTest {
