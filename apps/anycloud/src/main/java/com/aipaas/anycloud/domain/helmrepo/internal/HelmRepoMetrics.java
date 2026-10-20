@@ -46,8 +46,8 @@ public class HelmRepoMetrics {
     @Scheduled(fixedDelay = 30_000, initialDelay = 30_000)
     public void refresh() {
         try {
-            // 30초마다 도는 스케줄이라 전체 row 를 읽어 개수만 세면 repo 수에 비례해 비용이 는다.
-            // DB 에서 group by 로 집계한다.
+            // 30초 주기 스케줄이라 전체 row 조회로 개수만 세면 repo 수에 비례해 비용 증가.
+            // DB 의 group by 로 집계.
             Map<HelmRepoSource, Long> bySource = new EnumMap<>(HelmRepoSource.class);
             for (HelmRepoSource s : HelmRepoSource.values()) {
                 bySource.put(s, 0L);

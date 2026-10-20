@@ -30,11 +30,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * K8s 리소스 조회와 삭제입니다. 모든 호출이 {@link KubeResourceService} 를 통해 cluster-agent 로
- * 나갑니다. backend 는 K8s 클라이언트를 들고 있지 않습니다.
+ * K8s 리소스 조회와 삭제. 모든 호출이 {@link KubeResourceService} 를 거쳐 cluster-agent 로 전달.
+ * backend 는 K8s 클라이언트 미보유.
  *
- * <p>agent 호출 실패를 빈 결과로 돌려주지 않습니다. "조회 결과 없음" 과 구분되지 않아 200 으로
- * 나가기 때문입니다. 분류는 아래 {@code *Fallback} 메서드가 맡습니다.
+ * <p>agent 호출 실패를 빈 결과로 반환하지 않음. 조회 결과 없음과 구분되지 않아 200 응답이 됨.
+ * 분류는 아래 {@code *Fallback} 메서드 담당.
  */
 @Slf4j
 @Service("kubeServiceImpl")

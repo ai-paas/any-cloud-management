@@ -21,7 +21,7 @@ public final class CredentialUpdateRules {
         return values != null && !values.isEmpty();
     }
 
-    /** 빈 값으로 덮으면 조용히 못 쓰는 자격증명이 된다. */
+    /** 빈 값으로 덮으면 무음으로 사용 불가 자격증명이 됨. */
     public static boolean hasBlankValue(Map<String, String> values) {
         if (values == null) {
             return false;
@@ -29,7 +29,7 @@ public final class CredentialUpdateRules {
         return values.values().stream().anyMatch(v -> v == null || v.isBlank());
     }
 
-    /** 값을 바꿨으면 저장된 가용성 결과는 더 이상 그 값에 대한 것이 아니다. */
+    /** 값 변경 후 저장된 가용성 결과는 변경 전 값 기준. */
     public static boolean shouldRecheckHealth(Map<String, String> values) {
         return replacesValues(values);
     }

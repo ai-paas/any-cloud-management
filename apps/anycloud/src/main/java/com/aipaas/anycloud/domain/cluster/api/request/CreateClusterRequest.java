@@ -13,8 +13,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * {@code POST /v1/clusters} 의 body 입니다. {@code source} 값으로 VM 신규 생성과 외부 cluster
- * 등록을 구분합니다.
+ * {@code POST /v1/clusters} 의 body. {@code source} 값으로 VM 신규 생성과 외부 cluster 등록 구분.
  *
  * <pre>
  * # VM 신규 생성: Pulumi provision
@@ -30,7 +29,7 @@ import lombok.NoArgsConstructor;
  *   }
  * }
  *
- * # 외부 클러스터 등록: metadata 만 받습니다. 자격증명은 받지 않습니다.
+ * # 외부 클러스터 등록: metadata 만 수신. 자격증명은 대상 외.
  * {
  *   "source": "registered",
  *   "clusterName": "imported-aws-01",
