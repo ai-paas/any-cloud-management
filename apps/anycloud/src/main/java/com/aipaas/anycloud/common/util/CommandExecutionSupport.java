@@ -25,9 +25,10 @@ public final class CommandExecutionSupport {
     private CommandExecutionSupport() {}
 
     /**
-     * 모든 in-flight 프로세스에 SIGTERM 전파 후 {@code grace} 동안 종료 대기 — 잔여는 SIGKILL.
-     * Pulumi 는 SIGTERM 수신 시 checkpoint 저장 + lock 해제 후 종료하므로 stale lock 예방.
-     * Spring {@code @PreDestroy} (graceful shutdown hook) 에서 호출.
+     * 실행 중인 프로세스에 SIGTERM 을 보내고 {@code grace} 만큼 기다린 뒤 남은 것은 SIGKILL 합니다.
+     *
+     * <p>Pulumi 는 SIGTERM 을 받으면 checkpoint 를 저장하고 lock 을 풀고 나갑니다. 바로 SIGKILL 하면
+     * stale lock 이 남아 다음 실행이 막힙니다. {@code @PreDestroy} 에서 부르세요.
      */
     public static void shutdownAll(Duration grace) {
         if (ACTIVE_PROCESSES.isEmpty()) {
@@ -99,10 +100,10 @@ public final class CommandExecutionSupport {
     }
 
     /**
-     * streaming variant. stdout 는 line 단위로 {@code stdoutLine}
-     * consumer 로 push 되고, 동시에 전체 dump 도 {@link CommandExecutionResult#stdout()} 로 반환 (기존
-     * caller 호환). consumer 가 던지는 예외는 swallow + log — 한 줄 처리 실패가 전체 명령을 중단시키지
-     * 않는다.
+     * stdout 을 줄 단위로 {@code stdoutLine} 에 넘기면서 전체 dump 도 그대로 돌려줍니다.
+     *
+     * <p>consumer 가 던진 예외는 로그만 남기고 삼킵니다. 한 줄 처리 실패로 명령 전체를 중단시키지
+     * 않기 위해서입니다.
      */
     public static CommandExecutionResult executeStreaming(
             List<String> command,

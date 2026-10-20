@@ -12,11 +12,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 /**
- * 모든 {@link ApiSuccessResponse} 응답에 자동으로 meta(requestId/timestamp/processingTimeMs) 첨부.
- * 컨트롤러는 비즈니스 데이터만 채우고 envelope 메타는 신경 쓸 불필요.
- * <p>
- * 처리 시간은 {@link RequestMdcFilter} 와 다른 인터셉터가 설정한 {@code REQUEST_START_NS}
- * attribute 가 있으면 거기서 측정, 없으면 null.
+ * {@link ApiSuccessResponse} 에 meta(requestId, timestamp, processingTimeMs)를 자동으로 붙입니다.
+ * 컨트롤러는 데이터만 채우면 됩니다.
+ *
+ * <p>처리 시간은 {@code REQUEST_START_NS} attribute 로 잽니다. 그 attribute 를 심는
+ * {@link RequestMdcFilter} 를 타지 않은 요청이면 null 입니다.
  */
 @RestControllerAdvice
 public class ResponseEnvelopeAdvice implements ResponseBodyAdvice<Object> {

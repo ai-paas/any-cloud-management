@@ -3,12 +3,10 @@ package com.aipaas.anycloud.common.error.exception.provisioning;
 import com.aipaas.anycloud.common.error.enums.ErrorCode;
 
 /**
- * 일시적 provisioning 실패 — 외부 시스템 (Pulumi CLI / CSP API / SSH / K8s API) 의 네트워크
- * timeout, 503, transient 자격증명 갱신 지연 등. 호출자는 backoff 재시도가 의미 있음.
+ * 다시 해보면 될 수 있는 실패입니다. 네트워크 timeout, 503, 자격증명 갱신 지연 같은 것입니다.
  *
- * <p>HTTP 상태는 502 (UPSTREAM_FAILED) 로 매핑되며 응답 메시지에 "재시도 가능" 힌트 포함 권장.
- * 워크플로우 step 에서 본 예외가 던져지면 RabbitMQ retry interceptor 가 재처리하고, maxAttempts
- * 초과 시 DLQ 로 라우팅.
+ * <p>워크플로 step 에서 던지면 RabbitMQ retry interceptor 가 재처리하고 maxAttempts 를 넘기면 DLQ 로
+ * 보냅니다.
  */
 public class TransientProvisioningFailure extends ProvisioningException {
 

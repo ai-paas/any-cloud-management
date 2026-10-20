@@ -4,15 +4,15 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * 실패 원문을 사용자가 읽을 수 있는 한 줄로 바꾼다.
+ * 실패 원문을 사용자가 읽을 수 있는 한 줄로 바꿉니다.
  *
- * <p>{@code lastError} 에는 Pulumi stdout 이 통째로 들어간다. 수백 줄 안에서 {@code Out of host
- * capacity} 한 조각을 찾아내는 것은 이 시스템을 만든 사람만 할 수 있다.
+ * <p>{@code lastError} 에는 Pulumi stdout 이 통째로 들어갑니다. 수백 줄 안에서
+ * {@code Out of host capacity} 한 조각을 찾아내는 건 이 시스템을 만든 사람만 할 수 있습니다.
  *
- * <p>원문은 지우지 않는다 — 분류에 없는 실패는 여전히 원문으로만 알 수 있다.
+ * <p>원문은 지우지 않습니다. 분류에 없는 실패는 여전히 원문으로만 알 수 있습니다.
  */
 public enum ProvisioningFailureReason {
-    /** OCI 는 목록에 있어도 그 AD 에 자리가 없을 수 있다. 시점에 따라 바뀐다. */
+    /** OCI 는 목록에 있어도 그 AD 에 자리가 없을 수 있습니다. 시점에 따라 바뀝니다. */
     OUT_OF_CAPACITY(
             "선택한 리전에 지금 만들 수 있는 자리가 없습니다.",
             "다른 인스턴스 타입이나 리전을 고르거나, 잠시 뒤 다시 시도하세요.",
@@ -129,10 +129,10 @@ public enum ProvisioningFailureReason {
     }
 
     /**
-     * 원문에서 아는 실패를 찾는다.
+     * 원문에서 아는 실패를 찾습니다.
      *
-     * <p>앞에 선언된 것이 먼저다 — 용량 부족 메시지에 "capacity" 와 "quota" 가 함께 오는 CSP 가
-     * 있어, 더 구체적인 쪽을 위에 둔다. 모르는 실패는 {@code null} 이고 화면은 원문을 보여준다.
+     * <p>선언 순서가 곧 우선순위입니다. 용량 부족 메시지에 "capacity" 와 "quota" 가 함께 오는 CSP 가
+     * 있어 더 구체적인 쪽을 위에 둡니다. 모르는 실패는 {@code null} 이고 화면에는 원문이 나갑니다.
      */
     public static ProvisioningFailureReason from(String raw) {
         if (raw == null || raw.isBlank()) {

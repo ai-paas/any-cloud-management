@@ -18,15 +18,11 @@ public class ErrorResponseFormatter {
     }
 
     /**
-     * 요청이 SSE 응답을 받을 수 있는지 판단:
-     * <ol>
-     *   <li>Accept 헤더에 text/event-stream 포함, 또는
-     *   <li>request URI 가 SSE 전용 endpoint 패턴 (.../events) — Accept 누락 / wildcard 케이스 cover.
-     * </ol>
+     * SSE 로 응답할지 판단합니다. URI 로도 보는 이유는 Accept 가 비었거나 와일드카드인 클라이언트
+     * 때문입니다.
      *
-     * <p><b>한계</b>: 클라이언트가 명시적으로 Accept: application/json 을 SSE endpoint 에 보낸
-     * 경우 Spring content negotiation 이 SSE 응답을 거부 → 500 fallback. 정상 SSE 클라이언트는
-     * 항상 Accept: text/event-stream 송신.
+     * <p>SSE endpoint 에 Accept: application/json 을 명시해 보내면 Spring 의 content negotiation 이
+     * SSE 를 거부해 500 으로 떨어집니다. 여기서 막을 수 없습니다.
      */
     public static boolean acceptsEventStream(HttpServletRequest request) {
         if (request == null) return false;
@@ -39,16 +35,9 @@ public class ErrorResponseFormatter {
     }
 
     /**
-     * ErrorResponse → SSE 'error' event 직렬화.
+     * SSE error event 로 직렬화합니다. 끝의 빈 줄은 event 종료 마커라 빼면 안 됩니다.
      *
-     * <pre>
-     *   event: error
-     *   data: {"code":"INVALID_INPUT_VALUE","message":"...","status":400, ...}
-     *
-     * </pre>
-     *
-     * 마지막 빈 줄은 SSE 프로토콜 상 event 종료 마커. 직렬화 실패는 거의 불가능하나 fallback 으로
-     * code+message 만 직접 escape.
+     * <p>직렬화가 실패하면 code 와 message 만 직접 escape 해 내보냅니다.
      */
     public String toSseErrorEvent(ErrorResponse response) {
         String json;

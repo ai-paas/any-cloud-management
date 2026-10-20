@@ -8,34 +8,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * safe HTTP response 읽기 헬퍼.
+ * 응답을 {@code byte[]} 로 받아 UTF-8 로 직접 디코딩합니다.
  *
- * <p>{@link RestTemplate#exchange(String, HttpMethod, HttpEntity, Class)} 가 {@code String.class}
- * 로 호출되면 Spring 의 {@code StringHttpMessageConverter} 가 response 의 {@code Content-Type} 헤더
- * 에서 charset 을 찾고, 없으면 RFC 2616 default 인 -1 로 디코딩. multi-byte 문자
- * (em-dash {@code —} U+2014 = bytes {@code 0xE2 0x80 0x94}, 한글 등) 가 mojibake 가 되어
- * 후속 파서 (SnakeYAML / Jackson) 가 reject.
+ * <p>{@code String.class} 로 받으면 {@code StringHttpMessageConverter} 가 Content-Type 의 charset
+ * 을 보고, 없으면 ISO-8859-1 로 읽습니다. 한글과 em-dash 가 깨져 뒤따르는 SnakeYAML / Jackson 이
+ * 파싱을 거부합니다.
  *
- * <p>본 helper 는 {@code byte[]} 로 받은 후 명시적으로 디코딩 — server 의 Content-Type 헤더
- * 와 무관하게 항상 로 해석.
- *
- * <p><b>적용 권장 위치</b>:
- * <ul>
- *   <li>charset 미지정 server (ChartMuseum, OpenStack 일부 deployment, 자체 dev 서비스 등)</li>
- *   <li>YAML / SnakeYAML 으로 파싱하는 응답 (control char 검증 strict)</li>
- *   <li>multi-byte 문자 (em-dash / 한글 / 일본어 / 중국어) 가 포함될 가능성 있는 응답</li>
- * </ul>
- *
- * <p><b>이미 적용된 곳</b>:
- * <ul>
- *   <li>{@code ChartMetadataServiceImpl#fetchIndexYaml}</li>
- *   <li>{@code ChartArchiveFetcher#resolveChartUrl}</li>
- *   <li>{@code OpenStackVmOptionsProvider} — KKK 의 defensive fix</li>
- * </ul>
- *
- * <p><b>미적용 (안전 확인됨)</b>: OCI / GCP / Azure / DigitalOcean — public cloud API 모두
- * {@code Content-Type: application/json; charset=utf-8} 명시. 향후 새 provider 추가 시 본 helper
- * 사용 권장.
+ * <p>charset 을 명시하지 않는 서버(ChartMuseum, 일부 OpenStack) 응답을 파싱할 때 쓰세요.
  */
 public final class RestTemplateUtf8 {
 
@@ -44,9 +23,9 @@ public final class RestTemplateUtf8 {
     }
 
     /**
-     * 안전한 GET 응답 String 반환. response 의 status 또는 body null 처리는 caller 책임.
+     * GET 응답을 UTF-8 문자열로 돌려줍니다. status 확인은 호출자 책임입니다.
      *
-     * @return 디코딩된 응답 body. body 가 null 이면 빈 문자열.
+     * @return 디코딩된 body. body 가 null 이면 빈 문자열.
      */
     public static ResponseEntity<String> getAsUtf8String(RestTemplate restTemplate, String url, HttpHeaders headers) {
         ResponseEntity<byte[]> raw =

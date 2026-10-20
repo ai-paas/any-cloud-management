@@ -3,12 +3,10 @@ package com.aipaas.anycloud.common.error.exception.provisioning;
 import com.aipaas.anycloud.common.error.enums.ErrorCode;
 
 /**
- * 영구적 provisioning 실패 — 잘못된 입력 (provider 미지원 / region 없음 / spec 부적합),
- * permission 거부 (CSP IAM 부족), 자격증명 root cause 가 영구 (만료 / revoke) 등. 재시도해도
- * 동일 결과.
+ * 다시 해도 같은 결과인 실패입니다. 지원하지 않는 provider, 없는 region, IAM 권한 부족, 만료되거나
+ * 회수된 자격증명 같은 것입니다.
  *
- * <p>HTTP 상태는 ErrorCode 따라 4xx (입력) 또는 502 (외부 영구 거부). retry 정책은 본 예외를
- * 보면 즉시 DLQ 처리해야 함.
+ * <p>retry interceptor 는 이 예외를 보면 재시도하지 않고 바로 DLQ 로 보냅니다.
  */
 public class PermanentProvisioningFailure extends ProvisioningException {
 

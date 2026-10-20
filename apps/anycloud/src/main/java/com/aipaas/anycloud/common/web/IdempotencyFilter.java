@@ -27,14 +27,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 
 /**
- * Idempotency-Key 헤더 처리 (Stripe 패턴).
- * <ul>
- * <li>POST + Idempotency-Key 헤더 → 24h 동안 같은 key 가 다시 오면 첫 응답을 재현</li>
- * <li>같은 key 인데 body/path 가 다르면 409 Conflict</li>
- * <li>GET / 멱등 method 는 무시 (오버헤드 없음)</li>
- * </ul>
+ * Idempotency-Key 헤더를 처리합니다 (Stripe 패턴).
+ *
+ * <p>24시간 안에 같은 key 가 다시 오면 첫 응답을 그대로 재현합니다. key 는 같은데 body 나 path 가
+ * 다르면 409 입니다. {@code anycloud.idempotency.enabled=false} 로 끌 수 있습니다.
  */
-// anycloud.idempotency.enabled=false 로 비활성 가능 (slice 테스트 / 운영 측 개별 비활성).
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -61,9 +58,8 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     private static final Set<String> APPLIES_TO = Set.of("POST", "PATCH");
     private static final java.time.Duration TTL = java.time.Duration.ofHours(24);
     /**
-     * Response body cache 상한 (1 MB). 초과 응답은 status code 와 fingerprint 만 캐시되어 같은 key
-     * 재시도 시 빠른 short-circuit 으로 fall-through (replay body 없이 dedup 효과만 유지). chart
-     * deploy 같은 대용량 응답이 DB 를 부풀리거나 replay 메모리 spike 를 일으키지 않.
+     * 캐시할 응답 body 상한입니다. 넘으면 status 와 fingerprint 만 저장해 중복은 계속 걸러내되
+     * body 재현은 포기합니다. chart deploy 같은 대용량 응답이 DB 를 부풀리지 않게 하려는 것입니다.
      */
     private static final int MAX_CACHED_BODY_BYTES = 1_000_000;
 

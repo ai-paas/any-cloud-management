@@ -99,12 +99,9 @@ public class BeanConfig {
     }
 
     /**
-     * CSP API 전용 RestTemplate. 6 provider (GCP/Azure/OCI/Alibaba/OpenStack/DigitalOcean)
-     * 의 listSpecs / listImages 호출이 사용. fail-fast 짧은 timeout — 가짜 cred 또는 일시 장애 시
-     * controller 전체 latency 가 누적되지 않게.
-     *
-     * <p>vs default {@code restTemplate}: 후자는 Helm chart download / 외부 HTTPS 등 큰 payload 도
-     * 처리 (10s/10s). CSP API 는 metadata 만이라 짧게 잡아도 충분.
+     * CSP API 전용 RestTemplate 입니다. timeout 을 기본 {@code restTemplate} 보다 짧게 잡습니다.
+     * 자격증명이 틀렸거나 CSP 가 일시 장애일 때 controller 응답 시간이 누적되지 않게 하려는 것입니다.
+     * metadata 조회뿐이라 짧아도 충분합니다.
      */
     @Bean("cspRestTemplate")
     public RestTemplate cspRestTemplate(

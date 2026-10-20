@@ -102,16 +102,16 @@ public class AsyncConfig implements AsyncConfigurer {
     }
 
     /**
-     * 풀 게이지를 {@link ThreadPoolTaskExecutor} 에 건다.
+     * 풀 게이지를 {@link ThreadPoolTaskExecutor} 에 겁니다.
      *
-     * <p>내부 {@code ThreadPoolExecutor} 에 직접 걸면 안 된다 — 스프링이 InitializingBean 으로
-     * 초기화를 한 번 더 부르면서 그 객체를 새로 만들고, 버려진 객체는 회수된다. 게이지는 약한
-     * 참조라 그 순간 전부 NaN 이 된다.
+     * <p>내부 {@code ThreadPoolExecutor} 에 직접 걸면 안 됩니다. 스프링이 InitializingBean 으로
+     * 초기화를 한 번 더 부르면서 그 객체를 새로 만들고, 버려진 객체는 회수됩니다. 게이지는 약한
+     * 참조라 그 순간 전부 NaN 이 됩니다.
      */
     private void registerPoolGauges(ThreadPoolTaskExecutor executor, String poolName) {
         Tags tags = Tags.of("pool", poolName);
-        // 이름과 단위는 Micrometer ExecutorServiceMetrics 규약 그대로 — 대시보드와 기존 검사가
-        // 그 이름을 쓴다.
+        // 이름과 단위는 Micrometer ExecutorServiceMetrics 규약 그대로입니다. 대시보드와 기존 검사가
+        // 그 이름에 걸려 있습니다.
         gauge("executor.pool.core", "threads", executor, tags, ThreadPoolExecutor::getCorePoolSize);
         gauge("executor.pool.max", "threads", executor, tags, ThreadPoolExecutor::getMaximumPoolSize);
         gauge("executor.pool.size", "threads", executor, tags, ThreadPoolExecutor::getPoolSize);

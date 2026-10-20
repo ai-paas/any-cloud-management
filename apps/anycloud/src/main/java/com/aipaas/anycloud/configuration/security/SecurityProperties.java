@@ -8,22 +8,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
- * 백엔드 자체 정적 토큰 인증 설정.
- * <p>
- * 운영 환경에서는 외부 gateway가 인증을 담당하므로 기본값은 OFF다.
- * gateway 우회 호출을 차단하거나 staging/디버깅 시에 ON으로 켤 수 있도록 toggle 형태로 제공.
+ * 백엔드 자체 정적 토큰 인증 설정입니다. 운영에서는 gateway 가 인증을 맡으므로 기본값은 꺼짐이고,
+ * gateway 우회 호출을 막거나 staging 에서 디버깅할 때 켭니다.
  *
- * <pre>
- * security:
- *   auth:
- *     enabled: false                # 기본 OFF
- *     header: Authorization          # 또는 X-Internal-Token
- *     scheme: Bearer                  # 헤더가 Authorization 일 때만 사용. 빈 값이면 raw 토큰
- *     token: ${SECURITY_AUTH_TOKEN:}  # 사전 공유 시크릿
- *     public-paths:                   # 인증 우회 경로
- *       - /actuator/health
- *       - /docs/**
- * </pre>
+ * <p>{@code scheme} 은 {@code header} 가 {@code Authorization} 일 때만 씁니다. 비워 두면 헤더 값을
+ * raw 토큰으로 봅니다.
  */
 @Getter
 @Setter

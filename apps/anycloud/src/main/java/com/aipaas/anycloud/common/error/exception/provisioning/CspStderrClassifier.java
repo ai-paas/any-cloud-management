@@ -4,14 +4,13 @@ import com.aipaas.anycloud.common.error.enums.ErrorCode;
 import java.util.List;
 
 /**
- * Pulumi / CSP API stderr 를 transient / permanent 로 분류해 적절한 {@link ProvisioningException}
- * 으로 wrap.
+ * Pulumi / CSP stderr 를 transient 와 permanent 로 나눠 {@link ProvisioningException} 으로 감쌉니다.
  *
- * <p>분류 매트릭스는 {@code docs/operations/credential-failure-policy.md} § 2 가 단일 진실. 본 클래스의
- * 패턴 추가는 반드시 정책 문서를 먼저 갱신한 후 반영.
+ * <p>분류 매트릭스는 {@code docs/operations/credential-failure-policy.md} § 2 가 단일 출처입니다.
+ * 패턴을 추가하려면 정책 문서를 먼저 고치세요.
  *
- * <p>매칭 순서: permanent 우선. 어떤 패턴도 매칭 안 되면 default transient (외부 시스템의 일시 hiccup
- * 으로 가정 — false positive 가 false negative 보다 운영자에게 덜 위험).
+ * <p>permanent 를 먼저 맞춰보고, 아무 패턴에도 걸리지 않으면 transient 로 둡니다. 재시도해서 또
+ * 실패하는 편이 영구 실패를 조용히 포기하는 것보다 낫기 때문입니다.
  */
 public final class CspStderrClassifier {
 

@@ -1,13 +1,12 @@
 package com.aipaas.anycloud.common.error.exception.provisioning;
 
 /**
- * Pulumi CLI 실행 (up / preview / destroy / refresh) 자체가 실패한 경우. starter 의
- * {@code ProvisioningExecutionException} 과 의미적으로 동일하지만, anycloud host 측에서 추가
- * 컨텍스트 (cluster id / operation id) 를 함께 전달하기 위한 wrapper.
+ * Pulumi CLI 실행 자체가 실패했습니다. starter 의 {@code ProvisioningExecutionException} 에
+ * cluster id 와 operation id 를 얹어 전달합니다.
  *
- * <p>외부 시스템 호출이라 기본 {@link TransientProvisioningFailure} 로 분류 — 호출자는
- * "Pulumi 출력의 root cause 가 영구 (잘못된 region 등) 면 PermanentProvisioningFailure 로
- * 재분류" 하는 정책을 적용가능.
+ * <p>외부 호출이라 기본은 {@link TransientProvisioningFailure} 입니다. Pulumi 출력의 원인이
+ * 잘못된 region 처럼 영구적이면 호출자가 {@code PermanentProvisioningFailure} 로 다시 분류하세요.
+ * 그대로 두면 고칠 수 없는 실패를 계속 재시도합니다.
  */
 public class PulumiExecutionException extends TransientProvisioningFailure {
 

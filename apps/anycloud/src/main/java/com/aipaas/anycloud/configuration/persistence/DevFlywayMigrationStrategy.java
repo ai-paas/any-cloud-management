@@ -7,14 +7,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 /**
- * dev profile 전용 — 매 부팅 시 {@code flyway.repair()} 호출 후 {@code migrate()}.
+ * dev profile 에서만 부팅마다 {@code repair()} 를 먼저 부르고 {@code migrate()} 합니다.
  *
- * <p>이전 부팅이 V1 같은 migration 중간에 죽으면 flyway_schema_history 에 failed row 가
- * 남아서 다음 부팅이 ValidateException 으로 거부됨. dev iteration 흐름 끊김을 막기 위해 repair
- * 를 자동 선행 — failed row 삭제.
+ * <p>migration 중간에 죽으면 flyway_schema_history 에 failed row 가 남아 다음 부팅이
+ * ValidateException 으로 거부됩니다. dev 에서 그때마다 손으로 지우지 않으려는 것입니다.
  *
- * <p>운영(default profile / prod) 에선 본 bean 미적용 → Spring Boot 의 표준 검증 그대로
- * (broken history 면 즉시 부팅 실패). 운영에선 사람 손이 들어가야 하기 때문에 안전.
+ * <p>운영에는 이 bean 이 없습니다. 깨진 history 는 사람이 봐야 하므로 부팅이 실패하는 게 맞습니다.
  */
 @Slf4j
 @Configuration
@@ -22,9 +20,8 @@ import org.springframework.context.annotation.Profile;
 public class DevFlywayMigrationStrategy {
 
     /**
-     * Bean 이름은 클래스 이름과 다르게 — devtools restart 가 main + restart classloader
-     * 양쪽에서 @Configuration 을 로드하는 dev 시나리오에서 같은 이름의 bean 이 두 번
-     * 등록되는 충돌 회피.
+     * bean 이름을 클래스 이름과 다르게 둡니다. devtools restart 가 main 과 restart classloader
+     * 양쪽에서 @Configuration 을 읽어 같은 이름이면 두 번 등록되며 충돌합니다.
      */
     @Bean
     public FlywayMigrationStrategy devFlywayRepairAndMigrate() {

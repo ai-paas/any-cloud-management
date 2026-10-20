@@ -116,27 +116,18 @@ public class AuditInterceptor implements HandlerInterceptor {
     }
 
     /**
-     * URI path 에서 핵심 리소스 식별자 추정. 휴리스틱이므로 controller 가 더 정확한 값을
-     * 알면 별도 AuditLogger 호출로 덮어쓰기 가능.
-     * <p>
-     * 처리 규칙:
-     * <ol>
-     *   <li>action-suffix 단어 (cancel, retry, flush, install-all, enqueue, importKubeconfig,
-     *       rollback, operations 등) 가 끝에 오면 한 단계 위 segment 가 실제 ID
-     *       (예: {@code /operations/op-1/cancel} → {@code op-1}). 단 그 위 segment 가 collection
-     *       marker 면 collection-level custom method (예: {@code /clusters/importKubeconfig}) 라
-     *       식별자가 없어 null 반환.</li>
-     *   <li>그 외 마지막 segment 가 식별자.</li>
-     *   <li>(legacy) 옛 {@code :verb} 콜론 경로가 남아 들어오면 콜론 앞부분만 사용 — 모든 라우트는
-     *       colon-free 서브패스로 전환됐으나 방어적으로 유지.</li>
-     * </ol>
+     * URI 에서 리소스 식별자를 추정합니다. 휴리스틱이라 controller 가 더 정확히 알면 AuditLogger 를
+     * 직접 불러 덮어쓰세요.
+     *
+     * <p>{@code /clusters/importKubeconfig} 처럼 collection 에 거는 custom method 는 식별자가 없어
+     * null 을 돌려줍니다. {@code /operations/op-1/cancel} 의 {@code op-1} 과 구분하려면 action
+     * 앞 segment 가 collection 인지 봐야 합니다.
      */
     static String inferResourceId(HttpServletRequest request) {
         String uri = request.getRequestURI();
         if (uri == null || uri.isBlank()) return null;
 
-        // (legacy) 옛 :verb 콜론 경로 방어 — 모든 라우트는 colon-free 로 전환됐으나 잔존 호출 대비
-        // 콜론 앞부분만 사용.
+        // 옛 :verb 경로 방어. 모든 라우트가 colon-free 로 바뀌었지만 외부 호출이 남아 있을 수 있습니다.
         int colonIdx = uri.lastIndexOf(':');
         String mainPath = colonIdx >= 0 ? uri.substring(0, colonIdx) : uri;
 
