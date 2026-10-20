@@ -12,7 +12,7 @@ public interface ClusterConnectivityService {
     /**
      * Cluster 연결 가능 여부 — agent 의 fresh heartbeat 유무.
      *
-     * @return true = reachable, false = unreachable (예외 throw 안 함, 단 cluster 미존재 시
+     * @return true = reachable, false = unreachable (예외 throw 안 함, 단 cluster 가 없으면
      *         {@link com.aipaas.anycloud.common.error.exception.ClusterNotFoundException}).
      */
     boolean testClusterConnection(String clusterName);

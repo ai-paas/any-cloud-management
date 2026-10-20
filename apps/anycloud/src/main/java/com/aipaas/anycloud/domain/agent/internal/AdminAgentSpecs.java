@@ -16,10 +16,10 @@ public final class AdminAgentSpecs {
     private AdminAgentSpecs() {}
 
     /**
-     * @param statuses             null/empty → status filter 미적용
-     * @param clusterNames         null/empty → clusterName filter 미적용
-     * @param versionPrefix        null/blank → version filter 미적용
-     * @param lastSeenOlderThanSec null → lastSeen filter 미적용
+     * @param statuses             null 이거나 비면 status 로 거르지 않습니다
+     * @param clusterNames         null 이거나 비면 clusterName 으로 거르지 않습니다
+     * @param versionPrefix        null 이거나 비면 version 으로 거르지 않습니다
+     * @param lastSeenOlderThanSec null 이면 lastSeen 으로 거르지 않습니다
      * @param now                  응답 시점 (test 주입용)
      */
     public static Specification<ClusterAgentEntity> combine(
@@ -29,8 +29,8 @@ public final class AdminAgentSpecs {
             Long lastSeenOlderThanSec,
             LocalDateTime now) {
         /*
-         * 클러스터가 사라진 agent 행은 숨긴다. 삭제해도 행이 남아, 목록 57 건 중 56 건이 이미
-         * 없는 클러스터의 DEGRADED 로 채워졌다 — 살아 있는 agent 한 건이 그 안에 묻힌다.
+         * cluster 가 사라진 agent 행은 숨깁니다. 삭제해도 행이 남아 목록이 없는 cluster 의
+         * DEGRADED 로 채워지고, 살아 있는 agent 가 그 안에 묻힙니다.
          */
         Specification<ClusterAgentEntity> spec = (root, query, cb) -> {
             var sub = query.subquery(Long.class);

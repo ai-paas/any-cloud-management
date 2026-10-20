@@ -1,32 +1,12 @@
-// Ensure ConfigMap annotation backfill — ENSURE_AGENT_CONFIG_ANNOTATIONS handler.
+// ENSURE_AGENT_CONFIG_ANNOTATIONS 핸들러. ConfigMap 에 helm.sh/resource-policy: keep 이
+// 없으면 붙인다. chart 가 이 annotation 을 넣기 전에 만들어진 ConfigMap 을 메우기 위한 것이다.
 //
-// Helm chart 이 ConfigMap 에 `helm.sh/resource-policy: keep` annotation 을 붙이기 전 (legacy
-// 배포) 에 만들어진 ConfigMap 을 멱등적으로 backfill. data 는 절대 건드리지 않음 — annotation
-// 만 patch. backend 가 startup 시 모든 ACTIVE cluster 에 호출 → 안전하게 반복 호출 가능.
+// data 는 건드리지 않고 annotation 만 고친다. 이미 붙어 있으면 Update 를 아예 부르지 않고
+// already_present 로 답한다. backend 가 부팅마다 모든 cluster 에 호출해도 Get 한 번씩이라
+// K8s API 부하가 거의 없다.
 //
-// 데이터 흐름:
-//
-//	backend ──(ENSURE_AGENT_CONFIG_ANNOTATIONS)──▶ dispatcher.ensureAgentConfigAnnotations
-//	                                                       │
-//	                                                       ▼
-//	                                       CoreV1().ConfigMaps(ns).Get(name)
-//	                                                       │
-//	                                                       ▼ annotation 검사
-//	                                       이미 keep ──▶ already_present=true, no Update
-//	                                       없음    ──▶ annotations[helm.sh/resource-policy]=keep
-//	                                                       │  ↺ Conflict 시 3 회 재시도
-//	                                                       ▼
-//	                                       return {ensured, resource_version, already_present}
-//
-// 에러 분류 — apply_config.go 와 동일 분류 (data 만 안 건드릴 뿐 K8s ops 는 같은 RBAC path).
-//
-//	NotFound          → status=FAILED + error_code=CONFIGMAP_NOT_FOUND
-//	Forbidden (RBAC)  → status=FAILED + error_code=FORBIDDEN
-//	기타 K8s API      → status=FAILED + error_code=K8S_API_ERROR
-//
-// 멱등성 (HHH 의 핵심 가치): 이미 keep annotation 이 있으면 Update API 자체를 호출하지 않음
-// (already_present=true). 그래서 backend 가 부팅마다 N 개 cluster 모두에 호출해도 K8s API
-// 부하가 거의 0 (Get 한 번씩만). retry 도 Conflict 만 retry — Forbidden/NotFound 는 즉시 종료.
+// error_code 는 apply_config.go 와 같다. CONFIGMAP_NOT_FOUND, FORBIDDEN, K8S_API_ERROR.
+// 재시도는 ResourceVersion 충돌일 때만 한다.
 
 package controller
 

@@ -37,18 +37,12 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
- * Cluster 하위 K8s 리소스 자원. 계층이 URL path 에 명시 — cluster/{name}/namespaces/{ns}/{kind}/{name}.
- * <p>
- * 페이지네이션은 모든 list 응답에 적용 (pageSize + pageToken).
- * <p>
- * <b>Namespace path 값 컨벤션</b>:
- * <ul>
- *   <li>일반 namespace 이름 — 해당 namespace 로 한정.</li>
- *   <li>{@code _all} — 모든 namespace 조회 (all-namespaces sentinel).</li>
- *   <li>{@code -} — cluster-scoped kind (nodes, namespaces, persistentvolumes, storageclasses,
- *       customresourcedefinitions) 일 때 권장하는 K8s 컨벤션. cluster-scoped kind 의 경우 어떤
- *       값이 와도 서버에서 ns 를 무시.</li>
- * </ul>
+ * cluster 안의 K8s 리소스입니다. 계층을 URL 에 그대로 드러냅니다
+ * ({@code clusters/{name}/namespaces/{ns}/{kind}/{name}}). list 응답은 모두 페이지 단위입니다.
+ *
+ * <p>namespace 자리에는 sentinel 둘이 더 들어갑니다. {@code _all} 은 전체 namespace 조회고,
+ * {@code -} 는 cluster-scoped kind 를 가리키는 K8s 관례입니다. cluster-scoped kind 는 어떤 값을
+ * 넣어도 서버가 무시하므로 {@code -} 로 의도를 드러내세요.
  */
 @Slf4j
 @RestController

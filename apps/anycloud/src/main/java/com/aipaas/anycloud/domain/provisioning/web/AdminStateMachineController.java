@@ -23,34 +23,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Admin endpoint — runtime 의 state machine 정의 조회 + strict toggle.
+ * 지금 떠 있는 서버의 state machine 정의를 그대로 내려줍니다. 문서가 코드와 어긋나도 이 응답은
+ * 어긋나지 않습니다. 응답에는 state 별 전이 목록과 mermaid 문자열이 들어갑니다.
  *
- * <p>운영자가 현재 deployed 버전의 state machine graph 를 query 가능 — doc 의 stale 위험 회피.
- * 또한 새 status 도입 시 별도 reload 없이 self-documenting (서버 응답이 진실의 원천).
- *
- * <p>Endpoint:
- * <ul>
- *   <li>{@code GET /v1/admin/state-machine/vmcluster} — VmClusterStatus enum 의 전체 transition graph</li>
- *   <li>{@code GET /v1/admin/state-machine/vmcluster/strict} — 현재 strict toggle 상태</li>
- *   <li>{@code POST /v1/admin/state-machine/vmcluster/strict} — strict toggle 변경 (재시작 없이)</li>
- * </ul>
- *
- * <p>응답 schema (graph):
- * <pre>
- * {
- *   "states": [
- *     { "name": "REQUESTED", "terminal": false, "blocked": false, "inProgress": true,
- *       "transitions": ["PROVISIONING", "FAILED", "BLOCKED", "DELETING"] },
- *     ...
- *   ],
- *   "mermaid": "stateDiagram-v2\n  ..."     // optional, GitHub 등 가시화 도구 호환
- * }
- * </pre>
- *
- * <p><b>Strict toggle 주의</b>: POST 응답이 200 이라도 변경은 본 instance 의 in-memory singleton
- * {@link VmClusterStateMachineProperties} 만 갱신됨. 다중 instance 운영 시 모든 instance 에 동일하게
- * 호출 필요 — 영구 적용은 application.yml 의 {@code anycloud.vm-cluster.state-machine.strict}
- * 값 변경 후 재배포. 본 endpoint 는 emergency rollback / canary 검증용.
+ * <p>strict toggle 변경은 호출받은 instance 의 메모리만 바꿉니다. replica 가 여럿이면 전부에
+ * 호출해야 하고 재배포하면 원래 값으로 돌아갑니다. 영구 적용은
+ * {@code anycloud.vm-cluster.state-machine.strict} 를 고치세요.
  */
 @RestController
 @RequestMapping("/v1/admin/state-machine")

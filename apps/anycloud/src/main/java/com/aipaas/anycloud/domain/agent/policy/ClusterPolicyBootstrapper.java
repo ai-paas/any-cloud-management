@@ -61,7 +61,7 @@ public class ClusterPolicyBootstrapper {
             String chartsJson = toJsonArray(current.allowedCharts());
             String execNsJson = toJsonArray(current.allowedExecNamespaces());
             // resource_policy YAML — getAgentConfig 가 record 형태로 반환. backend 가 다시 yaml 직렬화
-            // 하기 까다로워 본 호출에선 빈 문자열 (agent 측이 빈 = no-op 으로 treat). 사용자가 정책 세팅
+            // 하기 까다로워 이 호출에서는 빈 문자열 (agent 측이 빈 = no-op 으로 treat). 사용자가 정책 세팅
             // 했다면 admin endpoint 로 별도 관리.
             String resourcePolicyYaml = "";
             String helmRepositoriesJson = helmRepoListSerializer.serializeAll();
@@ -184,7 +184,7 @@ public class ClusterPolicyBootstrapper {
         String resourcePolicyYaml = "";
         String helmRepositoriesJson = helmRepoListSerializer.serializeAll();
         // oidc_bindings field 는 빈 array 로 전송 (agent ConfigMap 호환, oidcbinding entity
-        // 폐기 후 starter path 만 사용). agent OidcBindingReconciler 가 빈 list → existing
+        // 제거 후 starter path 만 사용). agent OidcBindingReconciler 가 빈 list → existing
         // ClusterRoleBinding cleanup 안 함 (starter 가 label aipaas.io/managed-by=anycloud 로 별도 관리).
         String oidcBindingsJson = "[]";
         String rv = kubeResourceService.applyAgentConfig(

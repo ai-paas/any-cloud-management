@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
  *   <li>DNS resolve 실패 → typo / 인터넷 분리 의심. WARN.</li>
  *   <li>그 외 → INFO 로 resolved IP 까지 출력 (운영자 확인 편의).</li>
  * </ul>
- * 본 점검은 부팅을 막지 않음 — 단순 진단 로그. 부팅 차단이 필요하면 별도 strict flag 도입.
+ * 이 점검은 부팅을 막지 않고 진단 로그만 남깁니다. 막아야 한다면 별도 flag 가 필요합니다.
  */
 @Slf4j
 @Component

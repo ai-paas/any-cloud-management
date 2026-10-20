@@ -183,7 +183,7 @@ public class ClusterEntity implements Serializable {
 
     /**
      * VM(Pulumi) 프로비저닝 cluster 여부. {@code provisioning_type == "PULUMI"} 단일 진실 — VM 분기
-     * (admin kubeconfig SA 자동 생성 등) 는 모두 본 메서드 사용. registered/manual 은 "IMPORTED".
+     * (admin kubeconfig SA 자동 생성 등) 는 모두 이 메서드를 씁니다. registered/manual 은 "IMPORTED".
      */
     public boolean isVmProvisioned() {
         return "PULUMI".equalsIgnoreCase(provisioningType);

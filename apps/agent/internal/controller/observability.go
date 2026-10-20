@@ -369,7 +369,6 @@ const wellKnownPromService = "kube-prometheus-stack-prometheus"
 func discoverPrometheusURL(ctx context.Context, d *Dispatcher, ns string) string {
 	ns = defaultStr(ns, "monitoring")
 
-	// 1) cache lookup
 	promCacheMu.RLock()
 	if promCacheV.url != "" && time.Now().Before(promCacheV.expiresAt) {
 		cached := promCacheV.url

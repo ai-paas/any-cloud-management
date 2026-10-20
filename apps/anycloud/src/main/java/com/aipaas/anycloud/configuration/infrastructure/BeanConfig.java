@@ -34,7 +34,7 @@ public class BeanConfig {
         return new ModelMapper();
     }
 
-    /** SnakeYAML: SafeConstructor (RCE 차단) + alias 50개·중복키 거부·3MB cap (DoS 방어). */
+    /** SnakeYAML: SafeConstructor (RCE 차단) + alias 50개, 중복키 거부, 3MB 상한 (DoS 방어). */
     @Bean
     public Yaml yaml() {
         LoaderOptions opts = new LoaderOptions();

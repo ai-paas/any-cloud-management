@@ -207,7 +207,6 @@ public class AgentSessionRegistry {
     }
 
     public int size() {
-        // 총 cluster 수 (leader 기준).
         return sessionsByCluster.size();
     }
 

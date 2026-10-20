@@ -40,7 +40,7 @@ public class PatchClusterRequest {
         @Schema(description = "워커 노드 수 (1..50). VM 클러스터만 적용 가능.", example = "5")
         private Integer workerCount;
 
-        // Note: hasGpuNodes 변경은 sync 동작이므로 본 비동기 PATCH 가 아닌 별도 endpoint
+        // Note: hasGpuNodes 변경은 동기 동작이라 이 비동기 PATCH 가 아니라 별도 endpoint
         // (PATCH /v1/clusters/{c}/capabilities) 로 처리. {@link PatchClusterCapabilitiesRequest}.
     }
 }

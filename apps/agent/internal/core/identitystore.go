@@ -1,28 +1,11 @@
-// Identity token storage.
+// 60일짜리 identity_token 을 K8s Secret 에 보관한다. 메모리에만 두면 pod 가 재시작할 때마다
+// 다시 등록해야 한다.
 //
-// Agent 의 60일 opaque identity_token 을 K8s Secret 으로 영구 보관해 pod restart (e.g.
-// `kubectl rollout restart`) 후에도 동일 token 으로 AgentRuntime.Stream 인증 가능.
+// Secret 의 키 이름이 계약이다. data 에 identity_token, expires_at, cluster_id 가 들어간다.
+// metadata 에는 helm.sh/resource-policy: keep 을 붙여 helm upgrade 가 지우지 못하게 한다.
 //
-// Storage layout — Opaque Secret:
-//
-//	apiVersion: v1
-//	kind: Secret
-//	metadata:
-//	  name: <secret-name, default "cluster-agent-identity">
-//	  namespace: <agent namespace, default "aipaas-system">
-//	  annotations:
-//	    helm.sh/resource-policy: keep   # Helm upgrade 시 보존
-//	    aipaas.io/cluster-id: <cluster id>
-//	    aipaas.io/expires-at: <RFC3339>
-//	type: Opaque
-//	data:
-//	  identity_token: <opaque token, base64>      # 60일 TTL — 갱신은 RotateIdentityToken RPC
-//	  expires_at:     <RFC3339, base64>           # 빠른 만료 체크
-//	  cluster_id:     <cluster identity, base64>  # debug / audit
-//
-// 동시성: K8sSecretIdentityStore 의 Load/Save 는 모두 stateless — K8s API 가 resourceVersion
-// optimistic concurrency 로 직렬화. 같은 process 안에서는 bootstrap 1회 + rotation goroutine
-// N회 호출하지만 race 없음 (각 호출이 독립적인 RPC).
+// Load 와 Save 는 상태를 들고 있지 않다. 같은 프로세스에서 bootstrap 과 rotation goroutine 이
+// 함께 불러도 K8s 의 resourceVersion 이 순서를 잡아 준다.
 
 package core
 

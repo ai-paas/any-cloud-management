@@ -84,7 +84,7 @@ public class AgentHealthMetricsBinder {
 
     /** 30 초 주기. heartbeat 기본 cadence(30s) 와 동일 — 너무 잦으면 DB 부하, 너무 늦으면 알람 지연. */
     /**
-     * 추가 최적화 불요 — 다음 안전장치로 1000+ cluster 환경에서도 안정 동작:
+     * 더 최적화할 필요는 없습니다. 아래 장치로 cluster 가 1000개를 넘어도 버팁니다.
      * <ul>
      *   <li>페이지네이션: 이미 PageRequest(CHUNK_SIZE) 단위 + 페이지 간 sleep.</li>
      *   <li>분산 환경: ShedLock {@code lockAtMostFor=PT2M} 가 다중 replica 동시 실행 방지.</li>
@@ -93,7 +93,7 @@ public class AgentHealthMetricsBinder {
      * </ul>
      * 향후 개선 후보 (별도 PR): per-cluster getHealth 호출에 timeout / circuit breaker 적용 — 1000+
      * cluster 환경에서 한 cluster 의 hang 이 chunk 전체를 늦추는 케이스. 현재는 timeout 운영
-     * 사례 미발견 → optimization 미적용.
+     * 그런 사례가 없어 최적화하지 않았습니다.
      */
     @Scheduled(
             fixedDelayString = "${anycloud.agent.metrics.interval-ms:30000}",

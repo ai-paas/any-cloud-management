@@ -72,13 +72,10 @@ func (s *TokenStore) ReconnectSignal() <-chan struct{} {
 // RotationConfig — timer 동작 파라미터.
 type RotationConfig struct {
 	// 만료까지 남은 시간이 이 값 이하면 rotation 시도.
-	Threshold time.Duration
-	// 정기 체크 주기.
+	Threshold     time.Duration
 	CheckInterval time.Duration
-	// Rotate 실패 시 다음 시도까지 대기.
 	RetryInterval time.Duration
-	// Backend gRPC 주소.
-	BackendAddr string
+	BackendAddr   string
 	// 자기 instance id (RotateRequest 의 진단용 필드).
 	AgentInstanceID string
 	// Transport TLS. zero value = plaintext.

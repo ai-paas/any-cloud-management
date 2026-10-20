@@ -144,7 +144,6 @@ public class VeleroInstallerImpl implements VeleroInstaller {
         }
         values.put("configuration", configuration);
 
-        // credentials
         Map<String, Object> credentials = new LinkedHashMap<>();
         credentials.put("useSecret", true);
         Map<String, String> secretContents = new LinkedHashMap<>();

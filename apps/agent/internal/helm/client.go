@@ -263,7 +263,6 @@ func (c *helmClient) Install(ctx context.Context, opts InstallOptions) (*Release
 		install.Timeout = 5 * time.Minute
 	}
 
-	// Chart locate + load.
 	chartPath, err := install.ChartPathOptions.LocateChart(chartLocator, c.settings)
 	if err != nil {
 		return nil, fmt.Errorf("locate chart %s: %w", chartLocator, err)

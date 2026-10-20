@@ -7,14 +7,14 @@ import java.time.LocalDateTime;
 /**
  * ACTIVE 에서 내려오는 규칙.
  *
- * <p>등록은 상태를 올리는데 내리는 길이 없었다. 화면만의 문제가 아니다 — 업그레이드 대상과
- * 카탈로그가 {@code status == ACTIVE} 로 걸러 죽은 에이전트를 살아 있다고 센다.
+ * <p>등록은 상태를 올리지만 내리는 길이 없습니다. 화면만의 문제가 아닙니다. 업그레이드 대상과
+ * 카탈로그가 {@code status == ACTIVE} 로 걸러 죽은 agent 를 살아 있다고 셉니다.
  */
 public final class AgentLiveness {
 
     private AgentLiveness() {}
 
-    /** 지우지 않고 상태만 내린다. 지우면 무엇이 있었는지 알 수 없다. */
+    /** 지우지 않고 상태만 내립니다. 지우면 무엇이 있었는지 알 수 없습니다. */
     public static ClusterAgentStatus staleStatus() {
         return ClusterAgentStatus.DEGRADED;
     }

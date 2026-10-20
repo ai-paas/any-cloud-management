@@ -128,7 +128,7 @@ public class ClusterConnectivityServiceImpl implements ClusterConnectivityServic
                 chunkFutures.add(updateClusterVersionAndStatusAsync(cluster));
             }
             // chunk 안의 모든 future 완료까지 대기 — pool 가 full 이면 caller-runs backpressure 로 자연
-            // throttling. chunk 간 sleep 불요 — 모든 thread 가 가용해진 시점에 다음 chunk fetch.
+            // throttling. chunk 사이에 쉴 필요가 없습니다. 모든 thread 가 비는 시점에 다음 chunk 를 가져옵니다.
             CompletableFuture.allOf(chunkFutures.toArray(new CompletableFuture[0]))
                     .join();
             allFutures.addAll(chunkFutures);

@@ -54,7 +54,7 @@ public class ErrorResponse {
 
     /**
      * 장문 원본 에러 (Pulumi stderr, stack trace 요지 등). {@code message} 는 사람용 한 줄 요약으로
-     * 유지하고 전체 원문은 본 필드로 분리 — UI 는 message 만 보여주고 detail 은 펼침/복사용으로 제공.
+     * 유지하고 전체 원문은 이 필드에 둡니다. UI 는 message 만 보여주고 detail 은 펼쳐 보거나 복사하는 용도입니다.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @Schema(description = "원본 에러 전문 (장문). message 는 요약, 전체는 여기.", example = "error: ... full stderr ...")

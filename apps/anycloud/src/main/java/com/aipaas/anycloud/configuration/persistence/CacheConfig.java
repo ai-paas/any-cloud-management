@@ -22,7 +22,7 @@ public class CacheConfig {
     public static final String VM_OPTIONS_SPECS = "vmOptions.specs";
     public static final String VM_OPTIONS_IMAGES = "vmOptions.images";
 
-    /** config-schema 는 CSP API 를 여러 번 두드려 조립한다. 폼을 열 때마다 다시 풀 이유가 없다. */
+    /** config-schema 는 CSP API 를 여러 번 불러 조립합니다. 폼을 열 때마다 다시 할 이유가 없습니다. */
     public static final String VM_OPTIONS_CONFIG_SCHEMA = "vmOptions.configSchema";
 
     public static final String HELM_CHART_VALUES = "helm.chartValues";

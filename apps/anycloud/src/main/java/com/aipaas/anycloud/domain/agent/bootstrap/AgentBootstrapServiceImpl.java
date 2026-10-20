@@ -47,7 +47,7 @@ public class AgentBootstrapServiceImpl implements AgentBootstrapService {
     // ACTIVE 전환 시 helm_repositories 자동 push.
     private final com.aipaas.anycloud.domain.agent.policy.ClusterPolicyBootstrapper clusterPolicyBootstrapper;
     // ACTIVE 전환 시 PENDING addon 자동 enqueue. ObjectProvider 로 lazy/optional
-    // 주입 — addon-workflow.enabled=false 인 환경 (인프라 미설치) 에서도 bootstrap path 정상 동작.
+    // 주입 — addon-workflow.enabled=false 인 환경 (인프라를 안 깐 경우) 에서도 bootstrap path 정상 동작.
     private final org.springframework.beans.factory.ObjectProvider<AddonOrchestrator> addonOrchestratorProvider;
     // GPU cluster (hasGpuNodes=true) ACTIVE 시 nvidia-gpu-operator 자동 enroll.
     private final org.springframework.beans.factory.ObjectProvider<com.aipaas.anycloud.domain.addon.AddonService>
@@ -192,7 +192,7 @@ public class AgentBootstrapServiceImpl implements AgentBootstrapService {
         // PENDING_AGENT → ACTIVE 첫 전환 시 push (welcome 시점)
         // 이미 ACTIVE 인 cluster 의 agent 재접속 시에도 push (reconnect 회복).
         //        backend 재기동 사이 발생한 repo CRUD 가 누락된 agent 도 reconnect 시점에 회복.
-        // @Async 라 본 경로 막지 않음. 매 reconnect 마다 호출되지만 멱등 (agent SyncRepositoriesWithCleanup).
+        // @Async 라 이 경로를 막지 않습니다. 매 reconnect 마다 호출되지만 멱등 (agent SyncRepositoriesWithCleanup).
         clusterPolicyBootstrapper.pushOnActive(cluster.getId());
 
         // GPU cluster 면 nvidia-gpu-operator 자동 enroll — driver / nvidia-container-toolkit /

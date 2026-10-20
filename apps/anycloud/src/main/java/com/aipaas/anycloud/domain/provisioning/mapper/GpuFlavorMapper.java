@@ -4,16 +4,11 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * CSP provider 별 GPU flavor (instance type) 자동 매핑.
+ * {@code hasGpuNodes=true} 인데 instance type 을 주지 않으면 provider 별 기본 GPU 인스턴스를 넣습니다.
+ * 운영자가 지정한 값이 있으면 건드리지 않습니다.
  *
- * <p>{@link com.aipaas.anycloud.domain.cluster.model.VmClusterSpec} 의 {@code hasGpuNodes=true} +
- * {@code config.workerInstanceType} 미명시 시점에 본 mapper 가 provider 의 sensible default GPU 인스턴스
- * 를 주입.
- *
- * <p>각 매핑은 합리적 가성비 + 보편적 가용성 기준. 운영자가 명시한 instance type 은 항상 우선 (override).
- *
- * <p>매핑 부재 / unsupported provider 는 warning log + 변경 없음 — Pulumi 가 config 검증 시 실패하거나
- * 운영자가 직접 instance type 지정 필요.
+ * <p>매핑이 없는 provider 는 경고만 남기고 그대로 둡니다. 임의로 고르면 비싼 인스턴스가 조용히
+ * 뜰 수 있어, 그때는 Pulumi 검증에서 걸리거나 운영자가 직접 지정하게 둡니다.
  */
 @Slf4j
 public final class GpuFlavorMapper {
@@ -57,13 +52,10 @@ public final class GpuFlavorMapper {
                     CONFIG_KEY_WORKER_ACCELERATOR_COUNT, "1"));
 
     /**
-     * CSP-agnostic GPU alias → provider × alias → 실 instance type 매트릭스.
+     * GPU alias 를 CSP 별 실제 instance type 으로 옮깁니다. 운영자가
+     * {@code workerInstanceType=gpu-small} 처럼 적으면 CSP 별 이름을 몰라도 됩니다.
      *
-     * <p>운영자가 workerInstanceType=gpu-small/medium/large/h100 으로 명시하면 본 매핑 적용.
-     * CSP 별 진짜 instance type 명을 모르고도 workload 단위로 cluster 생성 가능.
-     *
-     * <p>매핑 부재 (지원 안 하는 CSP × alias 조합) 는 null 반환 — 운영자가 CSP 별 instance type
-     * 직접 명시 필요.
+     * <p>지원하지 않는 조합은 null 입니다. 그때는 instance type 을 직접 적어야 합니다.
      *
      * <pre>
      *               gpu-small (T4/L4 — inference) | gpu-medium (A10/V100 — mid) | gpu-large (A100 — training) | gpu-h100 (H100 — large training)

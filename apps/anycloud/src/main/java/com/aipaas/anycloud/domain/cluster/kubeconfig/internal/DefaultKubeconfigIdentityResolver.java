@@ -11,8 +11,8 @@ import org.springframework.stereotype.Component;
  * 기본 identity 해석 전략.
  *
  * <ol>
- *   <li>호출자가 SA 명시 → 그대로 (namespace 미지정 시 "default").</li>
- *   <li>SA 미지정 + admin 기본 활성 + VM(PULUMI) cluster → chart-생성 admin SA
+ *   <li>호출자가 SA 를 주면 그대로 씁니다. namespace 를 안 주면 "default" 입니다.</li>
+ *   <li>SA 를 안 주고 admin 기본값이 켜진 VM(PULUMI) cluster 면 chart 가 만든 admin SA
  *       (aipaas-admin / aipaas-system, cluster-admin) — 전체 권한 다운로드.</li>
  *   <li>그 외 → {@code SERVICE_ACCOUNT_REQUIRED} (registered cluster 는 존재하는 SA 명시 필요).</li>
  * </ol>

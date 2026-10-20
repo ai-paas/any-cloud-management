@@ -86,7 +86,7 @@ public class AsyncConfig implements AsyncConfigurer {
         };
     }
 
-    /** 파라미터 요약 (첫 5개 · 각 80자 cap). 민감값 회피 위해 toString 만. */
+    /** 파라미터 요약 (첫 5개, 각 80자까지). 민감값이 섞이지 않게 toString 만 씁니다. */
     private static String paramsSummary(Object[] params) {
         if (params == null || params.length == 0) return "";
         return Arrays.stream(params)

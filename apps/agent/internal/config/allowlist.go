@@ -1,38 +1,16 @@
-// Package config — agent 의 동적 설정 로딩. ConfigMap watch 로 변경 즉시 반영.
+// Package config 는 agent 의 정책을 ConfigMap aipaas-agent-allowlist 에서 읽고,
+// watch 로 변경을 즉시 반영한다.
 //
-// AllowList: chart name / version range / namespace / command type 화이트리스트.
-// Helm install / uninstall 명령은 본 list 통과해야만 dispatch 됨.
+// data 의 키 네 개가 backend 와의 계약이다. 각각 YAML 목록을 담는다.
 //
-// ConfigMap 형식 (aipaas-agent-allowlist):
+//	allowed_charts          repo/name:min-max 형식의 chart 허용 범위
+//	allowed_namespaces      helm 설치를 허용할 namespace
+//	allowed_commands        dispatch 를 허용할 RPC 이름
+//	allowed_exec_namespaces PodExec 을 허용할 namespace
 //
-//	apiVersion: v1
-//	kind: ConfigMap
-//	metadata:
-//	  name: aipaas-agent-allowlist
-//	  namespace: aipaas-system
-//	data:
-//	  allowed_charts: |
-//	    - prometheus-community/kube-prometheus-stack:45.0.0-50.0.0
-//	    - ingress-nginx/ingress-nginx:4.8.0-4.9.0
-//	    - jetstack/cert-manager:v1.12.0-v1.13.0
-//	  allowed_namespaces: |
-//	    - monitoring
-//	    - ingress-system
-//	    - cert-manager
-//	  allowed_commands: |
-//	    - LIST_PODS
-//	    - GET_LOG
-//	    - GET_CLUSTER_INFO
-//	    - INSTALL_ADDON
-//	    - UNINSTALL_ADDON
-//	    - LIST_HELM_RELEASES
-//	    - EXEC_POD                                  # PodExec WebSocket terminal.
-//	  allowed_exec_namespaces: |                    # PodExec target namespace 화이트리스트.
-//	    - default
-//	    - apps
-//
-// Default policy = deny-all. allowed_commands 에 없는 명령은 dispatcher 가 PERMISSION_DENIED.
-// PodExec 은 allowed_exec_namespaces 도 추가로 통과해야 함 (kube-system 등 격리).
+// 기본은 전부 거부다. allowed_commands 에 없는 명령은 dispatcher 가 PERMISSION_DENIED 로 끊는다.
+// PodExec 은 allowed_commands 를 통과해도 allowed_exec_namespaces 를 한 번 더 본다.
+// kube-system 같은 곳에 터미널이 열리지 않게 하려는 것이다.
 package config
 
 import (
@@ -106,7 +84,6 @@ type ResourceRule struct {
 	Namespace string `json:"namespace,omitempty"`
 }
 
-// ResourcePolicy mode 상수.
 const (
 	resourcePolicyModeAllowAll = "allow_all_discovered"
 	resourcePolicyModeStrict   = "strict"

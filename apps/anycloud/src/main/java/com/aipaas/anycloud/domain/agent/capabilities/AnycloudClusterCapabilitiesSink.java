@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
  * cluster-observability 의 {@link ClusterCapabilitiesSink} SPI 를 anycloud cluster 테이블 위에 구현.
  *
  * <p>{@link io.aipaas.cluster.agent.observability.stack.GpuCapabilityHeartbeatListener} 가 sink 호출 측
- * 에서 변경 감지 후에만 호출하지만, 본 구현도 추가 dirty check (DB 값 == 목표값 이면 skip) 로 race
+ * 에서 변경 감지 후에만 호출하지만, 이 구현도 추가 dirty check (DB 값 == 목표값 이면 skip) 로 race
  * 발생 시 redundant write 회피.
  *
  * <p>예외 발생 시 swallow + log — listener 의 try/catch 와 더불어 2 단계 안전망.

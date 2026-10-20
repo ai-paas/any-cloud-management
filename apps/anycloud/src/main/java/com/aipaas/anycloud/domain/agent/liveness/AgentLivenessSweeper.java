@@ -16,10 +16,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 하트비트가 끊긴 ACTIVE 에이전트를 DEGRADED 로 내린다.
+ * heartbeat 가 끊긴 ACTIVE agent 를 DEGRADED 로 내립니다.
  *
- * <p>등록은 상태를 올리는데 내리는 길이 없어, 클러스터가 삭제된 뒤에도 행이 ACTIVE 로 남았다.
- * 화면만의 문제가 아니다 — 업그레이드 대상과 카탈로그가 {@code status == ACTIVE} 로 거른다.
+ * <p>등록은 상태를 올리지만 내리는 길이 없어 cluster 를 지운 뒤에도 행이 ACTIVE 로 남습니다.
+ * 화면만의 문제가 아닙니다. 업그레이드 대상과 카탈로그가 {@code status == ACTIVE} 로 거릅니다.
  *
  * <p>설정
  * <ul>

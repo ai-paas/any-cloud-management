@@ -97,10 +97,8 @@ func (s *Sweeper) sweepOnce(ctx context.Context) {
 			continue
 		}
 		if exp.After(now) {
-			// 아직 유효.
 			continue
 		}
-		// 삭제 시도.
 		if err := s.deletePod(ctx, pod.Namespace, pod.Name); err != nil {
 			slog.Warn("sweeper: delete failed",
 				slog.String("pod", pod.Namespace+"/"+pod.Name),
