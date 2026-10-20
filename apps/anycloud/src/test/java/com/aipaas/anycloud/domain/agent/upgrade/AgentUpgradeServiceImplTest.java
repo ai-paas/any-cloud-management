@@ -45,12 +45,7 @@ class AgentUpgradeServiceImplTest {
                 new AgentProperties.Grpc(9090, "localhost:9090", new AgentProperties.Tls(false, "", "", false)),
                 new AgentProperties.Manifest(
                         "aipaas/cluster-agent:dev", "aipaas-system", "IfNotPresent", "cluster-agent", "agent"),
-                new AgentProperties.Helm(
-                        "anycloud",
-                        "http://chartmuseum:8080",
-                        "oci://ghcr.io/ai-paas/charts",
-                        "cluster-agent",
-                        "0.1.0"),
+                new AgentProperties.Helm("oci://ghcr.io/ai-paas/charts", "cluster-agent", "0.1.0"),
                 new AgentProperties.ApiManaged(false));
         service = new AgentUpgradeServiceImpl(repository, kubeService, properties);
     }
