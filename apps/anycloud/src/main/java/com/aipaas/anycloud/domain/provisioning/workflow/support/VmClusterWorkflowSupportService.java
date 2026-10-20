@@ -17,7 +17,7 @@ public interface VmClusterWorkflowSupportService {
 
     void markReady(VmClusterEntity vmCluster);
 
-    /** REQUIRED 구성 요소 미충족으로 READY 대신 DEGRADED 로 종료. 조정 루프가 이어받는다. */
+    /** REQUIRED 구성 요소 미충족으로 READY 대신 DEGRADED 종료. 이후 처리는 조정 루프 담당. */
     void markDegraded(VmClusterEntity vmCluster);
 
     void markDeleteCompleted(VmClusterEntity vmCluster);

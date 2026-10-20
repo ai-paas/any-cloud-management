@@ -23,12 +23,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 지금 떠 있는 서버의 state machine 정의를 그대로 내려줍니다. 문서가 코드와 어긋나도 이 응답은
- * 어긋나지 않습니다. 응답에는 state 별 전이 목록과 mermaid 문자열이 들어갑니다.
+ * 실행 중인 서버의 state machine 정의 반환. 문서와 코드가 불일치해도 이 응답은 코드 기준.
+ * 응답에는 state 별 전이 목록과 mermaid 문자열 포함.
  *
- * <p>strict toggle 변경은 호출받은 instance 의 메모리만 바꿉니다. replica 가 여럿이면 전부에
- * 호출해야 하고 재배포하면 원래 값으로 돌아갑니다. 영구 적용은
- * {@code anycloud.vm-cluster.state-machine.strict} 를 고치세요.
+ * <p>strict toggle 변경 범위는 호출받은 instance 의 메모리. replica 가 여럿이면 전체에 호출
+ * 필요하고 재배포 시 기본값으로 복귀. 영구 적용은
+ * {@code anycloud.vm-cluster.state-machine.strict} 수정.
  */
 @RestController
 @RequestMapping("/v1/admin/state-machine")

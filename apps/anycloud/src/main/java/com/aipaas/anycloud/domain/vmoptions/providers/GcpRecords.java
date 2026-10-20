@@ -16,7 +16,7 @@ final class GcpRecords {
     @JsonIgnoreProperties(ignoreUnknown = true)
     record RegionOrZone(String name, String status) {}
 
-    /** {@code GET /regions/{region}} 의 quotas 항목. limit 이 0 이면 그 자원을 아예 못 만든다. */
+    /** {@code GET /regions/{region}} 의 quotas 항목. limit 이 0 이면 해당 자원 생성 불가. */
     @JsonIgnoreProperties(ignoreUnknown = true)
     record RegionDetail(String name, List<Quota> quotas) {
 

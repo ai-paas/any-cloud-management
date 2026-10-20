@@ -92,8 +92,8 @@ public class WorkflowMessageLogServiceImpl implements WorkflowMessageLogService 
             // 로그 저장 실패가 본 작업을 막아서는 금지.
             log.warn("Failed to persist workflow message log ({}): {}", entity.getResult(), e.toString());
         }
-        // Prometheus metric: DB 저장 성공/실패와 무관하게 in-memory counter / timer 갱신.
-        // /actuator/prometheus 로 노출되어 Grafana / Alertmanager 가 가져간다.
+        // Prometheus metric. DB 저장 성공 여부와 무관하게 in-memory counter, timer 갱신.
+        // /actuator/prometheus 로 노출돼 Grafana, Alertmanager 가 수집.
         Tags tags = Tags.of(
                 "step", entity.getStep() != null ? entity.getStep().name() : "UNKNOWN",
                 "result", entity.getResult() != null ? entity.getResult().name() : "UNKNOWN");

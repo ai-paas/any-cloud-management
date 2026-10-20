@@ -152,7 +152,7 @@ public abstract class AbstractVmOptionsProvider implements VmOptionsProvider {
             case OPENSTACK -> "RegionOne";
             case ALIBABA -> "ap-northeast-2";
             case OCI -> "ap-seoul-1";
-                // Proxmox 는 리전 개념이 없다. PVE 노드 이름을 쓴다.
+                // Proxmox 는 리전 개념 부재. PVE 노드 이름 사용.
             case PROXMOX -> "pve";
             case IBM -> "jp-tok";
         };

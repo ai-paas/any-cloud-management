@@ -21,7 +21,7 @@ final class OciRecords {
     /**
      * Compartment.
      *
-     * @param lifecycleState {@code ACTIVE} 가 아닌 것(DELETING/DELETED)에 자원을 만들 수 없다
+     * @param lifecycleState {@code ACTIVE} 가 아닌 상태(DELETING, DELETED)에는 자원 생성 불가
      */
     record Compartment(String id, String name, String lifecycleState) {}
 

@@ -30,7 +30,7 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
 
     private static final String OS_IMAGE_KEY = "osImage";
 
-    /** 노드는 Ubuntu 위에 kubeadm 을 올린다. 다른 배포판을 고르면 부트스트랩이 깨진다. */
+    /** 노드는 Ubuntu 기반 kubeadm 설치. 다른 배포판 선택 시 부트스트랩 실패. */
     private static final String UBUNTU_KEYWORD = "ubuntu";
 
     /** 목록이 길면 화면에서 고르기 어렵다. 최신 몇 개면 충분하다. */

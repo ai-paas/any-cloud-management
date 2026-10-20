@@ -251,7 +251,7 @@ func runReceiveLoop(ctx context.Context, stream agentv1.AgentRuntime_StreamClien
 			slog.Error("control message handler error",
 				slog.String("request_id", msg.GetRequestId()),
 				slog.String("error", err.Error()))
-			// 개별 메시지 에러는 stream 을 끊지 않는다.
+			// 개별 메시지 오류로 stream 종료 금지.
 		}
 	}
 }

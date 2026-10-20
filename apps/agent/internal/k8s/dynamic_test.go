@@ -257,8 +257,8 @@ func TestDeleteResource_RequiresName(t *testing.T) {
 	}
 }
 
-// TestEnsureDynamicConcurrency: sync.Once 의 race-safety 회귀. ResolveResource 를 동시에
-// 여러 고루틴이 호출해도 dyn/mapper 가 한 번만 초기화되어야 한다.
+// TestEnsureDynamicConcurrency: sync.Once 의 race-safety 회귀 검증. 여러 고루틴이
+// ResolveResource 를 동시 호출해도 dyn, mapper 는 1회만 초기화.
 //
 // concurrency 다이어그램:
 //
@@ -266,8 +266,8 @@ func TestDeleteResource_RequiresName(t *testing.T) {
 //	goroutine 2 ┼─► ResolveResource("pods") ─► ensureDynamic (sync.Once)
 //	goroutine 3 ┘                              └─► dyn / mapper 단일 초기화
 //
-// preparedClient 는 이미 dynOnce.Do(func(){}) 로 무력화돼 있으나, 동시 ResolveResource 호출이
-// 결정적으로 같은 결과를 반환하는지만 검증 (실 init path 는 production 에서 검증).
+// preparedClient 는 dynOnce.Do(func(){}) 로 무력화된 상태이므로, 동시 ResolveResource 호출의
+// 결과 일관성만 검증 (실제 init path 는 production 에서 검증).
 func TestEnsureDynamicConcurrency(t *testing.T) {
 	c := newPreparedClient(t)
 	const N = 16

@@ -13,8 +13,8 @@ public enum VmClusterWorkflowStep {
         if (status == null) {
             return false;
         }
-        // BLOCKED: 재시도 임계 초과로 자동 진행이 정지된 상태. 모든 step 메시지를 차단해야
-        // 운영자의 명시적 retry/destroy 결정 전까지 무한 재시도를 막는다.
+        // BLOCKED: 재시도 임계 초과로 자동 진행이 정지된 상태. 전체 step 메시지를 차단해야
+        // 운영자의 명시적 retry, destroy 결정 전까지 무한 재시도 방지.
         if (status == VmClusterStatus.BLOCKED) {
             return true;
         }

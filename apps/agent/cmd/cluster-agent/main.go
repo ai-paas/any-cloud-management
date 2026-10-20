@@ -180,8 +180,8 @@ func main() {
 	result, err := core.BootstrapIdentity(ctx, cfg, identityStore, 5*time.Minute)
 	if err != nil {
 		/*
-		 * 만료된 등록 토큰으로 재시도하면 서버가 거부할 때까지 원인을 모른다. 토큰은 Secret 에
-		 * 남아 있어 파드는 계속 같은 값으로 CrashLoop 을 돈다. 만료를 먼저 짚어 준다.
+		 * 만료된 등록 토큰으로 재시도하면 서버 거부 시점까지 원인 파악 불가. 토큰이 Secret 에
+		 * 잔존해 파드가 동일 값으로 CrashLoop 반복. 만료를 선행 검출.
 		 */
 		if core.RegistrationTokenExpired(registrationToken, time.Now()) {
 			slog.Error("REGISTRATION_TOKEN 이 만료됐다 — Secret 을 새 토큰으로 바꾸고 파드를 다시 띄워야 한다",

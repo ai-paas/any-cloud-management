@@ -71,7 +71,7 @@ public class VmClusterVerifyStepServiceImpl implements VmClusterVerifyStepServic
                 log.info("VM cluster workflow completed for cluster {}", clusterName);
             } else {
                 workflowSupportService.markDegraded(vmCluster);
-                // 정기 조정 주기를 통째로 기다리지 않는다. 애드온이 막 뜨는 시점이라 짧게 한 번 더 본다.
+                // 정기 조정 주기 전체 대기 생략. 애드온 기동 시점이라 짧은 간격으로 재확인.
                 degradedNudge.onDegraded(clusterName);
                 log.info("VM cluster {} 는 요청한 구성 요소가 아직 준비되지 않아 DEGRADED — 조정 루프가 이어받습니다", clusterName);
             }

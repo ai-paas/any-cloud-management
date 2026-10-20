@@ -87,9 +87,7 @@ public class VmClusterNodeLabelServiceImpl implements VmClusterNodeLabelService 
         }
     }
 
-    /**
-     * master 에서 {@code kubectl get nodes} 로 InternalIP→nodeName 맵을 만든다.
-     */
+    /** master 에서 {@code kubectl get nodes} 로 InternalIP, nodeName 맵 구성. */
     private Map<String, String> fetchK8sNodeIpMap(VmClusterEntity vmCluster, Map<String, Object> outputs) {
         Map<String, String> map = new HashMap<>();
         try {

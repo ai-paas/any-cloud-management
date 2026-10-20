@@ -127,8 +127,8 @@ public class VmClusterScaleDrainServiceImpl implements VmClusterScaleDrainServic
     }
 
     /**
-     * master 에서 kubectl 로 worker 노드 이름을 creationTimestamp 오름차순으로 가져온다.
-     * control-plane 노드는 제외.
+     * master 에서 kubectl 로 worker 노드 이름을 creationTimestamp 오름차순 조회.
+     * control-plane 노드 제외.
      */
     private List<String> listWorkerNodesSortedByCreation(VmClusterEntity vmCluster, Map<String, Object> outputs) {
         try {

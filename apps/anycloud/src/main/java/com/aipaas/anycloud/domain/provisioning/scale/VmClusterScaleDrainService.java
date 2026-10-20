@@ -4,11 +4,11 @@ import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
 import java.util.Map;
 
 /**
- * Scale-down 시 사라질 worker 노드를 자동으로 cordon/drain (Day-2 §1 후속 #2).
- * <p>
- * Pulumi 가 인스턴스를 삭제하기 전에 K8s 차원에서 워크로드를 evict 해 가용성 손실을 최소화.
- * master 에 SSH 로 접속해 {@code kubectl drain} 을 실행하며, 실패해도 Pulumi 단계는 진행한다
- * (운영자가 사전 drain 한 경우 대비). PoC 단계의 best-effort 구현.
+ * Scale-down 대상 worker 노드의 자동 cordon, drain.
+ *
+ * <p>Pulumi 의 인스턴스 삭제 전에 K8s 계층에서 워크로드를 evict 해 가용성 손실 축소.
+ * master 에 SSH 접속해 {@code kubectl drain} 실행하며, 실패 시에도 Pulumi 단계는 진행
+ * (운영자 사전 drain 대응). best-effort 구현.
  */
 public interface VmClusterScaleDrainService {
 

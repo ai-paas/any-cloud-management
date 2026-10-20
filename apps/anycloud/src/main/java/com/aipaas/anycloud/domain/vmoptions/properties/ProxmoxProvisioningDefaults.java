@@ -26,7 +26,7 @@ public record ProxmoxProvisioningDefaults(String nodeIps, String gateway, String
         sshPorts = blankToNull(sshPorts);
     }
 
-    /** 빈 문자열을 그대로 defaultValue 에 넣으면 일괄 창이 값이 있는 것으로 읽는다. */
+    /** 빈 문자열을 defaultValue 에 그대로 설정하면 일괄 생성 화면이 값 존재로 판정. */
     private static String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value;
     }

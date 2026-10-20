@@ -37,7 +37,7 @@ func New() *Service {
 	}
 }
 
-// Register: gRPC server 에 본 service 를 등록합니다.
+// Register: gRPC server 에 이 service 등록.
 func (s *Service) Register(grpcServer *grpc.Server) {
 	nav1.RegisterNodeAgentServer(grpcServer, s)
 }
