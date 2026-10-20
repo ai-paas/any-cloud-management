@@ -65,7 +65,7 @@ class ForceDeleteTest extends AbstractUnitTest {
     @Test
     void resultCountsRecordsNotStacks() {
         // 세대가 여럿이면 지운 기록 수와 스택 수가 다르다. 스택 수를 기록 수로 보고하면
-        // 사용자가 무엇이 지워졌는지 오해한다.
+        // 사용자가 삭제 대상을 오인.
         var result = new ForceDeleteResult(6, List.of("stack-1"));
 
         assertThat(result.removedRecords()).isEqualTo(6);

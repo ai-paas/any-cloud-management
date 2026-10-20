@@ -6,7 +6,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 /**
- * GPU 노드인지 못 알아보면 gpu-operator 가 빠진 채로 READY 가 된다.
+ * GPU 노드 미인식 시 gpu-operator 없이 READY 전이.
  *
  * <p>드라이버가 없어 GPU 워크로드는 스케줄되지 않는데 화면은 정상으로 보인다.
  */

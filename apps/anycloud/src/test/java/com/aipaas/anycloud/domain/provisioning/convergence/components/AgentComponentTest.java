@@ -49,7 +49,7 @@ class AgentComponentTest {
 
     @Test
     void requirement_comesFromConfiguration() {
-        // agent 도달성은 배포 환경에 의존한다. 코드에 박으면 운영에서 되돌릴 수 없다.
+        // agent 도달성은 배포 환경 종속. 코드 고정 시 운영에서 변경 불가.
         VmClusterInternalRequestSnapshot spec =
                 VmClusterInternalRequestSnapshot.builder().build();
         assertThat(component(Requirement.BEST_EFFORT).requirementFor(spec)).isEqualTo(Requirement.BEST_EFFORT);

@@ -9,7 +9,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * 점프 호스트는 자격증명에 딸린다.
+ * 점프 호스트는 자격증명 종속.
  *
  * <p>{@code -J} 는 내부 ssh 를 추가 실행하는데 해당 프로세스에 인증 옵션 전달 수단 부재.
  * 컨테이너에 {@code ~/.ssh/config} 가 없어 비밀번호 bastion 은 publickey 로 시도하다 정지.

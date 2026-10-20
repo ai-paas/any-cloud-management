@@ -10,7 +10,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 /**
- * 일괄 프로비저닝은 config-schema 의 defaultValue 만 보고 providerSpec 을 만든다.
+ * 일괄 프로비저닝은 config-schema 의 defaultValue 만으로 providerSpec 구성.
  *
  * <p>Proxmox 는 nodeIps 부재 시 차단되므로, 이 키가 스키마에 없거나 기본값이 비면 일괄 생성
  * 화면에서 사용 불가. 실제 해당 상태로 존재.

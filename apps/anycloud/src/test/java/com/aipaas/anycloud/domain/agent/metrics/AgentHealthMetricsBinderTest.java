@@ -175,7 +175,7 @@ class AgentHealthMetricsBinderTest extends AbstractUnitTest {
 
         binder.scan();
 
-        // 한 cluster 실패가 나머지 metric 등록을 막지 않아야 한다.
+        // cluster 하나의 실패가 나머지 metric 등록을 차단하면 안 됨.
         assertThat(meterRegistry
                         .get("anycloud.agent.healthy")
                         .tag("cluster", "good")

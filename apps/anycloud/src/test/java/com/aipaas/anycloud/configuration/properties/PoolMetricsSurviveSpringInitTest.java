@@ -29,7 +29,7 @@ class PoolMetricsSurviveSpringInitTest extends AbstractUnitTest {
         AsyncProperties properties = new AsyncProperties();
         ThreadPoolTaskExecutor executor = new AsyncConfig(properties, registry).bootstrapExecutor();
 
-        // 스프링이 InitializingBean 으로 한 번 더 부른다. 내부 풀이 새로 만들어진다.
+        // 스프링이 InitializingBean 으로 추가 호출. 내부 풀 재생성.
         executor.afterPropertiesSet();
         System.gc();
 

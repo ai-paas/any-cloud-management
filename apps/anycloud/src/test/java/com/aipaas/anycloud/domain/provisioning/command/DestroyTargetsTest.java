@@ -9,7 +9,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * destroy 가 끝나면 그 이름의 DELETING 세대가 모두 닫혀야 한다.
+ * destroy 완료 시 해당 이름의 DELETING 세대 전체 종료 처리 필요.
  *
  * <p>동일 이름의 여러 세대를 DELETING 으로 전이시킨 뒤 destroy 가 최신 1건만 종료 처리. 최신
  * 행이 이미 DELETED 면 멱등 가드에 걸려 무동작이고, 이전 행이 DELETING 에 잔존.

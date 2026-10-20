@@ -62,7 +62,7 @@ class MonitoringIsInstalledByDefaultTest extends AbstractUnitTest {
     @Test
     void anOlderRequestWithoutTheFlagIsLeftAlone() {
         // 이미 돌고 있는 클러스터의 스냅샷에는 이 값이 없다. null 을 켜짐으로 읽으면 멀쩡한
-        // 클러스터가 "애드온 누락" 으로 DEGRADED 가 된다.
+        // 클러스터가 애드온 누락으로 DEGRADED 전이.
         VmClusterInternalRequestSnapshot spec =
                 VmClusterInternalRequestSnapshot.builder().build();
 

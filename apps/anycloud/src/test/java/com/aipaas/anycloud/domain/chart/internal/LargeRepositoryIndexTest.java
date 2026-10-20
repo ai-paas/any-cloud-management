@@ -17,7 +17,7 @@ class LargeRepositoryIndexTest extends AbstractUnitTest {
 
     private final ChartParser parser = new ChartParser();
 
-    /** 실제 index.yaml 모양으로 목표 크기까지 항목을 늘린다. */
+    /** 실제 index.yaml 형태로 목표 크기까지 항목 확장. */
     private String indexYamlOfAtLeast(int bytes) {
         StringBuilder sb = new StringBuilder("apiVersion: v1\nentries:\n");
         for (int i = 0; sb.length() < bytes; i++) {

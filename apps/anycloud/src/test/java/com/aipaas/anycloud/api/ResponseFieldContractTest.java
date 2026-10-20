@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 /**
- * 응답 필드 이름을 고정한다.
+ * 응답 필드 이름 고정.
  *
  * <p>필드 이름 변경이나 삭제 시 화면이 무음으로 빈 값 표시. 해당 사례 3건 발생. 감사 로그의
  * 시각과 응답 코드 미표시(createdAt, statusCode 를 timestamp, status 로 조회), clusterId 가

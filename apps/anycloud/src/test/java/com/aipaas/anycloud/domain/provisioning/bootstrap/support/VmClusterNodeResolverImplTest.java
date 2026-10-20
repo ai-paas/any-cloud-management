@@ -8,7 +8,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * nodes 출력은 provisioner 에 따라 JSON 문자열로도 배열로도 온다.
+ * nodes 출력은 provisioner 에 따라 JSON 문자열 또는 배열로 수신.
  *
  * <p>Pulumi Java SDK 의 일부 역직렬화 경로가 배열을 못 다뤄 provisioner 가 JSON 문자열로 export 했는데,
  * 이 resolver 는 List 만 처리해 빈 목록을 돌려줬다. masterHost 에는 폴백이 있지만 worker join 목록에는

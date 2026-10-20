@@ -9,7 +9,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 /**
- * GPU 워커를 골랐는데 operator 가 꺼지면 드라이버 없이 READY 가 된다.
+ * GPU 워커 선택 상태에서 operator 가 비활성이면 드라이버 없이 READY 전이.
  *
  * <p>IBM 과 OpenStack 이 실제로 그랬다. 다른 CSP 만 켜져 같은 요청이 CSP 마다 다르게 끝났다.
  */

@@ -6,7 +6,7 @@ import com.aipaas.anycloud.domain.provisioning.model.VmClusterInternalRequestSna
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-/** GPU 워커를 골랐는데 operator 가 빠지면 드라이버 없이 READY 가 된다. */
+/** GPU 워커 선택 상태에서 operator 가 누락되면 드라이버 없이 READY 전이. */
 class RequestedAddonsGpuTest {
 
     @ParameterizedTest

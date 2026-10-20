@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * managedFields 제거 회귀 방지. K8s 응답이 단일/List/array root/null 등 다양한 형태로 들어와도
- * 모두 안전하게 처리해야 한다.
+ * 전부 안전하게 처리 필요.
  */
 class K8sResponseSanitizerTest extends AbstractUnitTest {
 

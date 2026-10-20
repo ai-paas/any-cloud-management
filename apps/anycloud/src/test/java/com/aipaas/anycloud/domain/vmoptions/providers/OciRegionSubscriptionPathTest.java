@@ -11,7 +11,7 @@ import org.springframework.web.client.RestTemplate;
 /**
  * 구독 리전 조회 경로.
  *
- * <p>OCI 는 {@code /tenancies/{tenancyId}/regionSubscriptions} 로 받는다.
+ * <p>OCI 는 {@code /tenancies/{tenancyId}/regionSubscriptions} 경로 사용.
  * {@code /regionSubscriptions/{tenancyId}} 는 404 NotAuthorizedOrNotFound 를 돌려주는데,
  * 메시지가 권한 문제처럼 읽혀 자격증명을 의심하게 만든다. 실제 테넌시에 붙여 보고 알았다.
  */

@@ -36,7 +36,7 @@ class ComponentBackoffTest {
 
     @Test
     void backoffCapsAtOneHour() {
-        // 상한이 없으면 며칠 뒤 재시도가 되어 사실상 정지와 같아진다.
+        // 상한 부재 시 재시도 간격이 일 단위로 늘어 사실상 정지 상태.
         assertThat(minutesFromNow(7)).isEqualTo(60);
         assertThat(minutesFromNow(20)).isEqualTo(60);
         assertThat(minutesFromNow(1000)).isEqualTo(60);

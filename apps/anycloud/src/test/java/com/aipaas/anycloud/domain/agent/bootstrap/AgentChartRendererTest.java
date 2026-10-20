@@ -142,7 +142,7 @@ class AgentChartRendererTest extends AbstractUnitTest {
     @Test
     @EnabledIfSystemProperty(named = "chart.integration", matches = "true")
     void theSameTokenLeavesThePodsAlone() {
-        // 매번 달라지면 재적용 주기마다 에이전트가 재시작해 명령이 끊긴다.
+        // 값이 매번 변경되면 재적용 주기마다 에이전트가 재시작해 명령 중단.
         assertThat(checksumOf(renderer.render("eyJhbGc.same.sig")))
                 .isEqualTo(checksumOf(renderer.render("eyJhbGc.same.sig")));
     }

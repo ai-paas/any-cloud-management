@@ -28,7 +28,7 @@ import org.mockito.Mockito;
  * 사용자 "stuck at 33%" 인식 완화.
  *
  * <p>호출 순서 기준 검증은 VmClusterBootstrapProgressOrderTest 가 맡는다. 여기서는
- * 선언 순서만 보므로 호출 순서가 어긋난 결함을 잡지 못한다.
+ * 선언 순서만 검사하므로 호출 순서 불일치 결함은 미검출.
  */
 class VmClusterBootstrapProgressReporterImplTest extends AbstractUnitTest {
 

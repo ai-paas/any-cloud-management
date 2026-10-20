@@ -28,7 +28,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 /**
- * 사전 검토가 요청에 담긴 자격증명으로 조회해야 한다.
+ * 사전 검토는 요청에 포함된 자격증명으로 조회 필요.
  *
  * <p>제거 시 조회가 환경변수 fallback 으로 전환돼 조회 불가 상태가 되고, 등록 자격증명 기반
  * 생성 요청이 {@code readyToProvision=false} 로 차단. 화면에는 자격증명이 정상으로 표시되나

@@ -256,7 +256,7 @@ class AgentBootstrapServiceImplTest {
 
     @Test
     void shouldActivateOnRegister_skipsAlreadyActive() {
-        // 매 register 마다 같은 값을 쓰면 updated_at 이 갱신되고 state history 가 헛돌아간다.
+        // register 마다 동일 값 사용 시 updated_at 이 갱신되고 state history 에 무의미한 행 누적.
         assertThat(AgentBootstrapServiceImpl.shouldActivateOnRegister(
                         com.aipaas.anycloud.domain.cluster.model.ClusterStatus.ACTIVE))
                 .isFalse();

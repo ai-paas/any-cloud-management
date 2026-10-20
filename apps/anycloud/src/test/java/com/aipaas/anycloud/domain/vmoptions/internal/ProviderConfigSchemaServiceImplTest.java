@@ -80,7 +80,7 @@ class ProviderConfigSchemaServiceImplTest extends AbstractUnitTest {
 
     @Test
     void alibabaSchema_requiresZoneBecauseASwitchLivesInOne() {
-        // VSwitch 가 zone 단위다. 리전만으로는 서브넷을 만들지 못한다.
+        // VSwitch 는 zone 단위. 리전만으로 서브넷 생성 불가.
         ProviderConfigKey entry = findKey(service.getSchema("Alibaba"), "anycloud-k8s:providerSpec.zone");
 
         assertThat(entry.required()).isTrue();

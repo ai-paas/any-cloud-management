@@ -6,7 +6,7 @@ import com.aipaas.anycloud.domain.vmoptions.api.SpecFilter;
 import com.aipaas.anycloud.testsupport.AbstractUnitTest;
 import org.junit.jupiter.api.Test;
 
-/** 조건을 비우면 control-plane 이 뜨는 최소선을 쓴다. */
+/** 조건 미지정 시 control-plane 기동 가능한 최소 사양 사용. */
 class SpecFilterTest extends AbstractUnitTest {
 
     @Test
