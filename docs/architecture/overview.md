@@ -51,9 +51,9 @@ anycloud monorepo 의 component / package / 의존 관계를 정리했습니다.
 | `libs/cluster-provisioning-spring-boot-starter` | Java starter | VM cluster provisioning. Pulumi **Java SDK** 기반이며 provider 별 `*Provisioner` 로 구현. v0.3.0 에서 Go 구현(`infra/pulumi`)을 대체했다. |
 | `apps/agent/deploy/helm/cluster-agent` | Helm chart | target cluster 에 agent 배포 패키지. |
 
-## 2. anycloud Backend (Java) 패키지 지도
+## 2. anycloud Backend (Java) 패키지 구조
 
-`apps/anycloud/src/main/java/com/aipaas/anycloud/` 기준입니다. 최상위는 넷입니다.
+`apps/anycloud/src/main/java/com/aipaas/anycloud/` 아래 최상위 패키지는 4개입니다.
 
 | Package | 책임 |
 |---|---|
