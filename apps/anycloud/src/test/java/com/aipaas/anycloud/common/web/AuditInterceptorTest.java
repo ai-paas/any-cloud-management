@@ -64,16 +64,16 @@ class AuditInterceptorTest extends AbstractUnitTest {
         "/v1/clusters/demo-aws-01,                                  demo-aws-01",
         "/v1/helm-repos/bitnami,                                    bitnami",
         "/v1/operations/op-001,                                     op-001",
-        // III-58 colon-free custom-method 서브패스 — verb 한 단계 위 segment 가 id
+        // colon-free custom-method 서브패스. verb 한 단계 위 segment 가 id
         "/v1/operations/op-002/cancel,                              op-002",
         "/v1/clusters/demo-aws-01/addons/mon-01/retry,              mon-01",
         "/v1/clusters/demo-aws-01/addons/enqueue,                   addons",
         "/v1/admin/kind-cache/flush,                                kind-cache",
         "/v1/admin/clusters/demo-aws-01/kind-cache/flush,           kind-cache",
         "/v1/clusters/demo-aws-01/observability/alert-rules/install-all, alert-rules",
-        // collection-level custom method (식별자 없음 — prev 가 collection marker)
+        // collection-level custom method (식별자 없음. prev 가 collection marker)
         "/v1/clusters/importKubeconfig,                             ",
-        // (legacy) 옛 :verb 콜론 경로 방어 — 콜론 앞부분만 사용
+        // (legacy) 옛 :verb 콜론 경로 방어: 콜론 앞부분만 사용
         "/v1/operations/op-legacy:cancel,                           op-legacy",
         // action-suffix verb (한 단계 위 segment 가 진짜 ID)
         "/v1/clusters/demo-aws-01/operations,                       demo-aws-01",
@@ -83,7 +83,7 @@ class AuditInterceptorTest extends AbstractUnitTest {
         "/v1/clusters/demo-aws-01/helm-releases/ingress/revisions,  ingress",
         "/v1/clusters/demo-aws-01/helm-releases/ingress/resources,  ingress",
         "/v1/clusters/demo-aws-01/helm-releases/ingress/operations, ingress",
-        // k8s — 단건 (마지막 segment = 자원명)
+        // k8s: 단건 (마지막 segment = 자원명)
         "/v1/clusters/demo-aws-01/namespaces/default/pods/nginx-abc, nginx-abc"
     })
     void inferResourceId_handlesVerbsAndCollectionMarkers(String uri, String expected) {

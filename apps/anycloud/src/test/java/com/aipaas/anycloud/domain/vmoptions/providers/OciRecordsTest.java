@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 /**
- * L1 — OciRecords 가 OCI API 응답을 안전하게 deserialize 하는지 회귀 방지.
+ * L1: OciRecords 가 OCI API 응답을 안전하게 deserialize 하는지 회귀 방지.
  * <ul>
  *   <li>알려진 field 는 record 에 정확히 매핑</li>
  *   <li>알 수 없는 field 는 silently 무시 (Jackson @JsonIgnoreProperties)</li>

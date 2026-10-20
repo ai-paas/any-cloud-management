@@ -30,7 +30,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 
 /**
- * {@link ClusterServiceImpl} 회귀 lock —.
+ * {@link ClusterServiceImpl} 회귀 lock: .
  *
  * <p>Cluster CRUD critical path 회귀 lock:
  * <ul>
@@ -61,11 +61,11 @@ class ClusterServiceImplTest {
                 clusterAgentRepository,
                 meterRegistry,
                 connectivityService);
-        service.initMetrics(); // @PostConstruct 가 unit test 에서 호출되지 않음 — 명시.
+        service.initMetrics(); // @PostConstruct 가 unit test 에서 호출되지 않음. 명시.
     }
 
     // ============================================================================
-    // getClusterEntity — exact match + miss
+    // getClusterEntity: exact match + miss
     // ============================================================================
 
     @Test
@@ -85,7 +85,7 @@ class ClusterServiceImplTest {
 
     @Test
     void getClusterEntity_miss_throwsAndIncrementsMissCounter() {
-        // O-5 회귀 lock — lenient fallback 제거 후, findById miss 시 즉시 throw.
+        // O-5 회귀 lock: lenient fallback 제거 후, findById miss 시 즉시 throw.
         when(clusterRepository.findById("missing")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.getClusterEntity("missing")).isInstanceOf(ClusterNotFoundException.class);
@@ -109,7 +109,7 @@ class ClusterServiceImplTest {
 
         assertThat(result).isEqualTo(HttpStatus.CREATED);
 
-        // 회귀 lock — 모든 신규 cluster 는 AGENT_PENDING / IMPORTED / version=null.
+        // 회귀 lock: 모든 신규 cluster 는 AGENT_PENDING / IMPORTED / version=null.
         ArgumentCaptor<ClusterEntity> entityCaptor = ArgumentCaptor.forClass(ClusterEntity.class);
         verify(clusterRepository).save(entityCaptor.capture());
         ClusterEntity saved = entityCaptor.getValue();
@@ -152,7 +152,7 @@ class ClusterServiceImplTest {
 
     @Test
     void createCluster_dataIntegrityViolation_uniqueKeyword_classifiedAsDuplicate() {
-        // Race window — findById 후 다른 thread 가 먼저 save → DB unique constraint violation.
+        // Race window: findById 후 다른 thread 가 먼저 save → DB unique constraint violation.
         CreateClusterDto dto = createDto("race-cluster");
         when(clusterRepository.findById("race-cluster")).thenReturn(Optional.empty());
         DataIntegrityViolationException ex = new DataIntegrityViolationException(
@@ -164,7 +164,7 @@ class ClusterServiceImplTest {
                 .isInstanceOf(CustomException.class)
                 .satisfies(e -> assertThat(((CustomException) e).getErrorCode()).isEqualTo(ErrorCode.DUPLICATE));
 
-        // race 도 duplicate counter — 실 인시던트 분석 시 race vs synchronous 구분 가능.
+        // race 도 duplicate counter: 실 인시던트 분석 시 race vs synchronous 구분 가능.
         assertThat(meterRegistry
                         .counter("anycloud.cluster.create.total", "outcome", "duplicate")
                         .count())
@@ -217,7 +217,7 @@ class ClusterServiceImplTest {
 
     @Test
     void updateCluster_pulumi_throws_routeMismatch() {
-        // VM 기반 cluster 는 /system/vm/clusters API 사용해야 — 잘못된 route 거부.
+        // VM 기반 cluster 는 /system/vm/clusters API 사용해야: 잘못된 route 거부.
         ClusterEntity pulumi = new ClusterEntity();
         pulumi.setId("vm-001");
         pulumi.setProvisioningType("PULUMI");
@@ -242,7 +242,7 @@ class ClusterServiceImplTest {
     }
 
     // ============================================================================
-    // deleteCluster — cascade + cache invalidate
+    // deleteCluster: cascade + cache invalidate
     // ============================================================================
 
     @Test
@@ -256,7 +256,7 @@ class ClusterServiceImplTest {
         HttpStatus result = service.deleteCluster("orb-001");
 
         assertThat(result).isEqualTo(HttpStatus.OK);
-        // cascade 회귀 lock — agent row 정리 안 하면 cluster 재등록 시 stale agent 충돌.
+        // cascade 회귀 lock: agent row 정리 안 하면 cluster 재등록 시 stale agent 충돌.
         verify(clusterAgentRepository).deleteByClusterName("orb-001");
         verify(clusterRepository).delete(entity);
     }
@@ -311,7 +311,7 @@ class ClusterServiceImplTest {
 
     @Test
     void refreshClusterStatus_connectivityRuntimeException_wrapsAsInternal() {
-        // connectivity 호출 중 unexpected RuntimeException — 500 wrap 은 유지 (운영자가 root cause log
+        // connectivity 호출 중 unexpected RuntimeException: 500 wrap 은 유지 (운영자가 root cause log
         // 확인 가능).
         ClusterEntity entity = new ClusterEntity();
         entity.setId("orb-001");
@@ -328,7 +328,7 @@ class ClusterServiceImplTest {
 
     @Test
     void refreshClusterStatus_connectivityCustomException_propagatesAsIs() {
-        // CCC-1 회귀 lock — 이미 분류된 CustomException (예: 503 AGENT_UNAVAILABLE) 은 500 으로 wrap 되면
+        // CCC-1 회귀 lock: 이미 분류된 CustomException (예: 503 AGENT_UNAVAILABLE) 은 500 으로 wrap 되면
         // 안 됨. 그대로 propagate.
         ClusterEntity entity = new ClusterEntity();
         entity.setId("orb-001");

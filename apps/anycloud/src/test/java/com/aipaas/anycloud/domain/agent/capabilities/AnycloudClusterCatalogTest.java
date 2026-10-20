@@ -46,7 +46,7 @@ class AnycloudClusterCatalogTest extends AbstractUnitTest {
 
     @Test
     void listClusterNames_filtersNonActive() {
-        // findByStatus(ACTIVE) 는 ACTIVE 만 반환 — non-ACTIVE 는 DB 가 미리 거름.
+        // findByStatus(ACTIVE) 는 ACTIVE 만 반환: non-ACTIVE 는 DB 가 미리 거름.
         when(repo.findByStatus(ClusterAgentStatus.ACTIVE))
                 .thenReturn(List.of(
                         agent("c1", "i1", ClusterAgentStatus.ACTIVE), agent("c4", "i1", ClusterAgentStatus.ACTIVE)));
@@ -79,7 +79,7 @@ class AnycloudClusterCatalogTest extends AbstractUnitTest {
 
     @Test
     void listClusterNames_allNonActive_returnsEmpty() {
-        // DB-side filter — non-ACTIVE 만 있으면 findByStatus(ACTIVE) 는 빈 리스트.
+        // DB-side filter: non-ACTIVE 만 있으면 findByStatus(ACTIVE) 는 빈 리스트.
         when(repo.findByStatus(ClusterAgentStatus.ACTIVE)).thenReturn(List.of());
 
         assertThat(catalog.listClusterNames()).isEmpty();

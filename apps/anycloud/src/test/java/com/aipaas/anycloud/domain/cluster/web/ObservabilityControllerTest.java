@@ -27,9 +27,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 /**
- * ObservabilityController slice test — REST 매핑 / ExceptionHandler 의 HTTP status 매핑.
+ * ObservabilityController slice test: REST 매핑 / ExceptionHandler 의 HTTP status 매핑.
  *
- * <p>실제 starter 서비스는 mock — agent / Prometheus 호출 없음.
+ * <p>실제 starter 서비스는 mock: agent / Prometheus 호출 없음.
  */
 class ObservabilityControllerTest extends AbstractUnitTest {
 
@@ -53,7 +53,7 @@ class ObservabilityControllerTest extends AbstractUnitTest {
     @BeforeEach
     void setUp() {
         // cluster_addon path 가 monitoring 설치 담당. ObservabilityException → HTTP status 매핑은
-        // GlobalExceptionHandler 가 담당 — standalone test 도 advice 등록 필수.
+        // GlobalExceptionHandler 가 담당: standalone test 도 advice 등록 필수.
         mvc = MockMvcBuilders.standaloneSetup(new ObservabilityController(
                         queryService,
                         dashboardLocator,
@@ -66,14 +66,14 @@ class ObservabilityControllerTest extends AbstractUnitTest {
                 .build();
     }
 
-    // /observability/install 동기 endpoint 없음 — cluster_addon path 의 happy-path 는
+    // /observability/install 동기 endpoint 없음. cluster_addon path 의 happy-path 는
     // AddonInstallerRegistryTest / RabbitMqAddonInstallListenerTest / AddonSpecResolverTest 가 cover.
 
     // ===== Query (instant + range + aggregate) =====
 
     @Test
     void query_happyPath_returnsRawPrometheusEnvelope() throws Exception {
-        // raw passthrough — 응답이 Prometheus envelope 그대로.
+        // raw passthrough: 응답이 Prometheus envelope 그대로.
         when(queryService.queryInstant(eq("c1"), eq("up"), eq(null), any(), any()))
                 .thenReturn(new PromQLResult(
                         "c1",
@@ -89,7 +89,7 @@ class ObservabilityControllerTest extends AbstractUnitTest {
 
     @Test
     void query_acceptsNewQueryParamName() throws Exception {
-        // 'query' 가 신규 표준 — 'promql' 과 동등.
+        // 'query' 가 신규 표준: 'promql' 과 동등.
         when(queryService.queryInstant(eq("c1"), eq("up"), eq(null), any(), any()))
                 .thenReturn(new PromQLResult("c1", "http://prom:9090", false, "{\"status\":\"success\",\"data\":{}}"));
 

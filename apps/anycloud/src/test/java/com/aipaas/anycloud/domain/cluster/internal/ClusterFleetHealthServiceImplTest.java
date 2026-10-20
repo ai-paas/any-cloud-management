@@ -20,7 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 
 /**
- * {@link ClusterFleetHealthServiceImpl} 회귀 lock —.
+ * {@link ClusterFleetHealthServiceImpl} 회귀 lock: .
  *
  * <p>Dashboard 상단 노출 정렬 + counting + byStatus 집계의 정확성이 운영자 incident triage 시간 직결.
  * 회귀 시 unhealthy cluster 가 healthy cluster 아래에 묻혀 SLA 위반 가능.
@@ -39,7 +39,7 @@ class ClusterFleetHealthServiceImplTest {
     }
 
     // ============================================================================
-    // Sorting — unhealthy first, then noAgent, then healthy
+    // Sorting: unhealthy first, then noAgent, then healthy
     // ============================================================================
 
     @Test
@@ -137,12 +137,12 @@ class ClusterFleetHealthServiceImplTest {
     }
 
     // ============================================================================
-    // Pagination — chunks of 100
+    // Pagination: chunks of 100
     // ============================================================================
 
     @Test
     void getFleetHealth_paginatesIn100Chunks() {
-        // 250 cluster — 3 page (100 + 100 + 50) 호출.
+        // 250 cluster: 3 page (100 + 100 + 50) 호출.
         List<ClusterEntity> page1 = clustersRange(0, 100);
         List<ClusterEntity> page2 = clustersRange(100, 200);
         List<ClusterEntity> page3 = clustersRange(200, 250);

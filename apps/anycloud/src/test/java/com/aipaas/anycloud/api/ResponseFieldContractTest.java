@@ -18,13 +18,13 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 /**
- * 응답 필드 이름을 고정한다.
+ * 응답 필드 이름 고정.
  *
- * <p>필드 이름이 바뀌거나 사라지면 화면이 조용히 빈칸을 보여준다. 실제로 이렇게 세 번 막혔다 —
- * 감사 로그의 시각과 응답 코드가 안 나오던 것(createdAt/statusCode 를 timestamp/status 로 읽음),
- * clusterId 가 DTO 에 아예 없어 프로비저닝과 클러스터를 연결하지 못하던 것.
+ * <p>필드 이름 변경이나 삭제 시 화면이 무음으로 빈 값 표시. 해당 사례 3건 발생. 감사 로그의
+ * 시각과 응답 코드 미표시(createdAt, statusCode 를 timestamp, status 로 조회), clusterId 가
+ * DTO 에 부재해 프로비저닝과 클러스터 연결 불가.
  *
- * <p>여기 이름을 바꾸려면 소비자(ai-paas-web, ai-paas-gateway)도 같이 고쳐야 한다는 뜻이다.
+ * <p>이 이름을 변경하려면 소비자(ai-paas-web, ai-paas-gateway)도 함께 수정 필요.
  */
 class ResponseFieldContractTest extends AbstractUnitTest {
 

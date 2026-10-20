@@ -10,8 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * VmClusterRepository 의 JPA 매핑/쿼리가 실제 MariaDB 에서 동작하는지 확인. 회귀 시
- * column 타입 mismatch, naming convention, 인덱스 누락 등을 즉시 잡는다.
+ * VmClusterRepository 의 JPA 매핑과 쿼리가 실제 MariaDB 에서 동작하는지 검증. column 타입
+ * 불일치, naming convention, 인덱스 누락 등의 회귀를 즉시 검출.
  */
 @Transactional
 class VmClusterRepositoryIntegrationTest extends AbstractIntegrationTest {
@@ -55,8 +55,8 @@ class VmClusterRepositoryIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void degradedStatusPersistsToEnumColumn() {
-        // provisioning_status 는 varchar 가 아니라 MySQL enum 이다. V8 로 값을 추가하지 않으면
-        // Java 만 고쳤을 때 컴파일과 단위 테스트는 통과하고 여기서 깨진다.
+        // provisioning_status 는 varchar 가 아닌 MySQL enum. V8 로 값을 추가하지 않으면
+        // Java 만 수정한 상태에서 컴파일과 단위 테스트는 통과하고 이 지점에서 실패.
         VmClusterEntity entity = newCluster("degraded-round-trip");
         entity.setProvisioningStatus(VmClusterStatus.DEGRADED);
         VmClusterEntity saved = repository.saveAndFlush(entity);
@@ -66,10 +66,10 @@ class VmClusterRepositoryIntegrationTest extends AbstractIntegrationTest {
     }
 
     private VmClusterEntity newCluster(String name) {
-        // id 는 넣지 않는다. @GeneratedValue(UUID) 가 채운다.
-        // 미리 넣으면 Hibernate 6.6 이 detached 로 판정해 INSERT 대신 UPDATE 를 보내고,
-        // 대상 row 가 없어 ObjectOptimisticLockingFailureException 이 난다.
-        // 운영 코드도 VmClusterEntity.builder() 로 만들며 id 를 지정하지 않는다.
+        // id 미지정. @GeneratedValue(UUID) 가 설정.
+        // 사전 지정 시 Hibernate 6.6 이 detached 로 판정해 INSERT 대신 UPDATE 를 전송하고,
+        // 대상 row 부재로 ObjectOptimisticLockingFailureException 발생.
+        // 운영 코드도 VmClusterEntity.builder() 사용 시 id 미지정.
         VmClusterEntity e = new VmClusterEntity();
         e.setClusterName(name);
         e.setClusterProvider("AWS");

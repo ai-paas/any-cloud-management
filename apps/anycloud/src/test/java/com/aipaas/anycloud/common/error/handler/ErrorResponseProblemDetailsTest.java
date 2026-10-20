@@ -8,11 +8,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 /**
- * UX #7 — ErrorResponse RFC 9457 호환 type URI 회귀 보호.
+ * UX #7: ErrorResponse RFC 9457 호환 type URI 회귀 보호.
  *
  * <p>
  * 기존 응답 구조 (code/message/status/errors) 는 그대로 유지하고 type URI 만 추가
- * (additive — 기존 클라이언트 비파괴).
+ * (additive: 기존 클라이언트 비파괴).
  */
 class ErrorResponseProblemDetailsTest extends AbstractUnitTest {
 

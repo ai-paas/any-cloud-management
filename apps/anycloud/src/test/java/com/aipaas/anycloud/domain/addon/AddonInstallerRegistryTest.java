@@ -9,7 +9,7 @@ import com.aipaas.anycloud.domain.addon.model.AddonType;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/** N-13 — AddonInstallerRegistry: type indexing + duplicate fail-fast + require API. */
+/** N-13: AddonInstallerRegistry: type indexing + duplicate fail-fast + require API. */
 class AddonInstallerRegistryTest {
 
     @Test

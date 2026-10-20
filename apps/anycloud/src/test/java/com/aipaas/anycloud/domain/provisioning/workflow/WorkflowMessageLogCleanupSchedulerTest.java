@@ -54,7 +54,7 @@ class WorkflowMessageLogCleanupSchedulerTest extends AbstractUnitTest {
 
     @Test
     void zeroRetentionMeansKeepEverything() {
-        // 0 을 "즉시 삭제"로 읽으면 설정 실수 한 번에 이력이 통째로 사라진다.
+        // 0 을 즉시 삭제로 해석하면 설정 오류 한 번에 이력 전체 소실.
         configure(true, 0);
 
         scheduler.sweep();
@@ -64,7 +64,7 @@ class WorkflowMessageLogCleanupSchedulerTest extends AbstractUnitTest {
 
     @Test
     void aFailedSweepDoesNotPropagate() {
-        // 정리 실패가 워크플로를 막으면 안 된다.
+        // 정리 실패가 워크플로를 차단하면 안 됨.
         configure(true, 30);
         when(repository.deleteCreatedBefore(any())).thenThrow(new RuntimeException("db down"));
 

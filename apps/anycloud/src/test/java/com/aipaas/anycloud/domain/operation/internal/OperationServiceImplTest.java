@@ -82,7 +82,7 @@ class OperationServiceImplTest extends AbstractUnitTest {
         Thread.sleep(5);
 
         OperationEntity second = service.markRunning(initial.getId());
-        // 두 번째 호출은 PENDING 이 아니므로 no-op — startedAt 그대로.
+        // 두 번째 호출은 PENDING 이 아니므로 no-op: startedAt 그대로.
         assertThat(second.getStartedAt()).isEqualTo(firstStartedAt);
         assertThat(second.getState()).isEqualTo(OperationState.RUNNING);
     }

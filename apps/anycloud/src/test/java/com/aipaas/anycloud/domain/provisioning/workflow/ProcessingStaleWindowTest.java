@@ -7,14 +7,14 @@ import java.time.Duration;
 import org.junit.jupiter.api.Test;
 
 /**
- * 락을 회수하는 창은 작업이 실제로 걸리는 시간보다 길어야 한다.
+ * 락 회수 창은 실제 작업 소요 시간보다 커야 함.
  *
- * <p>짧으면 아직 도는 작업의 락을 남이 뺏어가 같은 노드에 부트스트랩이 두 번 붙는다.
- * BOOTSTRAP 최악 예산이 170분이라 45분으로는 모자랐다.
+ * <p>작으면 실행 중인 작업의 락을 다른 프로세스가 탈취해 동일 노드에 부트스트랩이 중복 실행.
+ * BOOTSTRAP 최악 예산이 170분이라 45분으로는 부족.
  */
 class ProcessingStaleWindowTest extends AbstractUnitTest {
 
-    /** BOOTSTRAP 단계들의 최악 합계. 상수를 바꾸면 이 값도 다시 계산해야 한다. */
+    /** BOOTSTRAP 단계의 최악 합계. 상수 변경 시 이 값도 재계산 필요. */
     private static final Duration WORST_CASE_BOOTSTRAP = Duration.ofMinutes(170);
 
     @Test
@@ -24,7 +24,7 @@ class ProcessingStaleWindowTest extends AbstractUnitTest {
 
     @Test
     void staleWindowIsNotUnbounded() {
-        // 크래시로 남은 락이 영원히 막으면 사람이 DB 를 건드려야 한다.
+        // 크래시로 잔존한 락이 영구 차단하면 DB 직접 조작 필요.
         assertThat(ProcessingLock.DEFAULT_STALE_AFTER).isLessThan(Duration.ofHours(12));
     }
 }

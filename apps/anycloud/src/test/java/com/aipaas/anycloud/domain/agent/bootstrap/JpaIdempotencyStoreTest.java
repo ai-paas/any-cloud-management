@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.dao.DataIntegrityViolationException;
 
-/** Redis SET NX 의 DB 기반 대체 — INSERT IGNORE 패턴 회귀. */
+/** Redis SET NX 의 DB 기반 대체: INSERT IGNORE 패턴 회귀. */
 class JpaIdempotencyStoreTest extends AbstractUnitTest {
 
     private BootstrapJtiRepository repo;

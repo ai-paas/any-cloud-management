@@ -31,7 +31,7 @@ import org.testcontainers.containers.MariaDBContainer;
 @ExtendWith(AbstractIntegrationTest.DockerAvailableCondition.class)
 public abstract class AbstractIntegrationTest {
 
-    // static container — 같은 JVM 의 모든 테스트가 공유 (Testcontainers reuse).
+    // static container: 같은 JVM 의 모든 테스트가 공유 (Testcontainers reuse).
     // withReuse(true) 는 ~/.testcontainers.properties 에 testcontainers.reuse.enable=true 가 있어야 작동.
     static final MariaDBContainer<?> MARIA_DB = new MariaDBContainer<>("mariadb:10.11")
             .withDatabaseName("anycloud_test")

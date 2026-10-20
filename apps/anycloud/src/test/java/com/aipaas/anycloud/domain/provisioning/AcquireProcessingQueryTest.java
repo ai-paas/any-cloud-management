@@ -11,11 +11,11 @@ import org.junit.jupiter.api.Test;
 /**
  * 처리 중 소유권을 잡는 조건.
  *
- * <p>AMQP 재전달은 <b>같은 messageId</b> 를 쓴다. 조건에 {@code processingMessageId = :messageId}
- * 가 있으면 재전달이 자기 락을 다시 잡아 같은 작업이 두 번 돈다 — 실제로 30분마다 부트스트랩이
- * 처음부터 다시 시작하는 것을 관측했다.
+ * <p>AMQP 재전달은 <b>동일 messageId</b> 사용. 조건에 {@code processingMessageId = :messageId}
+ * 가 있으면 재전달이 자기 락을 재획득해 동일 작업이 중복 실행. 30분 주기로 부트스트랩이 처음부터
+ * 재시작하는 사례 관측.
  *
- * <p>크래시 후 재시도는 stale 창이 열어준다. 같은 messageId 라는 이유만으로 열어주면 안 된다.
+ * <p>크래시 후 재시도는 stale 창이 처리. messageId 일치만으로는 재진입 불허.
  */
 class AcquireProcessingQueryTest extends AbstractUnitTest {
 
@@ -23,8 +23,8 @@ class AcquireProcessingQueryTest extends AbstractUnitTest {
             Path.of("src/main/java/com/aipaas/anycloud/domain/provisioning/VmClusterRepository.java");
 
     /**
-     * WHERE 절만 본다. SET 절에도 {@code v.processingMessageId = :messageId} 가 있어서
-     * 쿼리 전체를 보면 고친 뒤에도 걸린다.
+     * WHERE 절만 검사. SET 절에도 {@code v.processingMessageId = :messageId} 가 있어 쿼리
+     * 전체를 검사하면 수정 후에도 매칭.
      */
     private String acquireWhereClause() throws IOException {
         String src = Files.readString(REPOSITORY);
@@ -48,7 +48,7 @@ class AcquireProcessingQueryTest extends AbstractUnitTest {
 
     @Test
     void aStaleHolderIsTakenOver() throws IOException {
-        // 크래시로 락이 남으면 영원히 막힌다. 오래된 것은 회수한다.
+        // 크래시로 락이 잔존하면 영구 차단. 오래된 항목은 회수.
         assertThat(acquireWhereClause()).contains("v.processingStartedAt < :staleBefore");
     }
 }

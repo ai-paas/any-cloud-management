@@ -84,7 +84,7 @@ class ClusterComponentRepairServiceImplTest {
 
     @Test
     void doesNotMarkHealthy() {
-        // 적용 성공이 준비 완료는 아니다. 판정은 다음 probe 몫이다.
+        // 적용 성공과 준비 완료는 별개. 판정은 다음 probe 담당.
         ClusterComponent component = agentComponent();
         VmClusterComponentEntity entity = row();
         when(repository.findByVmClusterIdAndComponentType("vmc-001", ComponentType.AGENT))
@@ -97,7 +97,7 @@ class ClusterComponentRepairServiceImplTest {
 
     @Test
     void applyFailurePropagatesAndLeavesRowUntouched() {
-        // 운영자 요청은 실패를 숨기면 안 된다. 400/500 으로 드러나야 한다.
+        // 운영자 요청은 실패 은닉 금지. 400 또는 500 으로 노출 필요.
         ClusterComponent component = agentComponent();
         org.mockito.Mockito.doThrow(new IllegalStateException("ssh refused"))
                 .when(component)
@@ -126,7 +126,7 @@ class ClusterComponentRepairServiceImplTest {
 
     @Test
     void repairIfDue_appliesWhenNoBackoffPending() {
-        // 이 경로가 없으면 어떤 클러스터도 스스로 READY 에 도달하지 못한다.
+        // 이 경로 부재 시 클러스터의 자체 READY 도달 불가.
         ClusterComponent component = agentComponent();
         VmClusterComponentEntity entity = dueRow();
         when(repository.findByVmClusterIdAndComponentType("vmc-001", ComponentType.AGENT))
@@ -154,7 +154,7 @@ class ClusterComponentRepairServiceImplTest {
 
     @Test
     void repairIfDue_accumulatesAttemptsUnlikeManualRepair() {
-        // 같은 이유로 계속 실패하는 컴포넌트를 5분마다 무한 재시도하면 안 된다.
+        // 동일 사유로 반복 실패하는 컴포넌트의 5분 주기 무한 재시도 금지.
         ClusterComponent component = agentComponent();
         VmClusterComponentEntity entity = dueRow();
         entity.setAttempts(3);
@@ -196,7 +196,7 @@ class ClusterComponentRepairServiceImplTest {
 
     @Test
     void repairIfDue_swallowsApplyFailureAndRecordsIt() {
-        // 한 컴포넌트의 실패가 나머지 조정을 멈추면 안 된다.
+        // 컴포넌트 하나의 실패로 나머지 조정 중단 금지.
         ClusterComponent component = agentComponent();
         org.mockito.Mockito.doThrow(new IllegalStateException("SSH 불가"))
                 .when(component)

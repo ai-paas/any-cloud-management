@@ -19,11 +19,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 /**
- * 끝나지 않는 작업을 닫는다.
+ * 종료되지 않는 작업 종료 처리.
  *
- * <p>워커가 죽거나 워크플로가 멈추면 operation 이 RUNNING 인 채로 남는다. 실제로 8일 넘게
- * RUNNING 인 항목이 9건 있었고, 화면에서는 아직 진행 중인 것처럼 보였다. 진행 중과 방치된 것을
- * 구분할 수 없으면 목록을 믿을 수 없다.
+ * <p>워커 종료나 워크플로 정지 시 operation 이 RUNNING 상태로 잔존. 8일 이상 RUNNING 인 항목
+ * 9건이 화면에 진행 중으로 표시된 사례 발생. 진행 중과 방치 상태를 구분할 수 없으면 목록
+ * 신뢰 불가.
  */
 class StaleOperationReaperTest extends AbstractUnitTest {
 
@@ -59,7 +59,7 @@ class StaleOperationReaperTest extends AbstractUnitTest {
 
     @Test
     void saysWhyItWasClosed() {
-        // "FAILED" 만 남으면 진짜 실패와 방치를 구분할 수 없다.
+        // FAILED 만 기록하면 실제 실패와 방치 상태 구분 불가.
         when(operationRepository.findStaleActive(any(), any())).thenReturn(List.of(running("op-1")));
 
         reaper.reap();

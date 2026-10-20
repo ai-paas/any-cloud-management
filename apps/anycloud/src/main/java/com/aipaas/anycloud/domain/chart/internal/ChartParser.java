@@ -25,12 +25,13 @@ public class ChartParser {
     /**
      * Jackson YAMLFactory 대신 {@code org.yaml:snakeyaml} 직접 호출.
      *
-     * <p>plain ASCII YAML 도 "special characters at line 1, column 1" 으로 거절되는 regression
-     * 발생 (ChartMuseum index.yaml). 원인으로 의심한 {@code snakeyaml-engine} 은 fabric8 제거
-     * 과정에서 classpath 에서 사라졌으므로 이 우회의 필요 여부는 재확인 대상.
+     * <p>LoaderOptions 를 직접 지정하기 위함. 공개 저장소의 index.yaml 은 대용량이라
+     * (prometheus-community 6.4MB) snakeyaml 기본 상한 3MiB 에서 거절되고 화면에는 차트 부재로
+     * 표시. Jackson 경로로 되돌리려면 {@code YAMLFactory.builder().loaderOptions(..)} 로 같은
+     * 상한을 다시 지정해야 함.
      *
-     * <p>공개 저장소의 index.yaml 은 대용량. prometheus-community 6.4MB, bitnami 는 그 이상.
-     * snakeyaml 기본 상한 3MiB 에서 거절되며 화면에는 차트 부재로 표시.
+     * <p>도입 당시 또 다른 사유였던 "special characters at line 1, column 1" regression 의
+     * 원인으로 지목한 {@code snakeyaml-engine} 은 fabric8 제거와 함께 classpath 에서 제거됨.
      */
     private static final int INDEX_CODE_POINT_LIMIT = 64 * 1024 * 1024;
 

@@ -40,7 +40,7 @@ class VmClusterStatusTransitionTest {
                 .isTrue();
         assertThat(VmClusterStatus.READY.canTransitionTo(VmClusterStatus.FAILED))
                 .isTrue();
-        // READY → PROVISIONING 은 invalid — 명시 SCALING/UPGRADING 사용.
+        // READY → PROVISIONING 은 invalid: 명시 SCALING/UPGRADING 사용.
         assertThat(VmClusterStatus.READY.canTransitionTo(VmClusterStatus.PROVISIONING))
                 .isFalse();
     }
@@ -59,7 +59,7 @@ class VmClusterStatusTransitionTest {
         assertThat(VmClusterStatus.UPGRADING.canTransitionTo(VmClusterStatus.FAILED))
                 .isTrue();
 
-        // invalid — day-2 ops 가 직접 다른 step 으로 점프 금지
+        // invalid: day-2 ops 가 직접 다른 step 으로 점프 금지
         assertThat(VmClusterStatus.SCALING.canTransitionTo(VmClusterStatus.UPGRADING))
                 .isFalse();
         assertThat(VmClusterStatus.SCALING.canTransitionTo(VmClusterStatus.PROVISIONING))
@@ -68,7 +68,7 @@ class VmClusterStatusTransitionTest {
 
     @Test
     void ready_cannotJumpToBootstrappingOrVerifying() {
-        // READY 에서 중간 step 으로 점프는 invalid — 항상 SCALING/UPGRADING/DELETING 만 가능
+        // READY 에서 중간 step 으로 점프는 invalid: 항상 SCALING/UPGRADING/DELETING 만 가능
         assertThat(VmClusterStatus.READY.canTransitionTo(VmClusterStatus.BOOTSTRAPPING))
                 .isFalse();
         assertThat(VmClusterStatus.READY.canTransitionTo(VmClusterStatus.VERIFYING))
@@ -162,7 +162,7 @@ class VmClusterStatusTransitionTest {
 
     @Test
     void degraded_canRecoverToReady() {
-        // 조정 루프가 수렴시키면 운영자 개입 없이 READY 로 돌아온다.
+        // 조정 루프 수렴 시 운영자 개입 없이 READY 복귀.
         assertThat(VmClusterStatus.DEGRADED.canTransitionTo(VmClusterStatus.READY))
                 .isTrue();
     }
@@ -183,7 +183,7 @@ class VmClusterStatusTransitionTest {
 
     @Test
     void degraded_cannotJumpBackIntoProvisioning() {
-        // day-2 ops 는 READY 에서만 시작한다. DEGRADED 에서 스케일하면 수렴 상태를 잃는다.
+        // day-2 ops 는 READY 에서만 시작. DEGRADED 상태의 스케일은 수렴 상태 유실.
         assertThat(VmClusterStatus.DEGRADED.canTransitionTo(VmClusterStatus.PROVISIONING))
                 .isFalse();
         assertThat(VmClusterStatus.DEGRADED.canTransitionTo(VmClusterStatus.SCALING))
@@ -192,7 +192,7 @@ class VmClusterStatusTransitionTest {
 
     @Test
     void degraded_isNeitherTerminalNorBlockedNorInProgress() {
-        // 자동 진행 중이 아니라 수렴 대기다. isInProgress 에 넣으면 중복 워크플로우 가드가 오작동한다.
+        // 자동 진행이 아닌 수렴 대기 상태. isInProgress 포함 시 중복 워크플로 가드 오동작.
         assertThat(VmClusterStatus.DEGRADED.isTerminal()).isFalse();
         assertThat(VmClusterStatus.DEGRADED.isBlocked()).isFalse();
         assertThat(VmClusterStatus.DEGRADED.isInProgress()).isFalse();
@@ -205,7 +205,7 @@ class VmClusterStatusTransitionTest {
 
     @Test
     void degraded_doesNotBlockVerifyReentry() {
-        // 재시도가 목적인 상태라 VERIFY 재진입을 막으면 안 된다.
+        // 재시도 목적 상태이므로 VERIFY 재진입 차단 금지.
         assertThat(VmClusterWorkflowStep.VERIFY.isStaleForStatus(VmClusterStatus.DEGRADED))
                 .isFalse();
     }

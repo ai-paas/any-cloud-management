@@ -21,10 +21,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 
 /**
- * 확인 결과를 남긴다.
+ * 확인 결과 영속화.
  *
- * <p>화면 상태로만 두면 새로고침하면 사라지고 사용자마다 각자 확인해야 한다. 반대로 페이지를 열
- * 때마다 전부 다시 확인하면 CSP 요청 제한에 걸린다 — 오래된 것만 다시 본다.
+ * <p>화면 상태로만 유지하면 새로고침 시 소실되고 사용자별 재확인 필요. 페이지 진입마다 전체
+ * 재확인하면 CSP 요청 제한에 도달. 오래된 항목만 재확인.
  */
 class CredentialHealthPersistenceTest extends AbstractUnitTest {
 
@@ -86,7 +86,7 @@ class CredentialHealthPersistenceTest extends AbstractUnitTest {
 
     @Test
     void refreshSkipsRecentlyCheckedCredentials() {
-        // 페이지를 열 때마다 전부 다시 확인하면 CSP 요청 제한에 걸린다.
+        // 페이지 진입마다 전체 재확인 시 CSP 요청 제한 도달.
         CspCredentialEntity fresh = entity();
         fresh.setHealthCheckedAt(LocalDateTime.now().minusMinutes(1));
         when(credentialRepository.findById("cred-1")).thenReturn(Optional.of(fresh));
@@ -122,7 +122,7 @@ class CredentialHealthPersistenceTest extends AbstractUnitTest {
 
     @Test
     void checkAlwaysRunsEvenWhenFresh() {
-        // 사용자가 직접 누른 확인은 캐시를 건너뛴다. 방금 키를 고쳤을 수 있다.
+        // 사용자가 직접 실행한 확인은 캐시 우회. 직전 키 수정 가능성.
         CspCredentialEntity fresh = entity();
         fresh.setHealthCheckedAt(LocalDateTime.now());
         when(credentialRepository.findById("cred-1")).thenReturn(Optional.of(fresh));

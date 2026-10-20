@@ -57,7 +57,7 @@ class ClusterValidationControllerTest extends AbstractUnitTest {
     void validate_rejectsInvalidProvider_atBeanValidation() throws Exception {
         String body = json.writeValueAsString(java.util.Map.of(
                 "clusterName", "demo-aws-01",
-                "clusterProvider", "BAD PROVIDER", // contains space — pattern violation
+                "clusterProvider", "BAD PROVIDER", // contains space: pattern violation
                 "environment", "dev",
                 "region", "ap-northeast-2"));
         mvc.perform(post("/v1/cluster-validations")

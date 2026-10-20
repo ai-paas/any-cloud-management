@@ -8,8 +8,8 @@ import org.junit.jupiter.api.Test;
 /**
  * 노드 수 대체값.
  *
- * <p>{@code provisioned ? int : Integer} 는 삼항 안에서 Integer 를 언박싱한다. 스냅샷이 없는 행에서
- * NPE 가 나 VM 목록 전체가 500 이 됐다 — 삭제된 행은 스냅샷이 지워지므로 드문 경우가 아니다.
+ * <p>{@code provisioned ? int : Integer} 는 삼항 연산자 내부에서 Integer 를 언박싱. 스냅샷이
+ * 없는 행에서 NPE 가 발생해 VM 목록 전체가 500. 삭제된 행은 스냅샷이 제거되므로 빈번한 경우.
  */
 class NodeCountFallbackTest extends AbstractUnitTest {
 
@@ -25,7 +25,7 @@ class NodeCountFallbackTest extends AbstractUnitTest {
 
     @Test
     void beforeProvisioningTheRequestedCountIsShown() {
-        // 목록이 빈칸이면 규모를 가늠할 수 없다.
+        // 목록이 빈 값이면 규모 확인 불가.
         assertThat(NodeCountFallback.workerCount(false, 0, 2)).isEqualTo(2);
     }
 

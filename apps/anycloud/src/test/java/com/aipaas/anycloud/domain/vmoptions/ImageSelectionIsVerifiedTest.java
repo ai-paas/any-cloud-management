@@ -21,10 +21,10 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 /**
- * 없는 이미지를 그대로 보내면 CSP 마다 다른 방식으로 죽는다.
+ * 존재하지 않는 이미지를 그대로 전달하면 CSP 별로 다른 방식으로 실패.
  *
- * <p>IBM 은 pulumi-yaml 이 패닉해 Go 스택 수백 줄이 {@code lastError} 에 담긴다. 사용자는 그
- * 안에서 무엇이 문제인지 알 길이 없다 — 만들기 전에 막아야 한다.
+ * <p>IBM 은 pulumi-yaml 패닉으로 Go 스택 수백 줄이 {@code lastError} 에 저장. 사용자는 그
+ * 안에서 문제 지점 식별 불가. 생성 전 차단 필요.
  */
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ImageSelectionIsVerifiedTest extends AbstractUnitTest {
@@ -51,7 +51,7 @@ class ImageSelectionIsVerifiedTest extends AbstractUnitTest {
 
     @Test
     void anImageTheAccountCannotSeeIsRejected() {
-        // 키워드로는 없고 전체 목록은 나온다 — 그 값이 없는 것이다.
+        // 키워드 조회는 빈 결과, 전체 목록은 정상. 해당 값이 미존재.
         when(vmOptionsService.getImages(anyString(), anyString(), anyString(), eq("ghost"), any(), any(), anyInt()))
                 .thenReturn(List.of());
         when(vmOptionsService.getImages(anyString(), anyString(), anyString(), eq(null), any(), any(), anyInt()))
@@ -71,8 +71,8 @@ class ImageSelectionIsVerifiedTest extends AbstractUnitTest {
     @Test
     void whenTheCloudCannotBeReadTheChoiceIsNotBlocked() {
         /*
-         * 목록 자체가 비면 CSP 를 못 읽는 상황이다. 여기서 막으면 CSP 장애 때 정상 요청까지
-         * 거절한다 — 그때는 Pulumi 가 더 정확한 진단을 준다.
+         * 목록 자체가 비면 CSP 조회 실패 상황. 이 지점에서 차단하면 CSP 장애 시 정상 요청까지
+         * 거절. 해당 경우 Pulumi 가 더 정확한 진단 제공.
          */
         when(vmOptionsService.getImages(anyString(), anyString(), anyString(), any(), any(), any(), anyInt()))
                 .thenReturn(List.of());
@@ -82,7 +82,7 @@ class ImageSelectionIsVerifiedTest extends AbstractUnitTest {
 
     @Test
     void theValidatorUsesTheCachedLookup() throws Exception {
-        // QueryService 를 직접 부르면 preflight 마다 CSP API 를 200건씩 새로 훑는다.
+        // QueryService 직접 호출 시 preflight 마다 CSP API 를 200건씩 재조회.
         String source = java.nio.file.Files.readString(java.nio.file.Path.of(
                 "src/main/java", VmOptionsSelectionValidator.class.getName().replace('.', '/') + ".java"));
 

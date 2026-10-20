@@ -20,8 +20,8 @@ import org.mockito.Mockito;
 /**
  * DESTROY 완료 처리 회귀 보호.
  *
- * <p>DESTROY 는 cluster row 를 지운 뒤 vm_cluster 를 저장한다. clusterId 를 그대로 두면 flush 가
- * 사라진 FK 를 다시 써서 1452 로 죽고, vm_cluster 가 DELETING 에 갇혀 같은 이름 재생성이 409 가 된다.
+ * <p>DESTROY 는 cluster row 삭제 후 vm_cluster 저장. clusterId 를 유지하면 flush 가 삭제된 FK
+ * 를 재참조해 1452 로 실패하고, vm_cluster 가 DELETING 에 고착돼 동일 이름 재생성이 409.
  */
 class VmClusterWorkflowSupportServiceImplTest extends AbstractUnitTest {
 
@@ -89,9 +89,9 @@ class VmClusterWorkflowSupportServiceImplTest extends AbstractUnitTest {
     @Test
     void markDeleteCompleted_keepsWhichCredentialBuiltThisCluster() {
         /*
-         * request_config 는 비밀을 담고 있어 지운다. 그런데 자격증명 이름도 거기 들어 있어서,
-         * credential_name 컬럼까지 없애면 삭제된 클러스터가 무엇으로 만들어졌는지 알 길이 사라진다.
-         * 자격증명 자체가 지워지면 credential_id 로도 되짚을 수 없다.
+         * request_config 는 비밀값을 포함하므로 삭제. 자격증명 이름도 포함돼 있어
+         * credential_name 컬럼까지 제거하면 삭제된 클러스터의 생성 자격증명 확인 불가.
+         * 자격증명 자체가 삭제되면 credential_id 로도 추적 불가.
          */
         VmClusterEntity vm = registeredCluster();
         vm.setCredentialId("cred-1");

@@ -24,7 +24,7 @@ import org.springframework.test.util.ReflectionTestUtils;
  * AgentApiManagedInstaller end-to-end (token issue → manifest render → agent apply).
  *
  * <p>Renderer 는 AgentChartRenderer (chart 를 source-of-truth 로 helm template) 로 대체됨.
- * 본 테스트는 mocked renderer 로 collaboration 만 검증 — chart rendering 자체 검증은
+ * 본 테스트는 mocked renderer 로 collaboration 만 검증: chart rendering 자체 검증은
  * {@link AgentChartRendererTest} 의 통합 테스트에서.
  */
 class AgentApiManagedInstallerTest extends AbstractUnitTest {
@@ -101,7 +101,7 @@ class AgentApiManagedInstallerTest extends AbstractUnitTest {
 
     @Test
     void install_installModeIsApiManaged() {
-        // Token 발급 시 install_mode 가 정확히 "API_MANAGED" 인지 — claim 값으로 backend 추적용.
+        // Token 발급 시 install_mode 가 정확히 "API_MANAGED" 인지: claim 값으로 backend 추적용.
         IssuedToken token = new IssuedToken("tok", "jti", Instant.now().plusSeconds(600), 600);
         when(bootstrapService.issueRegistrationToken(eq("demo-aws-01"), eq("API_MANAGED")))
                 .thenReturn(token);

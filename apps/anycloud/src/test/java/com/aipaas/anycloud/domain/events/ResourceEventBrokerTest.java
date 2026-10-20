@@ -10,14 +10,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
- * 화면이 새로고침 없이 최신을 보게 하는 채널.
+ * 새로고침 없이 화면에 최신 상태를 전달하는 채널.
  *
- * <p>데이터를 흘려보내지 않고 "무엇이 바뀌었다"는 신호만 보낸다. 데이터는 REST 가 계속 책임진다 —
- * 스트림으로 실어 나르면 두 경로가 서로 다른 답을 하게 된다.
+ * <p>데이터는 전송하지 않고 변경 발생 신호만 전달. 데이터 제공은 REST 담당. 스트림으로 데이터를
+ * 전달하면 두 경로의 결과가 달라짐.
  */
 class ResourceEventBrokerTest extends AbstractUnitTest {
 
-    /** 보낸 것을 기록하는 emitter. 실제 네트워크 없이 팬아웃을 확인한다. */
+    /** 전송 내역을 기록하는 emitter. 네트워크 없이 팬아웃 검증. */
     private static class RecordingEmitter extends SseEmitter {
         final List<Object> sent = new ArrayList<>();
         boolean fail;
@@ -75,7 +75,7 @@ class ResourceEventBrokerTest extends AbstractUnitTest {
 
     @Test
     void heartbeatKeepsProxiesFromClosingIdleStreams() {
-        // nginx proxy_read_timeout 이 900s 다. 조용한 스트림은 프록시가 끊는다.
+        // nginx proxy_read_timeout 900s. 유휴 스트림은 프록시가 종료.
         ResourceEventBroker broker = new ResourceEventBroker();
         RecordingEmitter a = new RecordingEmitter();
         broker.register(a);

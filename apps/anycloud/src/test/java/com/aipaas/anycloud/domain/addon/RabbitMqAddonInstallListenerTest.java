@@ -27,10 +27,10 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 /**
- * — RabbitMqAddonInstallListener handling logic (Mockito).
+ *: RabbitMqAddonInstallListener handling logic (Mockito).
  *
  * <p>state machine 전이 + Operation 동기 + idempotency + 실패 시 rethrow (retry interceptor trigger)
- * 검증. 실제 RabbitMQ broker / Spring context 없음 — 핵심 분기 직접 호출.
+ * 검증. 실제 RabbitMQ broker / Spring context 없음. 핵심 분기 직접 호출.
  *
  * <p>Testcontainers broker 통합은 별도 sprint 권장 (CI 환경에 따라 무거움).
  */
@@ -68,7 +68,7 @@ class RabbitMqAddonInstallListenerTest {
         when(addonRepository.findById("addon-1")).thenReturn(Optional.of(addon));
         when(addonRepository.save(any(ClusterAddonEntity.class))).thenAnswer(inv -> {
             ClusterAddonEntity a = inv.getArgument(0);
-            stateLog.add(a.getState()); // snapshot — mutable entity 의 mutation history 추적
+            stateLog.add(a.getState()); // snapshot: mutable entity 의 mutation history 추적
             return a;
         });
         when(installerRegistry.find(AddonType.MONITORING)).thenReturn(installer);

@@ -28,7 +28,7 @@ import org.springframework.http.HttpStatus;
 /**
  * {@link HelmRepoServiceImpl} broadcast event publish 회귀 lock.
  *
- * <p>CRUD path 각각 commit 후 정확히 1개 {@link HelmRepoChangedEvent} 발행 — async listener 가
+ * <p>CRUD path 각각 commit 후 정확히 1개 {@link HelmRepoChangedEvent} 발행: async listener 가
  * cluster broadcast 트리거. event publish 가 saveAndFlush 이후 호출되는지 확인 (commit-전 race 방지).
  */
 class HelmRepoServiceImplTest {
@@ -99,7 +99,7 @@ class HelmRepoServiceImplTest {
         verify(repository, times(1)).save(any(HelmRepoEntity.class));
         verify(repository, times(1)).flush();
 
-        // 회귀 lock — event 정확히 1개 발행 + operation="crud".
+        // 회귀 lock: event 정확히 1개 발행 + operation="crud".
         ArgumentCaptor<HelmRepoChangedEvent> eventCaptor = ArgumentCaptor.forClass(HelmRepoChangedEvent.class);
         verify(eventPublisher, times(1)).publishEvent(eventCaptor.capture());
         HelmRepoChangedEvent event = eventCaptor.getValue();
@@ -179,7 +179,7 @@ class HelmRepoServiceImplTest {
     }
 
     // ============================================================================
-    // updateHelmRepo — partial update + broadcast
+    // updateHelmRepo: partial update + broadcast
     // ============================================================================
 
     @Test

@@ -22,13 +22,13 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 /**
- * UX #3 — bootstrap sub-step progress reporting 회귀 보호.
+ * UX #3: bootstrap sub-step progress reporting 회귀 보호.
  *
  * <p>BOOTSTRAP step 안에서 6개 sub-step 시작 시점마다 percent 35→64 범위로 갱신.
  * 사용자 "stuck at 33%" 인식 완화.
  *
- * <p>호출 순서 기준 검증은 VmClusterBootstrapProgressOrderTest 가 맡는다 — 여기서는
- * 선언 순서만 보므로 호출 순서가 어긋난 결함을 잡지 못한다.
+ * <p>호출 순서 기준 검증은 VmClusterBootstrapProgressOrderTest 가 맡는다. 여기서는
+ * 선언 순서만 검사하므로 호출 순서 불일치 결함은 미검출.
  */
 class VmClusterBootstrapProgressReporterImplTest extends AbstractUnitTest {
 
@@ -78,7 +78,7 @@ class VmClusterBootstrapProgressReporterImplTest extends AbstractUnitTest {
 
     @Test
     void report_operationServiceThrows_doesNotPropagate() {
-        // Reporter 는 best-effort — operationService 가 죽어도 bootstrap 흐름 멈추면 안 됨.
+        // Reporter 는 best-effort: operationService 가 죽어도 bootstrap 흐름 멈추면 안 됨.
         when(operationService.findLatestActiveByResource(any(), any())).thenThrow(new RuntimeException("DB down"));
 
         // 예외 propagation 없이 정상 반환되어야 함.
@@ -145,7 +145,7 @@ class VmClusterBootstrapProgressReporterImplTest extends AbstractUnitTest {
 
     @Test
     void report_vmRepositoryThrows_doesNotPropagate() {
-        // entity 영속 실패도 best-effort — bootstrap 흐름 멈추면 안 됨.
+        // entity 영속 실패도 best-effort: bootstrap 흐름 멈추면 안 됨.
         when(operationService.findLatestActiveByResource("cluster", "c1"))
                 .thenReturn(Optional.of(activeOp(OperationState.RUNNING)));
         when(vmClusterRepository.findFirstByClusterNameOrderByCreatedAtDesc("c1"))

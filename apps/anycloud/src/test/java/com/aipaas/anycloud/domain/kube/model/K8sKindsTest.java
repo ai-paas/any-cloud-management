@@ -8,8 +8,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
- * L3 — K8sKinds 의 isClusterScoped 거동 회귀 방지. 신규 cluster-scoped kind 추가 시
- * 본 테스트가 회귀를 잡아 ClusterKubernetesController 의 ns 무시 분기와 동기화한다.
+ * L3: K8sKinds 의 isClusterScoped 거동 회귀 방지. 신규 cluster-scoped kind 추가 시
+ * 이 테스트가 회귀를 검출해 ClusterKubernetesController 의 ns 무시 분기와 동기화.
  */
 class K8sKindsTest extends AbstractUnitTest {
 
@@ -40,7 +40,7 @@ class K8sKindsTest extends AbstractUnitTest {
                 "persistentvolumeclaims", // PV != PVC
                 "jobs",
                 "cronjobs",
-                "clusterroles", // 정의 안 됨 — 명시적으로 false 회귀 방지
+                "clusterroles", // 정의 안 됨. 명시적으로 false 회귀 방지
                 ""
             })
     void isClusterScoped_otherKinds_returnsFalse(String kind) {

@@ -9,11 +9,11 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * 점프 호스트는 자격증명에 딸린다.
+ * 점프 호스트는 자격증명 종속.
  *
- * <p>{@code -J} 는 내부 ssh 를 하나 더 띄우는데 그쪽에 인증 옵션을 실어 보낼 방법이 없다.
- * 컨테이너에는 {@code ~/.ssh/config} 가 없어 비밀번호 bastion 이면 publickey 로 시도하다 멈춘다 —
- * "Connection timed out during banner exchange" 로 실제로 막혔다. ProxyCommand 로 직접 짠다.
+ * <p>{@code -J} 는 내부 ssh 를 추가 실행하는데 해당 프로세스에 인증 옵션 전달 수단 부재.
+ * 컨테이너에 {@code ~/.ssh/config} 가 없어 비밀번호 bastion 은 publickey 로 시도하다 정지.
+ * "Connection timed out during banner exchange" 사례 발생. ProxyCommand 로 직접 구성.
  */
 class SshJumpOptionsTest extends AbstractUnitTest {
 
@@ -37,7 +37,7 @@ class SshJumpOptionsTest extends AbstractUnitTest {
 
     @Test
     void theJumpIsWiredAsAProxyCommandNotDashJ() {
-        // -J 로는 내부 연결에 인증 옵션을 줄 수 없다.
+        // -J 로는 내부 연결에 인증 옵션 전달 불가.
         List<String> args =
                 SshJumpOptions.args(jump(Map.of(SshJump.KEY_HOST, "bastion.example", SshJump.KEY_USER, "ops")));
 
@@ -90,7 +90,7 @@ class SshJumpOptionsTest extends AbstractUnitTest {
 
     @Test
     void hostWithoutUserIsAConfigurationMistake() {
-        // 조용히 무시하면 점프를 설정한 줄 알고 있는데 노드에 직접 붙어 실패한다.
+        // 무음 무시 시 점프 설정이 적용된 것으로 인식한 상태에서 노드에 직접 접속해 실패.
         assertThatThrownBy(() -> SshJumpOptions.args(jump(Map.of(SshJump.KEY_HOST, "bastion.example"))))
                 .isInstanceOf(IllegalStateException.class);
     }

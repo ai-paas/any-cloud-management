@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
  * 정리 스케줄러가 서로 겹치지 않는지.
  *
  * <p>정리 잡이 여섯 개인데 각자 cron 을 갖는다. ShedLock 은 같은 이름만 막아서 서로 다른 잡은
- * 같은 시각에 그대로 함께 돈다 — 실제로 감사 로그와 작업 이력이 03:30 에 겹쳐 있었다.
+ * 같은 시각에 그대로 함께 돈다. 실제로 감사 로그와 작업 이력이 03:30 에 겹쳐 있었다.
  */
 class CleanupScheduleTest extends AbstractIntegrationTest {
 
@@ -69,15 +69,15 @@ class CleanupScheduleTest extends AbstractIntegrationTest {
 
     @Test
     void deletedVmRetentionFollowsTheSharedConvention() {
-        // 다른 정리 잡은 전부 retention-days(int) 를 쓴다. 혼자 Duration 을 쓰면 운영자가 헷갈린다.
+        // 다른 정리 잡은 전부 retention-days(int) 사용. 단독 Duration 사용 시 운영자 혼동.
         assertThat(deletedVmRetentionDays).isEqualTo(90);
     }
 
     @Test
     void workflowMessageLogIsKeptLongerThanAnyRedelivery() {
-        // 이 표는 멱등성에도 쓰인다 — messageId 가 있으면 재처리를 건너뛴다. 보관 기간이
-        // 재전달 창보다 짧으면 지워진 뒤 도착한 재전달이 같은 단계를 두 번 돌린다.
-        // AMQP ack 타임아웃이 30분이라 하루만 넘겨도 안전하지만, 실패 메시지 조회도 겸하므로 넉넉히 둔다.
+        // 이 테이블은 멱등성 판정에도 사용. messageId 존재 시 재처리 차단. 보관 기간이
+        // 재전달 창보다 짧으면 삭제 후 도착한 재전달이 동일 단계를 중복 실행.
+        // AMQP ack 타임아웃이 30분이라 하루면 충분하나 실패 메시지 조회도 겸해 여유 설정.
         assertThat(workflowMessageLogRetentionDays).isGreaterThanOrEqualTo(7);
     }
 }

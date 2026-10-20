@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 /**
- * UX #2 — bootstrapLog append mode 회귀 보호.
+ * UX #2: bootstrapLog append mode 회귀 보호.
  *
  * <p>이전 동작: BOOTSTRAP step 진입 시 {@code setBootstrapLog(null)} 호출 → retry 시
  * 이전 시도 로그 손실. 변경 후: appendAttemptMarker 가 마커만 추가하고 기존 log 보존.
@@ -22,7 +22,7 @@ class VmClusterBootstrapLogServiceImplAppendTest extends AbstractUnitTest {
     @Test
     void appendAttemptMarker_firstAttempt_addsHeader_andNoLeadingNewline() {
         VmClusterEntity cluster = new VmClusterEntity();
-        // log 가 null 인 첫 attempt — leading newline 없이 marker 만 노출.
+        // log 가 null 인 첫 attempt: leading newline 없이 marker 만 노출.
 
         service.appendAttemptMarker(cluster, 1);
 
@@ -49,7 +49,7 @@ class VmClusterBootstrapLogServiceImplAppendTest extends AbstractUnitTest {
 
     @Test
     void appendAttemptMarker_capsAtMaxSize_preservingNewestAttempts() {
-        // 256KB cap 을 넘는 누적 로그 시뮬레이션 — 오래된 attempt 부터 잘려야 함.
+        // 256KB cap 을 넘는 누적 로그 시뮬레이션: 오래된 attempt 부터 잘려야 함.
         VmClusterEntity cluster = new VmClusterEntity();
         StringBuilder huge = new StringBuilder();
         for (int i = 1; i <= 10; i++) {
@@ -71,7 +71,7 @@ class VmClusterBootstrapLogServiceImplAppendTest extends AbstractUnitTest {
 
     @Test
     void appendDiagnostics_nullDiagnostics_noop() {
-        // SSH 접근 실패 시 collectBootstrapLog 가 null 반환 — entity 변경 없어야 함.
+        // SSH 접근 실패 시 collectBootstrapLog 가 null 반환: entity 변경 없어야 함.
         VmClusterEntity cluster = new VmClusterEntity();
         cluster.setBootstrapLog("=== attempt 1 ===\nexisting");
         // outputs 에 master IP 없으면 collect 가 null 반환.

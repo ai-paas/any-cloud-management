@@ -51,7 +51,7 @@ class ClusterAccessControllerTest extends AbstractUnitTest {
                 .build();
     }
 
-    // ===== kubeconfig (GET 다운로드 — III-61 단일 엔드포인트, identity 는 resolver) =====
+    // ===== kubeconfig (GET 다운로드. 단일 엔드포인트, identity 는 resolver) =====
 
     @Test
     void downloadKubeconfig_resolvesIdentityAndReturnsAttachmentYaml() throws Exception {
@@ -129,7 +129,7 @@ class ClusterAccessControllerTest extends AbstractUnitTest {
 
     @Test
     void createDebugPod_timeout_returns503WithErrorResponse() throws Exception {
-        //  에러는 공통 ErrorResponse — TIMEOUT 은 CLUSTER_CONNECTION_FAILED(503) 매핑,
+        //  에러는 공통 ErrorResponse: TIMEOUT 은 CLUSTER_CONNECTION_FAILED(503) 매핑,
         // 원래 module 코드는 metadata.sourceCode 로 보존.
         when(nodeDebugPodService.create(eq("c1"), any())).thenThrow(new NodeDebugPodException("TIMEOUT", "timeout"));
 

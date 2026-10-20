@@ -9,18 +9,18 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * T1 (#12) — rawOutputs sanitize 의 defense-in-depth 회귀 보호.
+ * T1 (#12). rawOutputs sanitize 의 defense-in-depth 회귀 보호.
  *
  * <p>기존: {@code sshPrivateKeyPem} 단일 키만 REDACT. 변경: 키 이름에 secret 관련 패턴
  * (privateKey/password/secret/token/credential/apiKey/bearerToken) 이 포함되면 자동 REDACT
- * — 미래에 provider 가 새 secret 필드를 추가해도 silent leak 안 함.
+ *: 미래에 provider 가 새 secret 필드를 추가해도 silent leak 안 함.
  *
- * <p>사용자 응답에 명시적으로 노출되는 키 (예: masterSshCommand) 는 보존되어야 함 —
+ * <p>사용자 응답에 명시적으로 노출되는 키 (예: masterSshCommand) 는 보존되어야 함.
  * 패턴이 너무 broad 해서 user-facing 필드까지 redact 하지 않도록 회귀 보호.
  */
 class VmClusterPayloadServiceSanitizationTest extends AbstractUnitTest {
 
-    // sanitize 는 componentRepository / addonInspector 를 쓰지 않는다 — null 로 충분하다.
+    // sanitize 는 componentRepository / addonInspector 를 쓰지 않는다. null 로 충분하다.
     private final VmClusterPayloadServiceImpl service =
             new VmClusterPayloadServiceImpl(new ObjectMapper(), null, null, null);
 
@@ -61,7 +61,7 @@ class VmClusterPayloadServiceSanitizationTest extends AbstractUnitTest {
 
     @Test
     void sanitize_preservesUserFacingFields_evenIfNameLooksSimilar() {
-        // masterSshCommand 는 user-facing field — 키 자체에 "Key"/"Token"/"Secret" 가 들어가지
+        // masterSshCommand 는 user-facing field: 키 자체에 "Key"/"Token"/"Secret" 가 들어가지
         // 않으므로 redact 되지 않아야 함.
         Map<String, Object> outputs = new HashMap<>();
         outputs.put("masterSshCommand", "ssh -i ./secrets/demo.pem ubuntu@1.2.3.4");

@@ -63,7 +63,7 @@ class AnycloudClusterCapabilitiesTest extends AbstractUnitTest {
     @Test
     void hasGpuNodes_repoThrows_returnsFalseSwallowed() {
         when(repo.findById("c1")).thenThrow(new RuntimeException("DB connection lost"));
-        // auto-installer 흐름 보호 — DB 실패가 listener 까지 새어 나가면 안 됨.
+        // auto-installer 흐름 보호: DB 실패가 listener 까지 새어 나가면 안 됨.
         assertThat(capabilities.hasGpuNodes("c1")).isFalse();
     }
 }

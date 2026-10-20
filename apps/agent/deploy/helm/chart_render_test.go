@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// helm 이 없는 환경에서는 건너뛴다. CI 에는 있다.
+// helm 미설치 환경에서는 건너뜀. CI 에는 설치됨.
 func render(t *testing.T, extra ...string) string {
 	t.Helper()
 	if _, err := exec.LookPath("helm"); err != nil {
@@ -49,7 +49,7 @@ func TestSingleDeploymentDoesNotDeclareItselfCore(t *testing.T) {
 	}
 }
 
-// split 은 권한을 나누려는 것이므로 두 역할이 그대로 나와야 한다.
+// split 의 목적은 권한 분리이므로 두 역할이 모두 출력돼야 함.
 func TestSplitDeploymentKeepsBothRoles(t *testing.T) {
 	modes := agentModeOf(render(t, "--set", "deployment.mode=split"))
 
@@ -62,8 +62,8 @@ func TestSplitDeploymentKeepsBothRoles(t *testing.T) {
 	}
 }
 
-// installer ClusterRole 의 rules 블록만 잘라낸다. core 역할의 pods 읽기 권한과 섞이면
-// 없는 권한을 있다고 읽는다.
+// installer ClusterRole 의 rules 블록만 추출. core 역할의 pods 읽기 권한과 혼재하면
+// 미보유 권한을 보유로 오판.
 func installerRules(manifest string) string {
 	i := strings.Index(manifest, "name: aipaas-agent-installer\n  labels:")
 	if i < 0 {
@@ -76,8 +76,8 @@ func installerRules(manifest string) string {
 	return rest
 }
 
-// 노드 셸은 임시 파드를 만들어 붙는다. 권한이 없으면 터미널 기능 전체가 forbidden 으로 죽는다.
-// "cannot create resource pods in namespace kube-system" 으로 실제로 막혔다.
+// 노드 셸은 임시 파드를 생성해 접속. 권한 부재 시 터미널 기능 전체가 forbidden 으로 실패.
+// "cannot create resource pods in namespace kube-system" 사례 발생.
 func TestInstallerCanManageDebugPods(t *testing.T) {
 	rules := installerRules(render(t))
 	if rules == "" {
@@ -118,8 +118,7 @@ func TestAdminKubeconfigGrantsTokenIssuance(t *testing.T) {
 	}
 }
 
-// 기본값에서는 admin SA 자체를 만들지 않는다. 토큰 권한만 남으면 등록형 클러스터에
-// 쓰이지 않는 권한이 생긴다.
+// 기본값에서는 admin SA 미생성. 토큰 권한만 남으면 등록형 클러스터에 미사용 권한이 추가됨.
 func TestTokenIssuanceIsAbsentWithoutAdminKubeconfig(t *testing.T) {
 	if strings.Contains(render(t), "serviceaccounts/token") {
 		t.Fatal("adminKubeconfig 가 꺼져 있는데 토큰 발급 권한이 렌더됐다")

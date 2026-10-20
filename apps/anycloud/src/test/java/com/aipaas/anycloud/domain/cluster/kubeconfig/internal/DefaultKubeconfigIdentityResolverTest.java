@@ -35,7 +35,7 @@ class DefaultKubeconfigIdentityResolverTest extends AbstractUnitTest {
         ResolvedIdentity id = resolver.resolve("c1", "my-sa", "my-ns");
         assertThat(id.serviceAccount()).isEqualTo("my-sa");
         assertThat(id.namespace()).isEqualTo("my-ns");
-        // 명시 SA 면 cluster 조회 불필요 — repository 미호출.
+        // 명시 SA 면 cluster 조회 불필요: repository 미호출.
         org.mockito.Mockito.verifyNoInteractions(clusterRepository);
     }
 
@@ -75,7 +75,7 @@ class DefaultKubeconfigIdentityResolverTest extends AbstractUnitTest {
 
     @Test
     void adminDefaultDisabled_vmClusterStillRequiresExplicitSa() {
-        // P4 gate — impersonation 활성 환경 시뮬레이션: admin 기본값 off → VM 도 명시 SA 요구.
+        // P4 gate: impersonation 활성 환경 시뮬레이션: admin 기본값 off → VM 도 명시 SA 요구.
         ReflectionTestUtils.setField(resolver, "adminDefaultEnabled", false);
         // admin 기본 비활성이면 cluster 타입 확인 전에 막히므로 repository stub 불필요.
         assertThatThrownBy(() -> resolver.resolve("c1", null, null))

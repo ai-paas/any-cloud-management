@@ -25,7 +25,7 @@ k3d cluster create anycloud-e2e --agents 0
 
 ## 2. agent 이미지 준비
 
-로컬에서 빌드해 k3d 로 넣습니다. `ghcr.io/aipaas/cluster-agent` 는 공개 이미지가 아닙니다.
+로컬에서 빌드해 k3d 로 넣습니다. `ghcr.io/ai-paas/cluster-agent` 는 공개 이미지가 아닙니다.
 
 ```bash
 docker build --build-arg CMD_TARGET=cluster-agent \

@@ -10,10 +10,10 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 /**
- * 일괄 프로비저닝은 config-schema 의 defaultValue 만 보고 providerSpec 을 만든다.
+ * 일괄 프로비저닝은 config-schema 의 defaultValue 만으로 providerSpec 구성.
  *
- * <p>Proxmox 는 nodeIps 가 없으면 차단되므로, 이 키들이 스키마에 없거나 기본값이 비면 일괄
- * 창에서 영영 쓸 수 없다. 실제로 그 상태였다.
+ * <p>Proxmox 는 nodeIps 부재 시 차단되므로, 이 키가 스키마에 없거나 기본값이 비면 일괄 생성
+ * 화면에서 사용 불가. 실제 해당 상태로 존재.
  */
 class ProxmoxConfigSchemaDefaultsTest {
 
@@ -51,7 +51,7 @@ class ProxmoxConfigSchemaDefaultsTest {
                 .isEqualTo("2200,2201");
     }
 
-    /** 빈 문자열을 그대로 두면 일괄 창이 값이 있는 것으로 읽어 nodeIps 없이 생성에 들어간다. */
+    /** 빈 문자열 유지 시 일괄 생성 화면이 값 존재로 판정해 nodeIps 없이 생성 진입. */
     @Test
     void blankDefaults_becomeNull() {
         var schema = new ProviderConfigSchemaServiceImpl(new ProxmoxProvisioningDefaults("", "  ", null, ""))
@@ -74,7 +74,7 @@ class ProxmoxConfigSchemaDefaultsTest {
                 .isNull();
     }
 
-    /** 기존 키가 사라지면 조용히 기본값으로 생성돼 엉뚱한 저장소에 디스크가 만들어진다. */
+    /** 기존 키 삭제 시 무음으로 기본값 생성돼 의도하지 않은 저장소에 디스크 생성. */
     @Test
     void existingProxmoxKeys_remain() {
         var schema = new ProviderConfigSchemaServiceImpl(new ProxmoxProvisioningDefaults(null, null, null, null))

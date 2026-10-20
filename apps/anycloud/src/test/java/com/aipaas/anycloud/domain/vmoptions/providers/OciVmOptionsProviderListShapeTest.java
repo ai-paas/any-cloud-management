@@ -34,7 +34,7 @@ class OciVmOptionsProviderListShapeTest extends AbstractUnitTest {
 
     @Test
     void itemsWrappedResponseStillWorks() throws Exception {
-        // 페이지네이션을 쓰는 엔드포인트는 이 형태다. 둘 다 받아야 한다.
+        // 페이지네이션 사용 엔드포인트는 이 형태. 양쪽 모두 수용 필요.
         String json = "{\"items\":[{\"name\":\"plch:AP-TOKYO-1-AD-1\"}]}";
 
         List<OciRecords.AvailabilityDomain> ads =

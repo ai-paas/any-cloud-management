@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
  * 정적 카탈로그 provider 의 필터, 정렬 규칙.
  *
  * <p>region/keyword/gpuOnly/architecture/owner/limit 조합이 CSP 호출 없이 동작하는 유일한
- * 경로라, 여기가 provider 공통 필터 semantics 의 기준이 된다.
+ * 경로이므로 이 구현이 provider 공통 필터 semantics 의 기준.
  */
 class CuratedVmOptionsProviderTest {
 
@@ -116,7 +116,7 @@ class CuratedVmOptionsProviderTest {
         assertThat(p.listImages(null, null, null, "microsoft", 100))
                 .extracting(VmOptionImage::getId)
                 .containsExactly("img-2");
-        // 부분 문자열은 걸리지 않는다 — keyword 와 다른 규칙
+        // 부분 문자열은 걸리지 않는다. keyword 와 다른 규칙
         assertThat(p.listImages(null, null, null, "canon", 100)).isEmpty();
         assertThat(p.listImages(null, null, null, null, 100)).hasSize(3);
     }

@@ -12,10 +12,10 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 /**
- * 등록된 자격증명 값 보기.
+ * 등록된 자격증명 값 조회.
  *
- * <p>값은 목록에 섞지 않는다 — 캐시와 로그에 남는다. 전용 경로로만 꺼내고 누가 언제 무엇을
- * 봤는지 감사 로그에 남긴다.
+ * <p>값의 목록 포함 금지. 캐시와 로그에 잔존. 전용 경로로만 조회하고 조회 주체, 시각, 대상을
+ * 감사 로그에 기록.
  */
 class CredentialRevealTest extends AbstractUnitTest {
 
@@ -62,7 +62,7 @@ class CredentialRevealTest extends AbstractUnitTest {
 
     @Test
     void revealIsAudited() throws Exception {
-        // 감사 기록 없이 값을 꺼낼 수 있으면 누가 봤는지 알 수 없다.
+        // 감사 기록 없이 값 조회가 가능하면 조회 주체 확인 불가.
         var method = CspCredentialServiceImpl.class.getMethod("revealCredential", String.class);
 
         var audited = method.getAnnotation(com.aipaas.anycloud.domain.audit.Audited.class);
@@ -72,7 +72,7 @@ class CredentialRevealTest extends AbstractUnitTest {
 
     @Test
     void auditDoesNotCarryTheValues() throws Exception {
-        // summary 에 값을 넣으면 감사 로그가 비밀 저장소가 된다.
+        // summary 에 값 포함 시 감사 로그가 비밀값 저장소가 됨.
         var audited = CspCredentialServiceImpl.class
                 .getMethod("revealCredential", String.class)
                 .getAnnotation(com.aipaas.anycloud.domain.audit.Audited.class);

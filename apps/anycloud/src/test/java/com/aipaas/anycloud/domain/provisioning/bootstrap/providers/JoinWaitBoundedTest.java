@@ -7,11 +7,11 @@ import com.aipaas.anycloud.testsupport.AbstractUnitTest;
 import org.junit.jupiter.api.Test;
 
 /**
- * join 전 apiserver 대기에도 상한이 있어야 한다.
+ * join 전 apiserver 대기에도 상한 적용 필요.
  *
- * <p>마스터가 영영 열리지 않으면 워커는 무한히 기다리고, 그동안 SSH 세션이 살아 있어 워크플로가
- * BOOTSTRAPPING 에 멈춘다. RabbitMQ delivery ack 타임아웃까지 가면 메시지가 재전달되어 같은 노드에
- * 부트스트랩이 중복으로 붙는다. 실제로 그렇게 됐다.
+ * <p>마스터 기동 실패 시 워커가 무한 대기하고 그 구간에 SSH 세션이 유지돼 워크플로가
+ * BOOTSTRAPPING 에 정지. RabbitMQ delivery ack 타임아웃 초과 시 메시지 재전달로 동일 노드에
+ * 부트스트랩 중복 실행. 해당 사례 발생.
  */
 class JoinWaitBoundedTest extends AbstractUnitTest {
 
@@ -39,7 +39,7 @@ class JoinWaitBoundedTest extends AbstractUnitTest {
 
     @Test
     void joinStillWaitsForTheApiServer() {
-        // 상한을 넣다가 대기를 없애면 아직 안 뜬 apiserver 로 join 이 돌아 실패한다.
+        // 상한 적용 과정에서 대기를 제거하면 미기동 apiserver 로 join 이 실행돼 실패.
         assertThat(strategy.buildWorkerJoinCommand(snapshot(), "10.0.0.5", "abc"))
                 .contains("6443");
     }

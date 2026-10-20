@@ -24,10 +24,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 
 /**
- * 하나의 클러스터가 목록에 여러 번 나오지 않게 한다.
+ * 클러스터 하나의 목록 중복 노출 차단.
  *
- * <p>VM 으로 만든 클러스터는 agent 가 등록하면 vm 행과 registered 행을 동시에 갖고, 같은 이름으로
- * 재시도하면 실패한 vm 행이 계속 쌓인다. 화면에서는 클러스터 하나가 한 줄이어야 한다.
+ * <p>VM 생성 클러스터는 agent 등록 시점에 vm 행과 registered 행을 동시 보유하고, 동일 이름
+ * 재시도 시 실패한 vm 행이 누적. 화면 표시는 클러스터당 1행.
  */
 class ClusterFacadeImplDedupeTest extends AbstractUnitTest {
 
@@ -124,7 +124,7 @@ class ClusterFacadeImplDedupeTest extends AbstractUnitTest {
 
     @Test
     void mergedRowKeepsAgentConnectivityFromRegisteredRow() {
-        // vm 행에는 agent 정보가 없다. 합치면서 잃으면 "연동 상태" 컬럼이 비어버린다.
+        // vm 행에는 agent 정보 부재. 병합 과정에서 유실하면 연동 상태 컬럼이 빈 값.
         when(vmClusterService.listVmClusters(null, null, null)).thenReturn(List.of(vm("aws-01", "READY", 1)));
         stubAgentHealth();
         when(clusterService.findAllDomain()).thenReturn(List.of(registered("aws-01")));
@@ -143,13 +143,13 @@ class ClusterFacadeImplDedupeTest extends AbstractUnitTest {
 
         UnifiedClusterResponse row = only(facade.listPaged(null, null, null, null, 20, null), "retry");
 
-        // 최신 행이 아니라 살아 있는 행을 남긴다.
+        // 최신 행이 아닌 유효 행을 유지.
         assertThat(row.status()).isEqualTo("READY");
     }
 
     @Test
     void failedOnlyClusterIsHiddenByDefault() {
-        // 운영할 수 없는 것이 클러스터 목록에 있으면 목록이 작업 이력이 된다.
+        // 운영 불가 항목이 클러스터 목록에 포함되면 목록이 작업 이력으로 변질.
         when(vmClusterService.listVmClusters(null, null, null)).thenReturn(List.of(vm("dead", "FAILED", 1)));
         when(clusterService.findAllDomain()).thenReturn(List.of());
 
@@ -158,7 +158,7 @@ class ClusterFacadeImplDedupeTest extends AbstractUnitTest {
 
     @Test
     void explicitStatusFilterStillReachesFailedClusters() {
-        // 기본에서 숨긴다고 조회 자체를 막으면 실패 원인을 볼 수 없다.
+        // 기본 숨김 처리가 조회 자체를 차단하면 실패 원인 확인 불가.
         when(vmClusterService.listVmClusters(null, null, "FAILED")).thenReturn(List.of(vm("dead", "FAILED", 1)));
         when(clusterService.findAllDomain()).thenReturn(List.of());
 
@@ -168,7 +168,7 @@ class ClusterFacadeImplDedupeTest extends AbstractUnitTest {
 
     @Test
     void sourceFilteredListingIsNotMerged() {
-        // source=vm 은 "VM 으로 만든 것만" 이라는 뜻이다. registered 를 섞으면 필터가 거짓말이 된다.
+        // source=vm 은 VM 생성 항목만 의미. registered 혼입 시 필터 결과가 요청과 불일치.
         when(vmClusterService.listVmClusters(null, null, null)).thenReturn(List.of(vm("aws-01", "READY", 1)));
 
         UnifiedClusterResponse row = only(facade.listPaged("vm", null, null, null, 20, null), "aws-01");

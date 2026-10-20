@@ -8,10 +8,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 /**
- * 실패 원문은 Pulumi stdout 수백 줄이다.
+ * 실패 원문은 Pulumi stdout 수백 줄.
  *
- * <p>그 안에서 한 조각을 찾아내는 것은 이 시스템을 만든 사람만 할 수 있다. 아래 원문은 모두
- * 실제로 겪은 것들이다.
+ * <p>그 안에서 해당 조각을 찾으려면 시스템 내부 지식 필요. 아래 원문은 모두 실제 발생 사례.
  */
 class ProvisioningFailureReasonTest extends AbstractUnitTest {
 
@@ -32,7 +31,7 @@ class ProvisioningFailureReasonTest extends AbstractUnitTest {
 
     @Test
     void sshRejectionIsRecognised() {
-        // Alibaba 의 Ubuntu 이미지에는 ubuntu 계정이 없어 기본 사용자로 붙으면 거절된다.
+        // Alibaba Ubuntu 이미지에는 ubuntu 계정이 없어 기본 사용자 접속 시 거절.
         String raw = "Failed during node preparation on host 43.108.80.148:22 after 10 attempts: "
                 + "ssh: Permission denied (publickey)";
 
@@ -55,8 +54,8 @@ class ProvisioningFailureReasonTest extends AbstractUnitTest {
     @Test
     void theIbmImagePanicIsRecognised() {
         /*
-         * 없는 이미지를 주면 pulumi-yaml 이 패닉해 Go 스택이 그대로 올라온다. 사용자는 수백 줄
-         * 중에 무엇이 문제인지 알 길이 없다.
+         * 존재하지 않는 이미지 전달 시 pulumi-yaml 패닉으로 Go 스택 노출. 사용자는 수백 줄에서
+         * 문제 지점 식별 불가.
          */
         String raw =
                 """
@@ -71,8 +70,8 @@ class ProvisioningFailureReasonTest extends AbstractUnitTest {
     @Test
     void anUnknownFailureStaysUnknown() {
         /*
-         * 억지로 분류하면 엉뚱한 안내를 보여주고 원문을 볼 생각을 막는다. 모르면 모른다고 두고
-         * 화면이 원문을 보여준다.
+         * 임의 분류 시 잘못된 안내를 표시하고 원문 확인을 차단. 미분류 상태로 두고 화면이
+         * 원문 표시.
          */
         assertThat(ProvisioningFailureReason.from("something we have never seen"))
                 .isNull();
@@ -83,7 +82,7 @@ class ProvisioningFailureReasonTest extends AbstractUnitTest {
     @ParameterizedTest
     @EnumSource(ProvisioningFailureReason.class)
     void everyReasonTellsTheUserWhatToDo(ProvisioningFailureReason reason) {
-        // 원인만 알려주고 할 일을 안 주면 결국 원문을 열게 된다.
+        // 원인만 제공하고 조치를 안내하지 않으면 결국 원문 확인 필요.
         assertThat(reason.summary()).isNotBlank();
         assertThat(reason.hint()).isNotBlank();
     }

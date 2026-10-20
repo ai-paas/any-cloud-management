@@ -15,9 +15,9 @@ import org.mockito.Mock;
 import org.springframework.context.ApplicationEventPublisher;
 
 /**
- * 상태가 바뀌면 화면이 알아야 한다.
+ * 상태 변경 시 화면 통보 필요.
  *
- * <p>전이는 여기 한 곳을 지난다. 개별 호출부마다 발행을 넣으면 언젠가 빠뜨린다.
+ * <p>전이는 이 지점을 단일 경유. 개별 호출부마다 발행을 추가하면 누락 발생.
  */
 class StateTransitionPublishesEventTest extends AbstractUnitTest {
 
@@ -49,7 +49,7 @@ class StateTransitionPublishesEventTest extends AbstractUnitTest {
 
     @Test
     void announcesEvenWhenTheHistoryWriteFails() {
-        // 이력 저장은 best-effort 다. 그것 때문에 화면이 옛 상태로 남으면 안 된다.
+        // 이력 저장은 best-effort. 저장 실패로 화면이 이전 상태로 남으면 안 됨.
         org.mockito.Mockito.when(repository.save(any())).thenThrow(new RuntimeException("db down"));
 
         recorder.record(cluster(), VmClusterStatus.PROVISIONING, VmClusterStatus.FAILED, "boom");

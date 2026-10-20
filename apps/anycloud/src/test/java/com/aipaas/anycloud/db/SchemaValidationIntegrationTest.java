@@ -18,16 +18,16 @@ import org.testcontainers.containers.MariaDBContainer;
 /**
  * Flyway 로 만든 schema 를 entity 매핑이 ddl-auto=validate 로 통과하는지 검증.
  *
- * <p>운영 (application-docker.yaml) 과 같은 조합이다. 다른 테스트들은 ddl-auto 가 create-drop
- * 이거나 none 이라 이 경로를 타지 않아, entity 와 migration 이 어긋나도 부팅 시점에야 드러난다.
+ * <p>운영(application-docker.yaml)과 동일 조합. 다른 테스트는 ddl-auto 가 create-drop 또는
+ * none 이라 이 경로를 거치지 않아, entity 와 migration 불일치가 부팅 시점에만 드러남.
  *
- * <p>회귀 대상: ClusterEntity.tags 에 {@code columnDefinition = "json"} 이 붙어 기동이 실패했다.
- * MariaDB 의 JSON 은 네이티브 타입이 아니라 {@code LONGTEXT CHECK (json_valid(..))} 의 별칭이라
- * validate 가 longtext 를 찾고 json 을 기대해 거부한다. MySQL 이면 통과하므로 dialect 를 바꾸면
- * 재현되지 않는다.
+ * <p>회귀 대상. ClusterEntity.tags 의 {@code columnDefinition = "json"} 으로 기동 실패.
+ * MariaDB 의 JSON 은 네이티브 타입이 아닌 {@code LONGTEXT CHECK (json_valid(..))} 의 별칭이라
+ * validate 가 longtext 를 조회하고 json 을 기대해 거부. MySQL 에서는 통과하므로 dialect 변경 시
+ * 재현 불가.
  *
- * <p>{@link FlywayMigrationIntegrationTest} 와 같은 이유로 전용 컨테이너를 쓴다. 공유 컨테이너면
- * migrate 가 다른 context 의 데이터를 지운다.
+ * <p>{@link FlywayMigrationIntegrationTest} 와 동일 사유로 전용 컨테이너 사용. 공유 컨테이너면
+ * migrate 가 다른 context 의 데이터를 삭제.
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -35,7 +35,7 @@ import org.testcontainers.containers.MariaDBContainer;
 @TestPropertySource(
         properties = {
             "spring.flyway.enabled=true",
-            // 운영과 동일 — Flyway 가 schema 를 만들고 JPA 는 매핑만 검증한다.
+            // 운영과 동일. Flyway 가 schema 를 생성하고 JPA 는 매핑만 검증.
             "spring.jpa.hibernate.ddl-auto=validate"
         })
 class SchemaValidationIntegrationTest {
@@ -60,15 +60,15 @@ class SchemaValidationIntegrationTest {
     private DataSource dataSource;
 
     /**
-     * context 가 떴다는 것 자체가 validate 통과를 뜻한다. 불일치가 있으면 @SpringBootTest 가
-     * SchemaManagementException 으로 실패해 이 메서드에 도달하지 못한다.
+     * context 기동 자체가 validate 통과를 의미. 불일치 시 @SpringBootTest 가
+     * SchemaManagementException 으로 실패해 이 메서드 미도달.
      */
     @Test
     void entityMappings_matchFlywaySchema() {
         assertThat(dataSource).isNotNull();
     }
 
-    /** MariaDB 가 JSON 을 longtext 로 보고한다는 전제 자체를 고정한다. 이 전제가 깨지면 위 주석이 거짓이 된다. */
+    /** MariaDB 의 JSON 을 longtext 로 보고하는 전제를 고정. 전제 변경 시 위 주석도 무효. */
     @Test
     void mariadbReportsJsonColumnAsLongtext() {
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);

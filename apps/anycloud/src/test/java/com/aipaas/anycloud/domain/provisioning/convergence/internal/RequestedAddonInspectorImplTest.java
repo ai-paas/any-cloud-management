@@ -81,7 +81,7 @@ class RequestedAddonInspectorImplTest {
 
     @Test
     void installInProgress_isUnknownNotFailure() {
-        // 설치 중인 것을 실패로 판정하면 안 된다. 다음 주기를 기다린다.
+        // 설치 진행 중 항목의 실패 판정 금지. 다음 주기 대기.
         request(true, false);
         for (AddonState inFlight : List.of(AddonState.PENDING, AddonState.ENQUEUED, AddonState.INSTALLING)) {
             when(addonRepository.findByClusterId("cluster-001"))
@@ -94,7 +94,7 @@ class RequestedAddonInspectorImplTest {
 
     @Test
     void requestedButNeverRegistered_isUnknown() {
-        // agent 가 아직 연결되지 않아 auto-enroll 이 돌지 않은 상태다. 미설치로 단정할 수 없다.
+        // agent 미연결로 auto-enroll 미실행 상태. 미설치로 단정 불가.
         request(true, true);
         when(addonRepository.findByClusterId("cluster-001")).thenReturn(List.of());
 
@@ -106,7 +106,7 @@ class RequestedAddonInspectorImplTest {
 
     @Test
     void operatorAddedAddon_isNotIncluded() {
-        // 클러스터 생성 요청의 일부가 아니므로 미설치가 DEGRADED 사유가 되면 안 된다.
+        // 클러스터 생성 요청에 포함되지 않으므로 미설치가 DEGRADED 사유가 되면 안 됨.
         request(false, false);
         when(addonRepository.findByClusterId("cluster-001")).thenReturn(List.of(addon("velero", AddonState.FAILED)));
 
@@ -115,7 +115,7 @@ class RequestedAddonInspectorImplTest {
 
     @Test
     void unregisteredClusterYieldsNothing() {
-        // cluster row 가 아직 없으면 addon 도 있을 수 없다.
+        // cluster row 부재 시 addon 도 부재.
         VmClusterEntity vmCluster = cluster();
         vmCluster.setClusterId(null);
         request(true, true);

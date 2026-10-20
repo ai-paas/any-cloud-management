@@ -30,12 +30,12 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.ObjectProvider;
 
 /**
- * {@link AgentBootstrapServiceImpl} 보안 critical path 회귀 lock —.
+ * {@link AgentBootstrapServiceImpl} 보안 critical path 회귀 lock: .
  *
  * <p>cluster agent identity token 발급/rotation 의 거부 분기 회귀 lock. 회귀 시 revoked / expired
  * agent 가 rotation 으로 영구 token 재발급 → security incident.
  *
- * <p>register() flow 는 proto-heavy 라 본 테스트에서 제외 — 별 integration test 영역.
+ * <p>register() flow 는 proto-heavy 라 본 테스트에서 제외: 별 integration test 영역.
  */
 class AgentBootstrapServiceImplTest {
 
@@ -157,7 +157,7 @@ class AgentBootstrapServiceImplTest {
                 .isInstanceOf(RotationDeniedException.class)
                 .hasMessageContaining("revoked");
 
-        // 회귀 lock — revoked agent 가 rotation 으로 부활하면 보안 사고.
+        // 회귀 lock: revoked agent 가 rotation 으로 부활하면 보안 사고.
         verify(clusterAgentRepository, never()).save(any());
     }
 
@@ -177,7 +177,7 @@ class AgentBootstrapServiceImplTest {
                 .isInstanceOf(RotationDeniedException.class)
                 .hasMessageContaining("expired");
 
-        // 회귀 lock — 만료된 token 으로 rotation 가능하면 영구 갱신 가능 → security 위반.
+        // 회귀 lock: 만료된 token 으로 rotation 가능하면 영구 갱신 가능 → security 위반.
         verify(clusterAgentRepository, never()).save(any());
     }
 
@@ -219,7 +219,7 @@ class AgentBootstrapServiceImplTest {
 
     @Test
     void rotateIdentityToken_secondCall_generatesDifferentToken() {
-        // 256-bit opaque token randomness 회귀 — 두 번 rotate 시 같은 token 절대 안 됨.
+        // 256-bit opaque token randomness 회귀: 두 번 rotate 시 같은 token 절대 안 됨.
         ClusterAgentEntity living = ClusterAgentEntity.builder()
                 .agentId("a1")
                 .clusterName("c1")
@@ -256,7 +256,7 @@ class AgentBootstrapServiceImplTest {
 
     @Test
     void shouldActivateOnRegister_skipsAlreadyActive() {
-        // 매 register 마다 같은 값을 쓰면 updated_at 이 갱신되고 state history 가 헛돌아간다.
+        // register 마다 동일 값 사용 시 updated_at 이 갱신되고 state history 에 무의미한 행 누적.
         assertThat(AgentBootstrapServiceImpl.shouldActivateOnRegister(
                         com.aipaas.anycloud.domain.cluster.model.ClusterStatus.ACTIVE))
                 .isFalse();

@@ -16,13 +16,13 @@ import org.springframework.mock.web.MockHttpServletResponse;
  *
  * <p>edge case coverage:
  * <ul>
- *   <li>missing user — no-op, ThreadLocal 비어 있음</li>
- *   <li>user only — groups/extras 빈 채 set</li>
- *   <li>CSV groups single header — 분해</li>
- *   <li>multi-value groups header — 합치기</li>
- *   <li>X-Forwarded-Extra-&lt;key&gt; — case-insensitive prefix, multi-value, CSV</li>
- *   <li>afterCompletion — ThreadLocal cleanup (leak 방지)</li>
- *   <li>preHandle 두 번 호출 (같은 thread 재진입) — leak 없이 덮어쓰기</li>
+ *   <li>missing user: no-op, ThreadLocal 비어 있음</li>
+ *   <li>user only: groups/extras 빈 채 set</li>
+ *   <li>CSV groups single header: 분해</li>
+ *   <li>multi-value groups header: 합치기</li>
+ *   <li>X-Forwarded-Extra-&lt;key&gt;: case-insensitive prefix, multi-value, CSV</li>
+ *   <li>afterCompletion: ThreadLocal cleanup (leak 방지)</li>
+ *   <li>preHandle 두 번 호출 (같은 thread 재진입). leak 없이 덮어쓰기</li>
  * </ul>
  */
 class ImpersonationInterceptorTest extends AbstractUnitTest {
@@ -98,7 +98,7 @@ class ImpersonationInterceptorTest extends AbstractUnitTest {
     void preHandle_extraHeaders_caseInsensitiveAndMultiValue() {
         MockHttpServletRequest req = new MockHttpServletRequest("GET", "/v1/anything");
         req.addHeader(ImpersonationInterceptor.USER_HEADER, "alice");
-        // 대소문자 혼합 — HTTP header name 은 case-insensitive 이지만 servlet container 에 따라 보존.
+        // 대소문자 혼합: HTTP header name 은 case-insensitive 이지만 servlet container 에 따라 보존.
         req.addHeader("X-Forwarded-Extra-Scopes", "read,write");
         req.addHeader("x-forwarded-extra-tenant", "team-alpha");
         // prefix-only (key 비어 있음) → 무시.
@@ -132,7 +132,7 @@ class ImpersonationInterceptorTest extends AbstractUnitTest {
 
         interceptor.preHandle(req, response, new Object());
 
-        // controller 가 throw 한 상황을 모사 — interceptor 는 항상 clear 해야 leak 없음.
+        // controller 가 throw 한 상황을 모사: interceptor 는 항상 clear 해야 leak 없음.
         interceptor.afterCompletion(req, response, new Object(), new RuntimeException("boom"));
 
         assertThat(currentIdentity()).isEmpty();

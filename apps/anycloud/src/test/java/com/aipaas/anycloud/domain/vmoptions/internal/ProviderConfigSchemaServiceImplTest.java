@@ -11,9 +11,9 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * UX #6 — provider config schema 발견성 endpoint 회귀 보호.
+ * UX #6: provider config schema 발견성 endpoint 회귀 보호.
  *
- * <p>{@code ProvisioningConfigRules} 와 schema 정합성 검증 — 두 곳이 분리되어 있으므로
+ * <p>{@code ProvisioningConfigRules} 와 schema 정합성 검증: 두 곳이 분리되어 있으므로
  * 중요 키들이 양쪽에 있는지 확인.
  */
 class ProviderConfigSchemaServiceImplTest extends AbstractUnitTest {
@@ -80,7 +80,7 @@ class ProviderConfigSchemaServiceImplTest extends AbstractUnitTest {
 
     @Test
     void alibabaSchema_requiresZoneBecauseASwitchLivesInOne() {
-        // VSwitch 가 zone 단위다. 리전만으로는 서브넷을 만들지 못한다.
+        // VSwitch 는 zone 단위. 리전만으로 서브넷 생성 불가.
         ProviderConfigKey entry = findKey(service.getSchema("Alibaba"), "anycloud-k8s:providerSpec.zone");
 
         assertThat(entry.required()).isTrue();

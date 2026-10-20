@@ -7,11 +7,11 @@ import java.time.Duration;
 import org.junit.jupiter.api.Test;
 
 /**
- * 갓 만들어진 노드는 바로 SSH 를 받지 않는다.
+ * 생성 직후 노드는 SSH 를 즉시 수용하지 않음.
  *
- * <p>7개를 동시에 띄웠을 때 한 노드가 늦게 부팅됐는데, 재시도 3회에 고정 10초라 20초 만에 포기하고
- * 클러스터가 통째로 실패했다 — "Failed during node preparation after 3 attempts". cloud-init
- * 타임아웃은 20분인데 그 예산을 써보지도 못했다.
+ * <p>7개 동시 생성 시 한 노드의 부팅 지연 상황에서 재시도 3회, 고정 10초 설정이 20초 만에
+ * 중단돼 클러스터 전체 실패. "Failed during node preparation after 3 attempts".
+ * cloud-init 타임아웃 20분을 소진하기 전에 종료.
  */
 class BootstrapRetryPolicyTest extends AbstractUnitTest {
 
@@ -33,7 +33,7 @@ class BootstrapRetryPolicyTest extends AbstractUnitTest {
 
     @Test
     void theFirstRetryIsQuick() {
-        // 대부분은 금방 준비된다. 첫 재시도까지 30초씩 기다리면 정상 경로가 느려진다.
+        // 대부분 노드는 빠르게 준비 완료. 첫 재시도까지 30초 대기 시 정상 경로 지연.
         assertThat(BootstrapRetryPolicy.delayBeforeRetry(1)).isLessThanOrEqualTo(Duration.ofSeconds(10));
     }
 
@@ -44,13 +44,13 @@ class BootstrapRetryPolicyTest extends AbstractUnitTest {
 
     @Test
     void theDelayIsCappedSoTheLastAttemptIsNotHoursAway() {
-        // 상한이 없으면 지수 증가가 단계 예산을 통째로 먹는다.
+        // 상한 부재 시 지수 증가가 단계 예산 전체를 소진.
         assertThat(BootstrapRetryPolicy.delayBeforeRetry(100)).isLessThanOrEqualTo(Duration.ofSeconds(30));
     }
 
     @Test
     void theWholeBudgetStaysWithinTheCloudInitTimeout() {
-        // 재시도 예산이 cloud-init 타임아웃을 넘으면 단계가 두 배로 늘어진다.
+        // 재시도 예산이 cloud-init 타임아웃을 초과하면 단계 소요 시간 2배 증가.
         assertThat(totalWait(BootstrapRetryPolicy.PREPARATION_ATTEMPTS)).isLessThan(Duration.ofMinutes(20));
     }
 

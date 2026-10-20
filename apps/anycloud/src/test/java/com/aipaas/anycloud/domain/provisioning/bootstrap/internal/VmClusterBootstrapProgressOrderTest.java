@@ -20,13 +20,13 @@ import org.mockito.Mockito;
 /**
  * 진행률 역행 회귀 보호.
  *
- * <p>선언 순서만 검사하면 호출 순서가 어긋나도 통과한다 — ADDONS(64) 를 NODES_READY(60) 뒤에
- * 선언해 두고 앞에서 호출한 결함이 그렇게 살아남았다. 여기서는 bootstrap 을 실제로 돌려
- * reporter 가 받은 순서 그대로 percent 를 검증한다.
+ * <p>선언 순서만 검사하면 호출 순서 불일치가 통과. ADDONS(64)를 NODES_READY(60) 뒤에 선언하고
+ * 앞에서 호출한 결함이 검출되지 않음. 이 테스트는 bootstrap 을 실제 실행해 reporter 수신 순서
+ * 기준으로 percent 검증.
  */
 class VmClusterBootstrapProgressOrderTest extends AbstractUnitTest {
 
-    /** WorkflowSupportService.percentForStep(BOOTSTRAP) 과 같은 값. sub-step 은 이보다 커야 한다. */
+    /** WorkflowSupportService.percentForStep(BOOTSTRAP) 과 동일 값. sub-step 은 이 값 초과 필요. */
     private static final int BOOTSTRAP_ENTRY_PERCENT = 33;
 
     private final List<BootstrapSubStep> recorded = new ArrayList<>();

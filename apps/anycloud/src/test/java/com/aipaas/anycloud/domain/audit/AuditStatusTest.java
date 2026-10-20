@@ -9,7 +9,7 @@ import com.aipaas.anycloud.testsupport.AbstractUnitTest;
 import org.junit.jupiter.api.Test;
 
 /**
- * 감사 기록의 상태 코드는 클라이언트가 받은 것과 같아야 한다.
+ * 감사 기록의 상태 코드는 클라이언트 수신 값과 동일해야 함.
  *
  * <p>없는 클러스터 조회가 500 으로 남으면 평범한 404 가 장애로 보인다.
  */

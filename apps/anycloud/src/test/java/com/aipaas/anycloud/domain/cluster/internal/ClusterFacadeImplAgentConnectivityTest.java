@@ -46,7 +46,7 @@ class ClusterFacadeImplAgentConnectivityTest extends AbstractUnitTest {
 
     @BeforeEach
     void setUp() {
-        // 빈 provider 리스트로 시작 — list/getOne 만 검증, create 경로 미사용.
+        // 빈 provider 리스트로 시작: list/getOne 만 검증, create 경로 미사용.
         unifiedService = new ClusterFacadeImpl(
                 vmClusterService,
                 clusterService,
@@ -134,7 +134,7 @@ class ClusterFacadeImplAgentConnectivityTest extends AbstractUnitTest {
 
         assertThat(result).hasSize(1);
         UnifiedClusterResponse dto = result.get(0);
-        // status (K8s) 는 ACTIVE 그대로 — Fabric8 ping OK
+        // status (K8s) 는 ACTIVE 그대로: Fabric8 ping OK
         assertThat(dto.status()).isEqualTo(ClusterStatus.ACTIVE.name());
         // agentConnectivity 만 DISCONNECTED 로 분리되어 사실 노출
         assertThat(dto.agentConnectivity()).isEqualTo("DISCONNECTED");
@@ -161,7 +161,7 @@ class ClusterFacadeImplAgentConnectivityTest extends AbstractUnitTest {
 
     @Test
     void list_vm_doesNotPopulateAgentFields() {
-        // vm source 응답은 agent 정보 무관 — null 이라 JsonInclude.NON_NULL 로 직렬화 제외됨.
+        // vm source 응답은 agent 정보 무관: null 이라 JsonInclude.NON_NULL 로 직렬화 제외됨.
         when(vmClusterService.listVmClusters(null, null, null)).thenReturn(List.of());
         when(clusterService.findAllDomain()).thenReturn(List.of());
 

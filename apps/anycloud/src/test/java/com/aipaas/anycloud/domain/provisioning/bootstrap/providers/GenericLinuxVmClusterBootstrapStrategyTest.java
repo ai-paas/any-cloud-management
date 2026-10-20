@@ -22,7 +22,7 @@ class GenericLinuxVmClusterBootstrapStrategyTest {
 
     @Test
     void addonInstall_noLongerInstallsGpu() {
-        // GPU 는 GPU_OPERATOR 컴포넌트가 소유한다. 셸에 남기면 실패가 다시 || true 로 사라진다.
+        // GPU 는 GPU_OPERATOR 컴포넌트 소유. 셸에 남기면 실패가 || true 로 묻힘.
         String script = strategy.buildAddonInstallCommand(VmClusterInternalRequestSnapshot.builder()
                 .enableGpuOperator(true)
                 .build());
@@ -56,7 +56,7 @@ class GenericLinuxVmClusterBootstrapStrategyTest {
     @TempDir
     Path tmp;
 
-    /** 문자열 비교로는 sed 가 실제로 먹는지 알 수 없다. 진짜 sed 로 돌린다. */
+    /** 문자열 비교로는 sed 의 실제 적용 여부 확인 불가. 실제 sed 실행. */
     /** upstream calico.yaml 의 캡슐화 구간을 그대로 옮긴 fixture. */
     private static final String ENCAP_SNIPPET = "            # Enable IPIP\n"
             + "            - name: CALICO_IPV4POOL_IPIP\n"
@@ -82,7 +82,7 @@ class GenericLinuxVmClusterBootstrapStrategyTest {
 
     @Test
     void calicoSed_switchesToVxlanWhenTheFabricDropsIpInIp() throws Exception {
-        // IBM VPC 는 프로토콜 4 를 전달하지 않는다. 그대로 두면 노드 간 파드 통신만 조용히 끊긴다.
+        // IBM VPC 는 프로토콜 4 미전달. 미조치 시 노드 간 파드 통신만 무음 차단.
         String out = runCalicoSed("10.244.0.0/16", true, ENCAP_SNIPPET);
 
         assertThat(out).contains("- name: CALICO_IPV4POOL_IPIP\n              value: \"Never\"");
@@ -100,7 +100,7 @@ class GenericLinuxVmClusterBootstrapStrategyTest {
     private String runCalicoSed(String podCidr) throws Exception {
         Path manifest = tmp.resolve("calico.yaml");
         Files.writeString(manifest, CALICO_SNIPPET, StandardCharsets.UTF_8);
-        // -i 는 BSD sed 가 인자를 요구해 macOS 에서 갈린다. 표현식 검증이 목적이라 stdout 으로 받는다.
+        // -i 는 BSD sed 가 인자를 요구해 macOS 에서 동작 상이. 표현식 검증이 목적이라 stdout 사용.
         Path out = tmp.resolve("calico-out.yaml");
         Process p = new ProcessBuilder(
                         "sh",
@@ -124,7 +124,7 @@ class GenericLinuxVmClusterBootstrapStrategyTest {
 
     @Test
     void calicoSed_keepsYamlIndentationAligned() throws Exception {
-        // value 는 `- name` 의 name 과 같은 열이어야 한다. 어긋나면 manifest 가 통째로 깨진다.
+        // value 는 `- name` 의 name 과 동일 열 필요. 불일치 시 manifest 전체 손상.
         String out = runCalicoSed("10.244.0.0/16");
 
         int nameCol = out.indexOf("- name: CALICO_IPV4POOL_CIDR") + 2;
@@ -145,7 +145,7 @@ class GenericLinuxVmClusterBootstrapStrategyTest {
 
     @Test
     void cniInstall_failsFastWhenSubstitutionMisses() {
-        // upstream 문구가 바뀌면 치환이 조용히 빗나간다. 그대로 apply 하면 같은 장애가 재현된다.
+        // upstream 문구 변경 시 치환이 무음 실패. 그대로 apply 하면 동일 장애 재현.
         String script = strategy.cniInstallCommand("10.244.0.0/16");
 
         assertThat(script).contains("grep -q '^ *- name: CALICO_IPV4POOL_CIDR'");
@@ -172,7 +172,7 @@ class GenericLinuxVmClusterBootstrapStrategyTest {
 
     @Test
     void masterInit_podCidrMatchesCalicoPool() {
-        // kubeadm 과 Calico 가 다른 대역을 쓰면 라우팅이 어긋난다.
+        // kubeadm 과 Calico 가 서로 다른 대역을 사용하면 라우팅 불일치.
         VmClusterInternalRequestSnapshot snapshot = VmClusterInternalRequestSnapshot.builder()
                 .providerConfig(java.util.Map.of("anycloud-k8s:joinToken", "abcdef.0123456789abcdef"))
                 .build();

@@ -6,7 +6,7 @@ import com.aipaas.anycloud.testsupport.AbstractUnitTest;
 import org.junit.jupiter.api.Test;
 
 /**
- * T1 (#12) — bootstrapLog sensitive content masking 회귀 보호.
+ * T1 (#12). bootstrapLog sensitive content masking 회귀 보호.
  *
  * <p>Bootstrap log 수집 명령 (cloud-init-output, kubelet journal 등) 의 output 에 우연히
  * 포함될 수 있는 PEM block / kubeadm token 마스킹.
@@ -41,14 +41,14 @@ class VmClusterBootstrapLogServiceMaskingTest extends AbstractUnitTest {
 
     @Test
     void mask_multiplePemBlocks_allRedacted() {
-        // 실제 PEM 타입 (CERTIFICATE, PRIVATE KEY) — 영문 + 공백만.
+        // 실제 PEM 타입 (CERTIFICATE, PRIVATE KEY). 영문 + 공백만.
         String log = "-----BEGIN CERTIFICATE-----\nfoo\n-----END CERTIFICATE-----\n"
                 + "middle\n"
                 + "-----BEGIN PRIVATE KEY-----\nbar\n-----END PRIVATE KEY-----";
 
         String masked = VmClusterBootstrapLogServiceImpl.maskSensitive(log);
 
-        // 두 개 PEM block 모두 redacted — sentinel 2회 등장 확인 (split limit=-1 으로 trailing empty 보존).
+        // 두 개 PEM block 모두 redacted: sentinel 2회 등장 확인 (split limit=-1 으로 trailing empty 보존).
         int sentinelCount = masked.split("-----REDACTED-PEM-BLOCK-----", -1).length - 1;
         assertThat(sentinelCount).isEqualTo(2);
         assertThat(masked).doesNotContain("foo");

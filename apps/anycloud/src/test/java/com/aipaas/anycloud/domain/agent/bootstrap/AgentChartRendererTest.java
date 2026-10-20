@@ -18,8 +18,8 @@ import org.springframework.test.util.ReflectionTestUtils;
  *
  * <p>두 트랙:
  * <ul>
- *   <li>{@code parseImageRef} 같은 순수 함수 — 일반 유닛 테스트.</li>
- *   <li>실제 helm template 호출 — helm CLI + 빌드 시 복사된 agent-chart 가 필요해 통합 테스트.
+ *   <li>{@code parseImageRef} 같은 순수 함수: 일반 유닛 테스트.</li>
+ *   <li>실제 helm template 호출: helm CLI + 빌드 시 복사된 agent-chart 가 필요해 통합 테스트.
  *       {@code -Dchart.integration=true} system property 가 있을 때만 실행 (CI 에서 helm 설치
  *       후 활성화 권장). 로컬에서 helm 이 있으면 그냥 켜고 돌리면 됨.</li>
  * </ul>
@@ -55,13 +55,13 @@ class AgentChartRendererTest extends AbstractUnitTest {
         assertThat(AgentChartRenderer.parseImageRef("").tag()).isEqualTo("latest");
     }
 
-    /* ---------- render() — helm template integration ---------- */
+    /* ---------- render(). helm template integration ---------- */
 
     private AgentChartRenderer renderer;
 
     @BeforeEach
     void setUp() throws Exception {
-        // 통합 테스트 — helm CLI + bundled chart 둘 다 필요. system property 없으면 skip.
+        // 통합 테스트: helm CLI + bundled chart 둘 다 필요. system property 없으면 skip.
         if (!Boolean.getBoolean("chart.integration")) {
             return;
         }
@@ -83,7 +83,7 @@ class AgentChartRendererTest extends AbstractUnitTest {
     void render_emitsManifestWithToken() {
         String manifest = renderer.render("eyJhbGc.fake.jwt");
 
-        // 핵심 자원이 렌더링됨. Namespace 는 conditional (agent.ns ≠ release.ns 시만) — chart 의
+        // 핵심 자원이 렌더링됨. Namespace 는 conditional (agent.ns ≠ release.ns 시만). chart 의
         // 의도된 동작.
         assertThat(manifest).contains("kind: ServiceAccount");
         assertThat(manifest).contains("kind: ClusterRole");
@@ -142,7 +142,7 @@ class AgentChartRendererTest extends AbstractUnitTest {
     @Test
     @EnabledIfSystemProperty(named = "chart.integration", matches = "true")
     void theSameTokenLeavesThePodsAlone() {
-        // 매번 달라지면 재적용 주기마다 에이전트가 재시작해 명령이 끊긴다.
+        // 값이 매번 변경되면 재적용 주기마다 에이전트가 재시작해 명령 중단.
         assertThat(checksumOf(renderer.render("eyJhbGc.same.sig")))
                 .isEqualTo(checksumOf(renderer.render("eyJhbGc.same.sig")));
     }

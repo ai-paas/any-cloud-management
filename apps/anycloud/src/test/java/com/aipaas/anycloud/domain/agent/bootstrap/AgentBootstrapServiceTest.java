@@ -158,7 +158,7 @@ class AgentBootstrapServiceTest extends AbstractUnitTest {
         assertThat(saved.getK8sVersion()).isEqualTo("1.34.3");
         assertThat(saved.getDistribution()).isEqualTo("kubeadm");
         assertThat(saved.getStatus()).isEqualTo(ClusterAgentStatus.REGISTERED);
-        // Identity token 자체는 entity 에 hash 만 — 원본 X.
+        // Identity token 자체는 entity 에 hash 만: 원본 X.
         assertThat(saved.getIdentityTokenHash()).hasSize(64);
         assertThat(saved.getIdentityTokenHash())
                 .isEqualTo(AgentBootstrapService.sha256Hex(result.agentIdentityToken()));
@@ -198,7 +198,7 @@ class AgentBootstrapServiceTest extends AbstractUnitTest {
     void register_existingInstance_updatesNotInserts() {
         IssuedToken issued = service.issueRegistrationToken(CLUSTER_ID, "MANUAL");
 
-        // Agent 재시작 시 같은 instance_id 가 들어옴 — entity 가 이미 존재.
+        // Agent 재시작 시 같은 instance_id 가 들어옴: entity 가 이미 존재.
         ClusterAgentEntity existing = ClusterAgentEntity.builder()
                 .agentId("agent-uuid-1")
                 .clusterName(CLUSTER_ID)

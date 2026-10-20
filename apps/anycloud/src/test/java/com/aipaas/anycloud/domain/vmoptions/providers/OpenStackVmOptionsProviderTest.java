@@ -25,7 +25,7 @@ class OpenStackVmOptionsProviderTest extends AbstractUnitTest {
 
     @Test
     void neutronUrl_keepsOneVersionSegment() {
-        // 카탈로그가 /v2.0 까지 광고하는 배포가 있다. 그대로 이어 붙이면 404 로 끝난다.
+        // 카탈로그가 /v2.0 까지 포함해 광고하는 배포 존재. 그대로 결합하면 404 응답.
         assertThat(OpenStackVmOptionsProvider.neutronUrl("https://os:9696/v2.0", "/networks"))
                 .isEqualTo("https://os:9696/v2.0/networks");
         assertThat(OpenStackVmOptionsProvider.neutronUrl("https://os:9696/v2.0/", "/networks"))
@@ -48,7 +48,7 @@ class OpenStackVmOptionsProviderTest extends AbstractUnitTest {
 
     @Test
     void insecureCredential_reusesSameInstanceAcrossCalls() {
-        // TLS context 구성은 비싸다. 요청마다 새로 만들면 커넥션 풀도 매번 버려진다.
+        // TLS context 구성 비용이 큼. 요청마다 재생성하면 커넥션 풀도 매번 폐기.
         RestTemplate first =
                 withCreds(Map.of("OS_INSECURE", "true"), () -> provider.restTemplateFor("https://os.example.com:5000"));
         RestTemplate second =
@@ -59,7 +59,7 @@ class OpenStackVmOptionsProviderTest extends AbstractUnitTest {
 
     @Test
     void secureCredential_keepsSharedClient() {
-        // 공유 client 의 검증을 끄면 AWS / GCP 호출까지 함께 꺼진다.
+        // 공유 client 의 검증 비활성화 시 AWS, GCP 호출까지 동시 비활성.
         RestTemplate selected = withCreds(
                 Map.of("OS_INSECURE", "false"), () -> provider.restTemplateFor("https://os.example.com:5000"));
 
@@ -92,7 +92,7 @@ class OpenStackVmOptionsProviderTest extends AbstractUnitTest {
 
     @Test
     void imagesUrl_doesNotDoubleVersionSegment() {
-        // Pulumi 쪽 override 는 /v2/ 가 있어야 동작해 같은 값이 여기로도 들어온다.
+        // Pulumi override 는 /v2/ 포함 시 동작하므로 동일 값이 이 경로로도 수신.
         assertThat(OpenStackVmOptionsProvider.imagesUrl("https://proxy:9292/v2/"))
                 .isEqualTo("https://proxy:9292/v2/images");
         assertThat(OpenStackVmOptionsProvider.imagesUrl("https://proxy:9292/v2"))
@@ -101,7 +101,7 @@ class OpenStackVmOptionsProviderTest extends AbstractUnitTest {
 
     @Test
     void imagesUrl_addsVersionForCatalogStyleBase() {
-        // 카탈로그가 주는 glance 주소에는 버전이 없다.
+        // 카탈로그가 제공하는 glance 주소에는 버전 미포함.
         assertThat(OpenStackVmOptionsProvider.imagesUrl("https://192.168.10.10:9292"))
                 .isEqualTo("https://192.168.10.10:9292/v2/images");
         assertThat(OpenStackVmOptionsProvider.imagesUrl("https://192.168.10.10:9292/"))

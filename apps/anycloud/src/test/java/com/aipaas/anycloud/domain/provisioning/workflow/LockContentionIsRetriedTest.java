@@ -15,12 +15,12 @@ import org.mockito.Mock;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 /**
- * 락을 못 잡는 것은 일시적인 상황이지 메시지를 버릴 이유가 아니다.
+ * 락 획득 실패는 일시적 상황이며 메시지 폐기 사유 아님.
  *
- * <p>BOOTSTRAP 은 자기 락을 쥔 채 다음 단계를 발행한다. VERIFY 가 그 순간 도착하면 락을 못 잡는데,
- * 조용히 반환하면 ack 되어 사라진다 — 워크플로가 영원히 BOOTSTRAP 에 머문다. 실제로 그랬다.
+ * <p>BOOTSTRAP 이 락을 보유한 채 다음 단계를 발행. VERIFY 가 그 시점에 도착하면 락 획득에
+ * 실패하는데, 무음 반환 시 ack 되어 소실. 워크플로가 BOOTSTRAP 에 고착되는 사례 발생.
  *
- * <p>되돌리면 잠시 뒤 다시 와서 그때는 락이 비어 있다.
+ * <p>재큐 시 잠시 후 재도착하며 그 시점에는 락이 해제된 상태.
  */
 class LockContentionIsRetriedTest extends AbstractUnitTest {
 
@@ -75,7 +75,7 @@ class LockContentionIsRetriedTest extends AbstractUnitTest {
 
     @Test
     void anAlreadyProcessedMessageIsNotSentBack() {
-        // 이미 끝난 메시지를 되돌리면 영원히 돈다.
+        // 처리 완료 메시지를 재큐하면 무한 반복.
         when(messageGuard.shouldProcess(any())).thenReturn(false);
 
         dispatcher.dispatch(message(VmClusterWorkflowStep.VERIFY), () -> {}, (m, s, e) -> {});
@@ -87,7 +87,7 @@ class LockContentionIsRetriedTest extends AbstractUnitTest {
     @Test
     void destroyNeverWaitsForAnotherStep() {
         when(messageGuard.shouldProcess(any())).thenReturn(true);
-        // 삭제는 선점한다. 되돌릴 일이 없다.
+        // 삭제는 소유권 선점 방식. 재큐 대상 아님.
         when(processingLock.preempt(any(), any())).thenReturn(true);
 
         dispatcher.dispatch(message(VmClusterWorkflowStep.DESTROY), () -> {}, (m, s, e) -> {});

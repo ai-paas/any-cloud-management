@@ -58,7 +58,7 @@ class ClusterConvergenceOrchestratorImplTest {
 
     @Test
     void evaluate_ignoresBestEffortComponents() {
-        // BEST_EFFORT 미충족이 READY 를 막으면 개발 환경이 전부 DEGRADED 가 된다.
+        // BEST_EFFORT 미충족이 READY 를 차단하면 개발 환경 전체가 DEGRADED 로 전이.
         assertThat(ClusterConvergenceOrchestratorImpl.evaluate(List.of(
                         signal(Requirement.REQUIRED, ComponentHealth.READY),
                         signal(Requirement.BEST_EFFORT, ComponentHealth.NOT_READY))))
@@ -74,7 +74,7 @@ class ClusterConvergenceOrchestratorImplTest {
 
     @Test
     void evaluate_inconclusiveWhenRequiredUnknown() {
-        // 관측 실패로 상태를 내리면 네트워크가 흔들릴 때마다 클러스터가 오간다.
+        // 관측 실패로 상태를 하향하면 네트워크 불안정 시마다 클러스터 상태가 반복 전이.
         assertThat(ClusterConvergenceOrchestratorImpl.evaluate(
                         List.of(signal(Requirement.REQUIRED, ComponentHealth.UNKNOWN))))
                 .isEqualTo(ConvergenceVerdict.INCONCLUSIVE);
@@ -82,7 +82,7 @@ class ClusterConvergenceOrchestratorImplTest {
 
     @Test
     void evaluate_unsatisfiedWinsOverUnknown() {
-        // 하나라도 확실히 미충족이면 UNKNOWN 이 섞여 있어도 판정은 미충족이다.
+        // 확정 미충족이 하나라도 있으면 UNKNOWN 혼재 여부와 무관하게 미충족 판정.
         assertThat(ClusterConvergenceOrchestratorImpl.evaluate(List.of(
                         signal(Requirement.REQUIRED, ComponentHealth.UNKNOWN),
                         signal(Requirement.REQUIRED, ComponentHealth.NOT_READY))))
@@ -133,7 +133,7 @@ class ClusterConvergenceOrchestratorImplTest {
 
     @Test
     void drive_continuesAfterOneClusterThrows() {
-        // 클러스터 하나의 실패가 나머지 조정을 멈추면 안 된다.
+        // 클러스터 하나의 실패로 나머지 조정 중단 금지.
         VmClusterEntity broken = cluster(VmClusterStatus.DEGRADED);
         broken.setId("vmc-broken");
         VmClusterEntity healthy = cluster(VmClusterStatus.DEGRADED);
@@ -148,7 +148,7 @@ class ClusterConvergenceOrchestratorImplTest {
 
     @Test
     void drive_degradesWhenRequestedAddonFailed() {
-        // 구성 요소는 멀쩡해도 요청한 addon 이 실패했으면 요청대로 준비된 게 아니다.
+        // 구성 요소가 정상이어도 요청 addon 이 실패하면 요청 기준 준비 완료 아님.
         VmClusterEntity vmCluster = cluster(VmClusterStatus.READY);
         when(repository.findByProvisioningStatusIn(any())).thenReturn(List.of(vmCluster));
         when(observer.observe(vmCluster)).thenReturn(List.of(observation(Requirement.REQUIRED, ComponentHealth.READY)));
@@ -163,7 +163,7 @@ class ClusterConvergenceOrchestratorImplTest {
 
     @Test
     void drive_staysReadyWhenAddonInstallStillInFlight() {
-        // 설치 중(UNKNOWN)을 실패로 보면 정상 진행 중인 클러스터가 DEGRADED 로 떨어진다.
+        // 설치 중(UNKNOWN)을 실패로 판정하면 정상 진행 클러스터가 DEGRADED 로 전이.
         VmClusterEntity vmCluster = cluster(VmClusterStatus.READY);
         when(repository.findByProvisioningStatusIn(any())).thenReturn(List.of(vmCluster));
         when(observer.observe(vmCluster)).thenReturn(List.of(observation(Requirement.REQUIRED, ComponentHealth.READY)));
@@ -202,7 +202,7 @@ class ClusterConvergenceOrchestratorImplTest {
 
     @Test
     void drive_repairsRequiredComponentThatIsNotReady() {
-        // 이 호출이 없으면 조정 루프는 상태만 다시 매기고 아무것도 고치지 않는다.
+        // 이 호출 부재 시 조정 루프가 상태만 갱신하고 복구는 미수행.
         driveWith(
                 signal(Requirement.REQUIRED, ComponentHealth.NOT_READY),
                 observation(Requirement.REQUIRED, ComponentHealth.NOT_READY));
@@ -221,7 +221,7 @@ class ClusterConvergenceOrchestratorImplTest {
 
     @Test
     void drive_doesNotRepairBestEffortComponent() {
-        // BEST_EFFORT 는 미충족이어도 판정을 UNSATISFIED 로 만들지 않는다. 고칠 대상도 아니다.
+        // BEST_EFFORT 는 미충족 시에도 UNSATISFIED 판정 제외. 복구 대상도 아님.
         driveWith(
                 signal(Requirement.BEST_EFFORT, ComponentHealth.NOT_READY),
                 observation(Requirement.BEST_EFFORT, ComponentHealth.NOT_READY));
@@ -231,7 +231,7 @@ class ClusterConvergenceOrchestratorImplTest {
 
     @Test
     void drive_doesNotReprobeForRepairTargets() {
-        // observe 가 이미 영속화했다. 여기서 다시 probe 하면 클러스터마다 SSH 가 두 번 열린다.
+        // observe 가 이미 영속화 완료. 재probe 시 클러스터당 SSH 2회 연결.
         driveWith(
                 signal(Requirement.REQUIRED, ComponentHealth.NOT_READY),
                 observation(Requirement.REQUIRED, ComponentHealth.NOT_READY));

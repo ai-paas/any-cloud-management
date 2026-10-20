@@ -12,10 +12,10 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * 프로비저닝이 끝나면 바로 모니터링을 본다.
+ * 프로비저닝 완료 직후 모니터링 조회.
  *
- * <p>클러스터를 만들고 모니터링 화면을 열면 Prometheus 가 없어 빈 그래프만 나왔다. 지표는 켜져 있는
- * 것이 기본이고, 필요 없는 사람이 끄는 쪽이 맞다.
+ * <p>클러스터 생성 후 모니터링 화면 진입 시 Prometheus 부재로 빈 그래프만 표시. 지표 수집을
+ * 기본 활성으로 두고 불필요한 경우 비활성화하는 방식 적용.
  */
 class MonitoringIsInstalledByDefaultTest extends AbstractUnitTest {
 
@@ -34,7 +34,7 @@ class MonitoringIsInstalledByDefaultTest extends AbstractUnitTest {
 
     @Test
     void anExplicitOptOutIsRespected() {
-        // 지표 수집이 자원을 먹는 작은 클러스터도 있다. 기본값이 선택을 덮으면 안 된다.
+        // 지표 수집이 자원을 소모하는 소규모 클러스터 존재. 기본값이 사용자 선택을 덮으면 안 됨.
         assertThat(defaulted(Map.of(KEY, "false"))).containsEntry(KEY, "false");
     }
 
@@ -62,7 +62,7 @@ class MonitoringIsInstalledByDefaultTest extends AbstractUnitTest {
     @Test
     void anOlderRequestWithoutTheFlagIsLeftAlone() {
         // 이미 돌고 있는 클러스터의 스냅샷에는 이 값이 없다. null 을 켜짐으로 읽으면 멀쩡한
-        // 클러스터가 "애드온 누락" 으로 DEGRADED 가 된다.
+        // 클러스터가 애드온 누락으로 DEGRADED 전이.
         VmClusterInternalRequestSnapshot spec =
                 VmClusterInternalRequestSnapshot.builder().build();
 

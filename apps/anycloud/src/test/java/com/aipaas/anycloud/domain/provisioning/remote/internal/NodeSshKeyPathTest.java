@@ -10,7 +10,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 /**
  * 터미널 세션마다 개인키를 임시 파일로 떨군다. 파일명이 요청 값에서 오면 런타임 디렉터리를
- * 벗어나는 통로가 되고, 그 경로가 ssh 인자로도 흘러간다.
+ * 이탈 경로가 되고 해당 경로가 ssh 인자로도 전달.
  */
 class NodeSshKeyPathTest extends AbstractUnitTest {
 

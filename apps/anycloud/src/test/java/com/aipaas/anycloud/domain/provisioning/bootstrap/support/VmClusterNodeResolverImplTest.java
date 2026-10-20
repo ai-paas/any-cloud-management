@@ -8,7 +8,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * nodes 출력은 provisioner 에 따라 JSON 문자열로도 배열로도 온다.
+ * nodes 출력은 provisioner 에 따라 JSON 문자열 또는 배열로 수신.
  *
  * <p>Pulumi Java SDK 의 일부 역직렬화 경로가 배열을 못 다뤄 provisioner 가 JSON 문자열로 export 했는데,
  * 이 resolver 는 List 만 처리해 빈 목록을 돌려줬다. masterHost 에는 폴백이 있지만 worker join 목록에는
@@ -47,7 +47,7 @@ class VmClusterNodeResolverImplTest {
 
     @Test
     void workerJoinListIsNotEmptyForJsonString() {
-        // 이 목록이 비면 worker 가 kubeadm join 을 하지 않는다 — 폴백이 없는 경로다.
+        // 이 목록이 비면 worker 가 kubeadm join 을 하지 않는다. 폴백이 없는 경로다.
         List<VmClusterNodeResolver.VmClusterNode> workers = resolver.readNodes(Map.of("nodes", NODES_JSON)).stream()
                 .filter(node -> "worker".equalsIgnoreCase(node.role()))
                 .toList();
@@ -70,7 +70,7 @@ class VmClusterNodeResolverImplTest {
 
     @Test
     void extraMasterHostsWorksForJsonString() {
-        // HA control plane — 폴백이 없어 JSON 문자열이면 추가 master 가 join 하지 못했다.
+        // HA control plane: 폴백이 없어 JSON 문자열이면 추가 master 가 join 하지 못했다.
         String ha = "[{\"role\":\"master\",\"publicIp\":\"1.1.1.1\",\"publicDns\":\"1.1.1.1\"},"
                 + "{\"role\":\"master\",\"publicIp\":\"2.2.2.2\",\"publicDns\":\"2.2.2.2\"}]";
 

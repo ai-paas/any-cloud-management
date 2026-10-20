@@ -18,9 +18,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 /**
- * {@link AuditLogServiceImpl} 회귀 lock —.
+ * {@link AuditLogServiceImpl} 회귀 lock: .
  *
- * <p>Audit log 는 compliance/incident investigation 의 ground truth — entity→DTO 매핑이 1 field 라도
+ * <p>Audit log 는 compliance/incident investigation 의 ground truth: entity→DTO 매핑이 1 field 라도
  * 누락되면 incident 분석 시 정보 손실. 13 field 전체 매핑 + repository delegation 검증.
  */
 class AuditLogServiceImplTest {
@@ -129,7 +129,7 @@ class AuditLogServiceImplTest {
 
     @Test
     void search_failedRequest_preservesErrorMessageAndStatusCode() {
-        // 실 incident 시나리오 — 403/500 응답 entity 가 DTO 로 그대로 전달되어야 incident report 가 완전.
+        // 실 incident 시나리오: 403/500 응답 entity 가 DTO 로 그대로 전달되어야 incident report 가 완전.
         AuditLogEntity entity = AuditLogEntity.builder()
                 .id("evt-err")
                 .action("DELETE")

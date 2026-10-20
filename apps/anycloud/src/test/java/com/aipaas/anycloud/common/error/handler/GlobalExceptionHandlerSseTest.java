@@ -24,7 +24,7 @@ import org.springframework.http.ResponseEntity;
  * </ul>
  *
  * <p>이전에는 SSE 엔드포인트의 path-param 검증 실패 시 JSON converter 가 Accept 매칭에 실패하여
- * HttpMediaTypeNotAcceptableException 으로 500 이 났음 — Bruno smoke 중 발견된 regression.
+ * HttpMediaTypeNotAcceptableException 으로 500 이 났음. Bruno smoke 중 발견된 regression.
  */
 class GlobalExceptionHandlerSseTest {
 
@@ -98,7 +98,7 @@ class GlobalExceptionHandlerSseTest {
     @Test
     @SuppressWarnings("unchecked")
     void sseEndpointUriEndingInEvents_routesToSse_evenWithJsonAccept() {
-        // 클라이언트가 잘못된 Accept (application/json) 으로 SSE endpoint 호출 시 — Spring 의
+        // 클라이언트가 잘못된 Accept (application/json) 으로 SSE endpoint 호출 시: Spring 의
         // produces=text/event-stream 제약으로 JSON 응답이 NotAcceptable 됨.
         // → URL 가 /events 로 끝나면 강제 SSE 응답.
         ConstraintViolationException ex =

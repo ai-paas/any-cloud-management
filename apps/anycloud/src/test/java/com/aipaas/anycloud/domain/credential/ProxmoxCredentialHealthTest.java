@@ -21,10 +21,10 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 /**
- * Proxmox 는 리전이 없어 리전 조회로 자격증명을 확인할 수 없다.
+ * Proxmox 는 리전 개념이 없어 리전 조회로 자격증명 검증 불가.
  *
- * <p>그대로 두면 등록된 VM options provider 가 없어 예외로 끝나고, 멀쩡한 토큰도 "확인 불가" 로
- * 보인다. 사용자는 연결 문제로 오해하고 자격증명을 다시 만든다.
+ * <p>미조치 시 등록된 VM options provider 부재로 예외 종료되고 유효한 토큰도 확인 불가로 표시.
+ * 사용자가 연결 문제로 오인해 자격증명을 재생성.
  */
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ProxmoxCredentialHealthTest extends AbstractUnitTest {
@@ -65,7 +65,7 @@ class ProxmoxCredentialHealthTest extends AbstractUnitTest {
 
     @Test
     void theRegionCatalogIsNeverConsultedForProxmox() {
-        // 여기로 내려가면 "VM options provider is not registered" 로 끝난다.
+        // 이 경로 진입 시 "VM options provider is not registered" 로 종료.
         when(proxmoxApiClient.version(any())).thenReturn(null);
 
         service().check("Proxmox", CREDENTIAL_ID);
@@ -85,7 +85,7 @@ class ProxmoxCredentialHealthTest extends AbstractUnitTest {
 
     @Test
     void aRejectedTokenIsReportedAsAuthenticationFailure() {
-        // 401 은 토큰이 틀렸거나 만료된 것이다. 사용자가 고칠 수 있는 원인이라 그대로 알린다.
+        // 401 은 토큰 오류 또는 만료. 사용자 조치가 가능한 원인이므로 그대로 통보.
         when(proxmoxApiClient.version(any()))
                 .thenThrow(new com.aipaas.anycloud.common.error.exception.CustomException(
                         "Proxmox API 인증에 실패했습니다. 토큰 ID, 시크릿, 만료일을 확인합니다.",

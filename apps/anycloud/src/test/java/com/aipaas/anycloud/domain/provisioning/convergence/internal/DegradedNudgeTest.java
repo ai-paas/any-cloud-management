@@ -20,11 +20,11 @@ import org.mockito.Mock;
 import org.springframework.scheduling.TaskScheduler;
 
 /**
- * DEGRADED 직후 한 번 더 본다.
+ * DEGRADED 직후 1회 추가 확인.
  *
- * <p>VERIFY 가 수렴 예산을 다 쓰고 DEGRADED 로 떨어지면, 지금까지는 5분 주기 정기 조정을 통째로
- * 기다렸다. 실측에서 DEGRADED -> READY 에 9분 22초가 걸렸고 그중 대부분이 순수 대기였다.
- * 애드온이 뜨는 중일 가능성이 가장 높은 시점이라 여기서 한 번 더 보는 것이 맞다.
+ * <p>VERIFY 가 수렴 예산을 소진하고 DEGRADED 로 전이하면 기존에는 5분 주기 정기 조정 전체를
+ * 대기. 실측 DEGRADED → READY 소요 9분 22초, 대부분이 대기 시간. 애드온 기동 가능성이 가장
+ * 높은 시점이라 추가 확인 적용.
  */
 class DegradedNudgeTest extends AbstractUnitTest {
 
@@ -77,7 +77,7 @@ class DegradedNudgeTest extends AbstractUnitTest {
 
     @Test
     void recheckSkipsClustersThatMovedOn() {
-        // 재확인이 도는 사이 사용자가 삭제했을 수 있다. 되살리면 안 된다.
+        // 재확인 실행 중 사용자 삭제 가능. 복원 금지.
         when(vmClusterRepository.findFirstByClusterNameOrderByCreatedAtDesc("demo"))
                 .thenReturn(Optional.of(cluster(VmClusterStatus.DELETING)));
 
@@ -89,7 +89,7 @@ class DegradedNudgeTest extends AbstractUnitTest {
 
     @Test
     void recheckSurvivesOrchestratorFailure() {
-        // 재확인은 부가 기능이다. 실패가 스케줄러 스레드를 죽이면 안 된다.
+        // 재확인은 보조 기능. 실패로 스케줄러 스레드 종료 금지.
         when(vmClusterRepository.findFirstByClusterNameOrderByCreatedAtDesc("demo"))
                 .thenReturn(Optional.of(cluster(VmClusterStatus.DEGRADED)));
         org.mockito.Mockito.doThrow(new IllegalStateException("boom"))

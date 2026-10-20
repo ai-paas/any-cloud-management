@@ -10,9 +10,9 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * 노드는 자기 테이블이 없다. Pulumi outputs 의 nodes 배열이 전부다.
+ * 노드 전용 테이블 부재. Pulumi outputs 의 nodes 배열이 유일한 소스.
  *
- * <p>그 배열에는 이름도 상태도 없어서, 목록에 세우려면 이름을 만들고 상태는 클러스터에서 물려받아야 한다.
+ * <p>해당 배열에 이름과 상태가 없어 목록 표시에는 이름 생성과 클러스터 상태 상속이 필요.
  */
 class VmClusterNodeRowsTest extends AbstractUnitTest {
 
@@ -70,7 +70,7 @@ class VmClusterNodeRowsTest extends AbstractUnitTest {
 
     @Test
     void readsNodesEvenWhenPulumiSendsThemAsAJsonString() {
-        // YAML 프로그램은 배열을 그대로 못 내보내 문자열로 싼다. 소비자가 양쪽을 모두 받아야 한다.
+        // YAML 프로그램은 배열 직접 출력이 불가해 문자열로 래핑. 소비자는 양쪽 모두 수용 필요.
         String escaped = NODES.replace("\\", "\\\\").replace("\"", "\\\"");
         List<VmClusterNodeRows.Row> rows = VmClusterNodeRows.of(MAPPER, cluster("{\"nodes\":\"" + escaped + "\"}"));
 
@@ -80,8 +80,8 @@ class VmClusterNodeRowsTest extends AbstractUnitTest {
     @Test
     void aClusterWithoutNodesStillGetsOneRow() {
         /*
-         * 빈 목록을 돌려주면 만들어지는 중이거나 실패한 클러스터가 목록에서 통째로 사라진다.
-         * 화면이 대신 끼워 넣으면 자르는 곳과 세는 곳이 갈려 다음 페이지가 비어 버린다.
+         * 빈 목록 반환 시 생성 중이거나 실패한 클러스터가 목록에서 누락. 화면이 보완하면
+         * 자르는 지점과 세는 지점이 분리돼 다음 페이지가 빈 값.
          */
         for (String outputs : new String[] {null, "", "{}"}) {
             assertThat(VmClusterNodeRows.of(MAPPER, cluster(outputs)))
@@ -96,7 +96,7 @@ class VmClusterNodeRowsTest extends AbstractUnitTest {
 
     @Test
     void survivesGarbageInsteadOfHidingTheWholeList() {
-        // 한 클러스터의 outputs 가 깨졌다고 다른 클러스터의 노드까지 사라지면 안 된다.
+        // 클러스터 하나의 outputs 손상으로 다른 클러스터 노드까지 누락되면 안 됨.
         assertThat(VmClusterNodeRows.of(MAPPER, cluster("not json")))
                 .singleElement()
                 .satisfies(row -> assertThat(row.pending()).isTrue());
@@ -115,7 +115,7 @@ class VmClusterNodeRowsTest extends AbstractUnitTest {
 
     @Test
     void summaryOfNothingIsZeroNotNull() {
-        // 프로비저닝 전에는 노드가 없다. null 을 돌려주면 화면이 매번 방어해야 한다.
+        // 프로비저닝 전에는 노드 부재. null 반환 시 화면의 매 호출 방어 코드 필요.
         var summary = VmClusterNodeRows.summarize(List.of());
 
         assertThat(summary.masterCount()).isZero();

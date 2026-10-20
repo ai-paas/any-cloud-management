@@ -7,10 +7,10 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * 자격증명에서 무엇을 바꿔도 되는지.
+ * 자격증명의 변경 허용 범위.
  *
- * <p>이름과 프로바이더는 막는다 — vm_cluster 가 이름을 기록으로 들고 있고(삭제된 자격증명의
- * 유일한 흔적이다), 프로바이더가 바뀌면 키 구성 자체가 달라진다.
+ * <p>이름과 프로바이더는 변경 차단. vm_cluster 가 이름을 기록으로 보유하며(삭제된 자격증명의
+ * 유일한 흔적), 프로바이더 변경 시 키 구성 자체가 달라짐.
  */
 class CredentialUpdateRulesTest extends AbstractUnitTest {
 
@@ -22,14 +22,14 @@ class CredentialUpdateRulesTest extends AbstractUnitTest {
 
     @Test
     void valuesAreReplacedWholesaleNotMerged() {
-        // 부분 수정은 AWS 처럼 짝이 있는 키에서 못 쓰는 조합을 만든다.
+        // 부분 수정은 AWS 처럼 짝을 이루는 키에서 사용 불가 조합 생성.
         assertThat(CredentialUpdateRules.replacesValues(Map.of("AWS_ACCESS_KEY_ID", "x")))
                 .isTrue();
     }
 
     @Test
     void blankValuesAreRejected() {
-        // 빈 값으로 덮으면 조용히 못 쓰는 자격증명이 된다.
+        // 빈 값으로 덮으면 무음으로 사용 불가 자격증명이 됨.
         assertThat(CredentialUpdateRules.hasBlankValue(Map.of("A", "x", "B", " ")))
                 .isTrue();
         assertThat(CredentialUpdateRules.hasBlankValue(Map.of("A", "x"))).isFalse();

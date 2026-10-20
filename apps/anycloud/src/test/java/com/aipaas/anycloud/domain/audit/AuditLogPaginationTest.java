@@ -41,7 +41,7 @@ class AuditLogPaginationTest extends AbstractUnitTest {
 
     @Test
     void reportsTheTotalSoTheScreenCanPaginate() {
-        // 총 건수를 모르면 화면이 마지막 페이지를 계산할 수 없다.
+        // 총 건수 부재 시 화면의 마지막 페이지 계산 불가.
         when(repository.search(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 10), 1234));
 

@@ -22,11 +22,11 @@ import org.junit.jupiter.params.provider.EnumSource;
  * 인프라를 다 만든 뒤에야 전략이 없다는 것을 알면 늦다.
  *
  * <p>PROVISION 이 끝난 상태에서 BOOTSTRAP 이 즉시 실패하므로, 만들어진 인스턴스가 과금되는 채로
- * 남는다. IBM 이 실제로 그랬다 — {@code No VM cluster bootstrap strategy for provider IBM}.
+ * 남는다. IBM 이 실제로 그랬다. {@code No VM cluster bootstrap strategy for provider IBM}.
  */
 class EveryProviderHasABootstrapStrategyTest extends AbstractUnitTest {
 
-    /** Spring 이 주입하는 것과 같은 목록. 새 CSP 를 더하면 여기에도 등록해야 한다. */
+    /** Spring 주입 목록과 동일. CSP 추가 시 이 목록에도 등록 필요. */
     private final VmClusterBootstrapStrategyResolver resolver = new VmClusterBootstrapStrategyResolver(List.of(
             new AwsVmClusterBootstrapStrategy(),
             new OpenStackVmClusterBootstrapStrategy(),
@@ -52,7 +52,7 @@ class EveryProviderHasABootstrapStrategyTest extends AbstractUnitTest {
 
     @Test
     void anUnknownProviderFallsBackToTheLinuxStrategy() {
-        // 기본 전략이 마지막에 걸려 있어야 신규 CSP 도 일단 붙는다.
+        // 기본 전략이 마지막에 위치해야 신규 CSP 도 매칭.
         assertThat(resolver.resolve("")).isInstanceOf(GenericLinuxVmClusterBootstrapStrategy.class);
     }
 }

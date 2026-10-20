@@ -9,10 +9,10 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 
 /**
- * ACTIVE 에서 내려오는 길이 없었다.
+ * ACTIVE 하향 전이 경로 부재.
  *
- * <p>클러스터가 사라져 하트비트가 끊겨도 행은 ACTIVE 로 남는다. 화면만의 문제가 아니다 —
- * 업그레이드 대상과 카탈로그가 status == ACTIVE 로 거르기 때문에 죽은 에이전트를 살아 있다고 센다.
+ * <p>클러스터 삭제로 하트비트가 끊겨도 행은 ACTIVE 로 잔존. 업그레이드 대상과 카탈로그가
+ * status == ACTIVE 로 필터링하므로 중단된 에이전트가 정상으로 집계.
  */
 class AgentLivenessTest extends AbstractUnitTest {
 
@@ -37,7 +37,7 @@ class AgentLivenessTest extends AbstractUnitTest {
 
     @Test
     void anAgentThatNeverReportedIsStale() {
-        // lastSeenAt 이 비어 있는데 ACTIVE 면 등록만 되고 붙은 적이 없다는 뜻이다.
+        // lastSeenAt 이 비고 ACTIVE 면 등록만 완료되고 접속 이력 없음.
         assertThat(AgentLiveness.isStale(ClusterAgentStatus.ACTIVE, null, NOW, TIMEOUT))
                 .isTrue();
     }
@@ -57,7 +57,7 @@ class AgentLivenessTest extends AbstractUnitTest {
 
     @Test
     void demotedAgentsAreNotDeleted() {
-        // 지우면 무엇이 있었는지 알 수 없다. 상태만 내린다.
+        // 삭제 시 이력 확인 불가. 상태만 하향.
         assertThat(AgentLiveness.staleStatus()).isEqualTo(ClusterAgentStatus.DEGRADED);
     }
 

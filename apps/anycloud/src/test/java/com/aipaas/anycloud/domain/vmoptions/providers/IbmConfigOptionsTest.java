@@ -15,10 +15,10 @@ import org.springframework.test.web.client.response.MockRestResponseCreators;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * providerSpec.zone 은 리전 드롭다운으로 채울 수 없다 — us-south 가 아니라 us-south-1 이다.
+ * providerSpec.zone 은 리전 드롭다운으로 채울 수 없음. us-south 가 아닌 us-south-1.
  *
- * <p>자유 입력으로 두면 사용자가 IBM 존 명명 규칙을 외워야 하고, 틀린 값은 프로비저닝 도중에야
- * 드러난다. 계정마다 활성 zone 이 달라 {@code {region}-1} 로 넘겨짚을 수도 없다.
+ * <p>자유 입력으로 두면 사용자가 IBM 존 명명 규칙을 직접 입력해야 하고, 잘못된 값은 프로비저닝
+ * 단계에서 드러남. 계정별 활성 zone 이 달라 {@code {region}-1} 추정도 불가.
  */
 class IbmConfigOptionsTest extends AbstractUnitTest {
 
@@ -57,8 +57,8 @@ class IbmConfigOptionsTest extends AbstractUnitTest {
     @Test
     void theResourceGroupKeyOffersTheGroupsWithTheirNames() {
         /*
-         * 그룹 ID 는 콘솔을 열어 베껴 와야 하는 값이다. 계정에서 읽어 이름과 함께 준다 —
-         * ID 만 내려보내면 화면에 식별자가 그대로 떠 무엇을 고르는지 알 수 없다.
+         * 그룹 ID 는 콘솔 확인이 필요한 값. 계정에서 조회해 이름과 함께 제공.
+         * ID 만 전달하면 화면에 식별자가 그대로 노출돼 선택 대상 식별 불가.
          */
         server.expect(MockRestRequestMatchers.requestTo("https://iam.cloud.ibm.com/identity/token"))
                 .andExpect(MockRestRequestMatchers.method(HttpMethod.POST))
@@ -85,7 +85,7 @@ class IbmConfigOptionsTest extends AbstractUnitTest {
 
     @Test
     void otherKeysAreLeftAsFreeTextWithoutCallingTheApi() {
-        // 열거할 수 없는 키까지 조회하면 폼을 열 때마다 쓸데없는 왕복이 생긴다.
+        // 열거 불가 키까지 조회하면 폼 진입마다 불필요한 왕복 발생.
         assertThat(provider.listConfigOptions(CREDENTIALS, "providerSpec.somethingElse", "jp-tok"))
                 .isEmpty();
         server.verify();
@@ -93,7 +93,7 @@ class IbmConfigOptionsTest extends AbstractUnitTest {
 
     @Test
     void withoutARegionThereIsNothingToOffer() {
-        // 리전을 고르기 전에는 zone 을 알 수 없다. 화면은 그때까지 자유 입력으로 둔다.
+        // 리전 선택 전에는 zone 확인 불가. 그 시점까지 화면은 자유 입력 유지.
         assertThat(provider.listConfigOptions(CREDENTIALS, "providerSpec.zone", null))
                 .isEmpty();
         server.verify();

@@ -34,7 +34,7 @@ class FleetUpgradeServiceTest extends AbstractUnitTest {
         when(repository.findAll())
                 .thenReturn(List.of(
                         row("alpha", ClusterAgentUpgradeWave.CANARY, "v1.0.0"),
-                        row("alpha", ClusterAgentUpgradeWave.CANARY, "v1.0.0"), // HA replica — dedup
+                        row("alpha", ClusterAgentUpgradeWave.CANARY, "v1.0.0"), // HA replica: dedup
                         row("bravo", ClusterAgentUpgradeWave.GENERAL, "v0.9.0"),
                         row("charlie", ClusterAgentUpgradeWave.GENERAL, "v1.0.0"),
                         row("delta", ClusterAgentUpgradeWave.PAUSED, "v0.9.0")));

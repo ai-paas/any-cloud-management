@@ -20,11 +20,11 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 
 /**
- * 한 자원에 새 작업이 시작되면 앞선 작업은 끝난 것이다.
+ * 한 자원에 새 작업이 시작되면 이전 작업은 종료 상태.
  *
- * <p>생성 도중 삭제하면 그 CREATE 는 다시 진행될 수 없는데도 RUNNING 으로 남아, 클러스터가 READY
- * 인데 화면은 "BOOTSTRAP_NODES_READY 64%" 를 보여줬다. 시간 기반 정리(2시간)로는 그 사이를
- * 메우지 못한다 — 새 작업이 뜨는 순간 앞선 작업의 운명은 이미 정해져 있다.
+ * <p>생성 중 삭제 시 해당 CREATE 는 진행 불가 상태인데도 RUNNING 으로 잔존해, 클러스터가 READY
+ * 인 상황에서 화면은 "BOOTSTRAP_NODES_READY 64%" 표시. 시간 기반 정리(2시간)로는 해당 구간
+ * 미처리. 새 작업 생성 시점에 이전 작업의 결과는 이미 확정.
  */
 @MockitoSettings(strictness = Strictness.LENIENT)
 class SupersededOperationIsClosedTest extends AbstractUnitTest {
@@ -77,7 +77,7 @@ class SupersededOperationIsClosedTest extends AbstractUnitTest {
 
     @Test
     void theClosedOperationSaysWhyItStopped() {
-        // "CANCELLED" 만 남으면 사용자가 취소한 것과 구분되지 않는다.
+        // CANCELLED 만 기록하면 사용자 취소와 구분 불가.
         OperationEntity stuck = active("op-old", OperationState.PENDING);
         stubExisting(stuck);
         stubSave();
@@ -101,7 +101,7 @@ class SupersededOperationIsClosedTest extends AbstractUnitTest {
 
     @Test
     void theNewOperationStartsCleanlyEvenSoTheOldOneCannotBeClosed() {
-        // 정리 실패로 새 작업이 시작되지 못하면 자원이 생성되지 않는다. 기록보다 작업이 우선이다.
+        // 정리 실패로 새 작업이 시작되지 못하면 자원 미생성. 기록보다 작업이 우선.
         when(repository.findByResourceTypeAndResourceIdOrderByCreatedAtDesc(
                         anyString(), anyString(), any(Pageable.class)))
                 .thenThrow(new IllegalStateException("db down"));

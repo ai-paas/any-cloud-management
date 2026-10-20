@@ -7,7 +7,7 @@ import com.aipaas.anycloud.testsupport.AbstractUnitTest;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/** 강제 삭제는 무엇이 남을 수 있는지 반드시 알려야 한다. */
+/** 강제 삭제는 잔존 가능 항목을 반드시 통보. */
 class ForceDeleteResponseTest extends AbstractUnitTest {
 
     @Test
@@ -20,7 +20,7 @@ class ForceDeleteResponseTest extends AbstractUnitTest {
 
     @Test
     void saysNothingRemainsWhenThereWasNoStack() {
-        // 없는 위험을 경고하면 진짜 경고를 무시하게 된다.
+        // 존재하지 않는 위험을 경고하면 실제 경고의 신뢰도 저하.
         var body = ForceDeleteResponse.of(1, List.of());
 
         assertThat(body.warning()).contains("남는 것이 없");

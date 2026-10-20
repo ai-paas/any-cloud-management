@@ -17,10 +17,10 @@ import org.junit.jupiter.api.Test;
 /**
  * backend 에 fabric8 가 다시 들어오는 것을 막는 architecture guard.
  *
- * <p>backend 는 cluster K8s API 를 직접 치지 않습니다. 모든 ops 가 cluster-agent gRPC 를
- * 지나갑니다. 자격증명을 보관하지 않으므로 fabric8 client 를 만들 수단도 없습니다.
+ * <p>backend 는 cluster K8s API 직접 호출 없음. 모든 ops 가 cluster-agent gRPC 경유.
+ * 자격증명 미보관이므로 fabric8 client 생성 수단도 부재.
  *
- * <p>예외가 필요하면 의존성을 되살리기 전에 먼저 자격증명을 어디에 두는지부터 정해야 합니다.
+ * <p>예외가 필요하면 의존성 복원 전에 자격증명 보관 위치부터 결정 필요.
  */
 class Fabric8ImportGuardTest {
 
@@ -30,7 +30,7 @@ class Fabric8ImportGuardTest {
 
     @Test
     void no_file_imports_fabric8() throws IOException {
-        // gradle 은 module rootDir 에서 test 실행 — apps/anycloud/src/main/java 가 정확한 경로.
+        // gradle 은 module rootDir 에서 test 실행: apps/anycloud/src/main/java 가 정확한 경로.
         assertThat(BACKEND_MAIN_SRC).as("backend main src 디렉토리").exists();
 
         TreeMap<String, TreeSet<String>> offenders = new TreeMap<>();

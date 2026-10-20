@@ -20,7 +20,7 @@ import org.mockito.Mock;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-/** VM 화면은 클러스터가 아니라 노드를 한 행씩 본다. */
+/** VM 화면은 클러스터가 아닌 노드를 행 단위로 표시. */
 class VmNodeControllerTest extends AbstractUnitTest {
 
     @Mock

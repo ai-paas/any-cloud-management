@@ -8,9 +8,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 /**
- * GPU 를 못 알아보면 드라이버 스택이 올라가지 않는다.
+ * GPU 미인식 시 드라이버 스택 미설치.
  *
- * <p>아래 타입은 모두 해당 계정에서 실제로 조회된 것들이다.
+ * <p>아래 타입은 모두 해당 계정에서 실제 조회된 값.
  */
 class GpuInstanceClassifierCoverageTest extends AbstractUnitTest {
 

@@ -11,10 +11,10 @@ import org.junit.jupiter.api.Test;
 /**
  * HA control-plane (multi-master) 변경의 regression 보호.
  *
- * <p>Single master (masterCount=1, 기본) 는 legacy 동작 그대로 — kubeadm init 에
- * {@code --control-plane-endpoint} / {@code --upload-certs} 가 들어가면 안 된다.
- * Multi-master (masterCount>=2) 는 둘 다 들어가야 하고, control-plane join 명령은
- * {@code --control-plane} + {@code --certificate-key} 를 포함해야 한다.
+ * <p>Single master (masterCount=1, 기본) 는 기존 동작 유지. kubeadm init 에
+ * {@code --control-plane-endpoint}, {@code --upload-certs} 포함 금지.
+ * Multi-master (masterCount>=2) 는 양쪽 모두 포함 필요하고, control-plane join 명령에
+ * {@code --control-plane} 와 {@code --certificate-key} 포함 필요.
  */
 class GenericLinuxVmClusterBootstrapStrategyHaTest extends AbstractUnitTest {
 
@@ -23,7 +23,7 @@ class GenericLinuxVmClusterBootstrapStrategyHaTest extends AbstractUnitTest {
     private VmClusterInternalRequestSnapshot snapshot(Map<String, String> providerConfig) {
         LinkedHashMap<String, String> config =
                 providerConfig == null ? new LinkedHashMap<>() : new LinkedHashMap<>(providerConfig);
-        //  정상 생성 경로는 backend 가 항상 random joinToken 을 snapshot 에 영속화 — 그
+        //  정상 생성 경로는 backend 가 항상 random joinToken 을 snapshot 에 영속화: 그
         // invariant 를 test fixture 에도 반영 (없으면 strategy 가 fail-fast).
         config.putIfAbsent("anycloud-k8s:joinToken", "test1.token0123456789ab");
         return VmClusterInternalRequestSnapshot.builder().providerConfig(config).build();
@@ -32,8 +32,8 @@ class GenericLinuxVmClusterBootstrapStrategyHaTest extends AbstractUnitTest {
     @Test
     void initializeMaster_publicIp_landsInTheCertificateSans() {
         /*
-         * SAN 은 kubeadm init 때만 정해진다. 빠뜨리면 내려받은 kubeconfig 가 공인 IP 를 가리키는데
-         * TLS 이름 검증에서 막히고, 클러스터를 다시 만들기 전에는 고칠 수 없다.
+         * SAN 은 kubeadm init 시점에만 확정. 누락 시 수신한 kubeconfig 가 공인 IP 를 가리키나
+         * TLS 이름 검증에서 실패하고, 클러스터 재생성 전까지 수정 불가.
          */
         String cmd = strategy.initializeMasterCommand(snapshot(Map.of()), "203.0.113.10");
 
@@ -42,7 +42,7 @@ class GenericLinuxVmClusterBootstrapStrategyHaTest extends AbstractUnitTest {
 
     @Test
     void initializeMaster_privateOnlyCluster_omitsTheExtraSan() {
-        // 공인 IP 가 없는 클러스터가 있다. 빈 값을 넘기면 kubeadm 이 인자 파싱에서 죽는다.
+        // 공인 IP 가 없는 클러스터 존재. 빈 값 전달 시 kubeadm 이 인자 파싱에서 실패.
         assertThat(strategy.initializeMasterCommand(snapshot(Map.of()), null))
                 .doesNotContain("--apiserver-cert-extra-sans");
         assertThat(strategy.initializeMasterCommand(snapshot(Map.of()), "  "))
@@ -112,7 +112,7 @@ class GenericLinuxVmClusterBootstrapStrategyHaTest extends AbstractUnitTest {
         assertThat(cmd).contains("--discovery-token-ca-cert-hash sha256:'deadbeef'");
         assertThat(cmd).contains("--control-plane");
         assertThat(cmd).contains("--certificate-key 'cert-key-abc'");
-        // 멱등성 — 이미 join 된 노드는 skip.
+        // 멱등성: 이미 join 된 노드는 skip.
         assertThat(cmd).contains("if [ ! -f /etc/kubernetes/kubelet.conf ]");
         // kubeconfig 복사로 extra master 도 kubectl 사용 가능.
         assertThat(cmd).contains("cp /etc/kubernetes/admin.conf /root/.kube/config");
@@ -120,7 +120,7 @@ class GenericLinuxVmClusterBootstrapStrategyHaTest extends AbstractUnitTest {
 
     @Test
     void initializeMaster_missingJoinToken_failsFast() {
-        //  공유 하드코딩 token fallback 제거 — snapshot 에 joinToken 이 없으면 즉시 실패해야
+        //  공유 하드코딩 token fallback 제거: snapshot 에 joinToken 이 없으면 즉시 실패해야
         // 한다 (silent 공유 token 으로 cluster 횡 이동 공격면이 생기는 것 차단).
         VmClusterInternalRequestSnapshot noToken = VmClusterInternalRequestSnapshot.builder()
                 .providerConfig(new LinkedHashMap<>())

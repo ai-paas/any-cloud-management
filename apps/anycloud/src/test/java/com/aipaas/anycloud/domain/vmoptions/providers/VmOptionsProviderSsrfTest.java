@@ -17,7 +17,7 @@ import org.junit.jupiter.params.provider.ValueSource;
  * region id 와 path segment 검증 회귀 방지.
  *
  * <p>Alibaba 와 OCI 는 region 을 host 에 끼워 넣는다. 검증이 빠지면 host 가 통째로 바뀌고,
- * 요청에 실린 access key 와 서명이 공격자 서버로 나간다.
+ * 요청에 포함된 access key 와 서명이 공격자 서버로 전송.
  */
 class VmOptionsProviderSsrfTest {
 

@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
 /**
- * ClusterMapper 단위 테스트 — MapStruct instance ({@link Mappers#getMapper}) 호출 round-trip 검증.
+ * ClusterMapper 단위 테스트: MapStruct instance ({@link Mappers#getMapper}) 호출 round-trip 검증.
  */
 class ClusterMapperTest {
 

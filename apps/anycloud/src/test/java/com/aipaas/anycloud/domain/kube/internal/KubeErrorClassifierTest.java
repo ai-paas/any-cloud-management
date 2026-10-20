@@ -10,7 +10,7 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.Test;
 
 /**
- * {@link KubeErrorClassifier#classify} 회귀 — K8s 호출 cause chain 의 message 키워드를 표준 reason code 로
+ * {@link KubeErrorClassifier#classify} 회귀: K8s 호출 cause chain 의 message 키워드를 표준 reason code 로
  * 분류하는 로직 검증.의 god class 분리 후 단위 테스트 가능해진 첫 회귀 lock.
  *
  * <p>의 cause unwrap 버그 (wrapper exception 의 "agent unavailable" prefix 가
@@ -91,7 +91,7 @@ class KubeErrorClassifierTest {
 
     @Test
     void wrapperOnly_agentUnavailable_mapsToAgentInactive() {
-        // cause 가 null 이고 wrapper-only message — INACTIVE 로 간주.
+        // cause 가 null 이고 wrapper-only message: INACTIVE 로 간주.
         Throwable t = new RuntimeException("Cluster agent unavailable");
 
         DegradedInfo result = KubeErrorClassifier.classify(t);
@@ -101,7 +101,7 @@ class KubeErrorClassifierTest {
 
     @Test
     void k2RegressionGuard_wrapperWithRootCause_classifiesFromRoot() {
-        // 회귀 가드 — wrapper 의 "agent unavailable" prefix 가 root cause 의 "forbidden"
+        // 회귀 가드: wrapper 의 "agent unavailable" prefix 가 root cause 의 "forbidden"
         // 키워드를 가리지 않도록 cause chain unwrap.
         Throwable root = new RuntimeException("FORBIDDEN: cannot list nodes");
         Throwable wrapper = new RuntimeException("Cluster agent unavailable: see cause", root);
@@ -133,7 +133,7 @@ class KubeErrorClassifierTest {
 
     @Test
     void priorityCheck_namespaceNotAllowed_winsOverForbidden() {
-        // 두 키워드 모두 포함된 경우 — 더 구체적인 NAMESPACE_NOT_ALLOWED 가 이겨야 함.
+        // 두 키워드 모두 포함된 경우: 더 구체적인 NAMESPACE_NOT_ALLOWED 가 이겨야 함.
         Throwable t = new RuntimeException("NAMESPACE_NOT_ALLOWED FORBIDDEN: ns denied");
 
         DegradedInfo result = KubeErrorClassifier.classify(t);
@@ -142,7 +142,7 @@ class KubeErrorClassifierTest {
     }
 
     // ============================================================================
-    // normalizeKindLabel — Micrometer 카디널리티 폭증 방지
+    // normalizeKindLabel: Micrometer 카디널리티 폭증 방지
     // ============================================================================
 
     @Test
@@ -168,7 +168,7 @@ class KubeErrorClassifierTest {
 
     @Test
     void normalizeKindLabel_preservesGvrFullForm() {
-        // CRD 의 plural.group 형식 — Micrometer 라벨로 충분히 카디널리티 통제 가능.
+        // CRD 의 plural.group 형식: Micrometer 라벨로 충분히 카디널리티 통제 가능.
         assertThat(KubeErrorClassifier.normalizeKindLabel("applications.argoproj.io"))
                 .isEqualTo("applications.argoproj.io");
     }

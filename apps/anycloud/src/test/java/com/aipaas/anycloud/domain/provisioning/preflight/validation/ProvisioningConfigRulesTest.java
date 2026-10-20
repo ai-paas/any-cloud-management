@@ -14,8 +14,8 @@ import org.junit.jupiter.api.Test;
  * UX 개선 (#1, #4) 회귀 보호:
  *
  * <ul>
- *   <li>#1 Boolean strict — "True"/"1"/"yes" 같은 비정형 입력은 silent false 가 아닌 400.</li>
- *   <li>#4 masterCount 메시지 휴머나이즈 — etcd 모르는 사용자도 권장값 알 수 있어야 함.</li>
+ *   <li>#1 Boolean strict: "True"/"1"/"yes" 같은 비정형 입력은 silent false 가 아닌 400.</li>
+ *   <li>#4 masterCount 메시지 휴머나이즈: etcd 모르는 사용자도 권장값 알 수 있어야 함.</li>
  * </ul>
  */
 class ProvisioningConfigRulesTest extends AbstractUnitTest {
@@ -77,7 +77,7 @@ class ProvisioningConfigRulesTest extends AbstractUnitTest {
 
     @Test
     void booleanFlags_unsetKey_allowedAndDefaultsApplied() {
-        // applyDefaults 가 false 를 putIfAbsent — 사용자가 명시 안 하면 통과.
+        // applyDefaults 가 false 를 putIfAbsent: 사용자가 명시 안 하면 통과.
         Map<String, String> config = baseAwsConfig();
 
         ProvisioningConfigRules.validateRequiredConfig(SupportedProvisioningProvider.AWS, config);

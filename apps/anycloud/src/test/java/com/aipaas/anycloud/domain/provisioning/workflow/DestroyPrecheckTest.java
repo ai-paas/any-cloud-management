@@ -6,12 +6,12 @@ import com.aipaas.anycloud.testsupport.AbstractUnitTest;
 import org.junit.jupiter.api.Test;
 
 /**
- * 지우기 전에 CSP 의 실제 상태를 본다.
+ * 삭제 전 CSP 실제 상태 조회.
  *
- * <p>화면에서만 상태를 바꾸는 것이 아니다. 누가 CSP 콘솔에서 직접 VM 을 지우거나 끄면 우리 기록과
- * 어긋나는데, 지금은 그걸 모른 채 destroy 를 돌린다.
+ * <p>상태 변경 경로는 화면 외에도 존재. CSP 콘솔에서 VM 을 직접 삭제하거나 중지하면 기록과
+ * 불일치하며, 미확인 상태로 destroy 실행.
  *
- * <p>refresh 실패가 삭제를 막으면 안 된다 — CSP 장애 때 정리할 방법이 없어진다.
+ * <p>refresh 실패가 삭제를 차단하면 CSP 장애 상황에서 정리 수단 부재.
  */
 class DestroyPrecheckTest extends AbstractUnitTest {
 
@@ -23,11 +23,11 @@ class DestroyPrecheckTest extends AbstractUnitTest {
     @Test
     void nothingVisibleStillRunsDestroy() {
         /*
-         * outputs 가 비었다고 자원이 없는 것이 아니다. up 이 중간에 실패하면 보안 그룹과 네트워크는
-         * 만들어졌는데 outputs 는 0 이다. 그때 destroy 를 건너뛰면 그 자원들이 그대로 남아 공유
-         * 테넌트의 쿼터를 문다 — 리허설에서 보안 그룹 6개가 그렇게 남았다.
+         * outputs 가 비어 있어도 자원이 없다는 뜻은 아님. up 이 중간에 실패하면 보안 그룹과
+         * 네트워크는 생성된 상태에서 outputs 는 0. 이때 destroy 를 생략하면 해당 자원이 잔존해
+         * 공유 테넌트 쿼터 소모. 리허설에서 보안 그룹 6개 잔존 확인.
          *
-         * destroy 는 멱등이다. 없으면 금방 끝나고, 있으면 지운다. 건너뛸 이유가 없다.
+         * destroy 는 멱등. 대상이 없으면 즉시 종료, 있으면 삭제. 생략 사유 없음.
          */
         DestroyPrecheck result = DestroyPrecheck.refreshed(0);
 
@@ -36,14 +36,13 @@ class DestroyPrecheckTest extends AbstractUnitTest {
 
     @Test
     void whatWasSeenIsStillRecorded() {
-        // 건너뛰지 않더라도 CSP 에서 무엇을 봤는지는 남겨야 한다 — 콘솔에서 직접 지운 경우를
-        // 나중에 설명할 수 있어야 한다.
+        // 생략하지 않더라도 CSP 조회 결과는 기록 필요. 콘솔 직접 삭제 사례의 사후 설명에 사용.
         assertThat(DestroyPrecheck.refreshed(3).note()).contains("3");
     }
 
     @Test
     void aFailedRefreshStillLetsDeletionProceed() {
-        // CSP 가 응답하지 않는다고 삭제를 막으면 정리할 방법이 없어진다.
+        // CSP 무응답을 이유로 삭제를 차단하면 정리 수단 부재.
         DestroyPrecheck result = DestroyPrecheck.failed("timeout");
 
         assertThat(result.note()).contains("timeout");
@@ -51,13 +50,13 @@ class DestroyPrecheckTest extends AbstractUnitTest {
 
     @Test
     void skippedPrecheckBehavesLikeBefore() {
-        // 기능을 꺼도 삭제는 그대로 동작해야 한다.
+        // 기능 비활성 상태에서도 삭제는 정상 동작 필요.
         DestroyPrecheck result = DestroyPrecheck.skipped();
     }
 
     @Test
     void theNoteSaysWhatWasFound() {
-        // 작업 이력에 남는 문장이다. '실패' 만 남으면 왜인지 알 수 없다.
+        // 작업 이력 기록 문구. 실패 표기만으로는 사유 확인 불가.
         assertThat(DestroyPrecheck.refreshed(0).note()).contains("그대로 삭제를 진행");
         assertThat(DestroyPrecheck.refreshed(2).note()).contains("2");
     }

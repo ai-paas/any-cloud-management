@@ -69,7 +69,7 @@ class ProvisioningConfigFlattenerTest {
 
     @Test
     void skipsNullAndBlank() {
-        // 빈 문자열을 넘기면 Defaults 가 채울 자리를 빈 값이 선점한다.
+        // 빈 문자열 전달 시 Defaults 가 채울 자리를 빈 값이 선점.
         ClusterSpecRequest spec =
                 new ClusterSpecRequest("  ", null, null, null, null, null, null, null, null, null, null, null, null);
 

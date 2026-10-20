@@ -99,8 +99,8 @@ class ClusterComponentObserverImplTest {
 
     @Test
     void observe_survivesUnavailableStackOutputs() {
-        // stack 이 사라진 클러스터에서 관측이 예외로 워크플로우를 죽이면 안 된다.
-        // outputs 를 쓰지 않는 probe 는 그대로 관측된다 — agent 판정은 DB 만 읽는다.
+        // stack 이 삭제된 클러스터에서 관측 예외로 워크플로를 중단하면 안 됨.
+        // outputs 미사용 probe 는 정상 관측. agent 판정은 DB 만 조회.
         ClusterComponent probed = stubComponent(ComponentType.AGENT, Requirement.REQUIRED, ComponentProbe.ready());
         ClusterComponentObserverImpl observer = observer(List.of(probed));
         when(provisioningService.stackOutputs(anyString(), anyBoolean(), any()))
@@ -111,7 +111,7 @@ class ClusterComponentObserverImplTest {
 
     @Test
     void observe_recordsUnknownWhenTheProbeNeedsUnavailableOutputs() {
-        // outputs 가 정말 필요한 probe 는 UNKNOWN 으로 남는다. 관측이 멈추지는 않는다.
+        // outputs 가 필수인 probe 는 UNKNOWN 유지. 관측 자체는 계속 진행.
         ClusterComponent needsOutputs = mock(ClusterComponent.class);
         when(needsOutputs.type()).thenReturn(ComponentType.AGENT);
         when(needsOutputs.requirementFor(any())).thenReturn(Requirement.REQUIRED);
@@ -131,7 +131,7 @@ class ClusterComponentObserverImplTest {
 
     @Test
     void observe_recordsUnknownWhenProbeThrows() {
-        // 계약상 probe 는 예외를 던지지 않지만, 구현 실수가 나머지 컴포넌트 관측을 막으면 안 된다.
+        // 계약상 probe 는 예외 미전파. 구현 오류로 나머지 컴포넌트 관측이 중단되면 안 됨.
         ClusterComponent broken = mock(ClusterComponent.class);
         when(broken.type()).thenReturn(ComponentType.AGENT);
         when(broken.requirementFor(any())).thenReturn(Requirement.REQUIRED);
@@ -145,7 +145,7 @@ class ClusterComponentObserverImplTest {
 
     @Test
     void currentComponents_readsStoredStateWithoutProbing() {
-        // 조회 API 가 매 요청마다 SSH 를 열면 안 된다.
+        // 조회 API 의 요청별 SSH 연결 금지.
         ClusterComponent probed = stubComponent(ComponentType.AGENT, Requirement.REQUIRED, ComponentProbe.ready());
         VmClusterComponentEntity row = new VmClusterComponentEntity();
         row.setComponentType(ComponentType.AGENT);

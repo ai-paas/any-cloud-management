@@ -162,7 +162,7 @@ class FleetUpgradeControllerTest extends AbstractUnitTest {
 
     @Test
     void submitFleetUpgrade_pausedWaveInRequest_rejected() throws Exception {
-        // PAUSED 가 waves 에 들어가면 orchestrator 가 INVALID_INPUT_VALUE 거부 — 컨트롤러는 그 예외 전파.
+        // PAUSED 가 waves 에 들어가면 orchestrator 가 INVALID_INPUT_VALUE 거부: 컨트롤러는 그 예외 전파.
         org.mockito.Mockito.when(orchestrator.submit(
                         org.mockito.ArgumentMatchers.any(),
                         org.mockito.ArgumentMatchers.anyList(),
