@@ -9,7 +9,7 @@ import java.util.List;
  */
 public record OffsetPage<T>(List<T> items, long total) {
 
-    /** 0-based 페이지. 범위를 벗어나면 빈 페이지다 — 마지막 페이지에서 지우면 그렇게 된다. */
+    /** 0-based 페이지. 범위를 벗어나면 빈 페이지입니다. 마지막 페이지에서 지우면 그렇게 됩니다. */
     public static <T> OffsetPage<T> of(List<T> all, Integer page, Integer size) {
         if (all == null || all.isEmpty()) {
             return new OffsetPage<>(List.of(), 0);

@@ -122,7 +122,7 @@ public class ClusterAgentEntity {
     private String upgradeError;
 
     // mTLS 제거. cert_serial, cert_expires_at, previous_cert_serial,
-    // previous_cert_expires_at column 폐기.  Bearer (identity_token) 단일 인증.
+    // previous_cert_expires_at 컬럼은 제거했다.  Bearer (identity_token) 단일 인증.
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

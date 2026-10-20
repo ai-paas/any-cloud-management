@@ -66,7 +66,6 @@ func SyncRepositories(settings *cli.EnvSettings, repos []RepoEntry) (int, error)
 	if cfgPath == "" {
 		return 0, fmt.Errorf("helm settings.RepositoryConfig is empty")
 	}
-	// dir 보장
 	if err := os.MkdirAll(filepath.Dir(cfgPath), 0o755); err != nil {
 		return 0, fmt.Errorf("mkdir for repo config: %w", err)
 	}
@@ -96,7 +95,6 @@ func SyncRepositories(settings *cli.EnvSettings, repos []RepoEntry) (int, error)
 		count++
 	}
 
-	// 3) write
 	if err := rf.WriteFile(cfgPath, 0o644); err != nil {
 		return count, fmt.Errorf("write repo config: %w", err)
 	}

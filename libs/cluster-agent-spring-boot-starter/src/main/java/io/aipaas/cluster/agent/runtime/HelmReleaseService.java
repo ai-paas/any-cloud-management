@@ -16,21 +16,19 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Day-2 Helm ops 를 agent gRPC stream 으로 routing 하는 starter-side facade.
- * {@link KubeResourceService} 와 동일한 패턴 — backend 의 ChartServiceImpl 이 본 service 를
- * 우선 호출하고 실패/세션 없을 때 helm CLI + kubeconfig fallback.
+ * Helm 작업을 agent gRPC stream 으로 넘기는 facade 입니다. {@link KubeResourceService} 와 같은
+ * 패턴이고, 호스트는 이 service 만 부르면 됩니다.
  *
- * <p>지원: install / uninstall / listReleases. agent dispatcher 의 INSTALL_ADDON /
- * UNINSTALL_ADDON / LIST_HELM_RELEASES 와 1:1 매핑.
+ * <p>실제 실행은 cluster 안의 agent 가 Helm SDK 로 합니다. 따라서 chart repository 는 backend 가
+ * 아니라 cluster 에서 닿을 수 있어야 합니다.
  *
- * <p>특성:
- * <ul>
- *   <li>agent 의 in-cluster Helm SDK 가 실제 실행 → chartmuseum 도 cluster 안에서 reach 가능해야 함</li>
- *   <li>AllowList enforcement: chart name + version range + namespace 모두 agent 가 검증 (deny-all default)</li>
- *   <li>session 없으면 isActiveFor=false → caller 가 helm CLI fallback 결정</li>
- * </ul>
+ * <p>chart 이름, 버전 범위, namespace 는 agent 의 allowlist 가 검증합니다. 기본값은 전부 거부라
+ * 호스트가 허용 목록을 넣기 전에는 아무것도 설치되지 않습니다.
  *
- * @see KubeResourceService K8s ops 의 동일 패턴
+ * <p>세션이 없으면 {@code isActiveFor} 가 false 입니다. 호출자가 그 상황을 어떻게 다룰지 정해야
+ * 합니다.
+ *
+ * @see KubeResourceService K8s 작업의 같은 패턴
  */
 @Slf4j
 @RequiredArgsConstructor

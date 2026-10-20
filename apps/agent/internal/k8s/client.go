@@ -238,8 +238,7 @@ type DeleteResourceOptions struct {
 	Kind string
 	// Namespace. cluster-scoped kind 면 무시.
 	Namespace string
-	// 자원 이름.
-	Name string
+	Name      string
 	// graceful 종료 (초). nil 이면 K8s default. 0 = force delete.
 	GracePeriodSeconds *int64
 }
@@ -266,13 +265,12 @@ type ResolvedResource struct {
 
 // PodSummary — list 결과의 간략 요약 (전체 Pod object 안 노출).
 type PodSummary struct {
-	Name      string
-	Namespace string
-	Phase     string
-	NodeName  string
-	PodIP     string
-	StartTime time.Time
-	// Container ready N/Total.
+	Name            string
+	Namespace       string
+	Phase           string
+	NodeName        string
+	PodIP           string
+	StartTime       time.Time
 	ContainersReady int
 	ContainersTotal int
 }
@@ -1027,7 +1025,6 @@ func (c *realClient) ApplyManifest(ctx context.Context, opts ApplyManifestOption
 			return nil, fmt.Errorf("REST mapping %s: %w", gvk, mErr)
 		}
 
-		// Namespace 결정.
 		ns := u.GetNamespace()
 		if ns == "" && mapping.Scope.Name() == meta.RESTScopeNameNamespace {
 			ns = opts.DefaultNamespace

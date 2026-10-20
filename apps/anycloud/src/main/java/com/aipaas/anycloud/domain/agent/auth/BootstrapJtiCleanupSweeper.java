@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * bootstrap_jti_used 테이블 위생 sweeper — 만료된 jti 정기 삭제. Redis 의 자동 TTL 대체.
  *
- * <p>jti 가 만료되면 안전하게 삭제 가능 (JWT 자체 만료 검증이 1차 방어선). 본 테이블 행 수는
+ * <p>jti 가 만료되면 안전하게 삭제 가능 (JWT 자체 만료 검증이 1차 방어선). 이 테이블 행 수는
  * 분당 발급 토큰 수 × 보관 기간 ≈ 0~100 수준. 매우 가볍지만 무한 증가는 막아야.
  */
 @Slf4j

@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * #7 — {@link AdminClusterCleanupController} 의 Repository 직접 호출 로직을 service 로 이전.
- * 컨트롤러는 dispatcher 만, TX 경계 + 도메인 로직은 본 클래스가 책임.
+ * 컨트롤러는 라우팅만 하고 트랜잭션 경계와 도메인 로직은 이 클래스가 맡습니다.
  */
 @Slf4j
 @Service

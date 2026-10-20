@@ -327,7 +327,7 @@ public class GlobalExceptionHandler {
      *
      * <p>신규 코드는 의미 명확한
      * {@link com.aipaas.anycloud.common.error.exception.provisioning.StateConflictException}
-     * 사용 권장. 본 핸들러는 기존 IllegalStateException 호환성 유지용 — 점진 마이그레이션 대상.
+     * 사용 권장. 이 핸들러는 기존 IllegalStateException 을 받기 위한 것입니다.
      */
     @ExceptionHandler(IllegalStateException.class)
     protected ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException e) {
@@ -352,7 +352,7 @@ public class GlobalExceptionHandler {
 
     /**
      * Controller 가 의도적으로 던진 status (503 graceful degradation 등) 를 그대로 전달.
-     * 본 핸들러 없으면 generic Exception 핸들러가 잡아 500 으로 변질 — 운영 진단 정보 손실.
+     * 이 핸들러가 없으면 generic Exception 핸들러가 잡아 500 으로 나갑니다. 진단 정보가 사라집니다.
      */
     @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
     protected ResponseEntity<ErrorResponse> handleResponseStatusException(

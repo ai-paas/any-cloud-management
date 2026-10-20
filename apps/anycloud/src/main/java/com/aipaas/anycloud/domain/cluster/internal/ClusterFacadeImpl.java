@@ -442,7 +442,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
      * 별개 차원으로 agent ↔ backend 연결성을 한눈에 표시할 수 있도록 derived.
      *
      * <ul>
-     *   <li>NOT_REGISTERED — ClusterAgent row 없음 (agent 미설치 또는 미등록)</li>
+     *   <li>NOT_REGISTERED: ClusterAgent row 가 없습니다 (agent 를 안 깔았거나 등록 전).</li>
      *   <li>CONNECTED — DB ACTIVE + gRPC stream live + heartbeat fresh (≤90s default)</li>
      *   <li>DEGRADED — agent 등록되어 있고 stream 도 살아있으나 heartbeat 가 stale</li>
      *   <li>DISCONNECTED — stream 끊김 또는 agent REVOKED/FAILED</li>
@@ -466,7 +466,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
 
     /**
      * VM cluster 의 in-flight workflow 단계를 UI 노출용으로 압축. cluster 의 latest row 를 조회해
-     * step / lastSuccessful / percent / stepStartedAt / retryCount 추출. 미존재 시 null.
+     * step / lastSuccessful / percent / stepStartedAt / retryCount 추출합니다. 없으면 null 입니다.
      */
     private UnifiedClusterResponse.WorkflowProgress buildWorkflowProgress(String clusterName) {
         return vmClusterRepository

@@ -48,11 +48,11 @@ public enum ErrorCode {
     PROVISIONING_REQUEST_MISSING(409, "ProvisioningRequest 복원 실패 — request_config 누락 또는 credential 삭제됨."),
 
     // Agent routing 실패 → 즉시 503. 모든 day-2 ops (K8s + Helm) 는 agent-only path 라
-    // 본 에러로 떨어진다. 운영자 점검 포인트: agent ACTIVE / cluster_agent 테이블 / heartbeat 신선도.
+    // 이 에러로 떨어진다. 운영자 점검 포인트: agent ACTIVE / cluster_agent 테이블 / heartbeat 신선도.
     AGENT_UNAVAILABLE(503, "Cluster agent 가 응답하지 않습니다. agent ACTIVE 상태 / heartbeat 확인 필요."),
 
     // Fleet upgrade — 운영 의미가 명확한 도메인 코드. generic DUPLICATE / ENTITY_NOT_FOUND 보다
-    // runbook 매핑이 깔끔. monitoring 의 PromQL alert 도 본 코드 기준으로 분류 가능.
+    // runbook 매핑이 깔끔. monitoring 의 PromQL alert 도 이 코드로 분류할 수 있다.
     AGENT_NOT_ACTIVE(404, "ACTIVE 상태의 cluster agent 가 없습니다 — connectivity 복구 후 재시도."),
     UPGRADE_IN_PROGRESS(409, "이미 진행 중인 upgrade 가 있습니다. 완료/중단 후 재시도."),
 

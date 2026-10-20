@@ -33,7 +33,6 @@ type Options struct {
 	// K8s clientset — agent 가 in-cluster 에서 이미 보유한 것.
 	Clientset kubernetes.Interface
 
-	// Callbacks.
 	OnStartedLeading func(ctx context.Context) // leader 획득 → 시작
 	OnStoppedLeading func()                    // leader 잃음 → 정리
 	OnNewLeader      func(leader string)       // 정보 — 다른 leader 등극

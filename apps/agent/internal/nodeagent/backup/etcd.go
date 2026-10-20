@@ -73,7 +73,6 @@ type ChunkSink func(seq int, payload []byte, isLast bool, totalSha256 string, to
 func RunEtcdBackup(ctx context.Context, opts EtcdBackupOptions, sink ChunkSink) error {
 	opts.applyDefaults()
 
-	// 1. tmp file
 	tmpFile, err := os.CreateTemp("", "etcd-backup-*.db")
 	if err != nil {
 		return fmt.Errorf("create temp: %w", err)

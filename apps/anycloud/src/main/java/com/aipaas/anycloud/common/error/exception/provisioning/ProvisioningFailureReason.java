@@ -83,7 +83,7 @@ public enum ProvisioningFailureReason {
                     "shape is not supported",
                     "notsupportedendpoint")),
 
-    /** 기본 계정이 CSP 마다 다르다. Alibaba 의 Ubuntu 이미지에는 ubuntu 계정이 없다. */
+    /** 기본 계정이 CSP 마다 다릅니다. Alibaba 의 Ubuntu 이미지에는 ubuntu 계정이 없습니다. */
     NODE_LOGIN_REJECTED(
             "노드에 접속하지 못했습니다.",
             "인스턴스는 만들어졌지만 SSH 가 거절됐습니다. 이미지의 기본 계정과 보안 그룹의 22번 포트를 확인하세요.",

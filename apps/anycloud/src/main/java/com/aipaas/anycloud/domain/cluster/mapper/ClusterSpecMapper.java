@@ -44,7 +44,7 @@ public final class ClusterSpecMapper {
     public static RegisteredClusterSpec toRegistered(Map<String, Object> spec) {
         String provider = requireString(spec, "provider");
         String clusterType = requireString(spec, "clusterType");
-        // addons 는 Map → ClusterSpec 마이그레이션 까지 미사용 path.
+        // addons 는 Map → ClusterSpec 마이그레이션 전까지 쓰지 않는 경로.
         // 본 mapper 는 weak-typed Map 진입점이므로 addons 는 null 로 둠 — frontend 가 typed body
         // (RegisteredClusterSpec) 로 호출 시에만 addons 전달됨.
         return new RegisteredClusterSpec(

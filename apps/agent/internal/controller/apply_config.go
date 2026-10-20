@@ -1,34 +1,15 @@
-// Apply policy snapshot — APPLY_AGENT_CONFIG handler.
+// APPLY_AGENT_CONFIG 핸들러. backend 가 보낸 정책 snapshot 으로 agent 가 자기 ConfigMap 을
+// 고치고, config.Loader 의 watch 가 그 변경을 받아 메모리 정책을 교체한다. agent 재시작은 없다.
 //
-// Backend 가 PUT /v1/admin/clusters/{c}/agent-policy 받아 agent 에 새 allowlist + resource_policy
-// snapshot 을 push. agent 가 자기 ConfigMap (aipaas-agent-allowlist) 을 K8s API 로 update →
-// 기존 config.Loader 의 watch 가 자동 reload. agent restart 불요.
+// 돌려주는 error_code 는 backend 가 분기에 쓰는 계약이다.
 //
-// 데이터 흐름:
+//	CONFIGMAP_NOT_FOUND  ConfigMap 이 없다
+//	FORBIDDEN            RBAC 이 거부했다
+//	INVALID_PAYLOAD      snapshot JSON 을 읽지 못했다
+//	K8S_API_ERROR        그 밖의 K8s API 실패
 //
-//	backend ──(APPLY_AGENT_CONFIG)──▶ dispatcher.applyAgentConfig
-//	                                       │
-//	                                       ▼
-//	                            CoreV1().ConfigMaps(ns).Get(name)
-//	                                       │
-//	                                       ▼  data 갱신
-//	                            CoreV1().ConfigMaps(ns).Update(cm)
-//	                                       │  ↺ 충돌 시 3 회 재시도 (Conflict only)
-//	                                       ▼
-//	                            return {applied: true, resource_version: ...}
-//	                                       │
-//	  config.Loader.Watch goroutine ◀──────┘  (별도 channel — agent 내부 통지)
-//	  → swap(in-memory AllowList)
-//
-// 에러 분류:
-//
-//	NotFound          → status=FAILED          + error_code=CONFIGMAP_NOT_FOUND
-//	Forbidden (RBAC)  → status=FAILED          + error_code=FORBIDDEN
-//	JSON parse 실패    → status=INVALID_PARAMS  + error_code=INVALID_PAYLOAD
-//	기타 K8s API      → status=FAILED          + error_code=K8S_API_ERROR
-//
-// Retry 정책: ResourceVersion mismatch (Conflict) 만 재시도 — 다른 누군가가 동시 update 시 latest
-// 를 다시 받아 merge. NotFound / Forbidden / Invalid 는 재시도 무의미.
+// 재시도는 ResourceVersion 충돌일 때만 한다. 다른 쪽이 동시에 고친 경우라 최신을 다시 받아
+// 합치면 된다. 나머지는 다시 해도 같은 결과다.
 
 package controller
 

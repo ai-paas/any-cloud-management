@@ -311,8 +311,8 @@ public class AdminAgentPolicyController {
         PolicyDiff diff = diffCalculator.computeDiff(before, dryRun);
 
         /*
-         * 적용됐는지 되읽어 확인한다. agent 가 OK 를 주면서 ConfigMap 을 바꾸지 않는 경우가
-         * 있었는데, 그때도 API 는 성공만 돌려줘 운영자가 정책이 바뀐 줄 알았다.
+         * 적용됐는지 되읽어 확인합니다. agent 가 OK 를 주면서 ConfigMap 을 바꾸지 않는 경우가
+         * 있어, 그때도 성공만 돌려주면 운영자는 정책이 바뀐 줄 압니다.
          */
         String notApplied = verifyApplied(clusterName, req.allowedCommands());
 

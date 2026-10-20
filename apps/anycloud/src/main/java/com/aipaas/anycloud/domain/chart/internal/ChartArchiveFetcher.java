@@ -23,19 +23,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * Helm chart {@code .tgz} 아카이브에서 단일 파일을 in-process 로 직접 추출.
+ * Helm chart {@code .tgz} 에서 파일 하나를 JVM 안에서 바로 꺼냅니다. helm CLI 를 부르지 않아
+ * 동시 호출이 프로세스 경합을 일으키지 않습니다.
  *
- * <ol>
- *   <li>{@code index.yaml} 을 HTTP GET 해 차트 entry 의 {@code urls[]} resolve</li>
- *   <li>해당 .tgz 를 HTTP GET (basic auth 헤더 동일 적용)</li>
- *   <li>gzip 해제 → tar entry 순회 → 일치하는 archive path 의 content 반환</li>
- * </ol>
- *
- * <p>helm CLI subprocess 의존 없음 — pure JVM 호출이라 동시 호출이 process race 없이 안전.
- *
- * <h3>Tar archive path convention</h3>
- * Helm chart .tgz 는 항상 root 디렉토리 1개 안에 packed: {@code <chartName>/values.yaml},
- * {@code <chartName>/README.md} 등. caller 는 chartName 만 알면 됨.
+ * <p>chart 아카이브는 항상 {@code <chartName>/} 디렉토리 하나로 묶여 있습니다. 호출자는
+ * chartName 과 그 아래 경로만 주면 됩니다.
  */
 @Slf4j
 @Component

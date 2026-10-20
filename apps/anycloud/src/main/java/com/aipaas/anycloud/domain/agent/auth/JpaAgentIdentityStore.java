@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
  * Cluster Agent Starter 의 {@link AgentIdentityStore} 를 anycloud 의 JPA repository 로 구현하는
  * adapter.
  *
- * <p>mTLS 제거. cert 관련 필드 매핑 코드 모두 폐기. Bearer 단일 인증.
+ * <p>mTLS 제거. cert 관련 필드 매핑 코드는 모두 제거했습니다. Bearer 단일 인증.
  *
  * <p>변환:
  * <ul>

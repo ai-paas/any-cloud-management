@@ -55,7 +55,6 @@ type RuntimeConfig struct {
 	HeartbeatInterval time.Duration
 	DialTimeout       time.Duration
 
-	// Reconnect backoff.
 	InitialBackoff time.Duration
 	MaxBackoff     time.Duration
 	BackoffMult    float64
@@ -138,7 +137,6 @@ func RunStream(ctx context.Context, cfg RuntimeConfig, dispatcher *controller.Di
 		} else {
 			unauthCount = 0
 		}
-		// Sleep with cancellation.
 		select {
 		case <-ctx.Done():
 			return ctx.Err()

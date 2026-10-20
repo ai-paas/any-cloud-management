@@ -6,41 +6,15 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * VM cluster workflow 의 lifecycle state.
+ * VM cluster workflow 의 lifecycle state 입니다.
  *
- * <p><b>State diagram</b> (자세한 그림: {@code docs/architecture/vmcluster-state-machine.md}):
+ * <p>전이 규칙은 {@link #canTransitionTo} 가 단일 출처이고, 그림은
+ * {@code docs/architecture/vmcluster-state-machine.md} 에 있습니다.
  *
- * <pre>
- *     [initial=null]
- *           │
- *           ▼ create
- *      REQUESTED
- *           │
- *           ▼ provision start
- *     PROVISIONING ──────┐
- *      │   │  │          │ retry threshold exceeded
- *      │   │  ▼          │
- *      │   │  BLOCKED ◄──┘── operator retry / destroy
- *      │   │
- *      │   ▼ provision ok
- *      │   BOOTSTRAPPING
- *      │     │
- *      │     ▼ bootstrap ok
- *      │   VERIFYING
- *      │     │
- *      │     ▼ verify ok
- *      │   READY ◄──── (scale/upgrade temporarily revert to PROVISIONING)
- *      │     │
- *      │     ▼ delete request
- *      │   DELETING ──▶ DELETED (terminal)
- *      ▼     │
- *    FAILED ◄┘── (manual retry → PROVISIONING)
- * </pre>
- *
- * <p>{@link #canTransitionTo} 가 graph 의 single source of truth.
- * {@code VmClusterEntity.transitionTo} 가 호출 측에서 사용 (validation + logging + metric).
- * Invalid transition 은 default 로 log.warn + metric, strict 모드
- * ({@code anycloud.vm-cluster.state-machine.strict=true}) 에서는 throw.
+ * <p>규칙에 없는 전이는 기본값에서 경고 로그와 metric 만 남기고 그대로 진행합니다.
+ * {@code anycloud.vm-cluster.state-machine.strict=true} 로 켜면 예외를 던집니다. 기본값이
+ * 느슨한 이유는 운영 중 상태가 한 칸 건너뛰는 경우가 있어 전이 실패로 워크플로를 세우지 않기
+ * 위해서입니다.
  */
 public enum VmClusterStatus {
     REQUESTED,

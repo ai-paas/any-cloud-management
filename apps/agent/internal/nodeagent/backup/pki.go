@@ -58,7 +58,6 @@ func RunPkiBackup(ctx context.Context, opts PkiBackupOptions, sink ChunkSink) er
 	tmpPath := tmpFile.Name()
 	defer os.Remove(tmpPath)
 
-	// tar.gz 작성.
 	gw := gzip.NewWriter(tmpFile)
 	tw := tar.NewWriter(gw)
 
@@ -82,7 +81,6 @@ func RunPkiBackup(ctx context.Context, opts PkiBackupOptions, sink ChunkSink) er
 		return fmt.Errorf("temp close: %w", err)
 	}
 
-	// chunk streaming.
 	f, err := os.Open(tmpPath)
 	if err != nil {
 		return fmt.Errorf("open tar.gz: %w", err)

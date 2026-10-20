@@ -68,7 +68,6 @@ func levenshtein(a, b string) int {
 	if lb == 0 {
 		return la
 	}
-	// prev row + curr row.
 	prev := make([]int, lb+1)
 	curr := make([]int, lb+1)
 	for j := 0; j <= lb; j++ {
