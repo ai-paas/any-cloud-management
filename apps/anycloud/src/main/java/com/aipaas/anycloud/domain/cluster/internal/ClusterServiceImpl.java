@@ -26,18 +26,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * <pre>
- * ClassName : clusterServiceImpl
- * Type : class
- * Description : 쿠버네티스 클러스터와 관련된 서비스 구현과 관련된 함수를 포함하고 있는 클래스입니다.
- * Related : ClusterController, ClusterService
- * </pre>
- */
-/**
- * 등록된 cluster 의 CRUD 와 연결 상태 조회입니다. 연결 여부는 agent heartbeat 하나로만 판정합니다.
+ * 등록된 cluster 의 CRUD 와 연결 상태 조회. 연결 여부는 agent heartbeat 기준 단일 판정.
  *
- * <p>클래스에 {@code @Transactional(readOnly = true)} 가 걸려 있습니다. 쓰기 메서드는 각자
- * override 해야 하고, 빠뜨리면 저장이 조용히 무시됩니다.
+ * <p>클래스 수준 {@code @Transactional(readOnly = true)} 적용. 쓰기 메서드는 개별 override
+ * 필요하며, 누락 시 저장이 무음으로 무시.
  */
 @Slf4j
 @Service("clusterServiceImpl")
@@ -107,11 +99,6 @@ public class ClusterServiceImpl implements ClusterService {
                 .register(meterRegistry);
     }
 
-    /**
-     * [ClusterServiceImpl] 쿠버네티스 클러스터 전체 목록 함수
-     *
-     * @return 전체 쿠버네티스 클러스터 목록을 반환합니다.
-     */
     public List<ClusterEntity> getClusterEntities() {
         return clusterRepository.findAll();
     }
@@ -159,11 +146,6 @@ public class ClusterServiceImpl implements ClusterService {
         return sb.toString();
     }
 
-    /**
-     * [ClusterServiceImpl] 클러스터 생성 함수
-     *
-     * @return 쿠버네티스 클러스터를 등록합니다.
-     */
     @Transactional
     public HttpStatus createCluster(CreateClusterDto cluster) {
         // Timer.Sample 으로 전체 latency 측정. outcome counter 분기는 catch / return 별 적용.
@@ -306,11 +288,6 @@ public class ClusterServiceImpl implements ClusterService {
         }
     }
 
-    /**
-     * [ClusterServiceImpl] 클러스터 삭제 함수
-     *
-     * @return 쿠버네티스 클러스터를 삭제합니다.
-     */
     @Transactional
     public HttpStatus deleteCluster(String clusterName) {
         ClusterEntity cluster = getClusterEntity(clusterName);

@@ -9,13 +9,13 @@ import io.aipaas.cluster.agent.v1.NetworkInfo;
 import java.time.LocalDateTime;
 
 /**
- * cluster agent 등록과 identity token 교체입니다.
+ * cluster agent 등록과 identity token 교체.
  *
- * <p>토큰이 둘입니다. {@link #issueRegistrationToken} 이 주는 10분짜리 JWT 는 등록 한 번에만 쓰고,
- * {@link #register} 가 돌려주는 60일짜리 identity_token 이 이후 모든 gRPC 호출의 자격증명입니다.
- * 후자는 cluster 의 K8s Secret 에 저장돼 pod 가 재시작해도 그대로 삽니다.
+ * <p>토큰 2종. {@link #issueRegistrationToken} 이 발급하는 10분 JWT 는 등록 1회 전용,
+ * {@link #register} 가 반환하는 60일 identity_token 이 이후 모든 gRPC 호출의 자격증명.
+ * 후자는 cluster 의 K8s Secret 에 저장돼 pod 재시작 후에도 유지.
  *
- * <p>인증 수단은 이 bearer token 하나뿐입니다. mTLS 는 쓰지 않습니다.
+ * <p>인증 수단은 bearer token 단일. mTLS 미사용.
  */
 public interface AgentBootstrapService {
 
@@ -23,10 +23,10 @@ public interface AgentBootstrapService {
     IssuedToken issueRegistrationToken(String clusterId, String installMode);
 
     /**
-     * registration JWT 를 검증하고 agent row 를 upsert 한 뒤 identity_token 을 발급합니다.
+     * registration JWT 검증, agent row upsert, identity_token 발급.
      *
-     * <p>agent 는 이 토큰을 이후 모든 gRPC 호출의 Authorization 헤더에 싣습니다. 만료가 가까우면
-     * {@link #rotateIdentityToken} 으로 바꿔야 합니다.
+     * <p>agent 는 이 토큰을 이후 모든 gRPC 호출의 Authorization 헤더에 첨부. 만료 임박 시
+     * {@link #rotateIdentityToken} 으로 교체.
      */
     RegistrationResult register(
             String registrationToken,

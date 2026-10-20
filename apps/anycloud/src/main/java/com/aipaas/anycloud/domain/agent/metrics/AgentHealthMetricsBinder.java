@@ -21,10 +21,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * agent health 를 Prometheus 시계열로 내보냅니다. {@code AgentHealthService} 는 REST 응답용 스냅샷이고
- * 알람과 SLO 에는 시계열이 필요합니다.
+ * agent health 를 Prometheus 시계열로 노출. {@code AgentHealthService} 는 REST 응답용 스냅샷이고
+ * 알람과 SLO 에는 시계열 필요.
  *
- * <p>metric 이름과 라벨은 대시보드가 쓰는 계약입니다. 바꾸면 알람이 조용히 멈춥니다.
+ * <p>metric 이름과 라벨은 대시보드 계약. 변경 시 알람이 무음으로 정지.
  *
  * <pre>
  * anycloud_agent_healthy{cluster="..."}                 0 | 1
@@ -33,8 +33,8 @@ import org.springframework.stereotype.Component;
  * anycloud_agent_status{cluster="...", status="ACTIVE|REGISTERED|DEGRADED|FAILED|REVOKED|NONE"}
  * </pre>
  *
- * <p>{@code anycloud_agent_status} 는 현재 status 하나만 1 이고 나머지 라벨은 row 자체가 없습니다.
- * 0 으로 채우면 PromQL {@code absent()} 가 항상 false 를 돌려줍니다.
+ * <p>{@code anycloud_agent_status} 는 현재 status 만 1 이고 나머지 라벨은 row 미생성.
+ * 0 으로 채우면 PromQL {@code absent()} 가 항상 false 반환.
  */
 @Slf4j
 @Component
@@ -82,19 +82,19 @@ public class AgentHealthMetricsBinder {
                 .register(meterRegistry);
     }
 
-    /** 30 초 주기. heartbeat 기본 cadence(30s) 와 동일: 너무 잦으면 DB 부하, 너무 늦으면 알람 지연. */
     /**
-     * cluster 수가 늘어도 한 번의 scan 이 DB 와 메모리를 몰아 쓰지 않도록 네 가지를 둡니다.
+     * 30 초 주기. heartbeat 기본 cadence(30s) 와 동일. 주기가 짧으면 DB 부하, 길면 알람 지연.
+     *
+     * <p>cluster 수 증가 시 단일 scan 의 DB, 메모리 점유를 제한하는 장치 4가지.
      *
      * <ul>
-     *   <li>{@code PageRequest(CHUNK_SIZE)} 단위로 읽고 페이지 사이에 sleep 합니다.</li>
-     *   <li>ShedLock {@code lockAtMostFor=PT2M} 으로 replica 가 동시에 돌지 않습니다.</li>
-     *   <li>한 cluster 의 health 조회가 실패해도 로그만 남기고 다음으로 넘어갑니다.</li>
-     *   <li>{@code anycloud.agent.metrics.enabled} 로 끌 수 있습니다.</li>
+     *   <li>{@code PageRequest(CHUNK_SIZE)} 단위 조회, 페이지 사이 sleep</li>
+     *   <li>ShedLock {@code lockAtMostFor=PT2M} 으로 replica 동시 실행 차단</li>
+     *   <li>cluster 하나의 health 조회 실패는 로그 기록 후 계속 진행</li>
+     *   <li>{@code anycloud.agent.metrics.enabled} 로 비활성화 가능</li>
      * </ul>
      *
-     * <p>per-cluster 호출에는 timeout 이 없습니다. 한 cluster 가 응답하지 않으면 그 chunk 가
-     * 그만큼 늦어집니다.
+     * <p>per-cluster 호출에 timeout 미설정. cluster 하나가 무응답이면 해당 chunk 지연.
      */
     @Scheduled(
             fixedDelayString = "${anycloud.agent.metrics.interval-ms:30000}",

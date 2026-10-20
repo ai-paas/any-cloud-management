@@ -9,14 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 
-/**
- * <pre>
- * ClassName : ClusterService
- * Type : interface
- * Description : 쿠버네티스 클러스터와 관련된 함수를 정리한 인터페이스입니다.
- * Related : ClusterServiceImpl
- * </pre>
- */
+/** 쿠버네티스 클러스터 서비스 계약. */
 public interface ClusterService {
 
     List<ClusterEntity> getClusterEntities();

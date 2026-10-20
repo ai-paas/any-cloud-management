@@ -3,18 +3,16 @@ package com.aipaas.anycloud.domain.kube;
 import io.aipaas.cluster.agent.runtime.ResolvedResource;
 
 /**
- * cluster 의 kind metadata(plural, namespaced 여부, group, version)를 agent 에 물어 캐시합니다.
- * 목록을 코드에 박아 두면 CRD 가 추가될 때마다 손으로 맞춰야 하기 때문입니다.
+ * cluster 의 kind metadata(plural, namespaced 여부, group, version)를 agent 에 조회해 캐시.
+ * 목록을 코드에 고정하면 CRD 추가 시마다 수동 갱신 필요.
  *
- * <p>캐시하는 건 kind 의 스키마뿐입니다. pod 나 deployment 의 실제 값은 캐시하지 않고 매번
- * agent 를 거쳐 조회합니다. 화면에 보이는 데이터는 항상 최신입니다.
+ * <p>캐시 대상은 kind 스키마 한정. pod, deployment 의 실제 값은 캐시 없이 매번 agent 경유 조회.
  *
- * <p>캐시는 30분 TTL 로 만료되고, addon 설치 직후 {@link #invalidate(String)} 가 자동으로
- * 불립니다. 새 CRD 가 그때 들어오기 때문입니다. 운영자는
- * {@code POST /v1/admin/clusters/{c}/kind-cache/flush} 로 직접 비울 수 있습니다.
+ * <p>캐시 TTL 30분. addon 설치 직후 {@link #invalidate(String)} 자동 호출로 신규 CRD 반영.
+ * 운영자는 {@code POST /v1/admin/clusters/{c}/kind-cache/flush} 로 직접 비우기 가능.
  *
- * <p>agent 가 닿지 않으면 코드에 있는 cluster-scoped 목록으로 namespaced 여부만 판단합니다.
- * plural 과 group 은 입력값을 그대로 씁니다.
+ * <p>agent 미도달 시 코드 내 cluster-scoped 목록으로 namespaced 여부만 판정. plural 과 group
+ * 은 입력값 그대로 사용.
  */
 public interface KindResolver {
 

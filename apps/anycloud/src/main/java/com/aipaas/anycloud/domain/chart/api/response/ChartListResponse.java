@@ -4,14 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import lombok.*;
 
-/**
- * <pre>
- * ClassName : ChartListResponse
- * Type : class
- * Description : Helm repository의 차트 목록을 반환하기 위한 DTO입니다.
- * Related : ChartController, ChartService
- * </pre>
- */
+/** Helm repository 차트 목록 응답 DTO. */
 @Getter
 @Setter
 @Builder

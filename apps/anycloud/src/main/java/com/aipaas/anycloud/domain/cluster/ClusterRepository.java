@@ -6,14 +6,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-/**
- * <pre>
- * ClassName : ClusterRepository
- * Type : interface
- * Description : Mec JPA 구현을 위한 인터페이스입니다.
- * Related : spring-boot-starter-data-jpa
- * </pre>
- */
+/** Cluster JPA 리포지터리. */
 @Repository
 public interface ClusterRepository extends JpaRepository<ClusterEntity, String> {
 

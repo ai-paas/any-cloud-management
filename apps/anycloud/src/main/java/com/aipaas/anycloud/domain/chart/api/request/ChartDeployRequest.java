@@ -5,14 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import org.springframework.web.multipart.MultipartFile;
 
-/**
- * <pre>
- * ClassName : ChartDeployRequest
- * Type : class
- * Description : Helm 차트 배포 요청을 위한 DTO입니다.
- * Related : ChartController, ChartService
- * </pre>
- */
+/** Helm 차트 배포 요청 DTO. */
 @Getter
 @Setter
 @Builder

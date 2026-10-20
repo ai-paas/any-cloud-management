@@ -22,14 +22,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * <pre>
- * ClassName : ClusterEntity
- * Type : class
- * Description : Kubernetes Cluster와 관련된 Entity를 구성하고 있는 클래스입니다.
- * Related : ClusterRepository, ClusterServiceImpl
- * </pre>
- */
+/** 쿠버네티스 클러스터 등록 정보 엔티티. */
 @Entity
 @Getter
 @Setter

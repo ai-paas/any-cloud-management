@@ -3,14 +3,7 @@ package com.aipaas.anycloud.domain.chart.api.response;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
-/**
- * <pre>
- * ClassName : ChartReadmeResponse
- * Type : class
- * Description : Helm 차트의 README.md 내용을 반환하기 위한 DTO입니다.
- * Related : ChartController, ChartService
- * </pre>
- */
+/** Helm 차트 README.md 응답 DTO. */
 @Getter
 @Setter
 @Builder

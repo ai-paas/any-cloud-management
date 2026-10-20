@@ -6,14 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-/**
- * <pre>
- * ClassName : HelmRepoRepository
- * Type : interface
- * Description : HelmRepo JPA 구현을 위한 인터페이스입니다.
- * Related : spring-boot-starter-data-jpa
- * </pre>
- */
+/** HelmRepo JPA 리포지터리. */
 @Repository
 public interface HelmRepoRepository extends JpaRepository<HelmRepoEntity, String> {
 

@@ -10,10 +10,10 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Pulumi outputs 의 nodes 배열을 목록에 세울 수 있는 행으로 바꾼다.
+ * Pulumi outputs 의 nodes 배열을 목록 표시용 행으로 변환.
  *
- * <p>노드는 자기 테이블이 없다. outputs 에는 이름도 상태도 없어서 이름은 역할과 순서로 만들고,
- * 상태는 클러스터에서 물려받는다. 실시간 쿠버네티스 상태는 agent 를 거쳐야 해서 여기 없다.
+ * <p>노드 전용 테이블 부재. outputs 에 이름과 상태가 없어 이름은 역할과 순서로 생성하고 상태는
+ * 클러스터 값 상속. 실시간 쿠버네티스 상태는 agent 경유이므로 대상 외.
  */
 public final class VmClusterNodeRows {
 
@@ -33,7 +33,7 @@ public final class VmClusterNodeRows {
             String region,
             String environment,
             String infraStatus,
-            /* NAT 뒤 노드는 공유기가 노드마다 다른 포트를 연다. 예전 스택에는 없어 22 로 떨어진다. */
+            /* NAT 뒤 노드는 공유기가 노드별로 다른 포트 개방. 이전 스택에는 값이 없어 22 로 대체. */
             int sshPort,
             /** 노드가 아직 없어 클러스터를 대신 세운 줄. */
             boolean pending) {}
@@ -41,7 +41,7 @@ public final class VmClusterNodeRows {
     /**
      * 목록에 세울 대표값.
      *
-     * @param masterPrivateIp 첫 master 의 주소. HA 면 나머지는 상세에서 본다
+     * @param masterPrivateIp 첫 master 의 주소. HA 구성의 나머지 노드는 상세 조회에서 제공
      */
     public record Summary(int masterCount, int workerCount, String masterPrivateIp, String masterPublicIp) {}
 
@@ -75,9 +75,9 @@ public final class VmClusterNodeRows {
                 : cluster.getProvisioningStatus().name();
         if (nodes.isEmpty()) {
             /*
-             * 노드는 PROVISION 이 끝나야 생긴다. 빈 목록을 돌려주면 만들어지는 중이거나 실패한
-             * 클러스터가 목록에서 통째로 사라진다. 화면이 대신 끼워 넣던 줄을 여기서 만든다:
-             * 자르는 곳과 세는 곳이 갈리면 페이지마다 전체 개수가 달라진다.
+             * 노드는 PROVISION 완료 후 생성. 빈 목록 반환 시 생성 중이거나 실패한 클러스터가
+             * 목록에서 누락. 화면이 보완하던 행을 여기서 생성. 자르는 지점과 세는 지점이
+             * 분리되면 페이지별 전체 개수 불일치.
              */
             return List.of(new Row(
                     cluster.getClusterName(),
@@ -119,10 +119,10 @@ public final class VmClusterNodeRows {
     }
 
     /**
-     * YAML 프로그램은 nodes 를 JSON 문자열로 내보낸다: 배열을 그대로 내보내면 SDK 가 죽어서다.
-     * 배열과 문자열을 모두 받는다.
+     * YAML 프로그램은 nodes 를 JSON 문자열로 출력. 배열을 그대로 출력하면 SDK 실패. 배열과
+     * 문자열 모두 수용.
      *
-     * <p>깨진 outputs 는 빈 목록이다. 한 클러스터 때문에 전체 목록이 실패하면 안 된다.
+     * <p>손상된 outputs 는 빈 목록 처리. 클러스터 하나로 전체 목록 조회를 실패시키지 않음.
      */
     private static List<JsonNode> readNodes(ObjectMapper mapper, String rawOutputs) {
         if (rawOutputs == null || rawOutputs.isBlank()) {
