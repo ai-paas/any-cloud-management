@@ -21,21 +21,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Admin endpoint — cluster-agent runtime knob 조회/변경.
+ * heartbeat staleness 임계치를 재시작 없이 조회하고 바꾸는 admin endpoint 입니다. 네트워크가
+ * 흔들려 멀쩡한 cluster 가 unhealthy 로 뜰 때 임계치를 임시로 올려 보는 용도입니다.
  *
- * <p>Endpoint:
- * <ul>
- *   <li>{@code GET  /v1/admin/agent/heartbeat-staleness} — 현재 임계치 조회</li>
- *   <li>{@code POST /v1/admin/agent/heartbeat-staleness} — 임계치 변경 (재시작 없이)</li>
- * </ul>
- *
- * <p>임계치 변경은 본 instance 의 in-memory {@link AgentHealthService} 만 영향 — 다중 instance
- * 운영 시 모든 instance 에 호출 필요. 영구 적용은 application.yml
- * {@code cluster-agent.health.heartbeat-staleness-threshold} 변경 후 재배포.
- *
- * <p>활용 예: agent fleet 의 한 cluster 가 network jitter 로 heartbeat 가 95-110s 사이로
- * 흔들려서 false-positive unhealthy 가 자주 발생 → 운영자가 즉시 threshold 를 180s 로 늘려잡고
- * stable 화 확인 후 영구 적용 결정.
+ * <p>바뀌는 것은 호출받은 instance 의 메모리뿐입니다. replica 가 여럿이면 전부에 호출해야 하고,
+ * 재배포하면 원래 값으로 돌아갑니다. 영구 적용은
+ * {@code cluster-agent.health.heartbeat-staleness-threshold} 를 고치세요.
  */
 @RestController
 @RequestMapping("/v1/admin/agent")

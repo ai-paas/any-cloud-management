@@ -9,19 +9,13 @@ import io.aipaas.cluster.agent.v1.NetworkInfo;
 import java.time.LocalDateTime;
 
 /**
- * Cluster agent 의 등록 / identity token rotation 책임.
+ * cluster agent 등록과 identity token 교체입니다.
  *
- * <p>대표 흐름:
- * <ol>
- *   <li>backend 가 {@link #issueRegistrationToken} 로 단기 JWT 발급 (10 분 TTL).</li>
- *   <li>agent 가 cluster 안에서 backend gRPC 로 {@link #register} 호출 → ClusterAgentEntity
- *       upsert + identity_token (32B opaque hex, 60일 TTL) 발급.</li>
- *   <li>identity_token 은 K8s Secret 에 영구 저장. pod 재시작 후에도 같은 token 으로 인증.</li>
- *   <li>만료 임박 시 {@link #rotateIdentityToken} 로 새 token 발급 후 기존 token 무효화.</li>
- * </ol>
+ * <p>토큰이 둘입니다. {@link #issueRegistrationToken} 이 주는 10분짜리 JWT 는 등록 한 번에만 쓰고,
+ * {@link #register} 가 돌려주는 60일짜리 identity_token 이 이후 모든 gRPC 호출의 자격증명입니다.
+ * 후자는 cluster 의 K8s Secret 에 저장돼 pod 가 재시작해도 그대로 삽니다.
  *
- * <p>mTLS 제거. Rancher 와 동일한 bearer-over-TLS 모델로 회귀.
- * 운영 단순성 / 외부 재사용성 우선. cert 인프라 (BackendCa, CSR, RenewCert) 모두 폐기.
+ * <p>인증 수단은 이 bearer token 하나뿐입니다. mTLS 는 쓰지 않습니다.
  */
 public interface AgentBootstrapService {
 
@@ -29,10 +23,10 @@ public interface AgentBootstrapService {
     IssuedToken issueRegistrationToken(String clusterId, String installMode);
 
     /**
-     * JWT 검증 + (cluster_id, agent_instance_id) upsert + identity_token (32B hex) 발급.
+     * registration JWT 를 검증하고 agent row 를 upsert 한 뒤 identity_token 을 발급합니다.
      *
-     * <p>인증 흐름은 단일 (bearer-only): 본 register 가 발급한 identity_token 을 agent 가 이후 모든
-     * gRPC 호출의 Authorization header 에 부착. 60 일 TTL, 만료 임박 시 rotateIdentityToken.
+     * <p>agent 는 이 토큰을 이후 모든 gRPC 호출의 Authorization 헤더에 싣습니다. 만료가 가까우면
+     * {@link #rotateIdentityToken} 으로 바꿔야 합니다.
      */
     RegistrationResult register(
             String registrationToken,

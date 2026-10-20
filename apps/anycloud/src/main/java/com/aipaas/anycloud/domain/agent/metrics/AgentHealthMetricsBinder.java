@@ -21,31 +21,20 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * 등록된 cluster 의 agent health 시계열을 Prometheus 로 노출.
+ * agent health 를 Prometheus 시계열로 내보냅니다. {@code AgentHealthService} 는 REST 응답용 스냅샷이고
+ * 알람과 SLO 에는 시계열이 필요합니다.
  *
- * <p>{@code AgentHealthService} 는 인스턴스 응답(REST snapshot)용이고, 알람/SLO 는 시계열이 필요해
- * 별도 binder. MultiGauge + paginate scan 패턴.
+ * <p>metric 이름과 라벨은 대시보드가 쓰는 계약입니다. 바꾸면 알람이 조용히 멈춥니다.
  *
- * <h3>노출 metric</h3>
  * <pre>
  * anycloud_agent_healthy{cluster="..."}                 0 | 1
  * anycloud_agent_stream_active{cluster="..."}           0 | 1
  * anycloud_agent_heartbeat_age_seconds{cluster="..."}   초 (-1 = 신호 없음)
  * anycloud_agent_status{cluster="...", status="ACTIVE|REGISTERED|DEGRADED|FAILED|REVOKED|NONE"}
- *     해당 cluster 의 현재 status 만 1, 나머지는 row 미존재 (PromQL absent() 친화)
  * </pre>
  *
- * <h3>운영 알람 예 (PromQL)</h3>
- * <pre>
- * # 5분 이상 unhealthy 한 cluster
- * sum(anycloud_agent_healthy == 0) by (cluster)
- *
- * # heartbeat 60초 이상 stale
- * anycloud_agent_heartbeat_age_seconds > 60
- *
- * # FAILED/REVOKED 인 cluster
- * sum(anycloud_agent_status{status=~"FAILED|REVOKED"}) by (cluster)
- * </pre>
+ * <p>{@code anycloud_agent_status} 는 현재 status 하나만 1 이고 나머지 라벨은 row 자체가 없습니다.
+ * PromQL {@code absent()} 로 걸러내기 쉽게 하려는 것입니다.
  */
 @Slf4j
 @Component

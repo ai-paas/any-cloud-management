@@ -33,23 +33,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Cluster 직접 접근을 위한 보조 endpoint.
+ * cluster 에 직접 붙기 위한 보조 endpoint 입니다. kubeconfig 를 내려주고, 노드 디버그용 privileged
+ * pod 를 띄웁니다.
  *
- * <ul>
- * <li>GET /v1/clusters/{c}/kubeconfig?serviceAccount=&namespace=&ttlSeconds= —
- * kubeconfig YAML
- * 다운로드 (agent 단기 SA token). identity 는 KubeconfigIdentityResolver 가 결정 —
- * VM(PULUMI)
- * cluster 는 미지정 시 admin SA 기본, 그 외는 SA 명시. 단일 발급 엔드포인트.</li>
- * <li>POST /v1/clusters/{c}/nodes/{node}/debug-pod — host namespace +
- * privileged debug pod 생성.
- * 응답으로 (namespace, pod_name) 반환. Frontend 가 그 정보로
- * /v1/clusters/{c}/pods/{ns}/{pod}/exec
- * WebSocket 으로 연결 (PodExec 재사용).</li>
- * </ul>
+ * <p>kubeconfig 를 누구 앞으로 발급할지는 {@link KubeconfigIdentityResolver} 가 정합니다. 여기서
+ * 기본값을 따로 두지 마세요.
  *
- * <p>
- * 두 endpoint 모두 cluster 측 RBAC + agent AllowList 통과 필수.
+ * <p>debug-pod 는 (namespace, pod_name) 만 돌려줍니다. 접속은 그 값으로 기존 PodExec WebSocket 을
+ * 여는 식입니다.
+ *
+ * <p>둘 다 cluster 의 RBAC 와 agent allowlist 를 통과해야 합니다.
  */
 @RestController
 @RequestMapping("/v1")

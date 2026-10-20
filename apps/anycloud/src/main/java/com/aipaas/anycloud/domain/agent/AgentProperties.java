@@ -3,23 +3,12 @@ package com.aipaas.anycloud.domain.agent;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * anycloud 호스트의 agent.* 설정 통합 — type-safe 단일 진입점.
+ * {@code agent.yaml} 의 {@code agent.*} 설정입니다. 중첩 record 가 yaml 구조와 그대로 대응합니다.
  *
- * <p>각 caller 는 {@code AgentProperties properties} 만 inject 하고
- * {@code properties.helm().repoAlias()} 형식 접근.
+ * <p>개별 값을 {@code @Value} 로 흩어 주입하지 말고 이 record 를 주입해
+ * {@code properties.helm().repoAlias()} 처럼 쓰세요.
  *
- * <p>{@code agent.yaml} 의 namespace 와 1:1 매칭. ENV var 의존 default 는 yaml 의
- * {@code ${ENV:default}} 표현으로 처리 (Spring Boot 가 자동 resolve).
- *
- * <p>매핑 대상:
- * <ul>
- *   <li>{@code agent.grpc.public-endpoint, port, tls.*}</li>
- *   <li>{@code agent.manifest.image, namespace, image-pull-policy}</li>
- *   <li>{@code agent.helm.repo-alias, repo-url, chart-name, chart-version}</li>
- *   <li>{@code agent.api-managed.enabled}</li>
- * </ul>
- *
- * <p>등록은 {@code AgentConfiguration} 의 {@code @EnableConfigurationProperties} 가 처리.
+ * <p>환경변수 기본값은 yaml 의 {@code ${ENV:default}} 로 둡니다. 여기서 처리하지 않습니다.
  */
 @ConfigurationProperties("agent")
 public record AgentProperties(Grpc grpc, Manifest manifest, Helm helm, ApiManaged apiManaged) {

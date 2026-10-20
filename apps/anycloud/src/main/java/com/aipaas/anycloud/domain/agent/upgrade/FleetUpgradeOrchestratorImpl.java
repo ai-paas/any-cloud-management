@@ -24,23 +24,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Fleet-wide upgrade 의 wave 순차 처리 — 의 핵심.
+ * fleet 전체 agent upgrade 를 wave 단위로 순서대로 진행합니다.
  *
- * <p>흐름:
- * <ol>
- *   <li>운영자가 {@link #submit} 호출 → {@code fleet_upgrade_run} row (PLANNED) 생성</li>
- *   <li>15초 주기 {@link #drive} (ShedLock-protected) 가 PLANNED row 발견 → RUNNING 전환</li>
- *   <li>현재 wave 의 모든 cluster (PAUSED 제외) 에 대해 {@code AgentUpgradeService.upgradeCluster}
- *       호출. {@code concurrency} 만큼 동시 trigger. 이미 진행 중이거나 같은 image 면 skip.</li>
- *   <li>Wave 의 모든 cluster 가 SUCCEEDED 또는 FAILED 가 될 때까지 wait. Tick 마다 진행률 확인.</li>
- *   <li>Wave failure rate &gt; {@code failureThreshold} 이면 ABORTED. 아니면 다음 wave.</li>
- *   <li>모든 wave 종료 → COMPLETED.</li>
- * </ol>
+ * <p>{@link #submit} 이 PLANNED row 만 만들고 끝납니다. 실제 진행은 15초 주기 {@link #drive} 가
+ * 한 tick 에 한 걸음씩 밉니다. 한 wave 의 cluster 가 전부 SUCCEEDED 나 FAILED 가 돼야 다음 wave 로
+ * 넘어가고, 그 wave 의 실패율이 {@code failureThreshold} 를 넘으면 run 전체를 중단합니다.
  *
- * <p>Idempotency: 한 run 안에서 같은 cluster 를 여러 wave 가 trigger 하지 않는다 — cluster 의
- * upgrade_wave 가 한 가지뿐이라 자연스럽게 한 wave 에만 속함.
+ * <p>cluster 마다 upgrade_wave 가 하나라 같은 cluster 가 두 wave 에 걸리지 않습니다.
  *
- * <p>HA replica 의 backend pod 중 한 노드만 처리하도록 ShedLock 사용.
+ * <p>{@link #drive} 에는 ShedLock 이 걸려 있습니다. 없으면 replica 수만큼 같은 wave 를 동시에
+ * 밀어 concurrency 상한이 무의미해집니다.
  */
 @Slf4j
 @Service

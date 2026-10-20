@@ -34,17 +34,10 @@ import org.springframework.transaction.annotation.Transactional;
  * </pre>
  */
 /**
- * Registered cluster CRUD + connectivity. 8+ dependency 를 3 책임 group 으로 정리:
+ * 등록된 cluster 의 CRUD 와 연결 상태 조회입니다. 연결 여부는 agent heartbeat 하나로만 판정합니다.
  *
- * <ol>
- *   <li>CRUD / domain mapping — {@code clusterRepository}, {@code clusterMapper}.</li>
- *   <li>Connectivity probing — {@code clusterAgentRepository}, {@code connectivityService}.
- *       agent heartbeat 가 유일한 판정 근거다. 향후 별도 {@code ClusterReachabilityChecker} 로
- *       추출 가능.</li>
- *   <li>Observability — {@code meterRegistry} (hit/miss counter). 단일 카운터라 추출 무가치.</li>
- * </ol>
- *
- * <p>class-level {@code @Transactional(readOnly = true)} — write 메서드만 명시적으로 override.
+ * <p>클래스에 {@code @Transactional(readOnly = true)} 가 걸려 있습니다. 쓰기 메서드는 각자
+ * override 해야 하고, 빠뜨리면 저장이 조용히 무시됩니다.
  */
 @Slf4j
 @Service("clusterServiceImpl")

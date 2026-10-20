@@ -20,17 +20,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Admin endpoint — Pulumi stack destroy 를 건너뛰는 force-delete + orphan Pulumi state 정리.
+ * Pulumi stack destroy 를 건너뛰고 DB row 만 지우는 admin endpoint 입니다.
  *
- * <p>cred 분리 이전에 만들어진 stack 처럼 옛 cred / 다른 passphrase 로 암호화된 state 는
- * 새 환경에서 select 자체가 실패 → 일반 DELETE 는 무한 stuck. 본 endpoint 는 DB row 만 삭제하고
- * 외부 자원 (VPC, EC2, RustFS stack file) 은 운영자가 별도 정리.
+ * <p>옛 자격증명이나 다른 passphrase 로 암호화된 state 는 select 부터 실패해 일반 DELETE 가 끝나지
+ * 않습니다. 그때 쓰는 탈출구입니다.
  *
- * <p>⚠ 위험 — Pulumi state file 이 RustFS 에 잔존하지만 backend 는 모름. 같은 stackName 으로
- * 다시 cluster 생성 시 stale state 와 충돌 가능. 운영자가 RustFS 안의 해당 stack file 도 같이
- * 정리해야 안전.
- *
- * <p>컨트롤러는 Repository 를 직접 호출하지 않는다. 모든 로직은 {@link ClusterAdminCleanupService}.
+ * <p>CSP 자원과 RustFS 의 state file 은 그대로 남고 backend 는 더 이상 그 존재를 모릅니다. 같은
+ * stackName 으로 cluster 를 다시 만들면 남은 state 와 충돌하므로, 운영자가 자원과 state file 을
+ * 직접 지워야 합니다.
  */
 @Slf4j
 @RestController
@@ -61,11 +58,12 @@ public class AdminClusterCleanupController {
     }
 
     /**
-     * RustFS 안의 orphan stack file 만 정리 — DB row 손 안 댐. force-delete 후 stale state file 이
-     * 남아 같은 stackName 으로 새 cluster create 가 충돌하는 시나리오에 사용. {@code pulumi stack rm
-     * --force --yes} 가 state resource 무시하고 file 삭제.
+     * RustFS 에 남은 stack file 만 지웁니다. DB row 는 건드리지 않습니다.
      *
-     * <p>⚠ CSP 실 자원 (VPC/EC2 등) 정리 금지. 운영자가 콘솔/CLI 로 별도 정리필요.
+     * <p>force-delete 뒤 같은 stackName 으로 새 cluster 를 만들려 할 때 씁니다.
+     *
+     * <p>CSP 자원은 지우지 않습니다. state 를 먼저 지우면 backend 가 자원을 추적할 방법이 없어지니,
+     * 콘솔이나 CLI 로 자원을 정리한 뒤 호출하세요.
      */
     @DeleteMapping("/{stackName}/orphan-state")
     @Operation(

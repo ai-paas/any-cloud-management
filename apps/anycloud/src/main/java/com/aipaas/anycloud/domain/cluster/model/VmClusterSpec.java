@@ -29,10 +29,10 @@ public record VmClusterSpec(
                 Boolean hasGpuNodes,
 
         /**
-         * Spot / preemptible instance 사용. AWS/Azure/GCP 에서 의미 있음.
-         * 비용 30-70% 절감 가능 — 단 cloud 가 capacity 회수 시 instance 종료. dev/CI workload 권장.
+         * spot / preemptible instance 를 씁니다. 비용은 크게 내려가지만 CSP 가 capacity 를
+         * 회수하면 instance 가 꺼집니다. dev 나 CI workload 에만 쓰세요.
          *
-         * <p>매핑:
+         * <p>provider 별 매핑:
          * <ul>
          *   <li>AWS: spot instance request (EC2 spot)</li>
          *   <li>Azure: Spot priority VM (eviction policy=Deallocate)</li>
@@ -40,9 +40,6 @@ public record VmClusterSpec(
          *   <li>Alibaba: PostPaid 의 SpotStrategy=SpotAsPriceGo</li>
          *   <li>그 외 (OCI / OpenStack / DigitalOcean) — no-op (지원 X 또는 의미 없음)</li>
          * </ul>
-         *
-         * <p>VmClusterSpecMapper 가 본 필드를 config map 의 {@code useSpot} 키로 추가 — Pulumi
-         * provider 가 자체 매핑.
          */
         @Schema(
                         description = "Spot/preemptible instance 사용 (AWS/Azure/GCP). 비용 절감 vs 회수 위험.",
@@ -51,10 +48,9 @@ public record VmClusterSpec(
                 Boolean useSpot,
 
         /**
-         * OS image override. 미지정 시 provider 별 default
-         * (보통 Ubuntu 22.04 LTS).
+         * OS image 를 지정합니다. 비워 두면 provider 기본값(대개 Ubuntu 22.04 LTS)입니다.
          *
-         * <p>매핑:
+         * <p>provider 별 형식:
          * <ul>
          *   <li>AWS: AMI ID (예: "ami-xxxxxxxx") 또는 SSM parameter</li>
          *   <li>Azure: Image URN (publisher:offer:sku:version, 예: "Canonical:0001-com-ubuntu-server-jammy:22_04-lts-gen2:latest")</li>
@@ -64,8 +60,6 @@ public record VmClusterSpec(
          *   <li>OpenStack: Image name 또는 UUID</li>
          *   <li>DigitalOcean: Image slug 또는 ID</li>
          * </ul>
-         *
-         * <p>VmClusterSpecMapper 가 본 필드를 config map 의 {@code osImage} 키로 추가.
          */
         @Schema(
                         description = "OS image override (provider 별 ID 형식). 미지정 시 default (Ubuntu 22.04 LTS).",

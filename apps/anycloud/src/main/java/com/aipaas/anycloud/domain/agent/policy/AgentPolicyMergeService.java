@@ -5,28 +5,20 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.aipaas.cluster.agent.runtime.AgentPolicySnapshot;
 
 /**
- * Agent policy PATCH (legacy + RFC 7396) 의 merge 책임.
- *
- * <p>두 가지 merge semantics 제공:
- * <ul>
- *   <li>{@link #mergeWithCurrent} — legacy PATCH (null = 현재 값 유지)</li>
- *   <li>{@link #applyMergePatch} — RFC 7396 (field 명시 + null = 비우기)</li>
- * </ul>
+ * agent policy PATCH 의 병합입니다. null 의 뜻이 둘로 갈리니 어느 쪽을 부르는지 확인하세요.
+ * {@link #mergeWithCurrent} 는 null 을 "그대로 두기" 로, {@link #applyMergePatch} 는 "비우기" 로
+ * 읽습니다.
  */
 public interface AgentPolicyMergeService {
 
-    /** Legacy PATCH 의 merge — null 필드를 현재 snapshot 으로 fill-in. force flag 는 request 의 것 유지. */
+    /** null 필드를 현재 snapshot 값으로 채웁니다. force 플래그는 요청 값을 그대로 둡니다. */
     AgentPolicyUpdateRequest mergeWithCurrent(AgentPolicyUpdateRequest req, AgentPolicySnapshot current);
 
     /**
-     * RFC 7396 의 핵심 merge 로직 — 각 필드의 명시/null 여부에 따라 분기:
-     * <ul>
-     *   <li>{@code body.has(name) == false} → current 값 그대로 (변경 없음)</li>
-     *   <li>{@code body.get(name).isNull() == true} → 비우기 (empty list 또는 null)</li>
-     *   <li>그 외 → body 값 사용</li>
-     * </ul>
+     * RFC 7396 merge patch 입니다. 키가 없으면 현재 값을 두고, 키가 있고 값이 null 이면 비우고,
+     * 그 밖에는 준 값으로 바꿉니다. "키 없음" 과 "null" 이 서로 다른 뜻이라는 점이 핵심입니다.
      *
-     * @throws Exception JSON parse 실패 (controller 가 400 응답으로 매핑)
+     * @throws Exception JSON 파싱 실패. controller 가 400 으로 매핑합니다.
      */
     AgentPolicyUpdateRequest applyMergePatch(JsonNode body, AgentPolicySnapshot current) throws Exception;
 }

@@ -15,21 +15,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
- * Pulumi-provisioned (또는 사용자가 직접 kubeconfig 업로드 한) cluster 에 agent 를 backend 가
- * 직접 설치하는 PDF 의 {@code API_MANAGED} 모드 구현.
+ * backend 가 agent 를 직접 설치하는 {@code API_MANAGED} 모드입니다. 단기 JWT 를 발급하고
+ * {@link AgentChartRenderer} 로 manifest 를 렌더한 뒤 {@link KubeService#applyResource} 로
+ * 적용합니다.
  *
- * <p>호출 시점: BOOTSTRAP step 의 {@code registerFromKubeconfig} 직후 — ClusterEntity 가
- * 만들어진 후라 {@link KubeService#applyResource} 가 사용 가능.
+ * <p>ClusterEntity 가 만들어진 뒤에 불러야 합니다. {@code applyResource} 가 cluster 를 찾지
+ * 못합니다.
  *
- * <p>흐름:
- * <ol>
- *   <li>{@link AgentBootstrapService#issueRegistrationToken} 로 단기 JWT 발급</li>
- *   <li>{@link AgentManifestRenderer#render} 로 manifest YAML 생성 (token + backend 주입)</li>
- *   <li>{@link KubeService#applyResource} 로 agent gRPC 경유 apply</li>
- * </ol>
- *
- * <p>실패 시 본 service 는 예외 propagate — BOOTSTRAP step 이 catch 해 cluster 를 FAILED
- * 로 마크하거나 graceful 한 path 로 continue (호출 측 결정).
+ * <p>실패하면 예외를 그대로 올립니다. cluster 를 FAILED 로 둘지 넘어갈지는 호출 측이 정합니다.
  */
 @Slf4j
 @Service
@@ -37,7 +30,6 @@ import org.springframework.stereotype.Service;
 public class AgentApiManagedInstaller {
 
     private final AgentBootstrapService bootstrapService;
-    // chart 가 단일 source-of-truth — Java String 인라인 template (AgentManifestRenderer) 대체.
     private final AgentChartRenderer chartRenderer;
     private final KubeService kubeService;
     private final MeterRegistry meterRegistry;
@@ -117,11 +109,11 @@ public class AgentApiManagedInstaller {
     /**
      * agent gRPC 가 없을 때의 복구 안내.
      *
-     * <p>backend 는 cluster 자격증명을 보관하지 않아 agent 를 거치지 않고 apply 할 방법이 없다.
-     * 운영자가 자기 kubectl context 에서 돌릴 명령을 돌려준다.
+     * <p>backend 는 cluster 자격증명을 보관하지 않아 agent 를 거치지 않고 apply 할 방법이 없습니다.
+     * 운영자가 자기 kubectl context 에서 돌릴 명령을 돌려줍니다.
      *
-     * <p>registration token 은 넣지 않는다. 이 문자열은 에러 응답과 로그에 함께 남는데 token 은
-     * 그대로 등록에 쓸 수 있는 자격증명이다. manifest endpoint 가 호출 때마다 새로 발급한다.
+     * <p>registration token 은 넣지 않습니다. 이 문자열은 에러 응답과 로그에 함께 남는데 token 은
+     * 그대로 등록에 쓸 수 있는 자격증명입니다. manifest endpoint 가 호출 때마다 새로 발급합니다.
      */
     private String manualInstallGuide(String clusterName) {
         return "Cluster agent 가 응답하지 않습니다. backend 는 cluster 자격증명을 보관하지 않아 대신 적용할 수 "

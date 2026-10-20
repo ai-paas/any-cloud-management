@@ -16,23 +16,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Single-cluster agent upgrade trigger (Fleet upgrade).
+ * cluster 한 곳의 agent upgrade 를 trigger 합니다.
  *
- * <p>Trigger 흐름:
- * <ol>
- *   <li>운영자가 {@code POST /v1/clusters/{name}/upgrade { targetImage }} 호출</li>
- *   <li>본 service 가 cluster_agent row 의 status 를 PENDING → IN_PROGRESS 로 전환</li>
- *   <li>최소 Deployment manifest (image 만 override) 를 server-side apply → agent 의
- *       {@link KubeService#applyResource} (mTLS 이후 agent path 전용)</li>
- *   <li>K8s rolling update 가 새 image 로 pod 교체. 새 pod 가 boot → 기존 cert 로 reconnect →
- *       heartbeat 로 새 {@code agent_version} 보고</li>
- *   <li>별도 scheduled job ({@link AgentUpgradeProgressMonitor}) 가 heartbeat 의 새 version 을
- *       감지해 status 를 SUCCEEDED 로 전환. 60min 안에 detect 못 하면 FAILED.</li>
- * </ol>
+ * <p>image 만 바꾼 Deployment manifest 를 apply 하고 끝냅니다. 성공 판정은 여기서 하지 않습니다.
+ * 새 pod 가 떠서 heartbeat 로 새 {@code agent_version} 을 보고하면
+ * {@link AgentUpgradeProgressMonitor} 가 SUCCEEDED 로 바꾸고, 60분 안에 못 보면 FAILED 로 둡니다.
  *
- * <p>HA 의 여러 row 중 첫 row 에만 upgrade_* 메타 갱신. agent_version 은 row 별로 heartbeat 가 갱신.
- *
- * <p>본 service 는 cluster 단위 trigger 만 — wave 기반 fleet-wide orchestration 은 별도 sprint.
+ * <p>HA 로 row 가 여럿이면 upgrade 메타는 첫 row 에만 씁니다. {@code agent_version} 은 row 마다
+ * 각자의 heartbeat 가 갱신합니다.
  */
 @Slf4j
 @Service

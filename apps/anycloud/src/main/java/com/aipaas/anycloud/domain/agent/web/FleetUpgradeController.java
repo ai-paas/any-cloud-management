@@ -33,17 +33,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Fleet upgrade staggered rollout 관리 endpoint.
+ * fleet 전체 agent 를 wave 단위로 올리는 endpoint 입니다.
  *
- * <p> (preview + wave 지정):
- * <ul>
- *   <li>{@code GET /v1/fleet/upgrade/preview} — fleet 의 wave 분포 + version 분포 + per-cluster
- *       상세. 운영자가 upgrade plan 짜기 전에 현황 파악.</li>
- *   <li>{@code PATCH /v1/clusters/{name}/upgrade-wave} — 단일 cluster 의 wave 변경.</li>
- * </ul>
- *
- * <p> (다음 sprint): 실제 helm upgrade trigger ({@code POST /v1/fleet/upgrade} +
- * orchestrator + progress tracking).
+ * <p>{@code POST /v1/fleet/upgrade} 는 run 을 등록만 하고 바로 응답합니다. 실제 진행은
+ * {@link FleetUpgradeOrchestrator} 가 주기 작업으로 밀기 때문에, 호출이 성공해도 upgrade 가 끝난
+ * 것은 아닙니다. 진행 상황은 {@code GET /v1/fleet/upgrade/runs} 로 봅니다.
  */
 @RestController
 @RequestMapping("/v1")

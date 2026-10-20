@@ -54,8 +54,8 @@ public class VmClusterProviderImpl implements ClusterProvider {
     }
 
     /**
-     * 요청은 {@code anycloud-k8s:} 접두를 붙여 온다. 접두 없이 확인하면 운영자가 명시한 값을 못 보고
-     * 덮어쓴다.
+     * 요청은 {@code anycloud-k8s:} 접두를 붙여 옵니다. 접두 없이 확인하면 운영자가 명시한 값을
+     * 못 보고 덮어씁니다.
      */
     private static void putIfAbsentNs(java.util.Map<String, String> config, String key, String value) {
         if (value == null || value.isBlank()) return;

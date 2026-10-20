@@ -15,19 +15,17 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 /**
- * Cluster 가 PENDING_AGENT → ACTIVE 로 전환된 직후 agent ConfigMap 의
- * {@code helm_repositories} key 를 backend 의 helm_repo 테이블 직렬화 결과로 자동 갱신.
+ * cluster 가 ACTIVE 로 바뀐 직후 agent ConfigMap 의 {@code helm_repositories} 를 backend 의
+ * helm_repo 테이블 내용으로 맞춥니다.
  *
- * <p>{@link com.aipaas.anycloud.domain.agent.bootstrap.AgentBootstrapServiceImpl} 의
- * {@code backfillClusterFromAgent} 에서 ACTIVE 전환 후 호출. 비동기 (@Async) — agent stream
- * registration 본 경로에 영향 없음. 실패는 swallow + warn — 사용자가 추후 admin endpoint 로 재시도.
+ * <p>{@code @Async} 로 돕니다. 실패해도 로그만 남기고 삼킵니다. agent 등록 경로를 막지 않기
+ * 위해서입니다. 반영이 안 됐으면 운영자가 admin endpoint 로 다시 밀면 됩니다.
  *
- * <p>전략: 기존 ConfigMap 의 4 list (allowedNamespaces/Commands/Charts/ExecNamespaces) + resource_policy
- * 는 그대로 유지하고 {@code helm_repositories} 만 새로 push. {@code applyAgentConfig} 가 부분 update
- * 미지원이라 다른 값도 동일 값으로 reset (no-op 효과).
+ * <p>{@code applyAgentConfig} 가 부분 갱신을 받지 않아 기존 목록도 같은 값으로 다시 씁니다.
  *
- * <p>주의: 이 호출 자체가 {@code APPLY_AGENT_CONFIG} RPC — agent 의 allowed_commands 에 그 명령이
- * 빠지면 PERMISSION_DENIED 로 swallow. 그 경우 사용자가validator 또는 kubectl patch 로 복구.
+ * <p>이 호출 자체가 {@code APPLY_AGENT_CONFIG} RPC 입니다. agent 의 allowed_commands 에 그 명령이
+ * 없으면 PERMISSION_DENIED 가 나고 역시 조용히 넘어갑니다. 그때는 kubectl 로 ConfigMap 을 직접
+ * 고쳐야 합니다.
  */
 @Slf4j
 @Component
