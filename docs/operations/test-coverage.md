@@ -42,7 +42,7 @@ open libs/cluster-agent-features-spring-boot-starter/build/reports/jacoco/test/h
 | `domain/chart/support` | 1039 | 26.6% | P2 | `ChartParser`, `ChartArchiveFetcher` — pure logic |
 | `domain/agent/upgrade` | 1003 | 35.8% | **P1 in-progress** | `FleetUpgradeService` + `AgentUpgradeService` 테스트 존재 — `FleetUpgradeOrchestratorImpl` (0%, 805 missed) 보강 |
 | `libs/cluster-provisioning-spring-boot-starter` | 945 | 0.0% | P3 | Pulumi state — IO 의존 큼 |
-| `domain/kube/impl` | 812 | 1.1% | P3 | `KubeServiceImpl` — fabric8 mock 필요 |
+| `domain/kube/impl` | 812 | 1.1% | P3 | `KubeServiceImpl`. agent gRPC mock 이 필요합니다 |
 
 ## 기존 강점 — 회귀 보호 (>= 60%)
 

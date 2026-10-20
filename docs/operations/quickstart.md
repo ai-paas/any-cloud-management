@@ -206,7 +206,7 @@ IDE 의 "Go to Definition" 으로 1 hop 씩 따라가면 5분 안에 전체 laye
 - **Agent 연결**: K8s 클러스터에서 cluster-agent Pod 를 띄우고 Bootstrap.Register 를 호출합니다.
   자세한 흐름은 [`docs/architecture/cluster-agent.md`](../architecture/cluster-agent.md) 를 참고합니다.
 - **Pulumi**: VM provisioning 활성화입니다. [`docs/architecture/pulumi/pulumi-runtime-with-gateway.md`](../architecture/pulumi/pulumi-runtime-with-gateway.md) 를 참고합니다.
-- **K8s 접근 path**: agent path 와 fabric8 fallback 입니다. [`docs/architecture/k8s-access-paths.md`](../architecture/k8s-access-paths.md) 를 참고합니다.
+- **K8s 접근 경로**: 모든 호출이 cluster-agent 를 지나갑니다. [`docs/architecture/k8s-access-paths.md`](../architecture/k8s-access-paths.md) 를 참고하세요.
 
 ## clean up
 

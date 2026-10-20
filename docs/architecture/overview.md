@@ -23,13 +23,13 @@ anycloud monorepo 의 component / package / 의존 관계를 정리했습니다.
 │  │  vmoptions / credential / chart / observability ...)   │    │
 │  └─────┬─────────────┬──────────────────┬──────────────────┘    │
 │        │             │                  │                       │
-│  ┌─────▼────┐   ┌────▼─────┐   ┌────────▼──────────┐            │
-│  │  JPA     │   │ gRPC     │   │ K8s client       │            │
-│  │  (Maria) │   │  Server  │   │ (fabric8 +       │            │
-│  │  Flyway  │   │  9090    │   │  starter SPI)    │            │
-│  └──────────┘   └─────┬────┘   └─────────┬─────────┘            │
-└───────────────────────│──────────────────│──────────────────────┘
-                        │ gRPC (mTLS opt.) │ K8s REST (kubeconfig)
+│  ┌─────▼────┐   ┌────▼─────┐                                   │
+│  │  JPA     │   │ gRPC     │                                   │
+│  │  (Maria) │   │  Server  │                                   │
+│  │  Flyway  │   │  9090    │                                   │
+│  └──────────┘   └─────┬────┘                                   │
+└───────────────────────│────────────────────────────────────────┘
+                        │ gRPC (Bearer over TLS)
                         │                  │
                  ┌──────▼──────┐   ┌───────▼────────┐
                  │ cluster-    │   │  Target        │
@@ -58,7 +58,7 @@ anycloud monorepo 의 component / package / 의존 관계를 정리했습니다.
 | Package | 책임 | 핵심 클래스 |
 |---|---|---|
 | `controller` | REST endpoint. ~25 controllers | `ClusterController`, `AdminAgentCertController`, `AgentBootstrapPublicController`, `FleetUpgradeController`, `ObservabilityController` |
-| `service.cluster` | unified cluster 관리, provider-agnostic | `ClusterServiceImpl`, `UnifiedClusterServiceImpl`, `AgentBootstrapKubeClient` |
+| `service.cluster` | unified cluster 관리, provider-agnostic | `ClusterServiceImpl`, `UnifiedClusterServiceImpl`, `ClusterConnectivityServiceImpl` |
 | `service.vmcluster` | VM cluster state machine + workflow | `VmClusterWorkflowQueueServiceImpl`, `VmClusterStateMachine` |
 | `service.credential` | CSP credential 암호화 vault | `CspCredentialServiceImpl`, `CspCredentialCryptoServiceImpl` |
 | `service.operation` | long-running op tracking + sweeper | `OperationServiceImpl` |
@@ -143,7 +143,6 @@ anycloud monorepo 의 component / package / 의존 관계를 정리했습니다.
 | `ClusterProvider` | `VmClusterProviderImpl`, `RegisteredClusterProviderImpl` | source type 기반 — registry pattern |
 | `VmOptionsProvider` | AWS/GCP/Alibaba/OCI/OpenStack/Proxmox/IBM impl | provider name 기반 — registry |
 | `SigningKeyResolver` (starter) | `JpaSigningKeyResolver` (anycloud override) | `@ConditionalOnMissingBean` |
-| `BootstrapKubeClient` (starter) | `AgentBootstrapKubeClient` (anycloud) | `@ConditionalOnMissingBean` |
 
 ### 5.1 Service / Impl 분리 (`XxxService` interface + `impl/XxxServiceImpl`)
 
@@ -199,7 +198,7 @@ Profile 변형은 다음과 같습니다.
 - `application-docker.yaml` — 컨테이너용입니다 (env-driven, `ddl-auto=validate`).
 - `application-test.yaml` — 통합 테스트용
 
-→ tech-debt: cross-file `@Value` 주입이 silent 합니다 — `cluster-agent.jwt.secret` 은 `agent.yaml`, `cluster.cert.*` 는 `runtime.yaml` 에 있습니다. validation 이 부재합니다. `agent.*` 는 단일 `AgentProperties` record 로 type-safe binding 됩니다.
+→ tech-debt: 파일을 넘나드는 `@Value` 주입은 검증이 없어 오타가 조용히 넘어갑니다. `cluster-agent.jwt.secret` 은 `agent.yaml` 에 있습니다. `agent.*` 는 `AgentProperties` record 로 묶여 있어 이 문제가 없습니다.
 
 ## 7. cluster-agent (Go) — package 지도
 
@@ -298,8 +297,8 @@ graph LR
 - **anycloud 가 starter 에 의존합니다** — starter 의 `AgentRuntimeEndpoint` 가 backend 의 gRPC 서버입니다.
 - **agent 는 starter 의 proto 만 의존합니다** — starter 의 Java 코드는 사용하지 않습니다.
 - **Pulumi 호출은 외부 프로세스 exec 입니다** — Java↔Pulumi 직접 의존이 없습니다.
-- **K8s 통신은 두 경로입니다** — (a) backend 가 직접 fabric8 으로 target cluster API 호출 (bootstrap / kubeconfig
-  발급), (b) agent 가 in-cluster K8s API 호출 (대부분의 read/write).
+- **K8s 통신은 한 경로입니다.** backend 가 target cluster 의 API 를 직접 치지 않습니다. 모든 호출이
+  cluster-agent 를 지나갑니다 ([`k8s-access-paths.md`](./k8s-access-paths.md)).
 
 ## 10. 테스트 커버리지
 

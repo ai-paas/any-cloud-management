@@ -104,16 +104,16 @@ agent 미설치 cluster 를 외부 kubeconfig 만으로 등록합니다.
 
 ```
 POST /v1/clusters
-  body: { clusterName, apiServerUrl, serverCA, clientCA, clientKey }
+  body: { source: "registered", clusterName, spec: { provider, clusterType, hasGpuNodes } }
 
-  ClusterServiceImpl.createCluster
-    ├ validateBase64Pem (PEM 형식 검증, fail-fast)
-    ├ apiServerUrl + serverCA 모두 존재?
-    │   ├─ yes → status=UNKNOWN, async 버전 fetch (AgentBootstrapKubeClient)
-    │   └─ no  → status=AGENT_PENDING (agent 가 등록되면 backfill)
-    └ DB INSERT cluster
-        ├ DataIntegrityViolation → 409 DUPLICATE
-        └ OK → 201 Created
+  RegisteredClusterProviderImpl.create
+    ├ metadata 만 받습니다. 자격증명은 받지 않습니다
+    ├ status=AGENT_PENDING (agent 가 붙으면 ACTIVE 로 backfill)
+    ├ DB INSERT cluster
+    │   ├ DataIntegrityViolation → 409 DUPLICATE
+    │   └ OK → 201 Created
+    └ 응답에 BootstrapInfo (helm install 명령, agent-manifest.yaml URL)
+        운영자가 자기 kubectl context 에서 직접 실행합니다
 ```
 
 **실패 모드:**
@@ -224,7 +224,6 @@ DELETE /v1/clusters/{name}
     ├ clusterAgentRepository.deleteByClusterName(c.id)  ← cascade
     │     로그: "Cluster {} delete cascaded {} agent row(s)"
     ├ clusterRepository.delete(c)
-    └ bootstrapKubeClient.invalidate(c.id)  ← fabric8 cache 무효화
   Return 200
 ```
 
@@ -391,8 +390,8 @@ PATCH (RFC 7396)
   null = clear, omit = keep
 ```
 
-backend 가 target cluster 의 ConfigMap (`aipaas-agent-allowlist`) 을 fabric8 client 로 직접 수정합니다.
-agent 의 `config.Loader` 가 ConfigMap watch 로 감지 후 in-memory 정책에 반영합니다.
+backend 가 `APPLY_AGENT_CONFIG` 명령을 보내면 agent 가 자기 ConfigMap (`aipaas-agent-allowlist`) 을 고칩니다.
+agent 의 `config.Loader` 가 그 변경을 watch 로 받아 메모리 정책에 반영합니다.
 
 ⚠️ tech-debt: `AdminAgentPolicyController` 는 771 LOC 이며 — fleet audit 의 parallel collector 가 controller 에 위치합니다. service 추출을 권고합니다.
 

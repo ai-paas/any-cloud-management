@@ -79,7 +79,7 @@ agent register 또는 VERIFY step 에서 backfill.
 | POST | `/v1/clusters/{name}/nodes/{nodeName}/debug-pod` | 임시 privileged debug pod | `ClusterAccessController` |
 | GET | `/v1/clusters/{name}/kubeconfig?serviceAccount=&namespace=&ttlSeconds=` | kubeconfig 다운로드 (YAML attachment, agent SA token). SA 미지정 시 VM(PULUMI) cluster 는 자동 admin SA, registered 는 명시 필요 (III-61 단일 엔드포인트) | `ClusterAccessController` |
 
-⚠️ tech-debt: `KubernetesClientFactory.createKubeconfigContent` 가 `insecure-skip-tls-verify: true` 하드코딩.
+kubeconfig 는 agent 의 `GENERATE_KUBECONFIG` 가 발급합니다. backend 는 cluster 자격증명을 보관하지 않습니다.
 serverCa 보유 시에도 `certificate-authority-data` 미발급.
 
 ### 2.4 K8s Resource Proxy (`/v1/clusters/{name}/namespaces/...`)
