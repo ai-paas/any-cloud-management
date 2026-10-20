@@ -24,10 +24,10 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 /**
- * 정적 schema 만 내려주면 포탈은 자유 입력 칸밖에 못 만든다.
+ * 정적 schema 만 제공하면 포탈은 자유 입력 칸만 구성 가능.
  *
- * <p>IBM zone 처럼 계정마다 다른 값은 사용자가 명명 규칙을 외워 타이핑해야 하고, 틀린 값은
- * 프로비저닝 도중에야 드러난다. 자격증명이 주어지면 고를 수 있는 값을 함께 내려준다.
+ * <p>IBM zone 처럼 계정별로 다른 값은 사용자가 명명 규칙을 직접 입력해야 하고, 잘못된 값은
+ * 프로비저닝 단계에서 드러남. 자격증명이 있으면 선택 가능한 값을 함께 제공.
  */
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ConfigSchemaOffersAccountValuesTest extends AbstractUnitTest {
@@ -42,7 +42,7 @@ class ConfigSchemaOffersAccountValuesTest extends AbstractUnitTest {
 
     private VmOptionsQueryServiceImpl service;
 
-    /** zone 만 값을 열거할 수 있는 provider. 실제 IBM 구현이 하는 일과 같은 계약이다. */
+    /** zone 만 값 열거가 가능한 provider. 실제 IBM 구현과 동일 계약. */
     private static final class ZoneAwareProvider implements VmOptionsProvider {
         @Override
         public SupportedProvisioningProvider getProvider() {
@@ -123,7 +123,7 @@ class ConfigSchemaOffersAccountValuesTest extends AbstractUnitTest {
 
     @Test
     void withoutACredentialTheSchemaStaysStatic() {
-        // 자격증명 없이 조회를 시도하면 CSP 호출이 실패하거나 401 을 받는다. 자유 입력으로 둔다.
+        // 자격증명 없이 조회 시 CSP 호출 실패 또는 401 응답. 자유 입력으로 유지.
         List<ProviderConfigKey> schema = service.listConfigSchema("IBM", null, "jp-tok");
 
         assertThat(keyOf(schema, ZONE_KEY).allowedValues()).isNullOrEmpty();
@@ -152,7 +152,7 @@ class ConfigSchemaOffersAccountValuesTest extends AbstractUnitTest {
 
     @Test
     void theImageKeyComesBackWithImagesTheAccountCanUse() {
-        // 이미지는 조회 경로가 따로 있어 필수인데도 고를 값이 없었다. OCID 를 받아 적게 둘 수 없다.
+        // 이미지는 조회 경로가 분리돼 필수 항목임에도 선택지 부재. OCID 직접 입력 요구 불가.
         List<ProviderConfigKey> schema = service.listConfigSchema("IBM", "cred-1", "jp-tok");
 
         assertThat(keyOf(schema, "anycloud-k8s:osImage").allowedValues())
@@ -161,7 +161,7 @@ class ConfigSchemaOffersAccountValuesTest extends AbstractUnitTest {
 
     @Test
     void staticConstraintsAreNotOverwritten() {
-        // masterCount 는 etcd quorum 때문에 홀수만 받는다. 조회 결과로 덮으면 그 제약이 사라진다.
+        // masterCount 는 etcd quorum 때문에 홀수만 허용. 조회 결과로 덮어쓰면 제약 소실.
         List<ProviderConfigKey> schema = service.listConfigSchema("IBM", "cred-1", "jp-tok");
 
         assertThat(keyOf(schema, "anycloud-k8s:masterCount").allowedValues()).isNotEmpty();

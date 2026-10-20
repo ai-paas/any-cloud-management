@@ -27,10 +27,10 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 /**
- * 기본값은 "지금 통과하는 값" 이어야 한다.
+ * 기본값은 현재 통과하는 값이어야 함.
  *
- * <p>목록의 첫 값을 그냥 쓰면 1vCPU ARM 인스턴스나 설치본에 없는 flavor 가 잡힌다. 그 사실은
- * 프로비저닝 중반에야 드러나고, 검증용 화면이 오히려 실패를 만든다.
+ * <p>목록의 첫 값을 그대로 사용하면 1vCPU ARM 인스턴스나 설치본에 없는 flavor 가 선택됨.
+ * 해당 사실은 프로비저닝 중반에 드러나며 검증용 화면이 실패를 유발.
  */
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ProvisioningDefaultsPickSaneValuesTest extends AbstractUnitTest {
@@ -70,7 +70,7 @@ class ProvisioningDefaultsPickSaneValuesTest extends AbstractUnitTest {
                         .provider("OpenStack")
                         .displayName("OpenStack")
                         .recommendedRegion("RegionOne")
-                        // 이 설치본에 없는 flavor. 권장값이 늘 존재한다고 볼 수 없다.
+                        // 해당 설치본 미제공 flavor. 권장값의 상시 존재는 보장 불가.
                         .recommendedVmSpec("m1.large")
                         .build()));
         when(vmOptionsService.getRegions(anyString(), anyString()))
@@ -106,13 +106,13 @@ class ProvisioningDefaultsPickSaneValuesTest extends AbstractUnitTest {
         ProvisioningDefaults defaults = openstack();
 
         assertThat(defaults.masterInstanceType()).isEqualTo("4-8-50");
-        // providerSpec.flavorName 이 우선이라 두 값이 갈리면 화면과 실제가 달라진다.
+        // providerSpec.flavorName 이 우선이라 두 값 불일치 시 화면과 실제 생성 결과 상이.
         assertThat(defaults.providerSpec()).containsEntry("flavorName", "4-8-50");
     }
 
     @Test
     void aDefaultThatTheAccountCannotUseIsReplaced() {
-        // 설치본에 없는 m1.large 를 그대로 보내면 생성 도중 거절된다.
+        // 설치본 미제공 m1.large 를 그대로 전송하면 생성 단계에서 거절.
         when(vmOptionsService.getSpecs(anyString(), anyString(), anyString(), any(), anyBoolean(), anyInt()))
                 .thenReturn(List.of(spec("id-1", "4-8-50", 4, 8.0)));
         when(vmOptionsService.getConfigSchema(anyString(), anyString(), anyString()))
@@ -129,8 +129,8 @@ class ProvisioningDefaultsPickSaneValuesTest extends AbstractUnitTest {
     @Test
     void tooSmallInstancesAreNotOffered() {
         /*
-         * kubeadm preflight 를 건너뛰게 해둬서 1vCPU 2GB 로도 생성은 된다. 그러고 나서
-         * control-plane 이 뜨지 않아 BOOTSTRAP 에서 끝난다.
+         * kubeadm preflight 생략 설정이라 1vCPU 2GB 로도 생성은 성공. 이후 control-plane
+         * 미기동으로 BOOTSTRAP 단계에서 실패.
          */
         when(vmOptionsService.getSpecs(anyString(), anyString(), anyString(), any(), anyBoolean(), anyInt()))
                 .thenReturn(List.of(spec("tiny", "1-2", 1, 2.0), spec("ok", "2-4", 2, 4.0)));
@@ -156,7 +156,7 @@ class ProvisioningDefaultsPickSaneValuesTest extends AbstractUnitTest {
 
     @Test
     void everySupportedProviderAppearsEvenWithoutACredential() {
-        // 목록에서 빠지면 "이 CSP 는 지원하지 않는다" 로 읽힌다. 이유를 달아 남긴다.
+        // 목록 누락 시 해당 CSP 미지원으로 해석. 사유를 함께 기록.
         when(vmOptionsService.getConfigSchema(anyString(), anyString(), anyString()))
                 .thenReturn(List.of());
 

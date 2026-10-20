@@ -70,7 +70,7 @@ class IbmVmOptionsProviderTest extends AbstractUnitTest {
 
     @Test
     void profileNumbersAreUnwrapped() {
-        // 감싼 값을 못 읽으면 vCPU 와 메모리가 0 으로 나가 화면이 사양을 못 보여준다.
+        // 래핑 값 파싱 실패 시 vCPU 와 메모리가 0 으로 전달돼 화면에 사양 미표시.
         expectToken();
         expectGet(
                 "jp-tok.iaas.cloud.ibm.com/v1/instance/profiles",
@@ -113,7 +113,7 @@ class IbmVmOptionsProviderTest extends AbstractUnitTest {
 
     @Test
     void imagesThatAreNotAvailableAreSkipped() {
-        // 폐기 예정 이미지로 만들면 프로비저닝이 중간에 실패한다.
+        // 폐기 예정 이미지로 생성 시 프로비저닝 중간 실패.
         expectToken();
         expectGet(
                 "/v1/images",
@@ -133,7 +133,7 @@ class IbmVmOptionsProviderTest extends AbstractUnitTest {
         assertThat(images).extracting(VmOptionImage::getName).containsExactly("ibm-ubuntu-24-04-6-minimal-amd64-6");
         assertThat(images.get(0).getOsType()).isEqualTo("Ubuntu Linux");
         assertThat(images.get(0).getOwner()).isEqualTo("Canonical");
-        // 프로비저닝은 이름으로 이미지를 찾는다. 불투명한 id 를 넘기면 만들 수 없다.
+        // 프로비저닝은 이름으로 이미지 조회. 불투명 id 전달 시 생성 불가.
         assertThat(images.get(0).getId()).isEqualTo("ibm-ubuntu-24-04-6-minimal-amd64-6");
         server.verify();
     }
@@ -141,8 +141,8 @@ class IbmVmOptionsProviderTest extends AbstractUnitTest {
     @Test
     void aNextLinkOnAnotherHostStopsPaging() {
         /*
-         * next 는 응답 본문에서 온다. 그 URL 로 다시 요청할 때 IAM 토큰을 Bearer 로 붙이므로,
-         * host 를 확인하지 않으면 응답을 조작할 수 있는 상대에게 토큰을 넘기는 경로가 된다.
+         * next 는 응답 본문 유래. 해당 URL 재요청 시 IAM 토큰을 Bearer 로 첨부하므로
+         * host 미확인 시 응답 조작이 가능한 상대에게 토큰을 전달하는 경로가 됨.
          */
         expectToken();
         expectGet(
@@ -162,8 +162,8 @@ class IbmVmOptionsProviderTest extends AbstractUnitTest {
 
     @Test
     void theNextPageUrlGetsTheVersionBackBeforeItIsRequested() {
-        // IBM 이 주는 next.href 에는 version 과 generation 이 빠져 있다. 그대로 요청하면 400 이라
-        // 두 번째 페이지부터 이미지가 끊긴다. 첫 페이지만 보는 테스트로는 드러나지 않는다.
+        // IBM 이 반환하는 next.href 에는 version 과 generation 미포함. 그대로 요청하면 400
+        // 응답이라 두 번째 페이지부터 이미지 조회 중단. 첫 페이지만 검증하면 미검출.
         expectToken();
         expectGet(
                 "/v1/images?version=",
@@ -209,7 +209,7 @@ class IbmVmOptionsProviderTest extends AbstractUnitTest {
 
     @Test
     void aRegionThatIsNotAHostnameIsRejected() {
-        // region 이 그대로 host 가 되므로 검증하지 않으면 임의 호스트로 토큰이 나간다.
+        // region 이 host 에 직접 반영되므로 미검증 시 임의 호스트로 토큰 전송.
         assertThatThrownBy(() -> provider.listSpecs(CREDENTIALS, "jp-tok/../evil.com", null, false, 50))
                 .isInstanceOf(CustomException.class);
         server.verify();
@@ -217,7 +217,7 @@ class IbmVmOptionsProviderTest extends AbstractUnitTest {
 
     @Test
     void zonesComeFromTheAccountNotFromAGuessedSuffix() {
-        // 계정마다 활성 zone 이 달라 {region}-1 로 넘겨짚으면 만들다 실패한다.
+        // 계정별 활성 zone 이 달라 {region}-1 로 추정하면 생성 단계에서 실패.
         expectToken();
         expectGet(
                 "/v1/regions/jp-tok/zones",

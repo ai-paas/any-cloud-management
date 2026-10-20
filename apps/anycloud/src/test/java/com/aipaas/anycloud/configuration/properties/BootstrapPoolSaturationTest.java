@@ -13,13 +13,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 /**
- * 워크플로 단계가 넘칠 때 무엇을 희생할지.
+ * 워크플로 단계 포화 시 처리 정책.
  *
- * <p>PROVISION, BOOTSTRAP, VERIFY, DESTROY 가 이 풀 하나를 같이 쓴다. 한 단계는 최악 170분까지
- * 스레드를 잡는다. 넘쳤을 때 호출자 스레드에서 실행하면 그 호출자는 AMQP 리스너다. 그 큐의
- * 메시지 소비가 통째로 멈추고, ack 를 못 해 재전달 루프가 돌아온다.
+ * <p>PROVISION, BOOTSTRAP, VERIFY, DESTROY 가 단일 풀 공유. 한 단계가 최대 170분간 스레드 점유.
+ * 포화 시 호출 스레드에서 실행하면 해당 호출자가 AMQP 리스너이므로 그 큐의 메시지 소비가
+ * 정지하고 ack 불가로 재전달 루프 진입.
  *
- * <p>거부하면 {@code WorkflowStepDispatcher} 가 락을 반납하고 메시지를 되돌린다. 잠시 뒤 다시 온다.
+ * <p>거부 시 {@code WorkflowStepDispatcher} 가 락을 반납하고 메시지 재큐. 잠시 후 재도착.
  */
 class BootstrapPoolSaturationTest extends AbstractUnitTest {
 
@@ -30,8 +30,8 @@ class BootstrapPoolSaturationTest extends AbstractUnitTest {
     }
 
     /**
-     * 실제 bootstrap 설정을 그대로 쓰되 크기만 줄인다. 거부 정책은 건드리지 않아야 이 검사가
-     * 진짜 운영 설정을 검증한다.
+     * 실제 bootstrap 설정을 유지하고 크기만 축소. 거부 정책을 변경하지 않아야 운영 설정 검증
+     * 효과 유지.
      */
     private AsyncProperties.Pool tinyPool() {
         AsyncProperties.Pool pool = new AsyncProperties().getBootstrap();
@@ -61,7 +61,7 @@ class BootstrapPoolSaturationTest extends AbstractUnitTest {
 
     @Test
     void theRealLimitIsCoreSizeNotMaxSize() {
-        // 큐가 가득 차야 core 를 넘어 늘어난다. 큐가 크면 max 는 영영 쓰이지 않는다.
+        // 큐 포화 시에만 core 초과 확장. 큐가 크면 max 미사용.
         AsyncProperties.Pool pool = new AsyncProperties().getBootstrap();
 
         assertThat(pool.getQueueCapacity()).as("큐가 크면 실질 동시성이 core 에 묶인다").isLessThanOrEqualTo(pool.getMaxSize());
@@ -70,8 +70,8 @@ class BootstrapPoolSaturationTest extends AbstractUnitTest {
     @Test
     void sevenClustersFitWithRoomToSpare() {
         /*
-         * 공인인증 시험은 CSP 7개를 동시에 돌린다. 클러스터 하나는 한 단계만 점유하므로 7개지만,
-         * 정체된 단계를 되살리는 재발행과 삭제가 겹치면 그보다 늘어난다.
+         * 공인인증 시험은 CSP 7개를 동시 실행. 클러스터당 한 단계만 점유하므로 기본 7개이나,
+         * 정체 단계 재발행과 삭제가 겹치면 증가.
          */
         assertThat(new AsyncProperties().getBootstrap().getCoreSize())
                 .as("동시 프로비저닝 7 + 재발행·삭제 여유")
