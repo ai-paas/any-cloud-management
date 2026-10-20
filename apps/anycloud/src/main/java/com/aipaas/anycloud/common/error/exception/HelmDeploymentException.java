@@ -2,7 +2,7 @@ package com.aipaas.anycloud.common.error.exception;
 
 import com.aipaas.anycloud.common.error.enums.ErrorCode;
 
-/** Helm chart 배포가 실패했습니다. */
+/** Helm chart 배포 실패. */
 public class HelmDeploymentException extends CustomException {
 
     public HelmDeploymentException(String message) {

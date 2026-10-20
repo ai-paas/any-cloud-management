@@ -10,13 +10,13 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 
 /**
- * Agent 의 현재 적용된 policy snapshot 에 대한 일관성/위험 검증. 운영자가 ConfigMap edit 후 즉시
- * 잘못된 설정을 발견할 수 있도록 backend 가 추가하는 layer.
+ * Agent 에 적용된 policy snapshot 의 일관성, 위험 검증. 운영자가 ConfigMap 수정 직후 설정
+ * 오류를 확인할 수 있도록 backend 가 추가하는 계층.
  *
  * <p>참고 룰북: {@code docs/runbooks/cluster-agent-resource-policy.md}.
  *
- * <p>severity 는 HIGH(secret 유출 같은 즉시 위험), MEDIUM(오타 등 설정 실수), LOW(기본값이 아닌
- * 선택), INFO(참고) 네 단계입니다.
+ * <p>severity 4단계. HIGH(secret 유출 등 즉시 위험), MEDIUM(오타 등 설정 실수),
+ * LOW(기본값 외 선택), INFO(참고).
  */
 @Component
 public class AgentPolicyValidator {

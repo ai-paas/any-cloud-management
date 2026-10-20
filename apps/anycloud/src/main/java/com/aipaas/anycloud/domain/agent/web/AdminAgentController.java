@@ -21,12 +21,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * heartbeat staleness 임계치를 재시작 없이 조회하고 바꾸는 admin endpoint 입니다. 네트워크가
- * 흔들려 멀쩡한 cluster 가 unhealthy 로 뜰 때 임계치를 임시로 올려 보는 용도입니다.
+ * heartbeat staleness 임계치를 재시작 없이 조회, 변경하는 admin endpoint. 네트워크 불안정으로
+ * 정상 cluster 가 unhealthy 로 표시될 때 임계치를 임시 상향하는 용도.
  *
- * <p>바뀌는 것은 호출받은 instance 의 메모리뿐입니다. replica 가 여럿이면 전부에 호출해야 하고,
- * 재배포하면 원래 값으로 돌아갑니다. 영구 적용은
- * {@code cluster-agent.health.heartbeat-staleness-threshold} 를 고치세요.
+ * <p>변경 범위는 호출받은 instance 의 메모리. replica 가 여럿이면 전체에 호출 필요하고 재배포
+ * 시 기본값으로 복귀. 영구 적용은 {@code cluster-agent.health.heartbeat-staleness-threshold} 수정.
  */
 @RestController
 @RequestMapping("/v1/admin/agent")

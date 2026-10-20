@@ -9,8 +9,8 @@ public final class ApiValidationConstants {
     public static final int K8S_NAME_MAX = 63;
 
     /**
-     * namespace path 값. RFC 1123 label 에 sentinel 둘을 더 받습니다. {@code -} 는 cluster-scoped
-     * kind 라 namespace 가 의미 없을 때, {@code _all} 은 전체 namespace 조회입니다.
+     * namespace path 값. RFC 1123 label 에 sentinel 2종 추가 허용. {@code -} 는 cluster-scoped
+     * kind 로 namespace 가 무의미한 경우, {@code _all} 은 전체 namespace 조회.
      */
     public static final String NAMESPACE_PATTERN = "^(-|_all|[a-z0-9]([-a-z0-9]*[a-z0-9])?)$";
 

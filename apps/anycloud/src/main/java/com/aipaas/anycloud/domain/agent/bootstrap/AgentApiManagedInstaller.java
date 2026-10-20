@@ -150,11 +150,11 @@ public class AgentApiManagedInstaller {
     }
 
     /**
-     * Agent-led registration 의 핵심: token 만 발급하고 manifest apply 는 사용자에게 위임.
-     * {@link #install} 의 JWT 발급 부분만 떼어 helm install / kubectl apply 명령 문자열을 함께 만든다.
+     * Agent-led registration. token 만 발급하고 manifest apply 는 사용자에게 위임.
+     * {@link #install} 의 JWT 발급 부분만 분리해 helm install, kubectl apply 명령 문자열 생성.
      *
      * @param clusterName 대상 cluster (ClusterEntity.id)
-     * @return Bootstrap 정보: POST /v1/clusters 응답에 포함되어 사용자가 즉시 install 실행 가능.
+     * @return Bootstrap 정보. POST /v1/clusters 응답에 포함되어 사용자가 즉시 install 실행 가능
      */
     @com.aipaas.anycloud.domain.audit.Audited(
             action = "agent.bootstrap.prepare",

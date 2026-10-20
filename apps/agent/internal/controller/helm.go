@@ -560,10 +560,10 @@ func (d *Dispatcher) rollbackHelmRelease(ctx context.Context, cmd *agentv1.Comma
 	return okResponse(result)
 }
 
-// listHelmReleaseResources: helm release (label app.kubernetes.io/instance=<release>) 가 만든
-// K8s 자원을 한 번에 enumerate. backend 가 11번 직렬 호출하던 HelmReleaseScanner 를 대체한다.
+// listHelmReleaseResources: helm release (label app.kubernetes.io/instance=<release>) 가 생성한
+// K8s 자원 일괄 enumerate. backend 의 11회 직렬 호출 방식 HelmReleaseScanner 대체.
 //
-// AllowList: namespace 만 검증 (read-only 명령: chart-level 검증 불요).
+// AllowList: namespace 만 검증. read-only 명령이라 chart-level 검증 불필요.
 func (d *Dispatcher) listHelmReleaseResources(ctx context.Context, cmd *agentv1.CommandRequest) *agentv1.CommandResponse {
 	if d.kube == nil {
 		return errorResponse(agentv1.Status_AGENT_UNAVAILABLE, "K8S_CLIENT_NIL", "K8s client not initialized")
@@ -604,8 +604,8 @@ func (d *Dispatcher) listHelmReleaseResources(ctx context.Context, cmd *agentv1.
 	return okResponse(result)
 }
 
-// isReleaseAbsent: 이미 없는 release 의 uninstall 은 성공으로 본다. 실패로 돌려주면 backend 의
-// addon row 가 DELETING 에서 빠져나오지 못해, 같은 이름으로 다시 설치할 수도 지울 수도 없다.
+// isReleaseAbsent: 존재하지 않는 release 의 uninstall 은 성공 처리. 실패 반환 시 backend 의
+// addon row 가 DELETING 에서 벗어나지 못해 동일 이름 재설치와 삭제 모두 불가.
 func isReleaseAbsent(err error) bool {
 	if err == nil {
 		return false

@@ -2,7 +2,7 @@ package com.aipaas.anycloud.common.error.exception;
 
 import com.aipaas.anycloud.common.error.enums.ErrorCode;
 
-/** Helm chart 를 찾지 못했습니다. */
+/** Helm chart 미검출. */
 public class HelmChartNotFoundException extends CustomException {
 
     public HelmChartNotFoundException(String chartName) {

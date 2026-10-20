@@ -6,9 +6,8 @@ import (
 	agentv1 "anycloud/agent/internal/gen/agent/v1"
 )
 
-// remotecommand 는 exec 시작 시 resize 큐에서 첫 크기를 읽는다. 비어 있으면 PTY 가 0x0 으로
-// 열리고 tcell TUI(k9s)는 화면을 지운 뒤 아무것도 그리지 않는다. 사용자가 나중에 보내는
-// resize 로는 복구되지 않는다.
+// remotecommand 는 exec 시작 시 resize 큐에서 첫 크기를 조회. 비어 있으면 PTY 가 0x0 으로
+// 열리고 tcell TUI(k9s)는 화면을 지운 뒤 출력하지 않음. 이후 사용자 resize 로는 복구 불가.
 
 func TestRequestedSizeIsUsed(t *testing.T) {
 	got := initialTerminalSize(&agentv1.TerminalSize{Cols: 120, Rows: 30})
@@ -19,7 +18,7 @@ func TestRequestedSizeIsUsed(t *testing.T) {
 }
 
 func TestMissingSizeFallsBackToEightyByTwentyFour(t *testing.T) {
-	// 크기를 싣지 않던 예전 백엔드와도 붙어야 한다. 0x0 으로 열면 화면이 비어 버린다.
+	// 크기를 전달하지 않는 구버전 백엔드와도 연동 필요. 0x0 으로 열면 화면 공백.
 	for _, size := range []*agentv1.TerminalSize{nil, {}, {Cols: 100}, {Rows: 40}} {
 		got := initialTerminalSize(size)
 		if got.Width == 0 || got.Height == 0 {
