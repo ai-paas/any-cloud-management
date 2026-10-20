@@ -57,7 +57,7 @@ spec:
       priorityClassName: system-node-critical
       containers:
         - name: backup-agent
-          image: ghcr.io/aipaas/backup-agent:latest   # 운영에서 pin 권장
+          image: ghcr.io/ai-paas/backup-agent:latest   # 운영에서 pin 권장
           imagePullPolicy: IfNotPresent
           env:
             - name: NODE_NAME

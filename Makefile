@@ -1,6 +1,6 @@
 # ============= Compose =============
 #   docker-compose.dev.yml — local source 빌드, Pulumi 통합 full stack (dev/integration)
-#   docker-compose.yml     — Docker Hub image pull only, production
+#   docker-compose.yml     — GHCR image pull only, production
 COMPOSE      := docker compose -f docker-compose.dev.yml
 COMPOSE_PROD := docker compose -f docker-compose.yml
 
@@ -20,19 +20,20 @@ IMAGE_PLATFORMS ?= linux/amd64,linux/arm64
 FULL_IMAGE      := $(DOCKER_USER)/$(AGENT_IMAGE):$(IMAGE_TAG)
 
 # ============= Backend image =============
-# docker-compose.yml 의 ANYCLOUD_BACKEND_IMAGE 와 일치해야 한다.
-# 기본값 aipaas/anycloud-backend — 사용자 namespace 로 override 가능.
+# docker-compose.yml 의 ANYCLOUD_BACKEND_IMAGE 기본값과 같아야 한다. 어긋나면 backend-publish 로
+# 올린 이미지를 prod-up 이 받지 않는다.
+# registry 를 포함한 namespace 다. Docker Hub 로 올리려면 호스트 없이 사용자명만 넘긴다.
 #   make backend-publish BACKEND_DOCKER_USER=consine2c BACKEND_IMAGE_TAG=dev
-BACKEND_DOCKER_USER ?= aipaas
+BACKEND_DOCKER_USER ?= ghcr.io/ai-paas
 BACKEND_IMAGE       ?= anycloud-backend
 BACKEND_IMAGE_TAG   ?= latest
 FULL_BACKEND_IMAGE  := $(BACKEND_DOCKER_USER)/$(BACKEND_IMAGE):$(BACKEND_IMAGE_TAG)
 
 # ============= Backup-agent image =============
 # cluster-agent 와 같은 apps/agent Dockerfile 을 CMD_TARGET build arg 로 분기 빌드.
-# 기본 image 이름 backup-agent (Helm chart values 의 image.repository 와 일치).
+# Helm chart values 의 image.repository 와 같아야 한다.
 #   make backup-agent-image BACKUP_AGENT_DOCKER_USER=consine2c BACKUP_AGENT_IMAGE_TAG=dev
-BACKUP_AGENT_DOCKER_USER ?= aipaas
+BACKUP_AGENT_DOCKER_USER ?= ghcr.io/ai-paas
 BACKUP_AGENT_IMAGE       ?= backup-agent
 BACKUP_AGENT_IMAGE_TAG   ?= latest
 FULL_BACKUP_AGENT_IMAGE  := $(BACKUP_AGENT_DOCKER_USER)/$(BACKUP_AGENT_IMAGE):$(BACKUP_AGENT_IMAGE_TAG)
@@ -109,7 +110,7 @@ help:
 	@echo "  prod-down        production 스택 정지"
 	@echo "  prod-pull        production image 만 최신 pull (기동 X)"
 	@echo ""
-	@echo "  backend-image    Docker buildx → Hub push (aipaas/anycloud-backend:\$$BACKEND_IMAGE_TAG)"
+	@echo "  backend-image    Docker buildx → registry push ($(FULL_BACKEND_IMAGE))"
 	@echo "  backend-publish  alias for backend-image"
 	@echo ""
 	@echo "  proto-lint       buf lint                                                      [~2s]"
@@ -117,8 +118,8 @@ help:
 	@echo ""
 	@echo "  agent-build      Go build cluster agent (apps/agent)                           [* ~30s / +5s incr]"
 	@echo "  agent-test       Go test (apps/agent)                                          [~20s]"
-	@echo "  agent-image      Docker buildx → Hub push ($(FULL_IMAGE))"
-	@echo "  backup-agent-image  Docker buildx → Hub push ($(FULL_BACKUP_AGENT_IMAGE))"
+	@echo "  agent-image      Docker buildx → registry push ($(FULL_IMAGE))"
+	@echo "  backup-agent-image  Docker buildx → registry push ($(FULL_BACKUP_AGENT_IMAGE))"
 	@echo "  agent-chart-package  helm package (apps/agent/deploy/helm/cluster-agent)"
 	@echo "  agent-publish    image + chart 를 한 번에 (image push → chart package → chart push)"
 	@echo "  agent-manifest-snapshot  helm template 으로 raw manifest 갱신 (apps/agent/deploy/k8s/agent.yaml)"
@@ -206,7 +207,7 @@ prod-up: secrets-check
 	$(COMPOSE_PROD) pull
 	$(COMPOSE_PROD) up -d --wait --wait-timeout 300
 	@echo ""
-	@echo "Production stack up — image: $${ANYCLOUD_BACKEND_IMAGE:-aipaas/anycloud-backend}:$${ANYCLOUD_BACKEND_IMAGE_TAG:-latest}"
+	@echo "Production stack up. image: $${ANYCLOUD_BACKEND_IMAGE:-ghcr.io/ai-paas/anycloud-backend}:$${ANYCLOUD_BACKEND_IMAGE_TAG:-latest}"
 
 prod-down:
 	$(COMPOSE_PROD) down

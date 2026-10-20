@@ -8,7 +8,7 @@
 # 위험 회피. nodeSelector/tolerations 로 배포 범위 좁히기 권장.
 
 image:
-  repository: ghcr.io/aipaas/backup-agent
+  repository: ghcr.io/ai-paas/backup-agent
   tag: latest                # 운영에서 specific version (e.g. v0.1.0) 권장
   pullPolicy: IfNotPresent
 
