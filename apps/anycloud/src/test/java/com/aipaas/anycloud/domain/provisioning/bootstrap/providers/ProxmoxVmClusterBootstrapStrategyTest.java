@@ -10,10 +10,10 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 
 /**
- * Proxmox 노드는 cloud-init 으로 패키지를 받지 못한다.
+ * Proxmox 노드는 cloud-init 으로 패키지 수신 불가.
  *
- * <p>다른 CSP 는 user-data 가 부팅 중에 kubeadm 을 깔아 두므로 부트스트랩이 기다리기만 하면 된다.
- * Proxmox 는 그 자리에서 직접 설치하지 않으면 kubeadm 이 없는 노드에 join 을 시도한다.
+ * <p>다른 CSP 는 user-data 가 부팅 중 kubeadm 을 설치하므로 부트스트랩은 대기만 수행.
+ * Proxmox 는 해당 시점에 직접 설치하지 않으면 kubeadm 미설치 노드에 join 을 시도.
  */
 class ProxmoxVmClusterBootstrapStrategyTest {
 
@@ -61,7 +61,7 @@ class ProxmoxVmClusterBootstrapStrategyTest {
 
     @Test
     void theRequestedKubernetesVersionIsInstalled() {
-        // 스냅샷 버전을 버리면 노드는 기본 버전, 컨트롤 플레인은 요청 버전이 되어 join 이 거부된다.
+        // 스냅샷 버전 미사용 시 노드는 기본 버전, 컨트롤 플레인은 요청 버전이 되어 join 거부.
         String script = decodedScript(
                 VmClusterInternalRequestSnapshot.builder()
                         .kubernetesVersion("1.30")
@@ -73,7 +73,7 @@ class ProxmoxVmClusterBootstrapStrategyTest {
 
     @Test
     void preparationIsVerifiedAfterInstalling() {
-        // 설치가 조용히 실패해도 다음 단계가 진행되면 kubeadm init 에서야 드러난다.
+        // 설치가 무음 실패해도 다음 단계가 진행되면 kubeadm init 시점에만 검출.
         String command = strategy.prepareNodeCommand(
                 VmClusterInternalRequestSnapshot.builder().build(), "master");
 

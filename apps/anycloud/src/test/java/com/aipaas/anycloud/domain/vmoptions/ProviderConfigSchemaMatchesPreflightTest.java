@@ -20,10 +20,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 /**
- * config schema 는 포탈이 입력 칸을 만드는 유일한 근거다.
+ * config schema 는 포탈의 입력 칸 구성에 대한 유일한 근거.
  *
- * <p>preflight 가 요구하는 키가 schema 에 없거나 optional 로 적혀 있으면, 화면은 그 칸을 안 만들거나
- * 비워 둔 채 제출을 허용한다. 사용자는 생성 버튼을 누른 뒤에야 거절을 본다.
+ * <p>preflight 요구 키가 schema 에 없거나 optional 로 표기되면 화면이 해당 칸을 생성하지 않거나
+ * 빈 값 제출을 허용. 사용자는 생성 요청 후에 거절을 확인.
  */
 class ProviderConfigSchemaMatchesPreflightTest extends AbstractUnitTest {
 
@@ -38,7 +38,7 @@ class ProviderConfigSchemaMatchesPreflightTest extends AbstractUnitTest {
         return config;
     }
 
-    /** preflight 가 빈 config 에 대해 지목하는 키들. 예외 메시지에만 노출된다. */
+    /** preflight 가 빈 config 에서 지목하는 키. 예외 메시지에만 노출. */
     private List<String> missingKeysFor(SupportedProvisioningProvider provider) {
         Throwable thrown =
                 catchThrowable(() -> ProvisioningConfigRules.validateRequiredConfig(provider, baselineConfig()));
@@ -85,7 +85,7 @@ class ProviderConfigSchemaMatchesPreflightTest extends AbstractUnitTest {
 
     @Test
     void openstackNeedsBothTheExternalNetworkAndTheFloatingIpPool() {
-        // emitter 가 둘 다 읽는다. 하나만 필수로 두면 preflight 를 통과한 뒤 PROVISION 에서 죽는다.
+        // emitter 가 두 값 모두 참조. 한쪽만 필수로 두면 preflight 통과 후 PROVISION 에서 실패.
         List<String> demanded = missingKeysFor(SupportedProvisioningProvider.OPENSTACK);
 
         assertThat(demanded)
@@ -94,13 +94,13 @@ class ProviderConfigSchemaMatchesPreflightTest extends AbstractUnitTest {
 
     @Test
     void ibmNeedsAnImageNameBecauseTheBuildNumberRotates() {
-        // 기본값을 박아 두면 그 이미지가 사라진 순간 생성이 36초쯤 지나 "No image found" 로 죽는다.
+        // 기본값 고정 시 해당 이미지 삭제 시점부터 생성이 약 36초 후 "No image found" 로 실패.
         assertThat(missingKeysFor(SupportedProvisioningProvider.IBM)).contains("anycloud-k8s:osImage");
     }
 
     @Test
     void ibmNeedsAZoneNotJustARegion() {
-        // providerSpec.zone 은 us-south 가 아니라 us-south-1 이다. 리전 드롭다운으로는 채울 수 없다.
+        // providerSpec.zone 은 us-south 가 아닌 us-south-1. 리전 드롭다운으로 구성 불가.
         assertThat(missingKeysFor(SupportedProvisioningProvider.IBM)).contains("anycloud-k8s:providerSpec.zone");
     }
 }

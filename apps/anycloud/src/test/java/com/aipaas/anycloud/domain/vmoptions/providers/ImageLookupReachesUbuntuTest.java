@@ -7,11 +7,11 @@ import java.lang.reflect.Method;
 import org.junit.jupiter.api.Test;
 
 /**
- * 이미지 목록을 CSP 가 준 첫 페이지 안에서만 거르면 Ubuntu 를 못 찾는다.
+ * 이미지 목록을 CSP 응답 첫 페이지 내에서만 필터링하면 Ubuntu 미검출.
  *
- * <p>Alibaba 는 PageSize 를 주지 않으면 10건만 주고 그 안은 aliyun_* 로 채워진다. OCI 는 목록이
- * Windows 로 먼저 채워져 Ubuntu 가 뒤로 밀리고, 이름 대신 operatingSystem 으로 배포판을 준다.
- * 둘 다 결과가 비어 "이 리전엔 Ubuntu 가 없다" 로 보였다.
+ * <p>Alibaba 는 PageSize 미지정 시 10건만 반환하고 그 안이 aliyun_* 로 채워짐. OCI 는 목록
+ * 선두가 Windows 로 채워져 Ubuntu 가 후순위로 밀리고 이름 대신 operatingSystem 으로 배포판 제공.
+ * 양쪽 모두 결과가 비어 해당 리전의 Ubuntu 부재로 오인.
  */
 class ImageLookupReachesUbuntuTest extends AbstractUnitTest {
 
@@ -38,13 +38,13 @@ class ImageLookupReachesUbuntuTest extends AbstractUnitTest {
 
     @Test
     void ociSendsAUriSoTheFilterIsNotDoubleEncoded() throws Exception {
-        // String 오버로드는 %20 을 %2520 으로 만들어 필터가 아무것도 걸러내지 않는다.
+        // String 오버로드는 %20 을 %2520 으로 변환해 필터가 동작하지 않음.
         assertThat(sourceOf(OciVmOptionsProvider.class)).contains("URI.create(url)");
     }
 
     @Test
     void gcpAsksForTheNewestImagesFirst() throws Exception {
-        // 기본 정렬은 이름순이라 폐기 이미지가 많은 ubuntu-os-cloud 는 첫 페이지가 통째로 폐기본이다.
+        // 기본 정렬이 이름순이라 폐기 이미지가 많은 ubuntu-os-cloud 는 첫 페이지 전체가 폐기본.
         assertThat(sourceOf(GcpVmOptionsProvider.class)).contains("orderBy=creationTimestamp");
     }
 
@@ -63,7 +63,7 @@ class ImageLookupReachesUbuntuTest extends AbstractUnitTest {
 
     @Test
     void everyProviderTakesTheKeywordItIsGiven() {
-        // 서명이 바뀌면 이미지 선택지 채우기가 조용히 빈 목록으로 떨어진다.
+        // 서명 변경 시 이미지 선택지 구성이 무음으로 빈 목록 반환.
         for (Class<?> type :
                 new Class<?>[] {AlibabaVmOptionsProvider.class, OciVmOptionsProvider.class, IbmVmOptionsProvider.class
                 }) {
