@@ -16,23 +16,15 @@ import org.springframework.stereotype.Component;
 /**
  * Cluster Agent 의 Kubernetes manifest 를 단일 source-of-truth (Helm chart) 로부터 동적 생성.
  *
- * <p>Chart 위치: {@code classpath:agent-chart/} — Gradle 의 {@code copyAgentChartResources} task
- * 가 빌드 시점에 {@code apps/agent/deploy/helm/cluster-agent/} 를 그대로 복사. 즉 jar 안에
- * chart 가 packaged 되어 있어 chartmuseum 의존 없이 자동 install 가능.
+ * <p>chart 는 {@code classpath:agent-chart/} 에 있습니다. Gradle 의
+ * {@code copyAgentChartResources} 가 빌드 때 {@code apps/agent/deploy/helm/cluster-agent/} 를
+ * 그대로 복사해 jar 에 넣습니다. chartmuseum 없이도 설치할 수 있게 하려는 것입니다.
  *
- * <p>흐름:
- * <ol>
- *   <li>최초 호출 시 classpath 의 chart 를 /tmp 의 임시 디렉토리로 추출 (Spring 의
- *       {@code PathMatchingResourcePatternResolver} — jar / file 모두 동일하게 동작).</li>
- *   <li>호출마다 token / endpoint / image 등을 values.yaml 임시 파일에 write.</li>
- *   <li>{@code helm template <release> <chart-dir> --values <values.yaml>} 로 manifest 렌더.</li>
- *   <li>caller (AgentApiManagedInstaller) 가 그 결과를 agent 경유로 apply.</li>
- * </ol>
+ * <p>부팅 때 chart 를 임시 디렉토리로 한 번 풀고 Chart.yaml 이 있는지 봅니다. 없으면 부팅이
+ * 실패합니다. 설치를 시도하는 시점이 아니라 지금 알아야 하기 때문입니다.
  *
- * <p>이전 {@code AgentManifestRenderer} (Java String.format 으로 manifest 인라인) 는 chart 와
- * 중복 정의 문제 — 어제 RBAC / allowlist 패치 3중 적용 비용을 야기. 본 component 가 대체.
- *
- * <p>fail-fast: 부팅 시 한 번 chart 추출 + Chart.yaml 존재 검증. 누락 시 부팅 실패.
+ * <p>렌더링은 {@code helm template} 에 맡깁니다. manifest 를 Java 문자열로 조립하면 chart 와
+ * 두 벌이 되어 RBAC 같은 변경을 양쪽에 따로 반영해야 합니다.
  */
 @Slf4j
 @Component

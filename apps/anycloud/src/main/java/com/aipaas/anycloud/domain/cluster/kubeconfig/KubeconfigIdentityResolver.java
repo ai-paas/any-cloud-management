@@ -1,19 +1,15 @@
 package com.aipaas.anycloud.domain.cluster.kubeconfig;
 
 /**
- * kubeconfig 발급 대상 identity(=namespace + ServiceAccount) 를 결정하는 단일 seam.
+ * kubeconfig 를 누구 앞으로 발급할지, 즉 namespace 와 ServiceAccount 를 정합니다.
  *
- * <p>kubeconfig 는 항상 agent 의 {@code GENERATE_KUBECONFIG} (TokenRequest) 로 발급되며, 토큰은
- * 반드시 "특정 namespace 의 특정 SA"에 묶인다. "누구로 발급할지"는 시간이 지나며 바뀌는 유일한 축이므로
- * 한 곳(본 resolver)에 모은다 — endpoint/installer 의 VM 분기·기본값 산재를 제거.
+ * <p>kubeconfig 는 agent 의 {@code GENERATE_KUBECONFIG} 가 TokenRequest 로 발급하므로 토큰은 반드시
+ * 특정 namespace 의 특정 SA 에 묶입니다. "누구로 발급할지" 는 정책이 바뀌는 축이라 여기 한 곳에
+ * 모읍니다. endpoint 나 installer 에 기본값 분기를 두지 마세요.
  *
- * <p>전략 진화 (endpoint 계약 변경 없이 additive):
- * <ul>
- *   <li>현재: 호출자가 SA 를 명시하면 그대로; 미지정 + VM(PULUMI) cluster 면 chart-생성 admin SA
- *       (cluster-admin) 로 기본 — 전체 권한 다운로드. 그 외엔 SERVICE_ACCOUNT_REQUIRED.</li>
- *   <li>impersonation/per-user RBAC 활성 시: 호출 사용자 신원으로 per-user/group SA 해석 전략 추가.
- *       admin SA 기본은 {@code agent.kubeconfig.admin-default-enabled=false} 로 break-glass 강등.</li>
- * </ul>
+ * <p>지금은 호출자가 SA 를 지정하면 그대로 쓰고, 지정하지 않은 VM(PULUMI) cluster 는 chart 가 만든
+ * cluster-admin SA 로 내려갑니다. 즉 전체 권한 kubeconfig 입니다. 그 밖에는
+ * {@code SERVICE_ACCOUNT_REQUIRED} 로 거절합니다.
  */
 public interface KubeconfigIdentityResolver {
 

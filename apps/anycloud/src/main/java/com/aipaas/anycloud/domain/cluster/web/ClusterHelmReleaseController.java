@@ -44,18 +44,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
-/**
- * Cluster 하위 Helm release 자원.
- * <ul>
- *   <li>GET    /v1/clusters/{c}/helm-releases                       — list (namespace 필터)</li>
- *   <li>POST   /v1/clusters/{c}/helm-releases                       — install (chart + version + valuesYaml)</li>
- *   <li>GET    /v1/clusters/{c}/helm-releases/{r}                   — status</li>
- *   <li>GET    /v1/clusters/{c}/helm-releases/{r}/revisions         — history</li>
- *   <li>POST   /v1/clusters/{c}/helm-releases/{r}/operations        — rollback</li>
- *   <li>GET    /v1/clusters/{c}/helm-releases/{r}/resources         — release 의 K8s 리소스</li>
- *   <li>DELETE /v1/clusters/{c}/helm-releases/{r}?keepHistory=&wait= — uninstall (LRO)</li>
- * </ul>
- */
+/** cluster 안의 Helm release lifecycle 입니다. 모든 호출은 agent 를 거칩니다. */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/clusters/{clusterName}/helm-releases")
@@ -208,7 +197,7 @@ public class ClusterHelmReleaseController {
             operationService.markRunning(op.getId());
             var deployed =
                     chartService.deployChartFromYaml(repo, chart, releaseName, clusterName, ns, version, valuesYaml);
-            // 끝났다고 알리지 않으면 작업이 RUNNING 에 영영 남는다 — 화면은 설치 중으로 읽는다.
+            // 끝났다고 알리지 않으면 작업이 RUNNING 에 영영 남아 화면이 설치 중으로 보여 줍니다.
             operationService.complete(
                     op.getId(),
                     "{\"status\":\"" + (deployed == null || deployed.getStatus() == null ? "" : deployed.getStatus())
@@ -349,18 +338,12 @@ public class ClusterHelmReleaseController {
     }
 
     /**
-     * 3 — Helm release UPGRADE. 기존 release 를 새 chart version / values 로 갱신.
+     * 기존 release 를 새 chart version 이나 values 로 갱신합니다. release 가 없으면 400 입니다.
      *
-     * <p>install 와 동일한 chart resolution + agent release lock 공유. release 미존재 시 400 +
-     * HELM_NOT_FOUND.
+     * <p>{@code atomic} 은 기본 true 라 실패하면 자동으로 rollback 합니다.
      *
-     * <p>옵션:
-     * <ul>
-     *   <li>{@code atomic} (default true) — 실패 시 자동 rollback. production 권장.</li>
-     *   <li>{@code reuseValues} (default false) — 기존 values 보존 + 새 values merge.</li>
-     *   <li>{@code resetValues} (default false) — 기존 values 모두 reset (chart default + 새 values).
-     *       reuseValues 우선. 둘 다 true 면 resetValues 적용.</li>
-     * </ul>
+     * <p>{@code reuseValues} 는 기존 values 를 남기고 병합하고, {@code resetValues} 는 chart 기본값
+     * 부터 다시 시작합니다. 둘 다 true 로 주면 {@code resetValues} 가 이깁니다.
      */
     @org.springframework.web.bind.annotation.PutMapping(
             value = "/{releaseName}",

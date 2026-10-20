@@ -37,9 +37,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "cluster")
-// api_server_*, server_ca, client_ca/key/token, monit_server_url 모두 제거
-// cluster-agent 가 in-cluster 에서 모든 K8s API / monitoring 호출 대행. backend 는 admin 자격
-// 보관 불필요. dial-in token + agent SA 권한이 source-of-truth.
+// K8s 접속 정보와 자격증명 컬럼은 없습니다. cluster-agent 가 cluster 안에서 모든 호출을 대신하므로
+// backend 는 admin 자격을 보관하지 않습니다. 권한의 출처는 agent 의 SA 입니다.
 @JsonPropertyOrder({
     "id",
     "description",

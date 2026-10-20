@@ -20,7 +20,7 @@ public final class AgentLiveness {
     }
 
     /**
-     * @param lastSeenAt null 이면 등록만 되고 붙은 적이 없다는 뜻이다
+     * @param lastSeenAt null 이면 등록만 되고 한 번도 붙은 적이 없다는 뜻입니다
      */
     public static boolean isStale(
             ClusterAgentStatus status, LocalDateTime lastSeenAt, LocalDateTime now, Duration timeout) {

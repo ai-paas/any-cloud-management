@@ -10,15 +10,15 @@ import java.util.Map;
 /**
  * {@link ClusterEntity#getTags()} 를 JSON 문자열로 저장.
  *
- * <p>{@code @JdbcTypeCode(SqlTypes.JSON)} 을 쓰지 않는 이유는 ddl-auto=validate 와 충돌하기
- * 때문이다. MariaDB 의 JSON 은 네이티브 타입이 아니라 {@code LONGTEXT CHECK (json_valid(..))}
- * 의 별칭이라 information_schema 가 longtext 로 보고하는데, JdbcTypeCode 는 Types#JSON 을
- * 기대해 부팅이 실패한다. 같은 코드가 MySQL 에서는 통과하므로 dialect 를 바꾸면 재현되지 않는다.
+ * <p>{@code @JdbcTypeCode(SqlTypes.JSON)} 은 쓰지 않습니다. MariaDB 의 JSON 은 네이티브 타입이
+ * 아니라 {@code LONGTEXT CHECK (json_valid(..))} 의 별칭이라 information_schema 가 longtext 로
+ * 보고하는데, JdbcTypeCode 는 {@code Types#JSON} 을 기대해 ddl-auto=validate 에서 부팅이
+ * 실패합니다. MySQL 에서는 통과하므로 dialect 를 바꾸면 재현되지 않습니다.
  *
- * <p>컬럼 타입은 그대로 JSON 이다 (V3__cluster_tags.sql). 본 converter 가 쓰는 값도 JSON 이라
- * json_valid CHECK 를 만족한다.
+ * <p>컬럼 타입은 그대로 JSON 입니다. 이 converter 가 쓰는 값도 JSON 이라 json_valid CHECK 를
+ * 만족합니다.
  *
- * <p>autoApply 를 쓰지 않는다. 다른 Map 필드까지 끌어가면 의도하지 않은 직렬화가 생긴다.
+ * <p>autoApply 는 켜지 마세요. 다른 Map 필드까지 끌어가 의도하지 않은 직렬화가 생깁니다.
  */
 @Converter
 public class ClusterTagsConverter implements AttributeConverter<Map<String, String>, String> {

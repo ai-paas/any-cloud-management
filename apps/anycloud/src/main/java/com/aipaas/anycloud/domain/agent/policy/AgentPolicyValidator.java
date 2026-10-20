@@ -15,13 +15,8 @@ import org.springframework.stereotype.Component;
  *
  * <p>참고 룰북: {@code docs/runbooks/cluster-agent-resource-policy.md}.
  *
- * <p>Severity 4 단계:
- * <ul>
- *   <li>HIGH    — 즉시 위험 (secret 유출 등). 조치 권장</li>
- *   <li>MEDIUM  — 잠재 위험 또는 misconfiguration (typo 등)</li>
- *   <li>LOW     — non-default 선택. 의도 확인 권장</li>
- *   <li>INFO    — 참고 정보 (wildcard 사용 중 등)</li>
- * </ul>
+ * <p>severity 는 HIGH(secret 유출 같은 즉시 위험), MEDIUM(오타 등 설정 실수), LOW(기본값이 아닌
+ * 선택), INFO(참고) 네 단계입니다.
  */
 @Component
 public class AgentPolicyValidator {

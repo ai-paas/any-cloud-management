@@ -18,20 +18,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Fleet upgrade staggered rollout — agent 신버전 배포의 wave-based 순차 처리.
+ * fleet upgrade 의 현황 조회와 wave 지정입니다. 실제 진행은
+ * {@link FleetUpgradeOrchestrator} 가 맡습니다.
  *
- * <p>운영 워크플로우:
- * <ol>
- *   <li>운영자가 각 cluster 의 upgrade_wave 지정 (CANARY / STAGING / GENERAL / PAUSED).
- *       기본값 GENERAL — 신규 등록 cluster 는 일반 wave.</li>
- *   <li>{@link #preview} 로 현재 fleet 의 wave 분포 + agent_version 분포 확인.</li>
- *   <li>운영자가 CANARY wave 만 신버전으로 upgrade trigger (별도 sprint 의 실제 trigger 로직).</li>
- *   <li>CANARY 안정화 후 STAGING → GENERAL 순차 진행.</li>
- *   <li>이상 cluster 는 PAUSED 로 빼서 격리.</li>
- * </ol>
+ * <p>cluster 마다 upgrade_wave 를 CANARY, STAGING, GENERAL, PAUSED 중 하나로 둡니다. 새로 등록된
+ * cluster 는 GENERAL 입니다. 문제가 있는 cluster 를 PAUSED 로 빼 두면 어느 wave 에도 끼지 않습니다.
  *
- * <p> (본 sprint): preview + wave 지정. (다음): orchestrator (실제 helm upgrade
- * trigger via agent APPLY_MANIFEST + 진행률 추적 + 자동 abort).
+ * <p>{@link #preview} 로 wave 분포와 agent_version 분포를 먼저 보고 계획을 세우세요.
  */
 @Slf4j
 @Service

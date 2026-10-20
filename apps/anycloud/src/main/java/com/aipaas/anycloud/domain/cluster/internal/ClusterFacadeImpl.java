@@ -29,24 +29,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * 통합 cluster facade. {@code /v1/clusters} 컨트롤러가 사용하는 단일 진입점.
+ * {@code /v1/clusters} 컨트롤러의 단일 진입점입니다. VM 과 registered 두 source 를 한 목록으로
+ *합쳐 보여 줍니다.
  *
- * <p>create() 의 source 분기는 {@link ClusterProvider} strategy 로 위임. list / patch / delete /
- * createOperation 은 source 별 분기가 단순하거나 vm-only 라 그대로 유지.
- *
- * <p>책임 group (7 deps) :
- * <ol>
- *   <li>Source dispatch — {@code providersBySource} ({@link ClusterProvider} strategy).
- *       create / patch / delete 가 source 별 위임.</li>
- *   <li>Paged read — {@code vmClusterService}, {@code clusterService}, {@code agentHealthService}.
- *       {@link #listPaged}, {@link #pageSingleSource}, {@link #listVm}, {@link #listRegistered} +
- *       {@code Cursor} record. 이미 helper 로 분리됨.</li>
- *   <li>Operation lifecycle — {@code operationService}, {@code operationMapper}.
- *       createOperation / domain 변형.</li>
- *   <li>Repository fallback — {@code vmClusterRepository}. getOne 단일 사이트, 추출 무가치.</li>
- * </ol>
- *
- * <p>향후 controller 가 source-별 service 직접 호출하면 본 facade 는 paged read facade 만 남는다.
+ * <p>source 별 분기는 {@link ClusterProvider} strategy 가 맡습니다. 새 source 를 추가할 때
+ * 여기에 if 를 더하지 말고 provider 를 등록하세요.
  */
 @Slf4j
 @Service
@@ -136,7 +123,7 @@ public class ClusterFacadeImpl implements ClusterFacade {
      * 이름으로 재시도하면 실패한 vm 행이 계속 남는다. 합치지 않으면 클러스터 하나가 화면에 여러 줄로
      * 보인다.
      *
-     * @param hideDeadOnly status 필터가 없을 때만 true — 사용자가 FAILED 를 직접 조회하면 숨기지 않는다.
+     * @param hideDeadOnly status 필터가 없을 때만 true 입니다. FAILED 를 직접 조회하면 숨기지 않습니다.
      */
     private List<UnifiedClusterResponse> collapseByName(List<UnifiedClusterResponse> rows, boolean hideDeadOnly) {
         Map<String, List<UnifiedClusterResponse>> byName = rows.stream()

@@ -6,30 +6,18 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Registered cluster 의 lifecycle status. enum 정의 + canTransitionTo graph + helper.
+ * 등록된 cluster 의 lifecycle status 입니다. 전이 규칙은 {@link #canTransitionTo} 가 단일 출처이고,
+ * 아래 그림은 읽기용입니다.
  *
- * <p>ClusterEntity.status field 는 String — 호출 측이 {@link #name()} 으로 변환. type 안정성은 호출자 책임.
- *
- * <p><b> (future)</b>: ClusterEntity.status field 를 {@code @Enumerated(STRING)} 으로 변경
- * + Flyway migration (varchar(45) → enum). 기존 데이터 값이 모두 enum 정의에 매칭되어야 함.
- *
- * <p><b>State diagram</b>:
  * <pre>
- *  initial (null/empty)
- *      │
- *      ├──▶ AGENT_PENDING (agent-first 등록)
- *      │       │
- *      │       ▼ agent backfill
- *      ├──▶ UNKNOWN (status 모름 — 초기 또는 일시적)
- *      │       │
- *      │       ▼ health check
- *      └──▶ ACTIVE ◄──┐
- *               │      │ K8s API 응답 회복
- *               ▼      │
- *           INACTIVE ──┘
+ *  (없음) ──▶ AGENT_PENDING ──agent 등록──▶ ACTIVE ◄──heartbeat 회복──┐
+ *         └─▶ UNKNOWN ──────health check──▶ ACTIVE ──heartbeat 끊김──┴─▶ INACTIVE
  * </pre>
  *
- * <p>Day-2 운영 중 ACTIVE ↔ INACTIVE 빈번 — connectivity 변동 그대로 반영.
+ * <p>운영 중 ACTIVE 와 INACTIVE 는 자주 오갑니다. agent 연결 상태를 그대로 반영하기 때문입니다.
+ *
+ * <p>{@code ClusterEntity.status} 는 String 컬럼입니다. 값을 넣을 때 {@link #name()} 을 쓰세요.
+ * 임의 문자열이 들어가도 DB 가 막지 않습니다.
  */
 public enum ClusterStatus {
 

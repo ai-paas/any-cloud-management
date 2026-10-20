@@ -10,18 +10,18 @@ import java.util.List;
 /** 통합 cluster facade. {@code /v1/clusters} 컨트롤러가 사용하는 단일 진입점. */
 public interface ClusterFacade {
 
-    /**
-     * 통합 list. source 가 null 이면 vm + registered 모두 반환.
-     */
+    /** source 가 null 이면 vm 과 registered 를 모두 돌려줍니다. */
     List<UnifiedClusterResponse> list(String source, String provider, String environment, String status);
 
     /**
-     * Paged variant. cursor 는 opaque 한 문자열로 controller 가 round-trip — 형식 ({@code vm:offset} /
-     * {@code registered:offset}) 은 service 내부 구현 세부사항이며 client 가 파싱하면 금지. source 명시 시
-     * 그 source 단일 page; 미명시 시 vm 먼저 exhaust 후 registered.
+     * 페이지 단위 조회입니다. source 를 지정하면 그 source 만, 비워 두면 vm 을 먼저 다 돌고
+     * registered 로 넘어갑니다.
+     *
+     * <p>{@code pageToken} 은 불투명한 값입니다. 형식은 내부 구현이라 바뀔 수 있으니 받은 값을
+     * 그대로 돌려보내기만 하세요.
      *
      * @param pageSize 1..500.
-     * @param pageToken null/blank 이면 첫 페이지. 응답 nextPageToken 을 그대로 round-trip.
+     * @param pageToken null 이거나 비어 있으면 첫 페이지.
      */
     PagedClusters listPaged(
             String source, String provider, String environment, String status, int pageSize, String pageToken);

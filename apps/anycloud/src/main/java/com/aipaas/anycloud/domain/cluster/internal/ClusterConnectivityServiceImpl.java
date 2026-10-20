@@ -53,7 +53,7 @@ public class ClusterConnectivityServiceImpl implements ClusterConnectivityServic
                     clusterName);
             return true;
         }
-        // agent 가 유일한 경로다. backend 는 cluster 자격증명이 없어 직접 ping 할 수단이 없다.
+        // agent 가 유일한 경로입니다. backend 는 자격증명이 없어 직접 ping 할 수단이 없습니다.
         log.info("Connection test failed (agent unhealthy): cluster={}, {}", clusterName, health.summary());
         return false;
     }
@@ -78,7 +78,7 @@ public class ClusterConnectivityServiceImpl implements ClusterConnectivityServic
             return;
         }
 
-        // agent 가 유일한 경로다. heartbeat 가 없으면 버전도 상태도 알 수 없다.
+        // agent 가 유일한 경로입니다. heartbeat 가 없으면 버전도 상태도 알 수 없습니다.
         log.warn("Cluster {} is not accessible: {}", clusterEntity.getId(), health.summary());
         clusterEntity.transitionStatus(ClusterStatus.INACTIVE, "health.fail");
         clusterEntity.setVersion("UNKNOWN");

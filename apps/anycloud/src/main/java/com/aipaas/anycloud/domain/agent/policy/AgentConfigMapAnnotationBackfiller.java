@@ -16,21 +16,14 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Backend startup 시 모든 ACTIVE cluster 의 ConfigMap 에 {@code helm.sh/resource-policy: keep}
- * annotation 누락 검출 + 자동 추가. 운영자 manual 명령 불요.
+ * 부팅 때 ACTIVE cluster 의 ConfigMap 에 {@code helm.sh/resource-policy: keep} 이 있는지 보고
+ * 없으면 붙입니다. 이 annotation 이 없으면 helm upgrade 가 운영자가 바꾼 정책을 덮어씁니다.
  *
- * <p>실행 패턴:
- * <ul>
- *   <li>{@link ApplicationReadyEvent} 수신 시 1회 실행 (startup 직후, Spring context 안정화 후)</li>
- *   <li>{@link AsyncConfig#KUBERNETES_EXECUTOR} 에서 비동기 — 다른 startup task 차단 안 함</li>
- *   <li>각 cluster 의 호출 결과 logging — 운영자가 startup 로그에서 backfill 상태 확인 가능</li>
- *   <li>한 cluster 실패해도 나머지 진행 (best-effort)</li>
- *   <li>이미 annotation 있는 ConfigMap 은 agent 측이 no-op — 멱등 보장</li>
- * </ul>
+ * <p>{@link ApplicationReadyEvent} 에서 한 번만, {@link AsyncConfig#KUBERNETES_EXECUTOR} 로 돕니다.
+ * 한 cluster 가 실패해도 나머지는 계속합니다. 이미 붙어 있으면 agent 쪽에서 no-op 입니다.
  *
- * <p><b>중요</b>: agent 가 {@code ENSURE_AGENT_CONFIG_ANNOTATIONS} command 지원하지 않는 (구) 이미지면
- * PERMISSION_DENIED 또는 UNKNOWN_COMMAND. 그 경우 운영자가 manual runbook 의 Option A (kubectl
- * annotate) 사용. logging 으로 식별 가능.
+ * <p>{@code ENSURE_AGENT_CONFIG_ANNOTATIONS} 를 모르는 옛 agent image 면 PERMISSION_DENIED 나
+ * UNKNOWN_COMMAND 가 납니다. 로그로 확인하고 {@code kubectl annotate} 로 직접 붙이세요.
  */
 @Slf4j
 @Component

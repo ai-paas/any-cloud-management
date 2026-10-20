@@ -10,23 +10,10 @@ import java.util.Map;
 public interface AgentPolicyAuditService {
 
     /**
-     * 모든 등록 cluster 의 agent policy snapshot + validator 결과 집계.
+     * 등록된 모든 cluster 의 policy snapshot 을 모아 validator 결과를 집계합니다.
      *
-     * <p>응답 구조:
-     * <pre>
-     * {
-     *   "totalClusters": N,
-     *   "scannedClusters": N - unreachable,
-     *   "unreachableClusters": M,
-     *   "totalWarnings": W,
-     *   "bySeverity": { HIGH, MEDIUM, LOW, INFO, NONE, UNREACHABLE },
-     *   "durationMs": D,
-     *   "clusters": [ { clusterName, clusterStatus, highestSeverity, warningCount,
-     *                   topCodes, lastReloadAt, configMapResourceVersion }, ... ]
-     * }
-     * </pre>
-     *
-     * <p>per-cluster timeout / 정렬 (HIGH 우선) / UNREACHABLE 표시 모두 impl 책임.
+     * <p>닿지 않는 cluster 는 집계에서 빼지 않고 UNREACHABLE 로 표시합니다. 조용히 빼면 "경고 없음"
+     * 과 구분되지 않습니다. 목록은 HIGH 가 먼저 오도록 정렬합니다.
      */
     Map<String, Object> runFleetAudit();
 }

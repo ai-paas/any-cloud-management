@@ -5,14 +5,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 /**
- * Agent policy PUT / PATCH 요청 body. backend 가 본 payload 를 agent 의 ConfigMap 으로 push.
+ * agent policy PUT / PATCH 의 body 입니다. backend 가 이 값을 agent 의 ConfigMap 으로 밀어 넣습니다.
  *
- * @param allowedNamespaces      명시 namespace list. {@code ["*"]} 도 가능 (모든 ns 허용).
- * @param allowedCommands        RPC 종류 list (예: "LIST_PODS").
- * @param allowedCharts          Helm chart rule list (format: "repo/name:min-max" 또는
- * @param allowedExecNamespaces  PodExec 전용 namespace list.
- * @param resourcePolicy         resource_policy 구조 (옵션, null 이면 변경 안 함 — PATCH 의미).
- * @param force                  true 면 HIGH severity warning 도 무시하고 적용.
+ * <p>PATCH 에서 null 필드는 현재 값을 그대로 둡니다. PUT 은 전체 교체라 목록 셋이 모두 있어야 합니다.
  */
 @Schema(
         description = "Agent allowlist + resource_policy PUT / PATCH 요청. ConfigMap 으로 직접 push. "
@@ -39,19 +34,11 @@ public record AgentPolicyUpdateRequest(
                 AgentPolicySnapshot.ResourcePolicy resourcePolicy,
 
         /**
-         * HIGH severity warning 무시하고 강제 적용.
+         * HIGH 경고를 무시하고 적용합니다. 긴급 대응에만 쓰세요.
          *
-         * <p>대표적인 HIGH 경고:
-         * <ul>
-         *   <li>{@code MISSING_MANAGEMENT_COMMANDS} — allowedCommands 에서
-         *       APPLY_AGENT_CONFIG/GET_AGENT_CONFIG/ENSURE_AGENT_CONFIG_ANNOTATIONS 누락.
-         *       force=true 적용 시 backend 가 다음 호출에서 PERMISSION_DENIED — 복구는
-         *       {@code kubectl patch cm -n aipaas-system aipaas-agent-allowlist} 로 직접.
-         *   <li>{@code MISSING_SECRETS_DENY} — secrets 가 deny 에서 빠진 RBAC 위험.</li>
-         *   <li>{@code STRICT_EMPTY_ALLOW} — strict mode 인데 allow list 비어있음.</li>
-         * </ul>
-         *
-         * <p>운영 권장: force=true 는 reset/긴급 대응 한정. 일반 변경은 권고 따라 명시 수정.
+         * <p>{@code MISSING_MANAGEMENT_COMMANDS} 를 무시하면 backend 가 ConfigMap 을 더 이상 고칠 수
+         * 없게 됩니다. 그때는 {@code kubectl patch cm -n aipaas-system aipaas-agent-allowlist} 로
+         * 직접 복구해야 합니다.
          */
         @Schema(
                         description = "true 면 HIGH severity warning 도 무시하고 적용 (긴급 대응용). "

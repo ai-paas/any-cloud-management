@@ -24,23 +24,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Admin endpoint — 이미 등록된 cluster 에 cluster-agent 를 재배포 (chart upgrade, agent 손상
- * 복구, image 갱신 등).
+ * 이미 등록된 cluster 에 agent 를 다시 배포합니다. chart 가 바뀌었거나 agent pod 가 복구되지 않을
+ * 때 씁니다.
  *
- * <p>{@link AgentApiManagedInstaller#install} 를 재호출.
- * {@link com.aipaas.anycloud.domain.kube.KubeService#applyResource} 가 server-side apply
- * (idempotent) 라 동일 manifest 재적용 시 변경분만 patch — agent pod RollingUpdate 가
- * 새 deployment.yaml / image 로 자동 교체.
+ * <p>server-side apply 라 같은 manifest 를 여러 번 보내도 안전합니다.
  *
- * <p>호출 시점:
- * <ul>
- *   <li>agent helm chart 변경 (e.g., /tmp emptyDir mount 추가) 후 fleet rollout.</li>
- *   <li>agent image 신버전 push 후 cluster-by-cluster 재배포 (fleet upgrade orchestrator 대체).</li>
- *   <li>agent pod 가 misconfigured Secret 등으로 영구 CrashLoopBackOff 일 때 manifest 재적용.</li>
- * </ul>
+ * <p>호출할 때마다 registration token 이 새로 발급됩니다. 이전 token 은 따로 무효화하지 않고 10분
+ * TTL 로 만료됩니다.
  *
- * <p>새 registration token 이 발급됨 — 이전 token 은 jti 단위로 invalidate 되지 않지만 10분
- * TTL 후 자연 만료. 새 token 으로 agent 가 다시 register → 새 identity_token + cert 발급.
+ * <p>agent gRPC 가 끊긴 cluster 에는 적용할 수 없습니다. backend 가 cluster 자격증명을 보관하지
+ * 않아 agent 를 거치지 않고 apply 할 수단이 없습니다. 그때는 응답이 알려주는 manifest 를 운영자가
+ * 직접 적용해야 합니다.
  */
 @Slf4j
 @RestController

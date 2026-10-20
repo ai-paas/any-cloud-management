@@ -38,9 +38,9 @@ public class AnycloudClusterCapabilitiesSink implements ClusterCapabilitiesSink 
                 return;
             }
             /*
-             * heartbeat 의 gpu_node_count 는 드라이버가 올라오기 전에는 0 이다. 그 값을 그대로
-             * 쓰면 GPU 로 만든 클러스터가 false 로 뒤집혀 화면에서 가속기 영역이 사라지고,
-             * gpu-operator 자동 등록도 건너뛴다. 요청이 GPU 였으면 내리지 않는다.
+             * heartbeat 의 gpu_node_count 는 드라이버가 올라오기 전까지 0 입니다. 그대로 쓰면
+             * GPU 로 만든 cluster 가 false 로 뒤집혀 화면에서 가속기 영역이 사라지고
+             * gpu-operator 자동 등록도 건너뜁니다. 요청이 GPU 였으면 내리지 않습니다.
              */
             if (!value && requestedGpuNodes(clusterName)) {
                 log.debug("setHasGpuNodes: cluster {} 는 GPU 요청이라 false 로 내리지 않는다", clusterName);

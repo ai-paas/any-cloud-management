@@ -14,22 +14,17 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * DB-backed {@link SigningKeyResolver} — JWT signing key 를 영구 저장해 backend 재시작 후에도
- * 기존 등록된 cluster-agent 의 registration_token 이 검증 가능하게 함.
+ * JWT signing key 를 DB 에 보관합니다. 메모리에만 두면 backend 가 재시작할 때마다 키가 바뀌어
+ * 이미 발급된 registration_token 이 전부 검증에 실패합니다.
  *
- * <p><b>Lifecycle</b>: starter 의 {@code JwtRegistrationTokenService.initSigningKey} 가 startup 시
- * 1회 호출. row 가 없으면 secure-random 64B 생성 + insert. 이후 모든 instance 는 동일 row 를 read.
+ * <p>부팅 때 row 가 없으면 64바이트 난수를 만들어 넣습니다. replica 가 동시에 뜨면 둘 다 insert 를
+ * 시도하는데, UNIQUE 제약으로 하나만 성공하고 진 쪽은 {@link DataIntegrityViolationException} 을
+ * 받아 다시 읽습니다.
  *
- * <p><b>Race-safety</b>: 다중 instance 가 동시에 startup 하는 경우 둘 다 insert 시도 → UNIQUE 제약
- * 으로 1건만 성공. 진 instance 는 {@link DataIntegrityViolationException} catch 후 re-read.
+ * <p>{@code active=true} 중 가장 최근 row 를 씁니다. 키를 교체할 때는 새 row 를 넣고 이전 row 를
+ * {@code active=false} 로 내리면 됩니다.
  *
- * <p><b>Rotation (future)</b>: 새 키 발급 시 새 row insert + 이전 row {@code active=false} 마킹.
- * 본 resolver 는 {@code active=true} 중 최근 row 자동 선택 — rotation 의 cutover 는 transaction
- * boundary 안에서 단일 atomic UPDATE+INSERT 로 처리하면 zero-downtime.
- *
- * <p><b>충돌 회피</b>: starter 의 default {@code PropertySigningKeyResolver} 는
- * {@code @ConditionalOnMissingBean} — 본 {@code @Component} 가 등록되면 starter default 가
- * skip 됨.
+ * <p>이 bean 이 있으면 starter 의 {@code PropertySigningKeyResolver} 는 등록되지 않습니다.
  */
 @Slf4j
 @Component

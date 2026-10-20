@@ -7,7 +7,7 @@ public interface NodeDebugPodService {
 
     /**
      * @param toolsShell 호스트가 아니라 클러스터를 보는 셸. kubectl, k9s 가 이미지에서 온다.
-     * @param serviceAccount toolsShell 이 클러스터를 볼 자격. 없으면 kubectl 이 forbidden 을 받는다.
+     * @param serviceAccount toolsShell 이 cluster 를 볼 자격. 없으면 kubectl 이 forbidden 을 받습니다.
      */
     record CreateRequest(
             String nodeName,

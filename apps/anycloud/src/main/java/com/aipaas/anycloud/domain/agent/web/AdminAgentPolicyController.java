@@ -44,24 +44,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Admin endpoint — agent 의 적용된 policy snapshot 조회 + 일관성 검증 + 변경 (PUT/PATCH).
+ * agent policy snapshot 을 조회하고 바꾸는 admin endpoint 입니다.
  *
- * <p><b>설계</b>: backend 에는 정책 DB 저장 안 함. ConfigMap (cluster 안의
- * {@code aipaas-agent-allowlist}) 이 single source of truth. PUT/PATCH 는 새 snapshot 을 agent 에
- * push 해 ConfigMap 을 update — agent 의 기존 watch 가 자동 reload. audit 만 {@code audit_log} 에.
+ * <p>backend 는 정책을 DB 에 두지 않습니다. cluster 안의 ConfigMap
+ * {@code aipaas-agent-allowlist} 가 단일 출처이고, 변경은 agent 에 push 해 ConfigMap 을 갱신하면
+ * agent 의 watch 가 알아서 reload 합니다. DB 에는 audit 만 남습니다.
  *
- * <p>Helm upgrade 시 ConfigMap 보존: chart 의 ConfigMap 에 {@code helm.sh/resource-policy: keep}
- * annotation — chart upgrade 가 PUT 변경분을 덮어쓰지 않음.
+ * <p>chart 의 ConfigMap 에는 {@code helm.sh/resource-policy: keep} 이 붙어 있습니다. 없으면 helm
+ * upgrade 가 여기서 바꾼 정책을 덮어씁니다.
  *
- * <p><b>PUT vs PATCH</b>:
- * <ul>
- *   <li>PUT — 전체 교체. 3개 필수 list (allowedNamespaces / allowedCommands / allowedCharts) 누락 시 400.</li>
- *   <li>PATCH — 부분 갱신. null 필드는 현재 snapshot 값 유지. backend 가 GET → merge → PUT.</li>
- * </ul>
- *
- * <p><b>책임 분리</b> (refactor): controller 는 routing + response building 만. merge /
- * diff / 직렬화 logic 은 각각 {@link AgentPolicyMergeService}, {@link AgentPolicyDiffCalculator}
- * 로 추출. fleet audit 은 {@link AgentPolicyAuditService}.
+ * <p>PUT 은 전체 교체라 필수 목록 셋이 다 있어야 하고, PATCH 는 null 필드를 현재 값으로 둡니다.
  */
 @Slf4j
 @RestController
@@ -404,10 +396,10 @@ public class AdminAgentPolicyController {
     }
 
     /**
-     * 되읽어 요청한 명령이 실제로 들어갔는지 본다.
+     * 되읽어서 요청한 명령이 실제로 들어갔는지 봅니다.
      *
-     * <p>확인할 수 없으면(조회 실패) 통과시킨다 — 적용은 됐는데 조회만 막힌 상황을 실패로
-     * 만들지 않는다. 돌려주는 값은 사람이 읽을 사유이고, 이상 없으면 {@code null} 이다.
+     * <p>조회 자체가 실패하면 통과시킵니다. 적용은 됐는데 조회만 막힌 상황을 실패로 만들지 않기
+     * 위해서입니다. 돌려주는 값은 사람이 읽을 사유이고 이상이 없으면 {@code null} 입니다.
      */
     private String verifyApplied(String clusterName, java.util.List<String> requestedCommands) {
         if (requestedCommands == null || requestedCommands.isEmpty()) {

@@ -20,15 +20,15 @@ public final class GpuInstanceClassifier {
     private static final Pattern IBM = Pattern.compile("^gx\\d.*", Pattern.CASE_INSENSITIVE);
 
     /**
-     * OpenStack 은 flavor 이름을 운영자가 정한다.
+     * OpenStack 은 flavor 이름을 운영자가 정합니다.
      *
-     * <p>설치본마다 규칙이 달라 이름만으로는 확신할 수 없다 — 32-256-gpu, 16-64-gpu-2EA,
-     * hybrid-mig-8-16-50-vgpu2 가 모두 같은 클라우드에 있다. 카탈로그의 gpuCount 가 1차이고
-     * 이건 그게 없을 때의 보조다.
+     * <p>설치본마다 규칙이 달라 이름만으로는 확신할 수 없습니다. 32-256-gpu, 16-64-gpu-2EA,
+     * hybrid-mig-8-16-50-vgpu2 가 한 클라우드에 함께 있습니다. 판단의 1차 근거는 카탈로그의
+     * gpuCount 이고 이 목록은 그 값이 없을 때의 보조입니다.
      */
     private static final List<String> OPENSTACK_MARKERS = List.of("gpu", "mig");
 
-    /** 부정형 이름 — test-novgpu-2-4-20 은 GPU 가 없다는 뜻이다. */
+    /** 부정형 이름. test-novgpu-2-4-20 은 GPU 가 없다는 뜻입니다. */
     private static final List<String> OPENSTACK_NEGATED = List.of("nogpu", "novgpu", "non-gpu");
 
     public static boolean isGpu(String provider, String instanceType) {
@@ -46,9 +46,9 @@ public final class GpuInstanceClassifier {
     }
 
     /*
-     * 정규식이 아니라 부분 문자열로 본다. 앞뒤 .* 로 감싼 대안 패턴은 이름이 길어질수록
-     * 매칭 비용이 제곱으로 늘어(polynomial ReDoS), flavor 이름을 외부에서 받는 자리에서는
-     * 쓸 수 없다.
+     * 정규식이 아니라 부분 문자열로 봅니다. 앞뒤를 .* 로 감싼 대안 패턴은 이름이 길어질수록
+     * 매칭 비용이 제곱으로 늘어(polynomial ReDoS), flavor 이름을 외부에서 받는 자리에는
+     * 쓸 수 없습니다.
      */
     private static boolean isOpenStackGpuFlavor(String type) {
         String lower = type.toLowerCase(Locale.ROOT);

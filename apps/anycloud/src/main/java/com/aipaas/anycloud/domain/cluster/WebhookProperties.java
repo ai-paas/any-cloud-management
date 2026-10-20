@@ -8,25 +8,14 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
- * 외부 포털/시스템에 클러스터 상태 변화를 알리기 위한 webhook 설정.
- * <p>
- * 게이트웨이 뒤의 별도 포털이 동기 polling 대신 event-driven 으로 상태를 받기 위한 핵심.
+ * cluster 상태 변화를 외부 포털로 알리는 webhook 설정입니다. 포털이 주기 조회 대신 이벤트로
+ * 받게 하려는 것입니다.
  *
- * <pre>
- * webhook:
- *   enabled: ${WEBHOOK_ENABLED:false}
- *   urls:
- *     - "https://portal.internal/anycloud/events"
- *   events:                       # filter — 비어 있으면 모두 전송
- *     - vm-cluster.ready
- *     - vm-cluster.failed
- *     - vm-cluster.blocked
- *     - vm-cluster.deleted
- *   signing-secret: ${WEBHOOK_SECRET:}    # HMAC-SHA256 서명 (선택)
- *   timeout-ms: 5000
- *   max-attempts: 3
- *   initial-interval-ms: 500
- * </pre>
+ * <p>{@code events} 가 비어 있으면 전부 보냅니다. 값은 {@code vm-cluster.ready},
+ * {@code vm-cluster.failed}, {@code vm-cluster.blocked}, {@code vm-cluster.deleted} 입니다.
+ *
+ * <p>{@code signing-secret} 을 주면 HMAC-SHA256 서명을 붙입니다. 비워 두면 수신 측이 발신자를
+ * 확인할 수단이 없습니다.
  */
 @Getter
 @Setter

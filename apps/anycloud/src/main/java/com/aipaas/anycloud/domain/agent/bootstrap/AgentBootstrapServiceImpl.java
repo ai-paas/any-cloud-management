@@ -24,19 +24,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Cluster Agent 등록 비즈니스 로직.
+ * cluster agent 등록 로직입니다. 단기 JWT 를 발급하고, agent 가 그걸로 register 하면 장기
+ * identity_token 으로 바꿔 줍니다.
  *
- * <ul>
- *   <li>{@link #issueRegistrationToken}: REST → 단기 JWT 발급 (cluster 등록 사전 필요).</li>
- *   <li>{@link #register}: gRPC bootstrap → JWT 검증 + cluster_agent upsert + identity_token 발급.</li>
- *   <li>{@link #rotateIdentityToken}: 살아있는 token → 신규 token 교체.</li>
- * </ul>
+ * <p>인증 경로는 identity_token 하나뿐입니다. mTLS 는 쓰지 않습니다. 60일 TTL 의 opaque token 이
+ * cluster 의 K8s Secret 에 저장돼 pod 가 재시작해도 그대로 삽니다.
  *
- * <p>mTLS 제거. Rancher 와 동일한 bearer-over-TLS 모델로 회귀. 인증 path 가
- * 단일 (identity_token), CSR/cert renewal 코드 모두 폐기. 60일 TTL 의 opaque token 이 K8s Secret 에
- * 영구 저장 (pod 재시작 안정성). 운영 단순함 우선.
- *
- * <p>synchronous flow (DB transaction 완료 후 응답). 향후 비동기 saga 도입 시 RabbitMQ.
+ * <p>DB 트랜잭션이 끝난 뒤 응답하는 동기 흐름입니다.
  */
 @Slf4j
 @Service
