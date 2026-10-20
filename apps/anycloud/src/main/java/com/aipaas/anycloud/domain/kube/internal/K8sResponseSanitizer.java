@@ -5,16 +5,15 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 
 /**
- * K8s 응답에서 {@code metadata.managedFields} 를 떼고 Secret 값을 가립니다.
+ * K8s 응답에서 {@code metadata.managedFields} 제거, Secret 값 마스킹.
  *
- * <p>managedFields 는 Server-Side Apply 추적용인데 자원 하나의 70~90% 를 차지하는 일이 흔하고
- * 화면에서는 쓰지 않습니다.
+ * <p>managedFields 는 Server-Side Apply 추적용이며 자원 하나의 70~90% 를 차지하는 경우가 많고
+ * 화면에서 미사용.
  *
- * <p>Secret 의 {@code data} 와 {@code stringData} 는 기본으로 가립니다. agent 의 read 권한이
- * wildcard 라 값이 그대로 응답에 실리기 때문입니다. {@code security.kube.redact-secrets=false} 로
- * 끌 수 있습니다.
+ * <p>Secret 의 {@code data} 와 {@code stringData} 는 기본 마스킹. agent 의 read 권한이
+ * wildcard 라 값이 그대로 응답에 포함. {@code security.kube.redact-secrets=false} 로 비활성화 가능.
  *
- * <p>입력 트리를 제자리에서 고칩니다. ObjectMapper 가 만든 mutable 트리를 넘기세요.
+ * <p>입력 트리를 in-place 수정. ObjectMapper 가 생성한 mutable 트리 전달 필요.
  */
 public final class K8sResponseSanitizer {
 

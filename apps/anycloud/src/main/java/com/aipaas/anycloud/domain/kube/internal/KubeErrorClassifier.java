@@ -4,11 +4,11 @@ import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import java.util.Locale;
 
 /**
- * K8s 호출 실패를 reason code 로 분류합니다. 호출 측이 "agent 가 죽었다", "RBAC 가 거부했다",
- * "모르는 kind 다" 를 구분할 수 있어야 하기 때문입니다.
+ * K8s 호출 실패를 reason code 로 분류. 호출 측이 agent 중단, RBAC 거부, 미지원 kind 를 구분
+ * 하기 위함.
  *
- * <p>cause chain 전체의 message 를 모아 놓고 키워드를 찾습니다. 가장 바깥 예외만 보면 wrapper 의
- * 문구가 진짜 원인을 가립니다.
+ * <p>cause chain 전체의 message 를 수집해 키워드 탐색. 최상위 예외만 참조하면 wrapper 문구가
+ * 실제 원인을 가림.
  */
 public final class KubeErrorClassifier {
 
@@ -43,7 +43,7 @@ public final class KubeErrorClassifier {
         String aggregated = aggregateCauseMessages(t).toLowerCase(Locale.ROOT);
         String rootMsg = rootCauseMessage(t);
 
-        // root cause 의 구체적인 키워드를 wrapper 의 일반 키워드보다 먼저 본다.
+        // root cause 의 구체 키워드를 wrapper 의 일반 키워드보다 우선 판정.
         if (aggregated.contains("namespace_not_allowed") || aggregated.contains("not in allowlist")) {
             return new DegradedInfo(
                     "NAMESPACE_NOT_ALLOWED",

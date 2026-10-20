@@ -11,14 +11,14 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
 /**
- * DEGRADED 직후 한 번 더 수렴을 확인한다.
+ * DEGRADED 직후 수렴 1회 추가 확인.
  *
- * <p>VERIFY 가 수렴 예산을 다 쓰면 DEGRADED 로 떨어지는데, 그 뒤 정기 조정 주기(기본 5분)를 통째로
- * 기다렸다. 실측에서 DEGRADED 에서 READY 까지 9분 22초가 걸렸고 대부분이 순수 대기였다. 애드온이
- * 막 뜨는 시점이라 여기서 짧게 한 번 더 보는 것이 가장 값싸게 시간을 줄인다.
+ * <p>VERIFY 가 수렴 예산을 소진하면 DEGRADED 로 전이하고 이후 정기 조정 주기(기본 5분) 전체를
+ * 대기. 실측 DEGRADED 에서 READY 까지 9분 22초, 대부분이 대기 시간. 애드온 기동 시점이라 이
+ * 지점의 짧은 재확인이 비용 대비 효과가 큼.
  *
- * <p>확인은 스케줄러 스레드에서 돈다: VERIFY 는 RabbitMQ consumer 스레드 위에 있어 여기서 더
- * 기다리면 consumer 하나가 통째로 묶인다.
+ * <p>확인은 스케줄러 스레드에서 실행. VERIFY 는 RabbitMQ consumer 스레드 위에 있어 이 지점의
+ * 추가 대기는 consumer 하나를 점유.
  */
 @Slf4j
 @Component
@@ -46,7 +46,7 @@ public class ClusterDegradedNudge {
 
     private void recheck(String clusterName) {
         try {
-            // 확인을 기다리는 사이 사용자가 삭제했을 수 있다. 되살리면 안 된다.
+            // 확인 대기 중 사용자 삭제 가능. 복원 금지.
             boolean stillDegraded = vmClusterRepository
                     .findFirstByClusterNameOrderByCreatedAtDesc(clusterName)
                     .map(c -> c.getProvisioningStatus() == VmClusterStatus.DEGRADED)
@@ -56,7 +56,7 @@ public class ClusterDegradedNudge {
             }
             orchestrator.driveOne(clusterName);
         } catch (Exception e) {
-            // 부가 기능이다. 실패해도 정기 조정이 이어받는다.
+            // 보조 기능. 실패 시 정기 조정이 처리.
             log.warn("DEGRADED 재확인 실패 cluster={}: {}", clusterName, e.toString());
         }
     }

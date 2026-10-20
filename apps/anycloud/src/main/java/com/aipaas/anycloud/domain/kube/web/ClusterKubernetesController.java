@@ -37,12 +37,12 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
- * cluster 안의 K8s 리소스입니다. 계층을 URL 에 그대로 드러냅니다
- * ({@code clusters/{name}/namespaces/{ns}/{kind}/{name}}). list 응답은 모두 페이지 단위입니다.
+ * cluster 내 K8s 리소스. 계층 구조를 URL 에 그대로 반영
+ * ({@code clusters/{name}/namespaces/{ns}/{kind}/{name}}). list 응답은 전부 페이지 단위.
  *
- * <p>namespace 자리에는 sentinel 둘이 더 들어갑니다. {@code _all} 은 전체 namespace 조회고,
- * {@code -} 는 cluster-scoped kind 를 가리키는 K8s 관례입니다. cluster-scoped kind 는 어떤 값을
- * 넣어도 서버가 무시하므로 {@code -} 로 의도를 드러내세요.
+ * <p>namespace 자리에 sentinel 2종 사용 가능. {@code _all} 은 전체 namespace 조회,
+ * {@code -} 는 cluster-scoped kind 를 지칭하는 K8s 관례. cluster-scoped kind 는 입력값을 서버가
+ * 무시하므로 {@code -} 로 의도 표기.
  */
 @Slf4j
 @RestController
@@ -449,7 +449,7 @@ public class ClusterKubernetesController {
      */
     private String effectiveNamespace(String clusterName, String namespace, String kind) {
         ResolvedResource resolved = kindResolver.resolve(clusterName, kind);
-        // resolved 는 input 이나 cluster 가 비었을 때만 null 이다. 그래도 방어한다.
+        // resolved 는 input 또는 cluster 가 빈 경우에만 null. 방어 코드 유지.
         boolean namespaced = resolved == null || resolved.namespaced();
         if (!namespaced) {
             return null;

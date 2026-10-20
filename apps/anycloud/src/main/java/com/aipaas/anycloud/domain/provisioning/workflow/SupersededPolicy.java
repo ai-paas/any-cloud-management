@@ -3,14 +3,14 @@ package com.aipaas.anycloud.domain.provisioning.workflow;
 import com.aipaas.anycloud.domain.provisioning.model.VmClusterStatus;
 
 /**
- * 옛 세대를 가리키는 메시지를 막을지 결정한다.
+ * 이전 세대를 지칭하는 메시지의 차단 여부 결정.
  *
- * <p>가드의 목적은 <b>부활 방지</b>다: 재시작으로 재전달된 옛 메시지가 이미 지운 클러스터를 다시
- * 만드는 사고를 막는다. DESTROY 는 반대 방향이라 막을 이유가 없고, 막으면 같은 이름으로 재시도하며
- * 쌓인 옛 세대를 지울 방법이 사라진다.
+ * <p>가드의 목적은 <b>재생성 방지</b>. 재시작으로 재전달된 이전 메시지가 삭제된 클러스터를
+ * 다시 생성하는 상황 차단. DESTROY 는 반대 방향이라 차단 불필요하며, 차단 시 동일 이름 재시도로
+ * 누적된 이전 세대의 삭제 수단 소멸.
  *
- * <p>다만 DELETING 인 행만 통과시킨다. 그 상태는 사용자가 명시적으로 삭제를 건 결과이고, 그렇지
- * 않은 행에 오는 DESTROY 는 잔존 메시지일 수 있다.
+ * <p>단 DELETING 행만 통과. 해당 상태는 사용자의 명시적 삭제 결과이며, 그 외 행에 도착한
+ * DESTROY 는 잔존 메시지일 가능성 존재.
  */
 public final class SupersededPolicy {
 

@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 노드 단위 조회.
  *
- * <p>{@code /v1/vms} 아래 두면 클러스터 이름 path 변수와 겹친다. 별도 namespace 로 뺀다.
+ * <p>{@code /v1/vms} 하위 배치 시 클러스터 이름 path 변수와 충돌. 별도 namespace 로 분리.
  */
 @RestController
 @RequiredArgsConstructor
@@ -37,8 +37,8 @@ public class VmNodeController {
             @Parameter(description = "0-based 페이지. 비우면 전부") @RequestParam(required = false) Integer page,
             @Parameter(description = "페이지 크기. 비우면 전부") @RequestParam(required = false) Integer size) {
         /*
-         * 노드는 클러스터 행의 stack output 에서 풀어낸 파생 목록이라 DB 에서 자를 수 없다.
-         * 자르는 곳을 여기 한 곳으로 두어 중간 계층이 다시 자르지 않게 한다.
+         * 노드는 클러스터 행의 stack output 에서 파생한 목록이라 DB 절단 불가.
+         * 절단 지점을 이 위치로 한정해 중간 계층의 중복 절단 방지.
          */
         OffsetPage<VmNodeListItemResponse> paged =
                 OffsetPage.of(vmClusterQueryService.listNodes(provider, clusterName), page, size);

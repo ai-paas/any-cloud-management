@@ -230,7 +230,7 @@ public class VmClusterCommandServiceImpl implements VmClusterCommandService {
         // 먼저 걸려 옛 행에 닿지도 못했다.
         List<VmClusterEntity> generations = vmClusterRepository.findAllByClusterNameOrderByCreatedAtDesc(clusterName);
         List<VmClusterEntity> pending = VmClusterDeletionTargets.pending(generations);
-        // 이미 DELETING 인데 멈춘 세대도 다시 걸어야 한다. destroy 가 죽으면 그대로 남는다.
+        // DELETING 상태로 정지한 세대도 재실행 대상. destroy 중단 시 그대로 잔존.
         boolean needsRun = VmClusterDeletionTargets.needsDestroyRun(generations);
 
         //  DELETE 멱등성. 이미 DELETED 인 history row 에 재삭제 요청이 오면 strict state
@@ -278,14 +278,14 @@ public class VmClusterCommandServiceImpl implements VmClusterCommandService {
             action = "vmCluster.forceDelete",
             resourceType = "cluster",
             resourceId = "#clusterName",
-            // 어떤 스택이 남을 수 있는지가 기록의 핵심이다.
+            // 잔존 가능 스택 식별이 기록의 목적.
             summary = "'removed=' + #result.removedRecords() + ', orphanedStacks=' + #result.orphanedStacks()")
     public ForceDeleteResult forceDeleteVmCluster(String clusterName) {
         List<VmClusterEntity> generations = vmClusterRepository.findAllByClusterNameOrderByCreatedAtDesc(clusterName);
         if (generations.isEmpty()) {
             throw new ClusterNotFoundException(clusterName);
         }
-        // destroy 를 돌리지 않으므로 무엇이 남을 수 있는지 먼저 계산한다. 지우고 나면 알 수 없다.
+        // destroy 미실행이므로 잔존 가능 항목을 선행 계산. 삭제 후에는 확인 불가.
         List<String> orphaned = VmClusterDeletionTargets.orphanedStacks(generations);
 
         clusterRepository.findById(clusterName).ifPresent(clusterRepository::delete);

@@ -52,7 +52,7 @@ public class CspCredentialServiceImpl implements CspCredentialService {
         Map<String, String> payload =
                 new LinkedHashMap<>(request.getCredentials() == null ? Map.of() : request.getCredentials());
         ProvisioningProviderValidator.validateCredentialValues(provider, payload);
-        // DB 제약이 먼저 터지면 SQL 오류가 그대로 올라가 무엇이 문제인지 알 수 없다.
+        // DB 제약 위반이 선행하면 SQL 오류가 그대로 전파돼 원인 확인 불가.
         if (cspCredentialRepository.existsByProviderAndName(provider.getCanonicalName(), request.getName())) {
             throw new CustomException(
                     ErrorCode.INVALID_INPUT_VALUE,
@@ -80,7 +80,7 @@ public class CspCredentialServiceImpl implements CspCredentialService {
             action = "credential.update",
             resourceType = "credential",
             resourceId = "#credentialId",
-            // 무엇으로 바꿨는지는 남기지 않는다. 남기면 감사 로그가 비밀 저장소가 된다.
+            // 변경 값 미기록. 기록 시 감사 로그가 비밀값 저장소가 됨.
             summary = "'updated'")
     public CspCredentialResponse updateCredential(String credentialId, UpdateCspCredentialRequest request) {
         CspCredentialEntity entity = getEntity(credentialId);
@@ -143,7 +143,7 @@ public class CspCredentialServiceImpl implements CspCredentialService {
             action = "credential.reveal",
             resourceType = "credential",
             resourceId = "#credentialId",
-            // summary 에 #result 를 넣으면 감사 로그가 비밀 저장소가 된다. 어떤 키를 봤는지만 남긴다.
+            // summary 에 #result 포함 시 감사 로그가 비밀값 저장소가 됨. 조회 키만 기록.
             summary = "'revealed'")
     public Map<String, String> revealCredential(String credentialId) {
         CspCredentialEntity entity = getEntity(credentialId);

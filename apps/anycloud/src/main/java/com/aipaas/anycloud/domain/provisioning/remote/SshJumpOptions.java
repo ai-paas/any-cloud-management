@@ -3,10 +3,10 @@ package com.aipaas.anycloud.domain.provisioning.remote;
 import java.util.List;
 import java.util.regex.Pattern;
 
-/** 점프 호스트를 ssh 인자로 옮긴다. */
+/** 점프 호스트를 ssh 인자로 변환. */
 public final class SshJumpOptions {
 
-    /** 자격증명에서 온 값이지만 옵션처럼 생긴 값이 그대로 ssh 인자가 되면 안 된다. */
+    /** 자격증명 유래 값이라도 옵션 형태 값의 ssh 인자 전달 금지. */
     private static final Pattern SAFE_HOST = Pattern.compile("[A-Za-z0-9][A-Za-z0-9.\\-]*");
 
     private static final Pattern SAFE_USER = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._\\-]*");
@@ -14,14 +14,14 @@ public final class SshJumpOptions {
     private SshJumpOptions() {}
 
     /**
-     * 점프가 없으면 빈 목록.
+     * 점프 호스트 부재 시 빈 목록.
      *
-     * <p>{@code -J} 를 쓰지 않는다. {@code -J} 는 내부 ssh 를 하나 더 띄우는데 그쪽에 인증 옵션을
-     * 실어 보낼 방법이 없다. 컨테이너에는 {@code ~/.ssh/config} 가 없어 비밀번호 bastion 이면
-     * publickey 로 시도하다 "Connection timed out during banner exchange" 로 멈춘다.
+     * <p>{@code -J} 미사용. {@code -J} 는 내부 ssh 를 추가 실행하는데 해당 프로세스에 인증 옵션
+     * 전달 수단 부재. 컨테이너에 {@code ~/.ssh/config} 가 없어 비밀번호 bastion 은 publickey 로
+     * 시도하다 "Connection timed out during banner exchange" 로 정지.
      *
-     * <p>host 는 있는데 user 가 없으면 예외다: 조용히 무시하면 점프를 설정한 줄 알고 있는데
-     * 노드에 직접 붙어 실패한다.
+     * <p>host 존재, user 부재 시 예외. 무시하면 점프 설정이 적용된 것으로 인식한 상태에서 노드에
+     * 직접 접속해 실패.
      */
     public static List<String> args(SshJump jump) {
         if (jump == null) {

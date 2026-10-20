@@ -15,9 +15,8 @@ public final class RequestedAddons {
     public static Map<String, AddonType> catalogEntries(VmClusterInternalRequestSnapshot spec) {
         Map<String, AddonType> entries = new LinkedHashMap<>();
         /*
-         * GPU 노드를 골랐으면 드라이버 스택도 함께 올린다. 화면이 보내는 플래그에만 기대면
-         * 실제로 그랬다: GPU 인스턴스로 만들어도 operator 가 없어 GPU 를 쓸 수 없었다.
-         * 명시로 끈 경우는 존중한다.
+         * GPU 노드 선택 시 드라이버 스택도 함께 설치. 화면 전송 플래그에만 의존하면 GPU
+         * 인스턴스 생성 후에도 operator 부재로 GPU 사용 불가. 명시적 비활성화는 유지.
          */
         if (!Boolean.FALSE.equals(spec.getEnableGpuOperator())
                 && (Boolean.TRUE.equals(spec.getEnableGpuOperator()) || hasGpuNodes(spec))) {
@@ -26,15 +25,15 @@ public final class RequestedAddons {
         if (Boolean.TRUE.equals(spec.getEnableIngress())) {
             entries.put("ingress-nginx", AddonType.INGRESS_NGINX);
         }
-        // null 은 켜짐으로 읽지 않는다: 이 값이 없던 시절의 클러스터가 "애드온 누락" 으로
-        // DEGRADED 가 된다. 새 요청에는 기본값이 채워져 들어온다.
+        // null 을 활성으로 해석하지 않음. 해당 값 도입 이전 클러스터가 애드온 누락으로
+        // DEGRADED 전이. 신규 요청에는 기본값이 채워져 수신.
         if (Boolean.TRUE.equals(spec.getEnableMonitoring())) {
             entries.put("kube-prometheus-stack", AddonType.MONITORING);
         }
         return entries;
     }
 
-    /** 고른 인스턴스 타입으로 판정한다. 화면이 계산해 보내면 UI 를 우회했을 때 갈린다. */
+    /** 선택한 인스턴스 타입 기준 판정. 화면에서 계산해 전송하면 UI 우회 시 결과 불일치. */
     private static boolean hasGpuNodes(VmClusterInternalRequestSnapshot spec) {
         return GpuInstanceClassifier.isGpu(spec.getClusterProvider(), spec.getMasterVmSpec())
                 || GpuInstanceClassifier.isGpu(spec.getClusterProvider(), spec.getWorkerVmSpec());

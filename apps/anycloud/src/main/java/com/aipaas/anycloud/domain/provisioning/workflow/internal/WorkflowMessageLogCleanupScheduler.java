@@ -13,10 +13,10 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 워크플로 메시지 처리 기록 정리.
  *
- * <p>메시지마다 한 행씩 쌓이는데 정리하는 곳이 없었다. 다른 도메인은 모두 보관 기간이 있다.
+ * <p>메시지당 한 행씩 누적되나 정리 주체 부재. 다른 도메인은 모두 보관 기간 보유.
  *
- * <p>이 표는 멱등성에도 쓰인다: {@code existsByMessageId} 가 재처리를 건너뛴다. 보관 기간이
- * 재전달 창(AMQP ack 타임아웃 30분)보다 짧으면 지워진 뒤 도착한 재전달이 같은 단계를 두 번 돌린다.
+ * <p>이 테이블은 멱등성 판정에도 사용. {@code existsByMessageId} 가 재처리를 차단. 보관 기간이
+ * 재전달 창(AMQP ack 타임아웃 30분)보다 짧으면 삭제 후 도착한 재전달이 동일 단계를 중복 실행.
  *
  * <p>설정
  * <ul>
@@ -52,7 +52,7 @@ public class WorkflowMessageLogCleanupScheduler {
                 log.info("워크플로 메시지 기록 {}건 정리 (cutoff={}, 보관 {}일)", deleted, cutoff, retentionDays);
             }
         } catch (Exception e) {
-            // 정리 실패가 워크플로를 막지 않는다.
+            // 정리 실패가 워크플로를 차단하지 않음.
             log.warn("워크플로 메시지 기록 정리 실패: {}", e.toString());
         }
     }
