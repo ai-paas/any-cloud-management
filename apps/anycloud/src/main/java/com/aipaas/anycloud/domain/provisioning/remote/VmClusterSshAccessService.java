@@ -26,7 +26,8 @@ public interface VmClusterSshAccessService {
 
     record SshKeyResult(String clusterName, String sshUser, String privateKeyPem, List<NodeSshInfo> nodes) {
 
-        public record NodeSshInfo(String role, String publicIp, String privateIp, String sshCommand) {}
+        /** @param sshPort NAT 뒤 노드는 노드마다 다른 포트. sshCommand 의 {@code -p} 와 같은 값 */
+        public record NodeSshInfo(String role, String publicIp, String privateIp, int sshPort, String sshCommand) {}
     }
 
     class VmClusterSshAccessException extends RuntimeException {

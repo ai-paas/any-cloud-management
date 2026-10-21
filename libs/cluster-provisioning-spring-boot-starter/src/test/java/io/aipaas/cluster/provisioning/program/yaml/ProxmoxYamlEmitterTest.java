@@ -249,7 +249,7 @@ class ProxmoxYamlEmitterTest {
         Map<String, String> cfg = cfg();
         cfg.put("providerSpec.nodeIps", "192.168.0.200,192.168.0.201");
         cfg.put("providerSpec.gateway", "192.168.0.1");
-        cfg.put("providerSpec.sshHost", "220.78.15.185");
+        cfg.put("providerSpec.sshHost", "203.0.113.10");
         cfg.put("providerSpec.sshPorts", "2200,2201");
         return cfg;
     }
@@ -300,7 +300,7 @@ class ProxmoxYamlEmitterTest {
         Map<String, Object> outputs = (Map<String, Object>) doc(staticCfg()).get("outputs");
 
         assertThat(outputs.get("masterPrivateIp")).isEqualTo("192.168.0.200");
-        assertThat(outputs.get("masterPublicIp")).isEqualTo("220.78.15.185");
+        assertThat(outputs.get("masterPublicIp")).isEqualTo("203.0.113.10");
     }
 
     @Test

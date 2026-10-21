@@ -67,8 +67,13 @@ public class VmClusterNodeSshSessionServiceImpl implements VmClusterNodeSshSessi
                         .anyMatch(host::equals))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("이 클러스터의 노드가 아닙니다: " + host));
-        // 노드 목록 포함 여부와 ssh 인자 안전성은 별개. 옵션 형태 값은 여기서 차단.
-        String target = NodeSshCommand.requireSafeHost(host);
+        /*
+         * 접속 주소의 출처는 요청 host 가 아닌 매칭된 행. NAT 뒤 클러스터는 전체 노드가 동일
+         * 공인 주소를 사용하고 포트로만 구분되므로, 화면은 노드별 사설 IP 로 지목하고 접속은
+         * 그 행의 공인 IP 와 sshPort 로 수행. 요청 host 를 그대로 사용하면 사설 IP 직접 접속
+         * 시도 또는 다른 노드의 포트로 연결.
+         */
+        String target = NodeSshCommand.requireSafeHost(sshTargetOf(matchedRow));
 
         String privateKeyPem = privateKeyOf(cluster);
         Path keyPath = writeKey(privateKeyPem);
@@ -160,6 +165,14 @@ public class VmClusterNodeSshSessionServiceImpl implements VmClusterNodeSshSessi
      * DB 의 raw_outputs 에는 비밀값이 REDACTED 로 저장. 개인키는 Pulumi 에서 호출 시점에
      * 복호화해 조회.
      */
+    /** 접속 가능한 주소. 공인 IP 우선, 없으면 DNS, 그다음 사설 IP (점프 호스트 경유). */
+    private static String sshTargetOf(VmClusterNodeRows.Row row) {
+        return Stream.of(row.publicIp(), row.publicDns(), row.privateIp())
+                .filter(v -> v != null && !v.isBlank())
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("노드에 접속 가능한 주소가 없습니다: " + row.nodeName()));
+    }
+
     private String privateKeyOf(VmClusterEntity cluster) {
         if (cluster.getStackName() == null || cluster.getStackName().isBlank()) {
             throw new IllegalStateException("SSH 키가 아직 없습니다. 프로비저닝이 끝나야 접속할 수 있습니다.");

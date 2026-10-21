@@ -24,6 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class VmClusterSshAccessServiceImpl implements VmClusterSshAccessService {
 
+    /** outputs 에 sshPort 가 없는 이전 스택 대체값. */
+    private static final int DEFAULT_SSH_PORT = 22;
+
     private final VmClusterRepository vmClusterRepository;
     private final ProvisioningService provisioningService;
     private final PulumiProperties pulumiProperties;
@@ -79,8 +82,17 @@ public class VmClusterSshAccessServiceImpl implements VmClusterSshAccessService 
             String privateIp = stringValue(node.get("privateIp"));
             String role = stringValue(node.get("role"));
             String target = publicIp != null && !publicIp.isBlank() ? publicIp : privateIp;
-            String sshCommand = target == null ? null : "ssh -i " + clusterName + "-ssh.pem " + sshUser + "@" + target;
-            nodes.add(new SshKeyResult.NodeSshInfo(role, publicIp, privateIp, sshCommand));
+            /*
+             * NAT 뒤 클러스터는 전체 노드가 동일 공인 주소를 사용하고 포트로만 구분. -p 누락
+             * 시 22 번으로 연결돼 어느 노드에도 미도달. outputs 의 ssh 필드 미사용 사유는 해당
+             * 문자열의 키 경로가 서버 쪽 (./secrets/*.pem) 이라 사용자 다운로드 파일명과 불일치.
+             */
+            int sshPort = intValue(node.get("sshPort"), DEFAULT_SSH_PORT);
+            String portOption = sshPort == DEFAULT_SSH_PORT ? "" : "-p " + sshPort + " ";
+            String sshCommand = target == null
+                    ? null
+                    : "ssh " + portOption + "-i " + clusterName + "-ssh.pem " + sshUser + "@" + target;
+            nodes.add(new SshKeyResult.NodeSshInfo(role, publicIp, privateIp, sshPort, sshCommand));
         }
         log.info("Issued SSH private key for cluster {} ({} nodes)", clusterName, nodes.size());
         return new SshKeyResult(clusterName, sshUser, pem, nodes);
@@ -141,5 +153,20 @@ public class VmClusterSshAccessServiceImpl implements VmClusterSshAccessService 
 
     private static String stringValue(Object value) {
         return value == null ? null : String.valueOf(value);
+    }
+
+    /** outputs 의 수치는 Integer, Long, Double, 문자열 중 하나로 도착. */
+    private static int intValue(Object value, int fallback) {
+        if (value instanceof Number n) {
+            return n.intValue();
+        }
+        if (value == null) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(String.valueOf(value).trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
     }
 }
