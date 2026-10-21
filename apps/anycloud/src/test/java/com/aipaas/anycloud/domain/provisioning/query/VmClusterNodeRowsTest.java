@@ -134,4 +134,22 @@ class VmClusterNodeRowsTest extends AbstractUnitTest {
         assertThat(summary.masterCount()).isEqualTo(2);
         assertThat(summary.masterPrivateIp()).isEqualTo("10.0.0.1");
     }
+
+    @Test
+    void natCluster_sharedPublicIp_keepsPerNodePortAndPrivateIp() {
+        /*
+         * NAT 뒤 클러스터는 전체 노드가 동일 공인 주소를 사용하고 포트로만 구분. 공인 IP 로는
+         * 노드 식별 불가하므로 콘솔은 사설 IP 로 지목하고 접속은 행의 sshPort 로 수행.
+         */
+        String nodes = "[{\"role\":\"master\",\"privateIp\":\"192.168.0.200\","
+                + "\"publicIp\":\"203.0.113.10\",\"sshPort\":2200},"
+                + "{\"role\":\"worker\",\"privateIp\":\"192.168.0.201\","
+                + "\"publicIp\":\"203.0.113.10\",\"sshPort\":2201}]";
+
+        List<VmClusterNodeRows.Row> rows = VmClusterNodeRows.of(MAPPER, cluster("{\"nodes\":" + nodes + "}"));
+
+        assertThat(rows).extracting(VmClusterNodeRows.Row::publicIp).containsOnly("203.0.113.10");
+        assertThat(rows).extracting(VmClusterNodeRows.Row::privateIp).containsExactly("192.168.0.200", "192.168.0.201");
+        assertThat(rows).extracting(VmClusterNodeRows.Row::sshPort).containsExactly(2200, 2201);
+    }
 }

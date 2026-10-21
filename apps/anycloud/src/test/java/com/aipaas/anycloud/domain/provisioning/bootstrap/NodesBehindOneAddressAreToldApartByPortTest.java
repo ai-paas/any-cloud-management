@@ -25,10 +25,10 @@ class NodesBehindOneAddressAreToldApartByPortTest extends AbstractUnitTest {
         return Map.of(
                 "nodes",
                 List.of(
-                        Map.of("role", "master", "publicIp", "220.78.15.185", "sshPort", 2200),
-                        Map.of("role", "worker", "publicIp", "220.78.15.185", "sshPort", 2201)),
+                        Map.of("role", "master", "publicIp", "203.0.113.10", "sshPort", 2200),
+                        Map.of("role", "worker", "publicIp", "203.0.113.10", "sshPort", 2201)),
                 "masterPublicIp",
-                "220.78.15.185");
+                "203.0.113.10");
     }
 
     @Test
