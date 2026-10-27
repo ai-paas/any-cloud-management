@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -120,6 +121,23 @@ class DestroyRunsEvenWithoutOutputsTest extends AbstractUnitTest {
         service.execute("rehearsal-02");
 
         verify(clusterAgentRepository).deleteByClusterName("rehearsal-02");
+    }
+
+    @Test
+    void aFailedAgentCleanupDoesNotUndoASuccessfulDestroy() {
+        /*
+         * 장부 정리는 CSP 자원과 cluster 등록을 지운 뒤에 온다. 여기서 예외를 올리면 실제로는
+         * 삭제가 끝났는데 단계가 FAILED 로 기록돼 상태가 어긋나고 재시도도 할 수 없다.
+         */
+        when(provisioningService.stackOutputs(eq(STACK), anyBoolean(), any())).thenReturn(Map.of());
+        doThrow(new IllegalStateException("No EntityManager with actual transaction available"))
+                .when(clusterAgentRepository)
+                .deleteByClusterName(anyString());
+
+        service.execute("rehearsal-02");
+
+        verify(provisioningService).destroy(eq(STACK), any());
+        verify(workflowSupportService).markDeleteCompleted(any());
     }
 
     @Test

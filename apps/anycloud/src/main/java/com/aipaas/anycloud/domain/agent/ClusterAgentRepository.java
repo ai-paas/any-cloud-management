@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public interface ClusterAgentRepository
@@ -35,9 +36,15 @@ public interface ClusterAgentRepository
      * Cluster 삭제 시 cascade cleanup: 동일 cluster_name 의 모든 agent row 정리.
      * Spring Data JPA derived delete (auto-implementation).
      *
+     * <p>파생 삭제 쿼리는 엔티티를 조회해 {@code remove} 를 호출하므로 트랜잭션이 필요하다.
+     * {@code SimpleJpaRepository.delete} 와 달리 자동으로 붙지 않아, 트랜잭션 없는 호출자에서
+     * "No EntityManager with actual transaction available" 로 실패한다. 이미 트랜잭션 안에서
+     * 부르는 호출자는 REQUIRED 로 그대로 합류.
+     *
      * @return 삭제된 row 수.
      */
     @Modifying
+    @Transactional
     long deleteByClusterName(String clusterName);
 
     /**

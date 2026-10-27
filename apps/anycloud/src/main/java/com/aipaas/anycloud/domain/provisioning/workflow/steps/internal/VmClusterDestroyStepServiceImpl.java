@@ -82,10 +82,7 @@ public class VmClusterDestroyStepServiceImpl implements VmClusterDestroyStepServ
              * stale 행이 cluster_name 으로 살아남아, 새 agent 가 하트비트를 시작하기 전까지
              * AgentHealthService 가 그 행을 primary 로 골라 DEGRADED 로 보고.
              */
-            long deletedAgents = clusterAgentRepository.deleteByClusterName(clusterName);
-            if (deletedAgents > 0) {
-                log.info("cluster {} destroy 로 agent 행 {}건 정리", clusterName, deletedAgents);
-            }
+            cleanupAgentRows(clusterName);
 
             // 스택은 하나지만 해당 이름의 DELETING 행은 전부 종료 처리.
             if (deleting.isEmpty()) {
@@ -98,6 +95,21 @@ public class VmClusterDestroyStepServiceImpl implements VmClusterDestroyStepServ
             throw new VmClusterStepExecutionException("DESTROY step failed for " + clusterName, e);
         }
     }
+    /**
+     * 장부 정리는 best-effort. 여기서 예외를 올리면 CSP 자원과 cluster 등록이 이미 지워진
+     * 뒤인데 단계가 FAILED 로 기록돼, 실제 상태와 어긋난 행이 남고 재시도도 할 수 없다.
+     */
+    private void cleanupAgentRows(String clusterName) {
+        try {
+            long deleted = clusterAgentRepository.deleteByClusterName(clusterName);
+            if (deleted > 0) {
+                log.info("cluster {} destroy 로 agent 행 {}건 정리", clusterName, deleted);
+            }
+        } catch (RuntimeException e) {
+            log.warn("cluster {} 의 agent 행 정리 실패 — 수동 정리 필요: {}", clusterName, e.toString());
+        }
+    }
+
     /**
      * CSP 실제 상태 조회. 확인 실패 시에도 삭제 진행. 차단 시 CSP 장애 상황에서 정리 수단 부재.
      */
