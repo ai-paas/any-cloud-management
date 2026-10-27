@@ -116,4 +116,64 @@ class AgentHealthServiceTest {
         assertThat(h.healthy()).isTrue();
         assertThat(h.lastSeenSecondsAgo()).isEqualTo(5L);
     }
+
+    @Test
+    void getHealth_aNewAgentWithoutHeartbeat_doesNotLoseToADeadRow() {
+        /*
+         * 재설치나 rotation 중에는 옛 행과 새 행이 공존한다. 새 agent 는 하트비트 전이라
+         * lastSeenAt 이 null 이고, 최신값만으로 고르면 nullsFirst 때문에 옛 행이 뽑혀
+         * 살아 있는 agent 를 두고 DEGRADED 로 보고된다.
+         */
+        AgentIdentity deadRow = new AgentIdentity(
+                "agent-old",
+                "c1",
+                "instance-0",
+                "hash",
+                AgentStatus.DEGRADED,
+                NOW.minusSeconds(600),
+                null,
+                null,
+                null,
+                null);
+        AgentIdentity freshRow = new AgentIdentity(
+                "agent-new", "c1", "instance-1", "hash", AgentStatus.ACTIVE, null, null, null, null, null);
+        when(store.findByClusterName("c1")).thenReturn(List.of(deadRow, freshRow));
+        when(registry.find("c1")).thenReturn(Optional.of(fakeSession()));
+
+        ClusterHealth h = svc.getHealth("c1");
+        assertThat(h.agentStatus()).isEqualTo("ACTIVE");
+    }
+
+    @Test
+    void getHealth_noActiveRow_stillReportsTheMostRecentOne() {
+        // 전부 내려간 상태에서는 마지막으로 살아 있던 행이 진단에 쓸모 있다.
+        AgentIdentity older = new AgentIdentity(
+                "agent-1",
+                "c1",
+                "instance-1",
+                "hash",
+                AgentStatus.DEGRADED,
+                NOW.minusSeconds(900),
+                null,
+                null,
+                null,
+                null);
+        AgentIdentity newer = new AgentIdentity(
+                "agent-2",
+                "c1",
+                "instance-2",
+                "hash",
+                AgentStatus.FAILED,
+                NOW.minusSeconds(120),
+                null,
+                null,
+                null,
+                null);
+        when(store.findByClusterName("c1")).thenReturn(List.of(older, newer));
+
+        ClusterHealth h = svc.getHealth("c1");
+        assertThat(h.healthy()).isFalse();
+        assertThat(h.agentStatus()).isEqualTo("FAILED");
+        assertThat(h.lastSeenSecondsAgo()).isEqualTo(120L);
+    }
 }

@@ -76,10 +76,7 @@ public class AgentHealthService {
             return ClusterHealth.noAgent(clusterName);
         }
 
-        // HA: 같은 cluster 여러 agent instance 가능: last_seen_at 가장 최신을 primary 로 선택.
-        AgentIdentity primary = agents.stream()
-                .max(Comparator.comparing(AgentIdentity::lastSeenAt, Comparator.nullsFirst(Comparator.naturalOrder())))
-                .orElse(agents.get(0));
+        AgentIdentity primary = selectPrimary(agents);
 
         boolean streamActive = sessionRegistry.find(clusterName).isPresent();
         Instant now = clock.instant();
@@ -100,6 +97,26 @@ public class AgentHealthService {
                 primary.lastSeenAt(),
                 primary.lastK8sApiOkAt(),
                 secondsAgo);
+    }
+
+    /**
+     * HA: 같은 cluster 에 agent instance 가 여럿일 수 있어 하나를 골라 보고.
+     *
+     * <p>ACTIVE 가 하나라도 있으면 그중에서 고른다. 재설치나 identity rotation 중에는 옛 행과
+     * 새 행이 공존하는데, 새 agent 가 하트비트를 시작하기 전에는 {@code lastSeenAt} 이 null 이라
+     * 최신값만으로 고르면 {@code nullsFirst} 때문에 옛 행이 뽑힌다. 그 행이 DEGRADED 면 살아 있는
+     * agent 를 두고 클러스터가 비정상으로 보고된다.
+     *
+     * <p>ACTIVE 가 없으면 기존대로 최신 {@code lastSeenAt} 을 쓴다. 전부 내려간 상태에서는
+     * 마지막으로 살아 있던 행이 진단에 가장 쓸모 있다.
+     */
+    private static AgentIdentity selectPrimary(List<AgentIdentity> agents) {
+        Comparator<AgentIdentity> byLastSeen =
+                Comparator.comparing(AgentIdentity::lastSeenAt, Comparator.nullsFirst(Comparator.naturalOrder()));
+        return agents.stream()
+                .filter(a -> a.status() == AgentStatus.ACTIVE)
+                .max(byLastSeen)
+                .orElseGet(() -> agents.stream().max(byLastSeen).orElse(agents.get(0)));
     }
 
     private String buildSummary(AgentIdentity agent, boolean streamActive, boolean heartbeatFresh, Long secondsAgo) {
