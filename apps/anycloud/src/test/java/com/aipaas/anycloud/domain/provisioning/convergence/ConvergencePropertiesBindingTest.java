@@ -42,24 +42,17 @@ class ConvergencePropertiesBindingTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void verifyBudgetIsBounded() {
+    void verifyBudgetStaysShort() {
         /*
-         * 상한이 있다는 사실이 이 테스트의 요점이다. 횟수가 아니라 총 예산을 지킨다.
-         *
-         * 2분이던 상한은 애드온 설치를 못 기다렸다. kube-prometheus-stack 이 준비되기까지
-         * 4~6분이 걸려 7종 동시 생성에서 전부 DEGRADED 를 거친 뒤 조정 루프가 뒤늦게 READY 로
-         * 올렸고, 정상 생성이 화면에서 고장으로 보였다.
-         *
-         * 점유 대상은 AMQP consumer 가 아니라 bootstrap 풀 스레드다(listener 가 받아 풀로 넘긴다).
-         * 그 풀은 한 단계가 최대 170분 점유하는 것을 전제로 잡혀 있어(AsyncProperties) 10분은
-         * 새로운 위험이 아니다. 수렴 루프는 SATISFIED 즉시 반환하므로 정상 클러스터는 상한과
-         * 무관하다.
+         * 예산을 올리면 READY 도달이 느려진다. 이 루프는 관측만 하고, 수렴을 전진시키는
+         * orchestrator.driveOne 은 DEGRADED 전이 뒤 ClusterDegradedNudge 에서 호출되기 때문이다.
+         * 실측(7종 동시 생성): 2분이면 전원 READY 까지 8분 31초, 10분으로 올리면 15분 44초.
          */
-        assertThat(verifyMaxAttempts).isEqualTo(20);
+        assertThat(verifyMaxAttempts).isEqualTo(5);
         assertThat(verifyInterval).isEqualTo(java.time.Duration.ofSeconds(30));
         assertThat(verifyInterval.multipliedBy(verifyMaxAttempts - 1))
-                .as("VERIFY 가 bootstrap 풀 스레드를 10분 넘게 잡는다")
-                .isLessThanOrEqualTo(java.time.Duration.ofMinutes(10));
+                .as("예산을 늘리면 DEGRADED 전이가 늦어져 수렴 구동도 그만큼 늦어진다")
+                .isLessThanOrEqualTo(java.time.Duration.ofMinutes(2));
     }
 
     @Test
