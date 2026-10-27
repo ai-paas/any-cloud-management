@@ -143,6 +143,7 @@ services:
   anycloud-backend:
     image: ${ANYCLOUD_BACKEND_IMAGE:-ghcr.io/ai-paas/anycloud-backend}:${ANYCLOUD_BACKEND_IMAGE_TAG:-latest}
     container_name: anycloud-backend
+    restart: unless-stopped
     ports:
       - "8888:8888"   # REST + Swagger
       - "9090:9090"   # gRPC inbound (agents)
@@ -166,7 +167,13 @@ services:
     environment:
       APP_ROLE: backend
       SPRING_PROFILES_ACTIVE: docker
-      JAVA_OPTS: ${JAVA_OPTS:--XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp}
+      # Pulumi 는 작업 1건마다 CLI, 언어 호스트, 프로바이더 플러그인을 별도 프로세스로
+      # 띄운다. 힙 밖이라 MaxRAMPercentage 로 제어되지 않고 cgroup 한도를 함께 쓴다.
+      # 75 로 두면 4G 중 3G 를 힙이 선점해 자식 프로세스 몫이 1G 뿐이고, 동시 생성 시
+      # 커널이 컨테이너를 SIGKILL 한다(실측: 동시 5건에 자식 프로세스 23개 3.8GiB).
+      JAVA_OPTS: ${JAVA_OPTS:--XX:MaxRAMPercentage=25 -XX:+ExitOnOutOfMemoryError -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp}
+      # 동시 Pulumi 실행 상한. 1건당 약 735MiB 소요. 아래 memory 한도와 함께 조정한다.
+      PULUMI_MAX_CONCURRENT: ${PULUMI_MAX_CONCURRENT:-7}
       # --- Service wiring (compose-only) ---
       DATABASE_HOST: mariadb
       DATABASE_NAME: anycloud
@@ -208,7 +215,9 @@ services:
       - pulumi-runtime:/app/runtime
     deploy:
       resources:
-        limits: { memory: 4G, cpus: '2.0' }
+        # 상한은 예약이 아니라 천장. 실제 사용은 PULUMI_MAX_CONCURRENT 가 정한다.
+        # 동시 7건 기준 Pulumi 약 5.1GiB + JVM. 좁히면 동시 수도 함께 낮춰야 한다.
+        limits: { memory: 9G, cpus: '2.0' }
         reservations: { memory: 2G, cpus: '1.0' }
 
   # --- Worker (pull from Docker Hub, same image, APP_ROLE=worker) -----------
