@@ -1,5 +1,6 @@
 package com.aipaas.anycloud.domain.provisioning.workflow.steps.internal;
 
+import com.aipaas.anycloud.domain.agent.ClusterAgentRepository;
 import com.aipaas.anycloud.domain.cluster.ClusterEntity;
 import com.aipaas.anycloud.domain.cluster.ClusterRepository;
 import com.aipaas.anycloud.domain.credential.CspCredentialService;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Service;
 public class VmClusterDestroyStepServiceImpl implements VmClusterDestroyStepService {
 
     private final ClusterRepository clusterRepository;
+    private final ClusterAgentRepository clusterAgentRepository;
     private final VmClusterRepository vmClusterRepository;
     private final CspCredentialService cspCredentialService;
     private final ProvisioningService provisioningService;
@@ -72,6 +74,18 @@ public class VmClusterDestroyStepServiceImpl implements VmClusterDestroyStepServ
 
             Optional<ClusterEntity> cluster = clusterRepository.findById(clusterName);
             cluster.ifPresent(clusterRepository::delete);
+
+            /*
+             * cluster_agent 행도 같이 정리. DB 에 FK 가 없어 application 에서 수행.
+             * ClusterServiceImpl.deleteCluster 가 같은 정리를 하지만 VM 기반 클러스터를
+             * 거부하므로 이 경로에서는 도달하지 않음. 안 지우면 같은 이름으로 재생성할 때
+             * stale 행이 cluster_name 으로 살아남아, 새 agent 가 하트비트를 시작하기 전까지
+             * AgentHealthService 가 그 행을 primary 로 골라 DEGRADED 로 보고.
+             */
+            long deletedAgents = clusterAgentRepository.deleteByClusterName(clusterName);
+            if (deletedAgents > 0) {
+                log.info("cluster {} destroy 로 agent 행 {}건 정리", clusterName, deletedAgents);
+            }
 
             // 스택은 하나지만 해당 이름의 DELETING 행은 전부 종료 처리.
             if (deleting.isEmpty()) {

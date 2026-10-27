@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.aipaas.anycloud.domain.agent.ClusterAgentRepository;
 import com.aipaas.anycloud.domain.cluster.ClusterRepository;
 import com.aipaas.anycloud.domain.credential.CspCredentialService;
 import com.aipaas.anycloud.domain.provisioning.VmClusterEntity;
@@ -41,6 +42,9 @@ class DestroyRunsEvenWithoutOutputsTest extends AbstractUnitTest {
     ClusterRepository clusterRepository;
 
     @Mock
+    ClusterAgentRepository clusterAgentRepository;
+
+    @Mock
     VmClusterRepository vmClusterRepository;
 
     @Mock
@@ -60,6 +64,7 @@ class DestroyRunsEvenWithoutOutputsTest extends AbstractUnitTest {
     void setUp() {
         service = new VmClusterDestroyStepServiceImpl(
                 clusterRepository,
+                clusterAgentRepository,
                 vmClusterRepository,
                 cspCredentialService,
                 provisioningService,
@@ -101,6 +106,20 @@ class DestroyRunsEvenWithoutOutputsTest extends AbstractUnitTest {
         service.execute("rehearsal-02");
 
         verify(provisioningService).destroy(eq(STACK), any());
+    }
+
+    @Test
+    void agentRowsAreRemovedSoAReusedNameDoesNotInheritADeadAgent() {
+        /*
+         * ClusterServiceImpl.deleteCluster 가 같은 정리를 하지만 VM 기반 클러스터를 거부해
+         * 이 경로에서는 도달하지 않았다. 남은 행은 같은 이름으로 재생성할 때 cluster_name 으로
+         * 살아남아, 새 agent 가 하트비트를 시작하기 전까지 primary 로 뽑혀 DEGRADED 로 보고됐다.
+         */
+        when(provisioningService.stackOutputs(eq(STACK), anyBoolean(), any())).thenReturn(Map.of());
+
+        service.execute("rehearsal-02");
+
+        verify(clusterAgentRepository).deleteByClusterName("rehearsal-02");
     }
 
     @Test
