@@ -42,14 +42,24 @@ class ConvergencePropertiesBindingTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void verifyBudgetStaysShort() {
-        // consumer 스레드 점유 상한이 이 값의 존재 이유다. 횟수가 아니라 총 예산을 지킨다.
-        // 5회 x 30초 = 2분으로, 1분 간격 3회와 같은 시간에 해상도만 두 배다.
-        assertThat(verifyMaxAttempts).isEqualTo(5);
+    void verifyBudgetIsBounded() {
+        /*
+         * 상한이 있다는 사실이 이 테스트의 요점이다. 횟수가 아니라 총 예산을 지킨다.
+         *
+         * 2분이던 상한은 애드온 설치를 못 기다렸다. kube-prometheus-stack 이 준비되기까지
+         * 4~6분이 걸려 7종 동시 생성에서 전부 DEGRADED 를 거친 뒤 조정 루프가 뒤늦게 READY 로
+         * 올렸고, 정상 생성이 화면에서 고장으로 보였다.
+         *
+         * 점유 대상은 AMQP consumer 가 아니라 bootstrap 풀 스레드다(listener 가 받아 풀로 넘긴다).
+         * 그 풀은 한 단계가 최대 170분 점유하는 것을 전제로 잡혀 있어(AsyncProperties) 10분은
+         * 새로운 위험이 아니다. 수렴 루프는 SATISFIED 즉시 반환하므로 정상 클러스터는 상한과
+         * 무관하다.
+         */
+        assertThat(verifyMaxAttempts).isEqualTo(20);
         assertThat(verifyInterval).isEqualTo(java.time.Duration.ofSeconds(30));
         assertThat(verifyInterval.multipliedBy(verifyMaxAttempts - 1))
-                .as("VERIFY 가 consumer 스레드를 2분 넘게 잡는다")
-                .isLessThanOrEqualTo(java.time.Duration.ofMinutes(2));
+                .as("VERIFY 가 bootstrap 풀 스레드를 10분 넘게 잡는다")
+                .isLessThanOrEqualTo(java.time.Duration.ofMinutes(10));
     }
 
     @Test

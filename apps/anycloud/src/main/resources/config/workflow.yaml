@@ -163,10 +163,18 @@ anycloud:
     convergence:
       interval-ms: ${ANYCLOUD_VM_CLUSTER_CONVERGENCE_INTERVAL_MS:300000}
       initial-delay-ms: ${ANYCLOUD_VM_CLUSTER_CONVERGENCE_INITIAL_DELAY_MS:60000}
-      # VERIFY 안에서 도는 수렴 루프의 상한. RabbitMQ consumer 스레드 위에서 실행되므로
-      # 오래 붙잡으면 consumer 하나가 통째로 묶인다. 총 예산은 그대로 두고 간격만 줄인다 —
-      # 1분 간격이면 40초에 준비돼도 1분을 채운다. 5회 x 30초 = 최대 2분.
-      verify-max-attempts: ${ANYCLOUD_VM_CLUSTER_CONVERGENCE_VERIFY_MAX_ATTEMPTS:5}
+      # VERIFY 안에서 도는 수렴 루프의 상한. 20회 x 30초 = 최대 10분.
+      #
+      # 루프는 SATISFIED 즉시 반환하므로 빨리 끝나는 클러스터는 상한을 올려도 대기가 늘지
+      # 않는다. 늘어나는 것은 끝내 수렴하지 못하는 클러스터가 RabbitMQ consumer 스레드를
+      # 붙잡는 시간뿐이고, bootstrap 풀이 core 16 이라 동시 생성 수가 그보다 적으면 여유가 있다.
+      #
+      # 2분이던 상한은 애드온 설치를 못 기다렸다. kube-prometheus-stack 이 준비되기까지
+      # 4~6분이 걸려 7종 동시 생성에서 전부 DEGRADED 를 거친 뒤 조정 루프가 뒤늦게 READY 로
+      # 올렸다. 실제로는 정상인데 화면에는 고장으로 보인다.
+      #
+      # 간격은 유지한다. 1분 간격이면 40초에 준비돼도 1분을 채운다.
+      verify-max-attempts: ${ANYCLOUD_VM_CLUSTER_CONVERGENCE_VERIFY_MAX_ATTEMPTS:20}
       verify-interval: ${ANYCLOUD_VM_CLUSTER_CONVERGENCE_VERIFY_INTERVAL:PT30S}
       # DEGRADED 로 떨어진 뒤 재확인까지의 지연. 정기 주기(interval-ms)를 통째로 기다리는 것을 막는다.
       degraded-recheck-delay: ${ANYCLOUD_VM_CLUSTER_CONVERGENCE_DEGRADED_RECHECK_DELAY:PT30S}
