@@ -1,5 +1,6 @@
 package com.aipaas.anycloud.domain.vmoptions.providers;
 
+import com.aipaas.anycloud.domain.vmoptions.CpuArchitecture;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionImage;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionProvider;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionRegion;
@@ -46,7 +47,7 @@ public abstract class CuratedVmOptionsProvider extends AbstractVmOptionsProvider
                 .filter(image -> matchesRegion(image.getRegion(), region))
                 .filter(image ->
                         matchesKeyword(image.getName(), keyword) || matchesKeyword(image.getOsVersion(), keyword))
-                .filter(image -> matchesExactOrBlank(image.getArchitecture(), architecture))
+                .filter(image -> CpuArchitecture.matches(architecture, image.getArchitecture()))
                 .filter(image -> matchesExactOrBlank(image.getOwner(), owner))
                 .limit(limit)
                 .toList();

@@ -35,6 +35,10 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
 
     private static final String OS_IMAGE_KEY = CONFIG_PREFIX + "osImage";
 
+    /** 이미지 이름에 나타나는 비x86 아키텍처 표기. 하나라도 포함되면 기본값 후보에서 제외. */
+    private static final java.util.List<String> NON_X86_MARKERS =
+            java.util.List.of("arm", "aarch64", "s390x", "ppc64", "riscv");
+
     /** 스펙 목록 전수 조회 불필요. 하위 사양부터 일부만 조회. */
     private static final int SPEC_SCAN_LIMIT = 100;
 
@@ -421,24 +425,26 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
                 .map(ConfigOption::value)
                 .findFirst()
                 .orElseGet(() -> options.stream()
-                        .filter(option -> !isArmImage(option.label()))
+                        .filter(option -> !isNonX86Image(option.label()))
                         .map(ConfigOption::value)
                         .findFirst()
                         .orElseGet(() -> options.get(0).value()));
     }
 
     /**
-     * 기본 인스턴스 타입은 x86. ARM 이미지를 지정하면 부팅 실패.
+     * 기본 인스턴스 타입은 x86. 다른 아키텍처 이미지를 지정하면 생성 단계에서 거절된다.
      *
      * <p>OCI 는 이름에 {@code aarch64} 사용. {@code arm} 만 검사하면 걸러지지 않아 x86 shape 에
-     * aarch64 이미지가 기본값으로 지정된 사례 있음.
+     * aarch64 이미지가 기본값으로 지정된 사례 있음. IBM 은 s390x 판을 함께 제공하는데
+     * {@code ibm-ubuntu-24-04-4-minimal-s390x-2} 가 amd64 판보다 이름순으로 앞서 기본값이 되어
+     * "Image OS architecture s390x is not supported" 로 실패.
      */
-    private boolean isArmImage(String label) {
+    private boolean isNonX86Image(String label) {
         if (!StringUtils.hasText(label)) {
             return false;
         }
         String normalized = label.toLowerCase(java.util.Locale.ROOT);
-        return normalized.contains("arm") || normalized.contains("aarch64");
+        return NON_X86_MARKERS.stream().anyMatch(normalized::contains);
     }
 
     /** {@code ubuntu-24.04}, {@code ubuntu_24_04}, {@code Ubuntu-24.04} 를 동일 값으로 처리. */
@@ -448,7 +454,7 @@ public class ProvisioningDefaultsServiceImpl implements ProvisioningDefaultsServ
         }
         String normalized =
                 label.toLowerCase(java.util.Locale.ROOT).replace('_', '-').replace('.', '-');
-        return normalized.contains("ubuntu") && normalized.contains("24-04") && !isArmImage(label);
+        return normalized.contains("ubuntu") && normalized.contains("24-04") && !isNonX86Image(label);
     }
 
     /**

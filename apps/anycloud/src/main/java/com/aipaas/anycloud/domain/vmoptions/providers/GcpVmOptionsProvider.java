@@ -3,6 +3,7 @@ package com.aipaas.anycloud.domain.vmoptions.providers;
 import com.aipaas.anycloud.common.error.enums.ErrorCode;
 import com.aipaas.anycloud.common.error.exception.CustomException;
 import com.aipaas.anycloud.domain.provisioning.model.SupportedProvisioningProvider;
+import com.aipaas.anycloud.domain.vmoptions.CpuArchitecture;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionImage;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionProvider;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionRegion;
@@ -131,9 +132,7 @@ public class GcpVmOptionsProvider extends AbstractVmOptionsProvider {
                 if (!matchesKeyword(image.name(), keyword)) {
                     continue;
                 }
-                if (StringUtils.hasText(architecture)
-                        && !architecture.equalsIgnoreCase(
-                                Optional.ofNullable(image.architecture()).orElse(""))) {
+                if (!CpuArchitecture.matches(architecture, image.architecture())) {
                     continue;
                 }
                 if (image.deprecated() != null && !image.deprecated().isNull()) {

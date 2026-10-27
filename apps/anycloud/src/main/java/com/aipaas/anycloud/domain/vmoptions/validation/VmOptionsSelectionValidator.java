@@ -2,6 +2,7 @@ package com.aipaas.anycloud.domain.vmoptions.validation;
 
 import com.aipaas.anycloud.common.error.enums.ErrorCode;
 import com.aipaas.anycloud.common.error.exception.CustomException;
+import com.aipaas.anycloud.domain.vmoptions.CpuArchitecture;
 import com.aipaas.anycloud.domain.vmoptions.VmOptionsService;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionImage;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionSpec;
@@ -42,16 +43,26 @@ public class VmOptionsSelectionValidator {
              */
             return;
         }
-        validateSpec(
+        VmOptionSpec masterSpec = validateSpec(
                 provider, credentialId, region, config.get("anycloud-k8s:masterInstanceType"), "masterInstanceType");
-        validateSpec(
+        VmOptionSpec workerSpec = validateSpec(
                 provider, credentialId, region, config.get("anycloud-k8s:workerInstanceType"), "workerInstanceType");
 
         /*
          * 이미지 식별자는 리전별 상이, 주기적 교체. 존재하지 않는 값 전달 시 CSP 별로 다른
          * 방식으로 실패. IBM 은 pulumi-yaml 패닉으로 Go 스택 노출.
          */
-        validateImage(provider, credentialId, region, config.get("anycloud-k8s:osImage"), "osImage");
+        VmOptionImage osImage =
+                validateImage(provider, credentialId, region, config.get("anycloud-k8s:osImage"), "osImage");
+
+        /*
+         * 인스턴스 타입과 이미지는 각각 실재해도 아키텍처가 어긋나면 조합이 불가. IBM 은
+         * bx2-2x8 (amd64) 에 s390x 이미지를 지정해도 두 값 모두 목록에 있어 통과하고,
+         * VPC 와 서브넷 생성 뒤 인스턴스 단계에서 "Image OS architecture s390x is not
+         * supported" 로 실패. 자원 생성 전에 차단.
+         */
+        requireSameArchitecture(masterSpec, osImage, "masterInstanceType");
+        requireSameArchitecture(workerSpec, osImage, "workerInstanceType");
 
         /*
          * 리전 제공 여부와 존별 제공 여부는 별개. a2-highgpu-1g 는 asia-northeast3 에 있으나
@@ -75,18 +86,19 @@ public class VmOptionsSelectionValidator {
                 "workerInstanceType");
 
         if ("OpenStack".equalsIgnoreCase(provider)) {
-            validateImage(
+            VmOptionImage providerImage = validateImage(
                     provider,
                     credentialId,
                     region,
                     config.get("anycloud-k8s:providerSpec.imageName"),
                     "providerSpec.imageName");
-            validateSpec(
+            VmOptionSpec flavor = validateSpec(
                     provider,
                     credentialId,
                     region,
                     config.get("anycloud-k8s:providerSpec.flavorName"),
                     "providerSpec.flavorName");
+            requireSameArchitecture(flavor, providerImage, "providerSpec.flavorName");
         }
     }
 
@@ -106,9 +118,11 @@ public class VmOptionsSelectionValidator {
                         + (StringUtils.hasText(zone) ? zone : region + " 의 기본 존"));
     }
 
-    private void validateSpec(String provider, String credentialId, String region, String value, String fieldName) {
+    /** @return 목록에서 찾은 spec. 검사를 건너뛴 경우 null 이고 아키텍처 대조 대상에서 제외. */
+    private VmOptionSpec validateSpec(
+            String provider, String credentialId, String region, String value, String fieldName) {
         if (!StringUtils.hasText(value) || !StringUtils.hasText(region)) {
-            return;
+            return null;
         }
         List<VmOptionSpec> candidates = vmOptionsService.getSpecs(provider, credentialId, region, value, false, 200);
         if (candidates.isEmpty()) {
@@ -122,31 +136,40 @@ public class VmOptionsSelectionValidator {
                     provider,
                     region,
                     value);
-            return;
+            return null;
         }
-        boolean exists = candidates.stream().anyMatch(item -> value.equalsIgnoreCase(item.getName()));
-        if (!exists) {
+        VmOptionSpec matched = candidates.stream()
+                .filter(item -> value.equalsIgnoreCase(item.getName()))
+                .findFirst()
+                .orElse(null);
+        if (matched == null) {
             throw new CustomException(
                     ErrorCode.INVALID_INPUT_VALUE,
                     fieldName,
                     value,
                     "Selected VM spec was not found for region " + region);
         }
+        return matched;
     }
 
-    private void validateImage(String provider, String credentialId, String region, String value, String fieldName) {
+    /** @return 목록에서 찾은 image. 검사를 건너뛴 경우 null 이고 아키텍처 대조 대상에서 제외. */
+    private VmOptionImage validateImage(
+            String provider, String credentialId, String region, String value, String fieldName) {
         if (!StringUtils.hasText(value) || !StringUtils.hasText(region)) {
-            return;
+            return null;
         }
-        if (containsImage(vmOptionsService.getImages(provider, credentialId, region, value, null, null, 200), value)) {
-            return;
+        VmOptionImage matched =
+                findImage(vmOptionsService.getImages(provider, credentialId, region, value, null, null, 200), value);
+        if (matched != null) {
+            return matched;
         }
         /*
          * 키워드 검색은 이름만 대상. 화면이 선택한 값은 식별자라 OCI 의 OCID 처럼 이름과 다른
          * 형식이면 식별자를 키워드로 검색해 존재하지 않는 이미지로 판정됨.
          */
-        if (containsImage(vmOptionsService.getImages(provider, credentialId, region, null, null, null, 200), value)) {
-            return;
+        matched = findImage(vmOptionsService.getImages(provider, credentialId, region, null, null, null, 200), value);
+        if (matched != null) {
+            return matched;
         }
         /*
          * 키워드 조회 결과가 비었다는 이유로 CSP 장애로 단정하면 존재하지 않는 이미지가 통과함.
@@ -161,7 +184,7 @@ public class VmOptionsSelectionValidator {
                     provider,
                     region,
                     value);
-            return;
+            return null;
         }
         throw new CustomException(
                 ErrorCode.INVALID_INPUT_VALUE,
@@ -170,8 +193,32 @@ public class VmOptionsSelectionValidator {
                 "Selected OS image was not found for region " + region);
     }
 
-    private boolean containsImage(List<VmOptionImage> candidates, String value) {
+    private VmOptionImage findImage(List<VmOptionImage> candidates, String value) {
         return candidates.stream()
-                .anyMatch(item -> value.equalsIgnoreCase(item.getName()) || value.equalsIgnoreCase(item.getId()));
+                .filter(item -> value.equalsIgnoreCase(item.getName()) || value.equalsIgnoreCase(item.getId()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * spec 과 image 의 CPU 아키텍처 대조.
+     *
+     * <p>한쪽이라도 아키텍처를 제공하지 않거나 {@link CpuArchitecture} 가 모르는 표기면
+     * 통과. 아키텍처를 채우지 않는 provider 에서 정상 조합이 차단되는 것을 막기 위함이고,
+     * 조회 실패 시 Pulumi 에 위임하는 본 클래스의 다른 분기와 같은 방침.
+     */
+    private void requireSameArchitecture(VmOptionSpec spec, VmOptionImage image, String fieldName) {
+        if (spec == null || image == null) {
+            return;
+        }
+        if (CpuArchitecture.matches(spec.getArchitecture(), image.getArchitecture())) {
+            return;
+        }
+        throw new CustomException(
+                ErrorCode.INVALID_INPUT_VALUE,
+                fieldName,
+                spec.getName(),
+                "Selected VM spec (" + spec.getArchitecture() + ") and OS image " + image.getName() + " ("
+                        + image.getArchitecture() + ") have different CPU architectures");
     }
 }
