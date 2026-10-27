@@ -3,6 +3,7 @@ package com.aipaas.anycloud.domain.vmoptions.providers;
 import com.aipaas.anycloud.common.error.enums.ErrorCode;
 import com.aipaas.anycloud.common.error.exception.CustomException;
 import com.aipaas.anycloud.domain.provisioning.model.SupportedProvisioningProvider;
+import com.aipaas.anycloud.domain.vmoptions.CpuArchitecture;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionImage;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionProvider;
 import com.aipaas.anycloud.domain.vmoptions.api.VmOptionRegion;
@@ -153,7 +154,7 @@ public class IbmVmOptionsProvider extends AbstractVmOptionsProvider {
                     String imageArchitecture = image.operatingSystem() == null
                             ? null
                             : image.operatingSystem().architecture();
-                    if (StringUtils.hasText(architecture) && !architecture.equalsIgnoreCase(imageArchitecture)) {
+                    if (!CpuArchitecture.matches(architecture, imageArchitecture)) {
                         continue;
                     }
                     String vendor = image.operatingSystem() == null

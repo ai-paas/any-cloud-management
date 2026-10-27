@@ -127,6 +127,29 @@ class ProvisioningDefaultsPickSaneValuesTest extends AbstractUnitTest {
     }
 
     @Test
+    void anS390xImageIsNotChosenForAnX86Instance() {
+        /*
+         * IBM 은 같은 Ubuntu 를 amd64 와 s390x 로 함께 제공하고 s390x 판이 이름순으로 앞선다.
+         * 거름망이 arm 과 aarch64 만 보던 동안 s390x 가 기본값이 되어 생성 단계에서
+         * "Image OS architecture s390x is not supported" 로 실패했다.
+         */
+        when(vmOptionsService.getSpecs(anyString(), anyString(), anyString(), any(), anyBoolean(), anyInt()))
+                .thenReturn(List.of(spec("id-1", "bx2-2x8", 2, 8.0)));
+        when(vmOptionsService.getConfigSchema(anyString(), anyString(), anyString()))
+                .thenReturn(List.of(ProviderConfigKey.builder()
+                        .key("anycloud-k8s:osImage")
+                        .required(true)
+                        .allowedOptions(List.of(
+                                new ConfigOption(
+                                        "ibm-ubuntu-24-04-4-minimal-s390x-2", "ibm-ubuntu-24-04-4-minimal-s390x-2"),
+                                new ConfigOption(
+                                        "ibm-ubuntu-24-04-5-minimal-amd64-1", "ibm-ubuntu-24-04-5-minimal-amd64-1")))
+                        .build()));
+
+        assertThat(openstack().osImage()).isEqualTo("ibm-ubuntu-24-04-5-minimal-amd64-1");
+    }
+
+    @Test
     void tooSmallInstancesAreNotOffered() {
         /*
          * kubeadm preflight 생략 설정이라 1vCPU 2GB 로도 생성은 성공. 이후 control-plane

@@ -5,6 +5,7 @@ import com.aipaas.anycloud.common.error.exception.CustomException;
 import com.aipaas.anycloud.domain.credential.CspCredentialRepository;
 import com.aipaas.anycloud.domain.credential.CspCredentialService;
 import com.aipaas.anycloud.domain.provisioning.model.SupportedProvisioningProvider;
+import com.aipaas.anycloud.domain.vmoptions.CpuArchitecture;
 import com.aipaas.anycloud.domain.vmoptions.ProviderConfigSchemaService;
 import com.aipaas.anycloud.domain.vmoptions.VmOptionsProperties;
 import com.aipaas.anycloud.domain.vmoptions.VmOptionsProvider;
@@ -196,15 +197,12 @@ public class VmOptionsQueryServiceImpl implements com.aipaas.anycloud.domain.vmo
                 .toList();
     }
 
+    /**
+     * 표기 통일은 provider 의 비교 시점에 {@link CpuArchitecture} 가 수행. 여기서 한쪽
+     * 표기로 바꿔 넘기면 다른 표기를 쓰는 CSP 에서 전부 불일치로 걸러진다.
+     */
     private String normalizeArchitecture(String architecture) {
-        if (architecture == null || architecture.isBlank()) {
-            return architecture;
-        }
-        return switch (architecture.trim().toLowerCase()) {
-            case "amd64", "x64", "x86-64" -> "x86_64";
-            case "arm", "aarch64" -> "arm64";
-            default -> architecture.trim();
-        };
+        return architecture == null || architecture.isBlank() ? architecture : architecture.trim();
     }
 
     private String normalizeOwner(String owner) {
