@@ -123,7 +123,7 @@ dependencies {
     implementation 'org.flywaydb:flyway-mysql'
     implementation 'org.springframework.boot:spring-boot-starter-cache'
     implementation "com.github.ben-manes.caffeine:caffeine"
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.9.1'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.10.0'
     implementation 'org.mariadb.jdbc:mariadb-java-client'
     implementation 'org.modelmapper:modelmapper:3.2.7'
     // MapStruct 도입. ModelMapper / static mapper 와 점진 마이그레이션.
